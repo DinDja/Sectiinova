@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/usuarios/$(request.auth.uid);
+    }
+
+    function userExists() {
+      return isSignedIn() && exists(userDocPath());
+    }
+
+    function userData() {
+      return get(userDocPath()).data;
+    }
+
+    function isMentor() {
+      return userExists() && (userData().perfil == 'orientador' || userData().perfil == 'coorientador');
+    }
+
+    function isMyClub(clubeId) {
+      return userExists() && userData().clube_id == clubeId;
+    }
+
+    function projectBelongsToClub(projectId, clubeId) {
+      return exists(/databases/$(database)/documents/projetos/$(projectId))
+        && get(/databases/$(database)/documents/projetos/$(projectId)).data.clube_id == clubeId;
+    }
+
+    match /clubes_ciencia/{clubeId} {
+      allow read: if true;
+      allow create, update, delete: if belongsToClub(clubeId);
+    }
+
+    match /diario_bordo/{entryId} {
+      allow read: if true;
+
+      allow create: if (isMentor() || isMyClub(request.resource.data.clube_id))
+        && request.resource.data.clube_id is string
+        && request.resource.data.projeto_id is string
+        && projectBelongsToClub(request.resource.data.projeto_id, request.resource.data.clube_id);
+
+      allow update: if (isMentor() || isMyClub(resource.data.clube_id))
+        && resource.data.clube_id is string
+        && resource.data.projeto_id is string
+        && request.resource.data.clube_id == resource.data.clube_id
+        && request.resource.data.projeto_id == resource.data.projeto_id
+        && projectBelongsToClub(resource.data.projeto_id, resource.data.clube_id);
+
+      allow delete: if (isMentor() || isMyClub(resource.data.clube_id))
+        && resource.data.clube_id is string
+        && resource.data.projeto_id is string
+        && projectBelongsToClub(resource.data.projeto_id, resource.data.clube_id);
+    }
+
+    match /projetos/{projectId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if true;
+      // Permite que cada usuário gerencie seu próprio documento de perfil.
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /unidades_escolares/{schoolId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
