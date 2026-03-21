@@ -4,7 +4,7 @@ import {
     CheckCircle, Plus, AlertCircle, Calendar, Clock,
     Target, Lightbulb, Wrench, ArrowRight, Users,
     School, FolderKanban, Microscope, LoaderCircle, Database,
-    Heart, MessageCircle, ExternalLink
+    Heart, MessageCircle, ExternalLink, Mail, Lock
 } from 'lucide-react';
 import {
     addDoc,
@@ -83,6 +83,11 @@ function buildSchoolGroups(dataset) {
                     };
                 })
                 .filter(Boolean)
+                // Remove duplicate units by escola_id while preserving first occurrence
+                .reduce((acc, unit) => {
+                    if (!acc.find((u) => u.escola_id === unit.escola_id)) acc.push(unit);
+                    return acc;
+                }, [])
                 .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
             return {
@@ -355,7 +360,6 @@ export default function App() {
         return haystack.includes(searchTerm.toLowerCase());
     });
 
-    // Mantemos a lógica do clube/projeto selecionado apenas para o Diário de Bordo
     const selectedClub = clubs.find((club) => String(club.id) === String(selectedClubId)) ?? null;
     const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
     const selectedSchool = schools.find((school) => school.id === selectedClub?.escola_id) ?? null;
@@ -375,7 +379,6 @@ export default function App() {
     const isUserClubMember = loggedUser && String(loggedUser.clube_id || '') === String(currentClubId);
     const canEditDiary = Boolean(selectedProject && (isUserMentor || isUserClubMember));
 
-    // Dados derivados para a View do Clube de Ciências
     const viewingClub = clubs.find((c) => c.id === viewingClubId) ?? null;
     const viewingClubSchool = schools.find((s) => s.id === viewingClub?.escola_id) ?? null;
     const viewingClubProjects = viewingClubId ? clubProjects : [];
@@ -620,114 +623,173 @@ export default function App() {
         );
     }
 
-    if (!authUser || !loggedUser) {
-        return (
-            <div className="min-h-screen bg-[#F4F6F8] px-4 py-10 text-[#4A4A4A]">
-                <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                    <div className="bg-gradient-to-r from-[#00B5B5] to-[#004B8D] px-8 py-7 text-white">
-                        <h1 className="text-2xl font-black tracking-tight">Plataforma de Clubes de Ciência</h1>
-                        <p className="mt-1 text-sm text-white/80">Rede Baiana de Ciência — SECTI</p>
+  if (!authUser || !loggedUser) {
+    return (
+        <div className="min-h-screen w-full bg-[#F8FAFC] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans text-[#334155]">
+            <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+                
+                {/* LADO ESQUERDO: BRANDING (Institucional + Jovem) */}
+                <div className="md:w-5/12 bg-gradient-to-br from-[#004B8D] via-[#007A99] to-[#00B5B5] p-8 lg:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+                    {/* Elementos decorativos de fundo */}
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-black/10 rounded-full blur-3xl"></div>
+                    
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-10">
+                            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+                                <Microscope className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="font-extrabold text-xl tracking-tight leading-none">SECTI</h2>
+                                <p className="text-[10px] uppercase tracking-widest text-teal-100 font-semibold">Bahia</p>
+                            </div>
+                        </div>
+                        
+                        <h1 className="text-3xl lg:text-4xl font-black mb-4 leading-tight">
+                            Plataforma de <br/>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-white">
+                                Clubes de Ciência
+                            </span>
+                        </h1>
+                        <p className="text-base text-teal-50 font-medium leading-relaxed max-w-sm">
+                            Descubra, crie e inove. Conecte-se à rede baiana de jovens cientistas e transforme o futuro através da pesquisa escolar.
+                        </p>
                     </div>
+                </div>
 
-                    <div className="flex border-b border-gray-200">
+                {/* LADO DIREITO: FORMULÁRIOS */}
+                <div className="md:w-7/12 p-8 lg:p-12 flex flex-col justify-center bg-white relative">
+                    
+                    {/* Abas (Tabs) Modernas */}
+                    <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-8 max-w-sm mx-auto w-full">
                         <button
                             type="button"
                             onClick={() => { setAuthMode('login'); setAuthError(''); }}
-                            className={`flex-1 py-3 text-sm font-bold transition-colors ${authMode === 'login' ? 'border-b-2 border-[#00B5B5] text-[#00B5B5]' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+                                authMode === 'login' 
+                                ? 'bg-white text-[#004B8D] shadow-sm' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         >
                             Entrar
                         </button>
                         <button
                             type="button"
                             onClick={() => { setAuthMode('register'); setAuthError(''); }}
-                            className={`flex-1 py-3 text-sm font-bold transition-colors ${authMode === 'register' ? 'border-b-2 border-[#00B5B5] text-[#00B5B5]' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+                                authMode === 'register' 
+                                ? 'bg-white text-[#004B8D] shadow-sm' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         >
                             Cadastrar
                         </button>
                     </div>
 
-                    <div className="px-8 py-7">
+                    <div className="max-w-md mx-auto w-full">
+                        {/* Mensagem de Erro */}
                         {authError && (
-                            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                                {authError}
+                            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                                <span className="text-xl">⚠️</span>
+                                <p className="mt-0.5 font-medium">{authError}</p>
                             </div>
                         )}
 
-                        {/* FORM: ENTRAR */}
+                        {/* ================= FORM: ENTRAR ================= */}
                         {authMode === 'login' && (
-                            <form onSubmit={handleLogin} className="space-y-5">
+                            <form onSubmit={handleLogin} className="space-y-5 animate-in fade-in zoom-in-95 duration-300">
                                 <div>
-                                    <label className="mb-1 block text-xs font-bold uppercase text-gray-500">E-mail</label>
-                                    <input
-                                        type="email"
-                                        value={loginForm.email}
-                                        onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
-                                        className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                        placeholder="seu@email.com"
-                                        required
-                                        autoComplete="email"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Senha</label>
-                                    <input
-                                        type="password"
-                                        value={loginForm.senha}
-                                        onChange={(e) => setLoginForm((prev) => ({ ...prev, senha: e.target.value }))}
-                                        className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                        placeholder="••••••••"
-                                        required
-                                        autoComplete="current-password"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00B5B5] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#009E9E] disabled:opacity-60"
-                                >
-                                    {isSubmitting && <LoaderCircle className="w-4 h-4 animate-spin" />}
-                                    Entrar
-                                </button>
-                                <p className="text-center text-xs text-gray-500">
-                                    Não tem conta?{' '}
-                                    <button type="button" onClick={() => { setAuthMode('register'); setAuthError(''); }} className="font-bold text-[#00B5B5] hover:underline">
-                                        Cadastre-se
-                                    </button>
-                                </p>
-                            </form>
-                        )}
-
-                        {/* FORM: CADASTRAR */}
-                        {authMode === 'register' && (
-                            <form onSubmit={handleRegister} className="space-y-5">
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div className="md:col-span-2">
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Nome completo *</label>
-                                        <input
-                                            type="text"
-                                            value={registerForm.nome}
-                                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, nome: e.target.value }))}
-                                            className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                            placeholder="Nome completo"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">E-mail *</label>
+                                    <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">E-mail</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Mail className="h-4 w-4 text-gray-400" />
+                                        </div>
                                         <input
                                             type="email"
-                                            value={registerForm.email}
-                                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
-                                            className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
+                                            value={loginForm.email}
+                                            onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3.5 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
                                             placeholder="seu@email.com"
                                             required
                                             autoComplete="email"
                                         />
                                     </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Senha</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Lock className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            value={loginForm.senha}
+                                            onChange={(e) => setLoginForm((prev) => ({ ...prev, senha: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3.5 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                            placeholder="••••••••"
+                                            required
+                                            autoComplete="current-password"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="pt-2">
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#004B8D] to-[#00B5B5] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#00B5B5]/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#00B5B5]/30 disabled:opacity-70 disabled:hover:translate-y-0"
+                                    >
+                                        {isSubmitting ? <LoaderCircle className="w-5 h-5 animate-spin" /> : 'Acessar Plataforma'}
+                                        {!isSubmitting && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* ================= FORM: CADASTRAR ================= */}
+                        {authMode === 'register' && (
+                            <form onSubmit={handleRegister} className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                                {/* Altura máxima em telas menores para não quebrar o card, com scroll elegante */}
+                                <div className="max-h-[50vh] overflow-y-auto pr-2 -mr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+                                    
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Nome completo *</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                <User className="h-4 w-4 text-gray-400" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={registerForm.nome}
+                                                onChange={(e) => setRegisterForm((prev) => ({ ...prev, nome: e.target.value }))}
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                                placeholder="Digite seu nome completo"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
 
                                     <div>
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Perfil *</label>
+                                        <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">E-mail *</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                <Mail className="h-4 w-4 text-gray-400" />
+                                            </div>
+                                            <input
+                                                type="email"
+                                                value={registerForm.email}
+                                                onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                                placeholder="seu@email.com"
+                                                required
+                                                autoComplete="email"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Perfil *</label>
                                         <select
                                             value={registerForm.perfil}
                                             onChange={(e) => {
@@ -739,7 +801,7 @@ export default function App() {
                                                     lattes: isMentoriaPerfil(novoPerfil) ? prev.lattes : ''
                                                 }));
                                             }}
-                                            className="w-full rounded border border-gray-300 bg-white p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10 appearance-none"
                                         >
                                             {PERFIS_LOGIN.map((p) => (
                                                 <option key={p.value} value={p.value}>{p.label}</option>
@@ -747,60 +809,66 @@ export default function App() {
                                         </select>
                                     </div>
 
-                                    <div>
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Senha *</label>
-                                        <input
-                                            type="password"
-                                            value={registerForm.senha}
-                                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, senha: e.target.value }))}
-                                            className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                            placeholder="Min. 6 caracteres"
-                                            required
-                                            minLength={6}
-                                            autoComplete="new-password"
-                                        />
-                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Senha *</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                    <Lock className="h-4 w-4 text-gray-400" />
+                                                </div>
+                                                <input
+                                                    type="password"
+                                                    value={registerForm.senha}
+                                                    onChange={(e) => setRegisterForm((prev) => ({ ...prev, senha: e.target.value }))}
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                                    placeholder="Min. 6"
+                                                    required
+                                                    minLength={6}
+                                                />
+                                            </div>
+                                        </div>
 
-                                    <div>
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Confirmar senha *</label>
-                                        <input
-                                            type="password"
-                                            value={registerForm.confirmarSenha}
-                                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmarSenha: e.target.value }))}
-                                            className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                            placeholder="Repita a senha"
-                                            required
-                                            autoComplete="new-password"
-                                        />
+                                        <div>
+                                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Confirmar *</label>
+                                            <input
+                                                type="password"
+                                                value={registerForm.confirmarSenha}
+                                                onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmarSenha: e.target.value }))}
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                                placeholder="Repita a senha"
+                                                required
+                                            />
+                                        </div>
                                     </div>
 
                                     {isMentoriaPerfil(registerForm.perfil) && (
-                                        <div>
-                                            <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Matrícula *</label>
+                                        <div className="animate-in fade-in slide-in-from-top-2">
+                                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Matrícula *</label>
                                             <input
                                                 type="text"
                                                 value={registerForm.matricula}
                                                 onChange={(e) => setRegisterForm((prev) => ({ ...prev, matricula: e.target.value }))}
-                                                className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
                                                 placeholder="Ex: 202600123"
                                                 required
                                             />
                                         </div>
                                     )}
 
-                                    <div className="md:col-span-2">
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Buscar unidade escolar</label>
+                                    <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-100">
+                                        <label className="mb-1.5 block text-xs font-bold uppercase text-[#004B8D] tracking-wide flex items-center gap-1.5">
+                                            <School className="w-3.5 h-3.5" />
+                                            Vínculo Escolar
+                                        </label>
+                                        
                                         <input
                                             type="text"
                                             value={schoolSearchTerm}
                                             onChange={(e) => setSchoolSearchTerm(e.target.value)}
-                                            className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                            placeholder="Digite parte do nome da escola"
+                                            className="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm outline-none mb-3 transition-all focus:border-[#00B5B5] focus:ring-2 focus:ring-[#00B5B5]/20"
+                                            placeholder="🔍 Buscar escola pelo nome..."
                                         />
-                                    </div>
-
-                                    <div className="md:col-span-2">
-                                        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Unidade escolar *</label>
+                                        
                                         <select
                                             value={registerForm.escola_id}
                                             onChange={(e) => {
@@ -811,65 +879,64 @@ export default function App() {
                                                     escola_nome: selected?.nome || ''
                                                 }));
                                             }}
-                                            className="w-full rounded border border-gray-300 bg-white p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
+                                            className="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm outline-none transition-all focus:border-[#00B5B5] focus:ring-2 focus:ring-[#00B5B5]/20"
                                             required
                                         >
-                                            <option value="">Selecione a unidade escolar</option>
+                                            <option value="">Selecione a unidade escolar *</option>
                                             {filteredSchoolGroups.length === 0 ? (
-                                                <option value="" disabled>Não há unidades correspondentes</option>
+                                                <option value="" disabled>Nenhuma escola encontrada</option>
                                             ) : (
                                                 filteredSchoolGroups.map((group) => (
-                                                    <optgroup key={group.key} label={group.label}>
+                                                    <optgroup key={group.key} label={group.label} className="font-semibold text-gray-700">
                                                         {group.units.map((unit) => (
-                                                            <option key={`${group.key}-${unit.escola_id}`} value={unit.escola_id}>
-                                                                {unit.nome} (SEC: {unit.escola_id})
+                                                            <option key={`${group.key}-${unit.escola_id}`} value={unit.escola_id} className="font-normal">
+                                                                {unit.nome}
                                                             </option>
                                                         ))}
                                                     </optgroup>
                                                 ))
                                             )}
                                         </select>
-                                        <p className="mt-1 text-xs text-gray-400">
-                                            O código SEC vira <span className="font-semibold">escola_id</span> para ligar as tabelas.
-                                        </p>
                                     </div>
 
                                     {isMentoriaPerfil(registerForm.perfil) && (
-                                        <div className="md:col-span-2">
-                                            <label className="mb-1 block text-xs font-bold uppercase text-gray-500">Link do Currículo Lattes *</label>
-                                            <input
-                                                type="url"
-                                                value={registerForm.lattes}
-                                                onChange={(e) => setRegisterForm((prev) => ({ ...prev, lattes: e.target.value }))}
-                                                className="w-full rounded border border-gray-300 p-2.5 text-sm outline-none focus:border-[#00B5B5] focus:ring-1 focus:ring-[#00B5B5]"
-                                                placeholder="https://lattes.cnpq.br/..."
-                                                required
-                                            />
+                                        <div className="animate-in fade-in slide-in-from-top-2">
+                                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">Currículo Lattes *</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                    <ExternalLink className="h-4 w-4 text-gray-400" />
+                                                </div>
+                                                <input
+                                                    type="url"
+                                                    value={registerForm.lattes}
+                                                    onChange={(e) => setRegisterForm((prev) => ({ ...prev, lattes: e.target.value }))}
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                                    placeholder="https://lattes.cnpq.br/..."
+                                                    required
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00B5B5] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#009E9E] disabled:opacity-60"
-                                >
-                                    {isSubmitting && <LoaderCircle className="w-4 h-4 animate-spin" />}
-                                    Criar conta
-                                </button>
-                                <p className="text-center text-xs text-gray-500">
-                                    Já tem conta?{' '}
-                                    <button type="button" onClick={() => { setAuthMode('login'); setAuthError(''); }} className="font-bold text-[#00B5B5] hover:underline">
-                                        Entrar
+                                <div className="pt-4 mt-2 border-t border-gray-100">
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#004B8D] to-[#00B5B5] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#00B5B5]/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#00B5B5]/30 disabled:opacity-70 disabled:hover:translate-y-0"
+                                    >
+                                        {isSubmitting && <LoaderCircle className="w-5 h-5 animate-spin" />}
+                                        Criar minha conta
                                     </button>
-                                </p>
+                                </div>
                             </form>
                         )}
                     </div>
                 </div>
             </div>
-        );
-    }
+        </div>
+    );
+}
 
     return (
         <div className="min-h-screen bg-[#F4F6F8] text-[#4A4A4A] font-sans flex flex-col relative">
