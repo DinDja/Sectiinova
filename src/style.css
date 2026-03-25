@@ -1,3 +1,109 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root {
+		color-scheme: light;
+	}
+
+	html,
+	body,
+	#root {
+		min-height: 100%;
+	}
+
+	body {
+		@apply antialiased text-slate-700;
+		background:
+			radial-gradient(circle at 15% 20%, rgba(0, 181, 181, 0.12), transparent 34%),
+			radial-gradient(circle at 85% 12%, rgba(0, 75, 141, 0.12), transparent 36%),
+			radial-gradient(circle at 70% 85%, rgba(255, 87, 34, 0.1), transparent 35%),
+			linear-gradient(180deg, #f8fbff 0%, #f2f7fb 48%, #eef5f8 100%);
+		font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+	}
+
+	*:focus-visible {
+		@apply outline-none ring-2 ring-[#00B5B5]/45 ring-offset-2 ring-offset-white;
+	}
+}
+
+@layer components {
+	.app-shell {
+		@apply min-h-screen text-slate-700 font-sans;
+	}
+
+	.glass-surface {
+		@apply bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_10px_40px_rgba(15,23,42,0.08)];
+	}
+
+	.premium-card {
+		@apply rounded-2xl border border-slate-200/70 bg-white shadow-[0_6px_22px_rgba(15,23,42,0.06)] transition-all duration-300;
+	}
+
+	.premium-card:hover {
+		@apply -translate-y-0.5 shadow-[0_12px_30px_rgba(15,23,42,0.1)] border-[#00B5B5]/25;
+	}
+
+	.premium-chip {
+		@apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-600;
+	}
+
+	.premium-gradient-text {
+		@apply bg-gradient-to-r from-[#004B8D] via-[#007A99] to-[#00B5B5] bg-clip-text text-transparent;
+	}
+
+	.premium-button {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#004B8D] to-[#00B5B5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-600/30;
+	}
+
+	.premium-button-soft {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-300 hover:border-[#00B5B5]/40 hover:text-[#0F5257] hover:shadow-md;
+	}
+}
+
+@layer utilities {
+	.animate-fade-in {
+		animation: fadeIn 0.4s ease-out both;
+	}
+
+	.animate-fade-in-up {
+		animation: fadeInUp 0.5s ease-out both;
+	}
+
+	.line-clamp-1 {
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 1;
+		-webkit-box-orient: vertical;
+	}
+
+	.line-clamp-2 {
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
