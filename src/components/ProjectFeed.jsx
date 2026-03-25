@@ -31,6 +31,7 @@ export default function ProjectFeed({
     isFetchingProjects,
     hasMoreProjects,
     loadMoreProjectsRef,
+    searchTerm,
     setCurrentView,
     setSelectedClubId,
     setSelectedProjectId,
@@ -48,10 +49,18 @@ export default function ProjectFeed({
         }
     }, [feedProjects, isFetchingProjects]);
 
+    const isSearchActive = Boolean(String(searchTerm || '').trim());
+
     // Se está carregando inicialmente e não há projetos, mostra skeletons
     const showSkeletons = isInitialLoading && isFetchingProjects && feedProjects.length === 0;
-    // Se não há projetos após carregamento, mostra empty state
-    const showEmptyState = !isFetchingProjects && feedProjects.length === 0 && !hasMoreProjects;
+
+    // Se houver busca e nenhum resultado, ou se não há projetos na base
+    const isNoResults = feedProjects.length === 0;
+    const showEmptyState = !isFetchingProjects && !isInitialLoading && isNoResults && !hasMoreProjects;
+
+    const showNoMoreProjects = !isFetchingProjects && !isInitialLoading && !hasMoreProjects && !isNoResults;
+
+    const showLoadMoreSentinel = !isFetchingProjects && hasMoreProjects && !isInitialLoading;
 
     const clubsById = useMemo(() => new Map(clubs.map((club) => [String(club.id), club])), [clubs]);
     const schoolsById = useMemo(() => new Map(schools.map((school) => [String(school.id), school])), [schools]);
@@ -127,6 +136,14 @@ export default function ProjectFeed({
                 aria-busy={isFetchingProjects}
                 aria-label="Lista de projetos de inovação"
             >
+                {/* Indicador de busca/carregamento */}
+                {isFetchingProjects && !isInitialLoading && (
+                    <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/85 border border-slate-200 px-4 py-2 rounded-full">
+                        <LoaderCircle className="w-4 h-4 animate-spin text-[#00B5B5]" />
+                        <span>{isSearchActive ? 'Buscando projetos...' : 'Atualizando projetos...'}</span>
+                    </div>
+                )}
+
                 {/* Skeletons no carregamento inicial */}
                 {showSkeletons && (
                     <>
@@ -169,9 +186,13 @@ export default function ProjectFeed({
                 {showEmptyState && (
                     <div className="premium-card border-dashed border-slate-300 p-16 text-center">
                         <EmptyState
-                            icon={FolderKanban}
-                            title="Nenhum projeto encontrado"
-                            description="A busca não retornou resultados ou ainda não há projetos publicados na rede."
+                            icon={isSearchActive ? AlertCircle : FolderKanban}
+                            title={isSearchActive ? 'Nenhum projeto encontrado' : 'Ainda não há projetos'}
+                            description={
+                                isSearchActive
+                                    ? `Nenhum projeto corresponde à busca "${searchTerm.trim()}". Tente outro termo ou remova o filtro.`
+                                    : 'Nenhum projeto foi publicado na rede ainda. Volte mais tarde ou adicione o primeiro projeto.'
+                            }
                         />
                     </div>
                 )}
@@ -188,14 +209,14 @@ export default function ProjectFeed({
                 )}
 
                 {/* Elemento observador para scroll infinito */}
-                {!isFetchingProjects && hasMoreProjects && !showEmptyState && (
+                {showLoadMoreSentinel && (
                     <div ref={loadMoreProjectsRef} className="h-8 w-full flex justify-center items-center" aria-hidden="true">
                         <ChevronRight className="w-5 h-5 text-gray-300 animate-bounce" />
                     </div>
                 )}
 
                 {/* Mensagem de fim da lista */}
-                {!isFetchingProjects && !hasMoreProjects && projectsTotalCount > 0 && (
+                {showNoMoreProjects && (
                     <p className="text-center text-xs text-slate-400 bg-white/80 border border-slate-200 px-3 py-1 rounded-full">
                         Você chegou ao fim da lista de projetos.
                     </p>

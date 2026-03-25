@@ -51,6 +51,7 @@ export default function App() {
         setSearchTerm,
         leadUser,
         selectedClub,
+        myClub,
         handleLogout,
         errorMessage,
         loading,
@@ -83,6 +84,8 @@ export default function App() {
         viewingClubCoorientadores,
         viewingClubInvestigadores,
         viewingClubDiaryCount,
+        handleCreateProject,
+        handleSaveProfile,
         newEntry,
         setNewEntry,
         handleAddEntry,
@@ -124,12 +127,14 @@ export default function App() {
             setIsModalOpen={setIsModalOpen}
             loggedUser={loggedUser}
             myClubId={myClubId}
+            myClub={myClub}
             setViewingClubId={setViewingClubId}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             leadUser={leadUser}
             selectedClub={selectedClub}
             handleLogout={handleLogout}
+            onSaveProfile={handleSaveProfile}
             fontSizeLevel={fontSizeLevel}
             onDecreaseFont={decreaseFont}
             onResetFont={resetFont}
@@ -168,6 +173,7 @@ export default function App() {
                         setViewingClubId={setViewingClubId}
                         getProjectTeam={getProjectTeam}
                         getInvestigatorDisplayNames={getInvestigatorDisplayNames}
+                        searchTerm={searchTerm}
                     />
                 )}
 
@@ -199,6 +205,7 @@ export default function App() {
                         setSelectedClubId={setSelectedClubId}
                         setSelectedProjectId={setSelectedProjectId}
                         setCurrentView={setCurrentView}
+                        handleCreateProject={handleCreateProject}
                     />
                 )}
 

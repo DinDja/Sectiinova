@@ -28,14 +28,6 @@ export default function Sidebar({
       className="w-24 h-full min-h-screen glass-surface border-r border-white/80 flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
       aria-label="Menu principal"
     >
-      {/* Logo */}
-      <div className="mb-8 flex items-center text-center">
-        <span className="premium-gradient-text font-black text-2xl leading-none tracking-tighter me-1">
-          POP
-        </span>
-        <span className="text-[#FF5722] text-xs font-semibold mt-1 tracking-[0.16em] uppercase">TEC</span>
-      </div>
-
       {/* Navegação principal */}
       <nav className="flex flex-col w-full px-3 space-y-1" aria-label="Navegação">
         {navItems.map((item) => {

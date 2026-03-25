@@ -8,12 +8,14 @@ export default function MainShell({
     setIsModalOpen,
     loggedUser,
     myClubId,
+    myClub,
     setViewingClubId,
     searchTerm,
     setSearchTerm,
     leadUser,
     selectedClub,
     handleLogout,
+    onSaveProfile,
     fontSizeLevel,
     onDecreaseFont,
     onResetFont,
@@ -52,46 +54,7 @@ export default function MainShell({
             <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.83-1.66 1.66-.83-.83.83-.83zM27.83 54.627l.83.83-1.66 1.66-.83-.83.83-.83zM0 27.83l.83.83-1.66 1.66-.83-.83.83-.83zM58.33 27.83l.83.83-1.66 1.66-.83-.83.83-.83zM27.83 0l.83.83-1.66 1.66-.83-.83.83-.83zM0 58.33l.83.83-1.66 1.66-.83-.83.83-.83z' fill='%23003A54' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '120px' }}></div>
 
             <div className="glass-surface border-b border-white/70 text-[11px] text-slate-500 py-2 px-4 flex justify-between items-center z-20 relative">
-                <div className="flex space-x-6">
-                    <span className="hidden md:inline font-semibold tracking-wide text-slate-600">Rede Baiana de Clubes de Ciência - SECTI</span>
-                    <a href="#" className="hover:underline hover:text-slate-700">1- Ir para o conteúdo.</a>
-                    <a href="#" className="hover:underline hover:text-slate-700">2- Ir para o menu.</a>
-                </div>
                 <div className="flex items-center space-x-4">
-                    <div className="flex space-x-2 items-center">
-                        <span>Tamanho do texto:</span>
-                        <button
-                            className="hover:text-slate-800 font-medium"
-                            onClick={onDecreaseFont}
-                            aria-label="Diminuir tamanho do texto"
-                        >
-                            A-
-                        </button>
-                        <button
-                            className="hover:text-slate-800 font-medium"
-                            onClick={onResetFont}
-                            aria-label="Restaurar tamanho do texto"
-                        >
-                            A
-                        </button>
-                        <button
-                            className="hover:text-slate-800 font-medium"
-                            onClick={onIncreaseFont}
-                            aria-label="Aumentar tamanho do texto"
-                        >
-                            A+
-                        </button>
-                    </div>
-                    <button
-                        className="flex items-center space-x-1 hover:text-slate-800"
-                        onClick={onToggleContrast}
-                        aria-pressed={isHighContrast}
-                    >
-                        <span>Alto Contraste</span>
-                        <div className={`w-3 h-3 rounded-full flex overflow-hidden ${isHighContrast ? 'bg-white' : 'bg-gray-800'}`}>
-                            <div className={isHighContrast ? 'w-full bg-black' : 'w-1/2 bg-white'}></div>
-                        </div>
-                    </button>
                 </div>
             </div>
 
@@ -112,7 +75,9 @@ export default function MainShell({
                         loggedUser={loggedUser}
                         leadUser={leadUser}
                         selectedClub={selectedClub}
+                        myClub={myClub}
                         handleLogout={handleLogout}
+                        onSaveProfile={onSaveProfile}
                     />
 
                     <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">{children}</main>

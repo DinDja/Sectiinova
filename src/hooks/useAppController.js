@@ -44,6 +44,10 @@ export default function useAppController() {
     const [isFetchingProjects, setIsFetchingProjects] = useState(false);
     const [projectsTotalCount, setProjectsTotalCount] = useState(0);
     const [selectedClubId, setSelectedClubId] = useState('');
+    const [loadMoreNode, setLoadMoreNode] = useState(null);
+    const loadMoreProjectsRef = useCallback((node) => {
+        setLoadMoreNode(node);
+    }, []);
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -82,7 +86,6 @@ export default function useAppController() {
         tags: ''
     });
 
-    const loadMoreProjectsRef = useRef(null);
     const isRegisteringRef = useRef(false);
     const projectsCursorRef = useRef(null);
     const hasMoreProjectsRef = useRef(true);
@@ -113,7 +116,10 @@ export default function useAppController() {
                     project.area_tematica,
                     project.descricao,
                     project.introducao,
+                    project.escola_nome,
+                    project.escola_id,
                     club?.nome,
+                    club?.escola_nome,
                     school?.nome
                 ]
                     .filter(Boolean)
@@ -137,6 +143,11 @@ export default function useAppController() {
 
         return '';
     }, [loggedUser, clubs]);
+
+    const myClub = useMemo(() => {
+        if (!myClubId) return null;
+        return clubs.find((club) => String(club.id) === String(myClubId)) || null;
+    }, [myClubId, clubs]);
 
     const schoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
     const allSchoolUnits = useMemo(() => flattenSchoolGroups(schoolGroups), [schoolGroups]);
@@ -276,10 +287,11 @@ export default function useAppController() {
     }, [deferredSearchTerm, searchableProjects]);
 
     useEffect(() => {
-        if (!loadMoreProjectsRef.current) {
+        if (!loadMoreNode) {
             return undefined;
         }
 
+        const rootElement = document.querySelector('main');
         const observer = new IntersectionObserver(
             (entries) => {
                 const [entry] = entries;
@@ -295,15 +307,15 @@ export default function useAppController() {
                 void fetchProjectsPage(false);
             },
             {
-                root: null,
+                root: rootElement,
                 rootMargin: '300px 0px 300px 0px',
                 threshold: 0
             }
         );
 
-        observer.observe(loadMoreProjectsRef.current);
+        observer.observe(loadMoreNode);
         return () => observer.disconnect();
-    }, [currentView, fetchProjectsPage, hasMoreProjects, isFetchingProjects]);
+    }, [currentView, fetchProjectsPage, hasMoreProjects, isFetchingProjects, deferredSearchTerm, loadMoreNode]);
 
     const normalizePdfLinks = (rawPdfLinks) => {
         if (!rawPdfLinks) return [];
@@ -327,20 +339,50 @@ export default function useAppController() {
     const feedProjects = useMemo(() => {
         return scopedProjects.filter((project) => {
             const title = String(project.titulo || '').trim();
+            const description = String(project.descricao || project.introducao || '').trim();
+
             if (!title || /^\.*$/.test(title)) {
                 return false;
             }
 
-            return Boolean(String(project.descricao || project.introducao || '').trim());
+            // Em pesquisa, exibimos títulos mesmo que descrição/introd esteja ausente.
+            if (deferredSearchTerm) {
+                return true;
+            }
+
+            return Boolean(description);
         });
-    }, [scopedProjects]);
+    }, [scopedProjects, deferredSearchTerm]);
 
     const selectedClub = clubs.find((club) => String(club.id) === String(selectedClubId)) ?? null;
-    const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
+    const selectedProject = allProjects.find((project) => project.id === selectedProjectId) ?? null;
     const selectedSchool = schools.find((school) => school.id === selectedClub?.escola_id) ?? null;
     const selectedTeam = selectedProject
         ? getProjectTeam(selectedProject, users, selectedClubId)
         : { orientadores: [], coorientadores: [], investigadores: [] };
+
+    const isUserProjectMember = Boolean(
+        loggedUser &&
+        [
+            ...(selectedTeam.orientadores || []),
+            ...(selectedTeam.coorientadores || []),
+            ...(selectedTeam.investigadores || [])
+        ].some((member) => {
+            if (!member || !loggedUser) return false;
+            const memberId = String(member.id || '').trim();
+            const userId = String(loggedUser.id || '').trim();
+            const memberEmail = String(member.email || '').toLowerCase().trim();
+            const userEmail = String(loggedUser.email || '').toLowerCase().trim();
+            const memberMatricula = String(member.matricula || member['matrícula'] || '').trim();
+            const userMatricula = String(loggedUser.matricula || loggedUser['matrícula'] || '').trim();
+
+            return (
+                (memberId && userId && memberId === userId) ||
+                (memberEmail && userEmail && memberEmail === userEmail) ||
+                (memberMatricula && userMatricula && memberMatricula === userMatricula)
+            );
+        })
+    );
 
     const leadUser = selectedTeam.orientadores[0]
         ?? selectedTeam.coorientadores[0]
@@ -350,9 +392,7 @@ export default function useAppController() {
     const derivedDiaryEntries = selectedProject ? buildProjectEntries(selectedProject, diaryEntries, selectedTeam) : [];
 
     const currentClubId = selectedClub?.id || viewingClubId || '';
-    const isUserMentor = loggedUser && ['orientador', 'coorientador'].includes(normalizePerfil(loggedUser.perfil));
-    const isUserClubMember = loggedUser && String(loggedUser.clube_id || '') === String(currentClubId);
-    const canEditDiary = Boolean(selectedProject && (isUserMentor || isUserClubMember));
+    const canEditDiary = Boolean(selectedProject && isUserProjectMember);
 
     const viewingClub = clubs.find((item) => item.id === viewingClubId) ?? null;
     const viewingClubSchool = schools.find((item) => item.id === viewingClub?.escola_id) ?? null;
@@ -367,6 +407,11 @@ export default function useAppController() {
         event.preventDefault();
 
         if (!selectedProject || !selectedClub || !newEntry.title || !newEntry.whatWasDone) {
+            return;
+        }
+
+        if (!isUserProjectMember) {
+            setErrorMessage('Apenas integrantes do projeto podem registrar no diário de bordo.');
             return;
         }
 
@@ -602,6 +647,94 @@ export default function useAppController() {
         setCurrentView('Projetos');
     };
 
+    const handleCreateProject = async ({ titulo, descricao, area_tematica, status, tipo, coorientador_ids = [], investigadores_ids = [] }) => {
+        if (!viewingClub) {
+            setErrorMessage('Selecione um clube para registrar o projeto.');
+            return;
+        }
+
+        if (!titulo || !String(titulo).trim()) {
+            setErrorMessage('Informe o título do projeto.');
+            return;
+        }
+
+        try {
+            setErrorMessage('');
+            setIsFetchingProjects(true);
+
+            const newProjectData = {
+                titulo: String(titulo).trim(),
+                descricao: String(descricao || '').trim(),
+                area_tematica: String(area_tematica || '').trim(),
+                status: String(status || 'Em andamento').trim(),
+                tipo: String(tipo || 'Projeto Científico').trim(),
+                clube_id: viewingClub.id,
+                escola_id: viewingClub.escola_id || '',
+                createdAt: serverTimestamp()
+            };
+
+            const normalizedCoorientadores = [...new Set((coorientador_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            const normalizedInvestigadores = [...new Set((investigadores_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+
+            if (normalizedCoorientadores.length > 0) {
+                newProjectData.coorientador_ids = normalizedCoorientadores;
+            }
+
+            if (normalizedInvestigadores.length > 0) {
+                newProjectData.investigadores_ids = normalizedInvestigadores;
+            }
+
+            const membrosIds = [...new Set([...normalizedCoorientadores, ...normalizedInvestigadores])];
+            if (membrosIds.length > 0) {
+                newProjectData.membros_ids = membrosIds;
+            }
+
+            const projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
+
+            setSelectedProjectId(projectRef.id);
+            setCurrentView('clube');
+            setErrorMessage('Projeto cadastrado com sucesso.');
+
+            // Forçar atualização local imediata se necessário
+            setClubProjects((prev) => [{ id: projectRef.id, ...newProjectData }, ...prev]);
+            setAllProjects((prev) => [{ id: projectRef.id, ...newProjectData }, ...prev]);
+
+            return projectRef.id;
+        } catch (error) {
+            console.error('Erro ao criar projeto:', error);
+            setErrorMessage('Falha ao criar projeto. Tente novamente.');
+            throw error;
+        } finally {
+            setIsFetchingProjects(false);
+        }
+    };
+
+    const handleSaveProfile = async (profileData) => {
+        if (!loggedUser) {
+            setErrorMessage('Usuário não autenticado.');
+            return;
+        }
+
+        try {
+            const userRef = doc(db, 'usuarios', String(loggedUser.id));
+            const updates = {
+                nome: profileData.nome || loggedUser.nome,
+                telefone: profileData.telefone || loggedUser.telefone || '',
+                cargo: profileData.cargo || loggedUser.cargo || '',
+                bio: profileData.bio || loggedUser.bio || '',
+                localizacao: profileData.localizacao || loggedUser.localizacao || '',
+                fotoBase64: profileData.fotoBase64 || loggedUser.fotoBase64 || loggedUser.fotoUrl || ''
+            };
+
+            await updateDoc(userRef, updates);
+            setLoggedUser((prev) => (prev ? { ...prev, ...updates } : prev));
+            setErrorMessage('Perfil salvo com sucesso.');
+        } catch (error) {
+            console.error('Erro ao salvar perfil:', error);
+            setErrorMessage('Falha ao salvar perfil. Tente novamente.');
+        }
+    };
+
     return {
         authLoading,
         authUser,
@@ -632,6 +765,7 @@ export default function useAppController() {
         leadUser,
         selectedClub,
         handleLogout,
+        handleSaveProfile,
         errorMessage,
         loading,
         feedProjects,
@@ -663,6 +797,8 @@ export default function useAppController() {
         viewingClubCoorientadores,
         viewingClubInvestigadores,
         viewingClubDiaryCount,
+        myClub,
+        handleCreateProject,
         newEntry,
         setNewEntry,
         handleAddEntry,

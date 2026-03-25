@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { 
     BookOpen, Target, User, Users, Map, Database, CheckCircle, 
-    Calendar, Clock, Lightbulb, AlertCircle, ArrowRight, Plus, ExternalLink 
+    Calendar, Clock, Lightbulb, AlertCircle, ArrowRight, Plus, ExternalLink, GraduationCap, FileText
 } from 'lucide-react';
 import EmptyState from './EmptyState';
+import { getInitials, getLattesAreas, getLattesEducation, getLattesSummary, getLattesUpdatedAt } from '../utils/helpers';
 
 // ----------------------------------------------------------------------
 // SUBCOMPONENTES (Podem ser movidos para arquivos separados depois)
@@ -11,25 +12,85 @@ import EmptyState from './EmptyState';
 
 const MentorBadge = ({ person, getLattesLink }) => {
     const lattesLink = getLattesLink(person);
-
-    if (!lattesLink) {
-        return (
-            <span className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600">
-                {person.nome} · Lattes não informado
-            </span>
-        );
-    }
+    const summary = getLattesSummary(person);
+    const updatedAt = getLattesUpdatedAt(person);
+    const areas = getLattesAreas(person).slice(0, 3);
+    const education = getLattesEducation(person).slice(0, 2);
 
     return (
-        <a 
-            href={lattesLink} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="inline-flex items-center gap-2 rounded-md border border-[#00B5B5]/30 bg-[#F0F9F9] px-3 py-1.5 text-xs font-semibold text-[#0F5257] transition-colors hover:bg-[#E5F6F6]"
-        >
-            {person.nome}
-            <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+        <article className="min-w-[280px] max-w-sm flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E0F2F2] text-sm font-bold text-[#0F5257]">
+                        {getInitials(person.nome)}
+                    </div>
+                    <div>
+                        <h5 className="text-sm font-bold text-slate-800">{person.nome}</h5>
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">{person.perfil || 'Mentoria'}</p>
+                    </div>
+                </div>
+                {lattesLink ? (
+                    <a 
+                        href={lattesLink} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="inline-flex items-center gap-1 rounded-md border border-[#00B5B5]/30 bg-[#F0F9F9] px-2.5 py-1 text-[11px] font-semibold text-[#0F5257] transition-colors hover:bg-[#E5F6F6]"
+                    >
+                        Lattes
+                        <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                ) : (
+                    <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] text-gray-600">
+                        Link indisponível
+                    </span>
+                )}
+            </div>
+
+            {(summary || updatedAt || areas.length > 0 || education.length > 0) ? (
+                <div className="mt-4 space-y-3">
+                    {summary && (
+                        <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+                            <div className="mb-1 flex items-center gap-1.5 font-bold uppercase tracking-wide text-slate-500">
+                                <FileText className="h-3.5 w-3.5" /> Resumo
+                            </div>
+                            <p>{summary}</p>
+                        </div>
+                    )}
+
+                    {areas.length > 0 && (
+                        <div>
+                            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Áreas de atuação</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {areas.map((area) => (
+                                    <span key={area} className="rounded-full bg-[#EAF7F7] px-2.5 py-1 text-[11px] text-[#0F5257]">
+                                        {area}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {education.length > 0 && (
+                        <div>
+                            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                                <GraduationCap className="h-3.5 w-3.5" /> Formação
+                            </p>
+                            <div className="space-y-1.5 text-xs text-slate-600">
+                                {education.map((item) => (
+                                    <p key={item}>{item}</p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {updatedAt && (
+                        <p className="text-[11px] text-slate-400">Última atualização no Lattes: {updatedAt}</p>
+                    )}
+                </div>
+            ) : (
+                <p className="mt-4 text-xs text-slate-500">Dados detalhados do Lattes ainda não sincronizados.</p>
+            )}
+        </article>
     );
 };
 
@@ -194,7 +255,7 @@ export default function DiaryBoard({
                     {uniqueMentors.length > 0 && (
                         <div className="space-y-3 pt-2">
                             <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Currículo Lattes da Mentoria</h4>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                                 {uniqueMentors.map((person) => (
                                     <MentorBadge key={person.id} person={person} getLattesLink={getLattesLink} />
                                 ))}
@@ -209,7 +270,7 @@ export default function DiaryBoard({
                 <div>
                     <h3 className="text-xl font-bold text-slate-800">Registros do Diário</h3>
                     {!canEditDiary && (
-                        <p className="text-xs text-slate-500 mt-1">Somente membros do clube ou orientadores podem adicionar registros.</p>
+                        <p className="text-xs text-slate-500 mt-1">Somente membros do projeto (orientadores, coorientadores e pesquisadores vinculados) podem adicionar registros.</p>
                     )}
                 </div>
                 <button 

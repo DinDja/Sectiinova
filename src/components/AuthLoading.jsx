@@ -207,10 +207,9 @@ export default function AuthLoading() {
       `}</style>
 
       {/* Fundo com glow suave */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-300/40 rounded-full blur-[100px] pointer-events-none"></div>
 
       {/* Card com glassmorphism e padding responsivo */}
-      <div className="relative z-10 bg-white/80 backdrop-blur-xl border border-slate-200 p-8 sm:p-12 rounded-3xl shadow-xl flex flex-col items-center gap-10 w-[90%] max-w-md">
+      <div className="relative z-10 p-8 sm:p-12 rounded-3xl  flex flex-col items-center gap-10 ">
         <div className="loading">
           <div className="loading-wide">
             <div className="l1 color"></div>
@@ -235,10 +234,6 @@ export default function AuthLoading() {
           </p>
         </div>
 
-        {/* Barra de progresso animada com gradiente */}
-        <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden mt-2">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full w-1/2 animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_8px_#3395ff]"></div>
-        </div>
       </div>
     </div>
   );

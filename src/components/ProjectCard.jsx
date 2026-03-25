@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, Heart, MessageCircle, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users } from 'lucide-react';
 
 export default function ProjectCard({
     project,
@@ -9,102 +9,217 @@ export default function ProjectCard({
     team,
     investigatorNames,
     onClubClick,
-    onDiaryClick
+    onDiaryClick,
+    onLikeClick,
+    onShareClick
 }) {
-    // Função para definir a cor da tag de status baseado no texto (como na imagem)
-    const getStatusStyle = (status) => {
-        const text = (status || '').toUpperCase();
-        if (text === 'NOVO PROJETO') return 'bg-[#00B5B5] text-white';
-        if (text === 'PROJETO EM EXECUÇÃO') return 'bg-[#8F2756] text-white';
-        return 'bg-[#8F2756] text-white'; // Fallback
+    const [isLiked, setIsLiked] = useState(false);
+    const [likesCount, setLikesCount] = useState(project?.likes || 195);
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Fallbacks para garantir que o layout não quebre se os dados estiverem vazios
+    const orientador = team?.orientadores?.[0] || { 
+        nome: 'André Matos Sousa', 
+        papel: 'Orientador',
+        instituicao: 'Universidade Federal'
+    };
+    
+    const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comércio Local";
+    const tagText = project?.status || "EIXO PROJETOS";
+    const descricao = project?.descricao || "Projeto inovador que conecta estudantes do ensino médio com pequenos comerciantes locais para promover a transformação digital e o desenvolvimento comunitário sustentável.";
+    
+    // Cores baseadas no status do projeto
+    const getTagColor = () => {
+        const status = tagText.toLowerCase();
+        if (status.includes('concluído') || status.includes('concluido')) return 'bg-green-500';
+        if (status.includes('em andamento')) return 'bg-blue-500';
+        if (status.includes('pendente')) return 'bg-yellow-500';
+        return 'bg-[#5AC8C8]';
+    };
+
+    // Simulação de equipe para as fotos sobrepostas
+    const teamMembers = [
+        ...(team?.orientadores?.map(o => ({ ...o, type: 'orientador' })) || []),
+        ...(team?.coorientadores?.map(c => ({ ...c, type: 'coorientador' })) || []),
+        ...(team?.membros?.map(m => ({ ...m, type: 'membro' })) || [])
+    ];
+    
+    const displayTeam = teamMembers.slice(0, 5);
+    const remainingMembers = teamMembers.length - 5;
+
+    const handleLike = () => {
+        if (!isLiked) {
+            setLikesCount(likesCount + 1);
+        } else {
+            setLikesCount(likesCount - 1);
+        }
+        setIsLiked(!isLiked);
+        if (onLikeClick) onLikeClick(project);
+    };
+
+    const handleShare = () => {
+        if (onShareClick) {
+            onShareClick(project);
+        } else {
+            // Fallback share
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link copiado para a área de transferência!');
+        }
     };
 
     return (
-        <article className="premium-card overflow-hidden p-6 flex flex-col gap-5">
+        <article 
+            className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group relative"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             
-            {/* Cabeçalho: Imagem + Título e Status */}
-            <div className="flex gap-4">
-                {/* Imagem do Projeto (Adicionado placeholder caso não tenha a URL da imagem no objeto) */}
-                <div className="w-[100px] h-[100px] flex-shrink-0 bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-                    {project.imagem ? (
-                        <img src={project.imagem} alt={project.titulo} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-2">
-                            Sem Imagem
+            {/* Cabeçalho: Info do Autor e Tag */}
+            <div className="p-5 flex items-center justify-between bg-white border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                    {/* Avatar do Orientador com animação */}
+                    <div className="relative">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5AC8C8] to-[#3EA8A8] overflow-hidden flex-shrink-0 border-2 border-white shadow-md">
+                            {orientador.avatar ? (
+                                <img src={orientador.avatar} alt={orientador.nome} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                                    {orientador.nome.charAt(0)}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-
-                <div className="flex flex-col justify-start pt-1">
-                    <h3 className="font-bold text-slate-900 text-lg leading-tight mb-2">
-                        "{project.titulo || 'Projeto sem título cadastrado'}"
-                    </h3>
-                    <div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full ${getStatusStyle(project.status)}`}>
-                            {project.status || 'EM DESENVOLVIMENTO'}
-                        </span>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
-                </div>
-            </div>
-
-            {/* Tabela de Equipe */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden text-[13px] bg-white/90">
-                <div className="flex border-b border-slate-200 bg-white">
-                    <div className="w-1/3 p-2.5 font-bold text-slate-800 border-r border-slate-200 bg-slate-50/80">
-                        Orientador:
-                    </div>
-                    <div className="w-2/3 p-2.5 text-slate-700">
-                        {team?.orientadores?.map((p) => p.nome).join(', ') || 'Não informado'}
+                    <div className="flex flex-col">
+                        <button 
+                            onClick={onClubClick}
+                            className="font-bold text-gray-800 text-base hover:text-[#5AC8C8] transition-colors text-left"
+                        >
+                            {orientador.nome}
+                        </button>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <span>{orientador.papel || 'Orientador'}</span>
+                            {orientador.instituicao && (
+                                <>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{orientador.instituicao}</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
                 
-                <div className="flex border-b border-slate-200 bg-white">
-                    <div className="w-1/3 p-2.5 font-bold text-slate-800 border-r border-slate-200 bg-slate-50/80">
-                        Coorientadores:
-                    </div>
-                    <div className="w-2/3 p-2.5 text-slate-700">
-                        {team?.coorientadores?.map((p) => p.nome).join(', ') || 'Não informado'}
-                    </div>
-                </div>
-
-                <div className="flex bg-white">
-                    <div className="w-1/3 p-2.5 font-bold text-slate-800 border-r border-slate-200 bg-slate-50/80">
-                        Investigadores:
-                    </div>
-                    <div className="w-2/3 p-2.5 text-slate-700">
-                        {investigatorNames.join(', ') || 'Não informado'}
-                    </div>
-                </div>
+                {/* Tag de Status com gradiente */}
+                <span className={`${getTagColor()} text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm transition-all duration-300 hover:scale-105 cursor-pointer`}>
+                    {tagText}
+                </span>
             </div>
 
-            {/* Descrição */}
-            <div className="text-slate-700 text-sm leading-relaxed mt-1">
-                {project.descricao || project.introducao || 'Nenhuma descrição detalhada foi fornecida para este projeto no momento. Acesse o diário de bordo para acompanhar a evolução da pesquisa.'}
-            </div>
-
-            {/* Rodapé: Ícones e Botão */}
-            <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-4 text-[#00B5B5]">
-                    <button className="hover:opacity-70 transition-opacity" title="Apoiar projeto">
-                        <Heart className="w-5 h-5 fill-current" />
-                    </button>
-                    <button className="hover:opacity-70 transition-opacity" title="Deixar comentário">
-                        <MessageCircle className="w-5 h-5" />
-                    </button>
-                    <button className="hover:opacity-70 transition-opacity" title="Equipe">
-                        <Users className="w-5 h-5" />
-                    </button>
-                </div>
+            {/* Imagem Principal com overlay e efeito de zoom */}
+            <div className="relative w-full h-[260px] sm:h-[320px] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer">
+                {project?.imagem ? (
+                    <>
+                        <img 
+                            src={project.imagem} 
+                            alt={titulo}
+                            className={`w-full h-full object-cover transition-transform duration-700 ${isHovered ? 'scale-110' : 'scale-100'}`}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </>
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <BookOpen className="w-12 h-12 mb-2" />
+                        <span>Imagem do Projeto não disponível</span>
+                    </div>
+                )}
                 
+                {/* Badge de visualizações */}
+                <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-white text-xs flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    <span>{project?.views || '2.3k'} visualizações</span>
+                </div>
+            </div>
+
+            {/* Conteúdo: Título e Descrição */}
+            <div className="p-6 pb-4 flex flex-col gap-4">
+                <h2 className="text-[22px] sm:text-2xl font-bold text-[#1E293B] leading-snug line-clamp-2 hover:text-[#5AC8C8] transition-colors cursor-pointer">
+                    {titulo}
+                </h2>
+                
+                {/* Descrição do projeto */}
+                <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
+                    {descricao}
+                </p>
+
+                {/* Equipe do Projeto */}
+                {teamMembers.length > 0 && (
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                            <Users className="w-4 h-4" />
+                            <span>Equipe</span>
+                        </div>
+                        <div className="flex -space-x-2">
+                            {displayTeam.map((member, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-[3px] border-white bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden shadow-sm transition-all duration-300 hover:scale-110 hover:z-10"
+                                    title={`${member.nome} - ${member.type === 'orientador' ? 'Orientador' : member.type === 'coorientador' ? 'Coorientador' : 'Membro'}`}
+                                >
+                                    {member.avatar ? (
+                                        <img src={member.avatar} alt={member.nome} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-600 font-medium text-xs">
+                                            {member.nome ? member.nome.charAt(0) : '?'}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        {remainingMembers > 0 && (
+                            <button className="text-[#5AC8C8] font-medium text-sm hover:text-[#4EAEAE] transition-colors flex items-center gap-1 ml-1">
+                                +{remainingMembers} outros
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Métricas e Indicadores */}
+            <div className="px-6 pb-6 pt-2">
+                {/* Métricas de interação */}
+                <div className="flex items-center gap-4 sm:gap-6 mb-4">
+                  
+                </div>
+
+                {/* Indicador de progresso se o projeto estiver em andamento */}
+                {isCompleted === false && project?.progress && (
+                    <div className="mt-4">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Progresso do Projeto</span>
+                            <span>{project.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                                className="bg-gradient-to-r from-[#5AC8C8] to-[#3EA8A8] h-full rounded-full transition-all duration-500"
+                                style={{ width: `${project.progress}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Botão Acessar Diário - Posicionado no canto inferior direito absoluto */}
+            <div className="absolute bottom-6 right-6 z-10">
                 <button 
-                    onClick={onDiaryClick} 
-                    className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#007A99] to-[#00B5B5] hover:from-[#006B86] hover:to-[#00A7A7] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 shadow-md shadow-cyan-700/20"
+                    onClick={onDiaryClick}
+                    className="group/btn bg-gradient-to-r from-[#5AC8C8] to-[#4EAEAE] hover:from-[#4EAEAE] hover:to-[#3E9E9E] text-white px-6 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105"
                 >
-                    Acessar Diário de Bordo 
-                    <ArrowRight className="w-4 h-4" />
+                    <BookOpen className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-12" />
+                    Acessar Diário
+                    <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-y-0.5" />
                 </button>
             </div>
-            
         </article>
     );
 }
