@@ -9,6 +9,7 @@ import ProjectFeed from './components/ProjectFeed';
 import DiaryBoard from './components/DiaryBoard';
 import ClubBoard from './components/ClubBoard';
 import INPI from './components/INPI';
+import ForumBoard from './components/ForumBoard';
 import { STAGES, PERFIS_LOGIN } from './constants/appConstants';
 import useAppController from './hooks/useAppController';
 
@@ -40,6 +41,8 @@ export default function App() {
         allSchoolUnits,
         handleLogin,
         handleRegister,
+        handleGoogleAuth,
+        handleOutlookAuth,
         isMentoriaPerfil,
         currentView,
         setCurrentView,
@@ -113,6 +116,8 @@ export default function App() {
                 allSchoolUnits={allSchoolUnits}
                 handleLogin={handleLogin}
                 handleRegister={handleRegister}
+                handleGoogleAuth={handleGoogleAuth}
+                handleOutlookAuth={handleOutlookAuth}
                 isMentoriaPerfil={isMentoriaPerfil}
                 setAuthError={setAuthError}
                 PERFIS_LOGIN={PERFIS_LOGIN}
@@ -143,12 +148,6 @@ export default function App() {
             onToggleContrast={toggleContrast}
         >
             <div className="mx-auto">
-                {errorMessage && (
-                    <div className="mb-6 rounded-xl border border-orange-200 bg-orange-50/95 px-5 py-4 text-sm text-orange-900 shadow-sm">
-                        {errorMessage}
-                    </div>
-                )}
-
                 {loading && (
                     <div className="mb-6 premium-card p-8 flex items-center justify-center gap-3 text-slate-600">
                         <LoaderCircle className="w-5 h-5 animate-spin text-[#00B5B5]" />
@@ -210,6 +209,16 @@ export default function App() {
                 )}
 
                 {currentView === 'inpi' && <INPI clubProjects={myClubProjects} />}
+
+                {currentView === 'forum' && (
+                    <ForumBoard
+                        loggedUser={loggedUser}
+                        myClubId={myClubId}
+                        myClub={myClub}
+                        clubs={clubs}
+                        users={users}
+                    />
+                )}
             </div>
 
             <DiaryModal

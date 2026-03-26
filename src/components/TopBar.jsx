@@ -1,5 +1,5 @@
 import React, { startTransition, useState, useRef, useEffect } from 'react';
-import { Search, LogOut, X, Bell, ChevronDown, User, Home, BookOpen, Menu } from 'lucide-react';
+import { Search, LogOut, X, Bell, ChevronDown, User, Home, BookOpen, Menu, Sparkles } from 'lucide-react';
 import MeuPerfil from './MeuPerfil';
 
 function getInitials(value) {
@@ -21,12 +21,10 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
     const searchInputRef = useRef(null);
     const userMenuRef = useRef(null);
 
-    // Sincroniza o valor local com o estado externo
     useEffect(() => {
         setSearchInputValue(searchTerm);
     }, [searchTerm]);
 
-    // Detecta scroll para mudar o estilo da barra
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
@@ -35,7 +33,6 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Fecha o menu ao clicar fora
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -56,8 +53,7 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
     };
 
     const handleSearchChange = (e) => {
-        const value = e.target.value;
-        setSearchInputValue(value);
+        setSearchInputValue(e.target.value);
     };
 
     const handleClearSearch = () => {
@@ -87,192 +83,155 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
         contextLine2 = '';
     }
 
-    // Gradiente azul personalizado
-    const blueGradient = 'bg-gradient-to-r from-[#0B3B5F] via-[#1B4F72] to-[#2E86C1]';
-    const blueLightGradient = 'bg-gradient-to-r from-[#1F618D] to-[#3498DB]';
-
     return (
-        <header 
-            className={` z-50 transition-all duration-500 ${
-                isScrolled 
-                    ? 'bg-white/95 backdrop-blur-xl shadow-xl border-b border-blue-100/30' 
-                    : `${blueGradient} shadow-lg`
-            }`}
-        >
-            <div className="max-w-[1400px] mx-auto h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        <>
+            <header 
+                className={`sticky top-0 z-40 transition-all duration-500 p-5 ${
+                    isScrolled 
+                        ? 'glass-surface backdrop-blur-2xl shadow-sm border-b border-slate-200' 
+                        : 'glass-surface backdrop-blur-xl border-b border-white/40'
+                }`}
+            >
+            <div className="mx-auto h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8">
                 
-                {/* Logo e Contexto - Lado Esquerdo */}
-                <div className={`flex items-center gap-3 transition-all duration-300 ${isSearchExpanded ? 'hidden sm:flex' : 'flex'}`}>
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#2E86C1] to-[#1B4F72] rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="relative w-10 h-10 rounded-xl bg-white text-[#0B3B5F] flex items-center justify-center font-bold shadow-lg transform transition-transform group-hover:scale-105">
-                            <span className="text-xs font-black tracking-wider">SECTI</span>
-                        </div>
+                {/* Logo e Contexto */}
+                <div className={`flex items-center gap-4 transition-all duration-300 ${isSearchExpanded ? 'hidden sm:flex' : 'flex'}`}>
+                    <div className="relative group flex items-center justify-center">
+                        <div className="">
+                        <img src="/logo.svg" alt="SECTI" className="h-20"/>  
+                      </div>
                     </div>
                     
-                    <div className="hidden md:flex flex-col">
-                        <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Espaço do</span>
-                        <div className="flex flex-col leading-tight">
-                            <span className="text-sm font-bold text-white line-clamp-1">
+                    <div className="hidden md:flex flex-col justify-center">
+                        <div className="flex flex-col leading-tight mt-0.5">
+                            <span className="text-sm font-black text-slate-900 line-clamp-1 tracking-tight">
                                 {contextLine1}
                             </span>
                             {contextLine2 && (
-                                <span className="text-xs text-white/80 line-clamp-1">
+                                <span className="text-xs font-semibold text-slate-500 line-clamp-1">
                                     {contextLine2}
                                 </span>
                             )}
                         </div>
                     </div>
                     
-                    <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+                    <div className="hidden md:block h-8 w-px bg-slate-200 mx-2"></div>
                 </div>
 
-                {/* Barra de Pesquisa - Centralizada */}
+                {/* Barra de Pesquisa */}
                 <div className={`flex-1 max-w-2xl mx-4 transition-all duration-300 ${isSearchExpanded ? 'w-full' : ''}`}>
-                    <div className="relative">
-                        <div className="relative group">
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                placeholder="Pesquisar projetos, postagens ou clubes..."
-                                className={`w-full py-2.5 pl-12 pr-32 text-sm rounded-2xl outline-none transition-all duration-300 focus:ring-4 focus:ring-white/30 ${
-                                    isScrolled 
-                                        ? 'bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#2E86C1]' 
-                                        : 'bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 focus:bg-white/30 focus:text-white'
-                                }`}
-                                value={searchInputValue}
-                                onChange={handleSearchChange}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleSearch();
-                                    }
-                                }}
-                                aria-label="Campo de busca"
-                            />
-                            <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
-                                isScrolled ? 'text-gray-400' : 'text-white/70'
-                            }`} />
-                            
-                            {searchInputValue && (
-                                <button
-                                    onClick={handleClearSearch}
-                                    className={`absolute right-28 top-1/2 -translate-y-1/2 p-1 rounded-full transition-all ${
-                                        isScrolled 
-                                            ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100' 
-                                            : 'text-white/70 hover:text-white hover:bg-white/20'
-                                    }`}
-                                    aria-label="Limpar busca"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            
+                    <div className="relative group">
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder="Pesquisar projetos, clubes, Pesquisadores..."
+                            className="w-full py-3.5 pl-14 pr-32 text-sm text-slate-900 placeholder:text-slate-400 bg-white/80 border border-slate-200 rounded-full outline-none transition-all duration-300 shadow-sm focus:shadow-md focus:shadow-cyan-500/10 focus:bg-white focus:border-[#00B5B5]/50 focus:ring-4 focus:ring-[#00B5B5]/10 hover:border-slate-300"
+                            value={searchInputValue}
+                            onChange={handleSearchChange}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleSearch();
+                                }
+                            }}
+                            aria-label="Campo de busca"
+                        />
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-[#00B5B5] transition-colors" />
+                        
+                        {searchInputValue && (
                             <button
-                                onClick={handleSearch}
-                                className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-white text-xs font-medium rounded-xl transition-all shadow-md ${
-                                    isScrolled 
-                                        ? `${blueLightGradient} hover:shadow-lg` 
-                                        : 'bg-white/20 backdrop-blur-sm hover:bg-white/30'
-                                }`}
-                                type="button"
-                                aria-label="Buscar"
+                                onClick={handleClearSearch}
+                                className="absolute right-[100px] top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                                aria-label="Limpar busca"
                             >
-                                Buscar
+                                <X className="w-4 h-4" />
                             </button>
-                        </div>
+                        )}
+                        
+                        <button
+                            onClick={handleSearch}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-slate-900 hover:bg-[#00B5B5] text-white text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-[#00B5B5]/30"
+                            type="button"
+                            aria-label="Buscar"
+                        >
+                            Buscar
+                        </button>
                     </div>
                 </div>
 
-                {/* Ações e Perfil - Lado Direito */}
-                <div className="flex items-center gap-2">
-                    {/* Botão de busca mobile */}
+                {/* Ações e Perfil */}
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                        className={`sm:hidden p-2 rounded-xl transition-all duration-200 ${
-                            isScrolled 
-                                ? 'text-gray-600 hover:bg-gray-100' 
-                                : 'text-white hover:bg-white/20'
-                        }`}
+                        className="sm:hidden p-2.5 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors bg-white border border-slate-200 shadow-sm"
                         aria-label={isSearchExpanded ? 'Fechar busca' : 'Abrir busca'}
                     >
                         {isSearchExpanded ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
                     </button>
 
-                    {/* Menu do Usuário */}
                     <div className="relative" ref={userMenuRef}>
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
-                            className={`flex items-center gap-3 px-2 py-1.5 rounded-xl transition-all duration-200 group ${
-                                isScrolled 
-                                    ? 'hover:bg-gray-100' 
-                                    : 'hover:bg-white/20'
-                            }`}
+                            className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white border border-slate-200 hover:border-[#00B5B5]/30 hover:shadow-md transition-all duration-300 group"
                         >
                             <div className="relative">
                                 {userAvatar ? (
                                     <img 
                                         src={userAvatar} 
                                         alt={userName}
-                                        className="w-9 h-9 rounded-xl object-cover ring-2 ring-white/50 shadow-sm"
+                                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm"
                                     />
                                 ) : (
-                                    <div className={`w-9 h-9 rounded-xl ${
-                                        isScrolled 
-                                            ? 'bg-gradient-to-br from-[#0B3B5F] to-[#2E86C1]' 
-                                            : 'bg-white'
-                                    } text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white/50`}>
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-600 border-2 border-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:text-[#00B5B5] transition-colors">
                                         {getInitials(userName)}
                                     </div>
                                 )}
-                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full ring-2 ring-white"></div>
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white border border-emerald-600/20"></div>
                             </div>
                             
-                            <div className="hidden md:flex flex-col items-start">
-                                <span className={`text-sm font-semibold ${isScrolled ? 'text-gray-800' : 'text-white'}`}>
+                            <div className="hidden lg:flex flex-col items-start text-left">
+                                <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-[#00B5B5] transition-colors">
                                     {userName.split(' ')[0]}
                                 </span>
-                                <span className={`text-xs ${isScrolled ? 'text-gray-500' : 'text-white/70'}`}>
-                                    {userEmail.split('@')[0]}
+                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                                    
                                 </span>
                             </div>
                             
-                            <ChevronDown className={`hidden md:block w-4 h-4 transition-transform duration-200 ${
-                                isScrolled ? 'text-gray-400' : 'text-white/70'
-                            } ${showUserMenu ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`hidden md:block w-4 h-4 text-slate-400 transition-transform duration-300 ${showUserMenu ? 'rotate-180 text-[#00B5B5]' : 'group-hover:text-[#00B5B5]'}`} />
                         </button>
 
-                        {/* Dropdown Menu */}
+                        {/* Dropdown Menu Premium */}
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200 z-50">
-                                <div className="p-4 border-b border-gray-100">
-                                    <p className="text-sm font-semibold text-gray-800">{userName}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">{userEmail}</p>
+                            <div className="absolute right-0 mt-3 w-72 bg-white/95 backdrop-blur-xl rounded-[1.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-300 z-50">
+                                <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                                    <p className="text-sm font-black text-slate-900 truncate">{userName}</p>
+                                    <p className="text-xs font-semibold text-slate-500 truncate mt-1">{userEmail}</p>
                                 </div>
-                                <div className="p-2">
+                                <div className="p-3 space-y-1">
                                     <button
                                         onClick={() => { setIsProfileOpen(true); setShowUserMenu(false); }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#0B3B5F] rounded-xl transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#E0F7F7] hover:text-[#00B5B5] rounded-2xl transition-all group/btn"
                                     >
-                                        <User className="w-4 h-4" />
+                                        <User className="w-4 h-4 text-slate-400 group-hover/btn:text-[#00B5B5] transition-colors" />
                                         Meu Perfil
                                     </button>
-                                    <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#0B3B5F] rounded-xl transition-colors">
-                                        <BookOpen className="w-4 h-4" />
+                                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#E0F7F7] hover:text-[#00B5B5] rounded-2xl transition-all group/btn">
+                                        <BookOpen className="w-4 h-4 text-slate-400 group-hover/btn:text-[#00B5B5] transition-colors" />
                                         Meus Projetos
                                     </button>
-                                    <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#0B3B5F] rounded-xl transition-colors">
-                                        <Home className="w-4 h-4" />
+                                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#E0F7F7] hover:text-[#00B5B5] rounded-2xl transition-all group/btn">
+                                        <Home className="w-4 h-4 text-slate-400 group-hover/btn:text-[#00B5B5] transition-colors" />
                                         Início
                                     </button>
                                 </div>
-                                <div className="p-2 border-t border-gray-100">
+                                <div className="p-3 border-t border-slate-100 bg-slate-50/50">
                                     <button
                                         onClick={handleLogout}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-2xl transition-all border border-transparent hover:border-red-100"
                                     >
                                         <LogOut className="w-4 h-4" />
-                                        Sair
+                                        Encerrar Sessão
                                     </button>
                                 </div>
                             </div>
@@ -281,29 +240,34 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                 </div>
             </div>
 
-            {/* Overlay para busca mobile */}
+            {/* Overlay Mobile */}
             {isSearchExpanded && (
                 <div 
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden"
+                    className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 sm:hidden animate-in fade-in duration-300"
                     onClick={() => setIsSearchExpanded(false)}
                 />
             )}
 
-            {/* Modal Meu Perfil */}
+            {/* Modal de Perfil - Estilo Glass */}
+        </header>
+
+            {/* Modal de Perfil - Estilo Glass */}
             {isProfileOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
+                <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300" role="dialog" aria-modal="true">
                     <div className="relative w-full max-w-xl">
                         <button
                             onClick={() => setIsProfileOpen(false)}
-                            className="absolute right-2 top-2 p-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 z-10"
+                            className="absolute -right-3 -top-3 p-2.5 rounded-full bg-white text-slate-500 hover:text-slate-900 hover:scale-110 shadow-lg border border-slate-100 transition-all z-10"
                             aria-label="Fechar perfil"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                         </button>
-                        <MeuPerfil loggedUser={loggedUser} myClub={myClub} onSaveProfile={onSaveProfile} onClose={() => setIsProfileOpen(false)} />
+                        <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100">
+                            <MeuPerfil loggedUser={loggedUser} myClub={myClub} onSaveProfile={onSaveProfile} onClose={() => setIsProfileOpen(false)} />
+                        </div>
                     </div>
                 </div>
             )}
-        </header>
+        </> 
     );
 }

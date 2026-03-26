@@ -19,8 +19,11 @@ import {
 import {
     createUserWithEmailAndPassword,
     deleteUser,
+    GoogleAuthProvider,
     onAuthStateChanged,
+    OAuthProvider,
     signInWithEmailAndPassword,
+    signInWithPopup,
     signOut
 } from 'firebase/auth';
 
@@ -29,6 +32,8 @@ import dadosUnidades from '../../DadosUnidades.json';
 import { getLattesLink, composeMentoriaLabel } from '../utils/helpers';
 import { STAGES, PROJECTS_PAGE_SIZE } from '../constants/appConstants';
 import { buildProjectEntries, getProjectTeam, getInvestigatorDisplayNames, normalizePerfil } from '../services/projectService';
+import cachedDataService from '../services/cachedDataService';
+import indexedDBService from '../services/indexedDBService';
 
 export default function useAppController() {
     const [currentView, setCurrentView] = useState('Projetos');
@@ -166,6 +171,13 @@ export default function useAppController() {
             .filter((group) => (group.units || []).length > 0);
     }, [schoolGroups, schoolSearchTerm]);
 
+    // 🚀 Inicializar cache IndexedDB automaticamente
+    useEffect(() => {
+        indexedDBService.init().catch((err) => {
+            console.error('❌ Erro ao inicializar IndexedDB:', err);
+        });
+    }, []);
+
     const fetchProjectsPage = useCallback(async (reset = false) => {
         if (isFetchingProjectsRef.current) {
             return;
@@ -225,21 +237,20 @@ export default function useAppController() {
         };
 
         const subscribeToCollection = (collectionName, setter, options = {}) => {
-            const collectionRef = options.queryBuilder
-                ? options.queryBuilder(collection(db, collectionName))
-                : collection(db, collectionName);
+            // 🎯 USAR CACHE DISTRIBUÍDO
+            const constraints = [];
+            if (collectionName === 'diario_bordo') {
+                constraints.push(orderBy('createdAt', 'desc'));
+            }
 
-            return onSnapshot(
-                collectionRef,
-                (snapshot) => {
-                    setter(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+            return cachedDataService.onCollectionSnapshot(
+                collectionName,
+                constraints,
+                (data) => {
+                    setter(data);
                     finishLoading();
                 },
-                (error) => {
-                    console.error(`Erro ao carregar ${collectionName}:`, error);
-                    setErrorMessage('Nao foi possivel carregar todos os dados do Banco de Dados. Verifique conexão.');
-                    finishLoading();
-                }
+                true // useCache
             );
         };
 
@@ -265,9 +276,9 @@ export default function useAppController() {
     useEffect(() => {
         const fetchProjectsTotalCount = async () => {
             try {
-                const projectsCollection = collection(db, 'projetos');
-                const totalSnapshot = await getCountFromServer(projectsCollection);
-                setProjectsTotalCount(totalSnapshot.data().count || 0);
+                // 🎯 USAR CACHE DISTRIBUÍDO
+                const count = await cachedDataService.getCountFromCollection('projetos');
+                setProjectsTotalCount(count || 0);
             } catch (error) {
                 console.error('Erro ao carregar quantitativo total de projetos:', error);
             }
@@ -288,6 +299,11 @@ export default function useAppController() {
 
     useEffect(() => {
         if (!loadMoreNode) {
+            return undefined;
+        }
+
+        // Desativar scroll infinito durante busca ativa para evitar carregamento contínuo.
+        if (deferredSearchTerm) {
             return undefined;
         }
 
@@ -438,6 +454,9 @@ export default function useAppController() {
                 createdAt: serverTimestamp()
             });
 
+            // 🎯 INVALIDAR CACHE para forçar refetch
+            await cachedDataService.invalidateCollection('diario_bordo');
+
             setNewEntry({ title: '', duration: '', stage: STAGES[0], whatWasDone: '', discoveries: '', obstacles: '', nextSteps: '', tags: '' });
             setIsModalOpen(false);
             setCurrentView('diario');
@@ -581,7 +600,7 @@ export default function useAppController() {
             setAuthError('Informe a matrícula.');
             return;
         }
-        if (isMentoriaPerfil(registerForm.perfil) && !isValidHttpUrl(registerForm.lattes)) {
+        if (isMentoriaPerfil(registerForm.perfil) && registerForm.lattes && !isValidHttpUrl(registerForm.lattes)) {
             setAuthError('Informe um link Lattes válido (https://lattes.cnpq.br/...).');
             return;
         }
@@ -620,6 +639,9 @@ export default function useAppController() {
                 throw firestoreError;
             }
 
+            // 🎯 INVALIDAR CACHE de usuarios
+            await cachedDataService.invalidateCollection('usuarios');
+
             const snap = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
             isRegisteringRef.current = false;
             setAuthUser(userCredential.user);
@@ -631,6 +653,62 @@ export default function useAppController() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleSocialAuth = async (providerName) => {
+        setAuthError('');
+        setIsSubmitting(true);
+
+        try {
+            const normalizedProvider = String(providerName || '').trim().toLowerCase();
+            const provider = normalizedProvider === 'google'
+                ? new GoogleAuthProvider()
+                : new OAuthProvider('microsoft.com');
+
+            provider.setCustomParameters({ prompt: 'select_account' });
+
+            const userCredential = await signInWithPopup(auth, provider);
+            const user = userCredential.user;
+            const userRef = doc(db, 'usuarios', user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                const fullName = String(user.displayName || '').trim();
+                const userEmail = String(user.email || '').trim();
+                const fallbackName = userEmail.includes('@') ? userEmail.split('@')[0] : 'Usuário';
+
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    nome: fullName || fallbackName,
+                    email: userEmail,
+                    perfil: 'estudante',
+                    escola_id: '',
+                    escola_nome: '',
+                    clube_id: '',
+                    auth_provider: normalizedProvider === 'google' ? 'google' : 'microsoft',
+                    createdAt: serverTimestamp()
+                });
+
+                await cachedDataService.invalidateCollection('usuarios');
+            }
+
+            const refreshedUserSnap = await getDoc(userRef);
+            setAuthUser(user);
+            setLoggedUser({ id: refreshedUserSnap.id, ...refreshedUserSnap.data() });
+        } catch (error) {
+            console.error(`Erro no login social (${providerName}):`, error);
+            setAuthError(getAuthErrorMessage(error.code, error.message || String(error)));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleGoogleAuth = async () => {
+        await handleSocialAuth('google');
+    };
+
+    const handleOutlookAuth = async () => {
+        await handleSocialAuth('outlook');
     };
 
     const handleLogout = async () => {
@@ -647,9 +725,16 @@ export default function useAppController() {
         setCurrentView('Projetos');
     };
 
-    const handleCreateProject = async ({ titulo, descricao, area_tematica, status, tipo, coorientador_ids = [], investigadores_ids = [] }) => {
+    const handleCreateProject = async ({ titulo, descricao, area_tematica, status, tipo, coorientador_ids = [], investigadores_ids = [], imagens = [] }) => {
         if (!viewingClub) {
             setErrorMessage('Selecione um clube para registrar o projeto.');
+            return;
+        }
+
+        const creatorId = String(loggedUser?.id || authUser?.uid || '').trim();
+
+        if (!creatorId) {
+            setErrorMessage('Usuário não autenticado para criação de projeto.');
             return;
         }
 
@@ -675,6 +760,9 @@ export default function useAppController() {
 
             const normalizedCoorientadores = [...new Set((coorientador_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
             const normalizedInvestigadores = [...new Set((investigadores_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            const normalizedOrientadores = [...new Set([creatorId])];
+
+            newProjectData.orientador_ids = normalizedOrientadores;
 
             if (normalizedCoorientadores.length > 0) {
                 newProjectData.coorientador_ids = normalizedCoorientadores;
@@ -684,9 +772,17 @@ export default function useAppController() {
                 newProjectData.investigadores_ids = normalizedInvestigadores;
             }
 
-            const membrosIds = [...new Set([...normalizedCoorientadores, ...normalizedInvestigadores])];
+            const membrosIds = [...new Set([...normalizedOrientadores, ...normalizedCoorientadores, ...normalizedInvestigadores])];
             if (membrosIds.length > 0) {
                 newProjectData.membros_ids = membrosIds;
+            }
+
+            const normalizedImagens = Array.isArray(imagens)
+                ? imagens.filter((img) => typeof img === 'string' && img.trim()).slice(0, 2)
+                : [];
+
+            if (normalizedImagens.length > 0) {
+                newProjectData.imagens = normalizedImagens;
             }
 
             const projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
@@ -720,14 +816,15 @@ export default function useAppController() {
             const updates = {
                 nome: profileData.nome || loggedUser.nome,
                 telefone: profileData.telefone || loggedUser.telefone || '',
-                cargo: profileData.cargo || loggedUser.cargo || '',
+                lattes: profileData.lattesLink || loggedUser.lattes || '',
                 bio: profileData.bio || loggedUser.bio || '',
                 localizacao: profileData.localizacao || loggedUser.localizacao || '',
                 fotoBase64: profileData.fotoBase64 || loggedUser.fotoBase64 || loggedUser.fotoUrl || ''
             };
 
             await updateDoc(userRef, updates);
-            setLoggedUser((prev) => (prev ? { ...prev, ...updates } : prev));
+            const updatedUser = { ...loggedUser, ...updates };
+            setLoggedUser(updatedUser);
             setErrorMessage('Perfil salvo com sucesso.');
         } catch (error) {
             console.error('Erro ao salvar perfil:', error);
@@ -754,6 +851,8 @@ export default function useAppController() {
         allSchoolUnits,
         handleLogin,
         handleRegister,
+        handleGoogleAuth,
+        handleOutlookAuth,
         currentView,
         setCurrentView,
         isModalOpen,
@@ -878,7 +977,11 @@ function getAuthErrorMessage(code, fallbackMessage = '') {
         'auth/email-already-in-use': 'Este e-mail já está cadastrado. Tente fazer login.',
         'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
         'auth/invalid-email': 'E-mail inválido.',
-        'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.'
+        'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
+        'auth/popup-closed-by-user': 'A janela de autenticação foi fechada antes da conclusão.',
+        'auth/cancelled-popup-request': 'A autenticação foi cancelada.',
+        'auth/popup-blocked': 'O navegador bloqueou o popup de login. Habilite popups e tente novamente.',
+        'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.'
     };
 
     if (code && messages[code]) {

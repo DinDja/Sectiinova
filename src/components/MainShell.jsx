@@ -51,11 +51,7 @@ export default function MainShell({
 
     return (
         <div className={containerClasses} style={containerStyle}>
-            <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.83-1.66 1.66-.83-.83.83-.83zM27.83 54.627l.83.83-1.66 1.66-.83-.83.83-.83zM0 27.83l.83.83-1.66 1.66-.83-.83.83-.83zM58.33 27.83l.83.83-1.66 1.66-.83-.83.83-.83zM27.83 0l.83.83-1.66 1.66-.83-.83.83-.83zM0 58.33l.83.83-1.66 1.66-.83-.83.83-.83z' fill='%23003A54' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '120px' }}></div>
-
-            <div className="glass-surface border-b border-white/70 text-[11px] text-slate-500 py-2 px-4 flex justify-between items-center z-20 relative">
-                <div className="flex items-center space-x-4">
-                </div>
+            <div className=" flex justify-between items-center z-20 relative">
             </div>
 
             <div className="flex flex-1 overflow-hidden z-10 min-h-0">
@@ -80,7 +76,14 @@ export default function MainShell({
                         onSaveProfile={onSaveProfile}
                     />
 
-                    <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">{children}</main>
+                    <main className="flex-1 overflow-y-auto relative p-2"    style={{
+        backgroundColor: '#f8fafc', // Cor de fundo base (slate-50)
+        backgroundImage: ` 
+          linear-gradient(to right, rgba(203, 213, 225, 0.2) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(203, 213, 225, 0.2) 1px, transparent 1px)
+        `, // Desenha as linhas horizontais e verticais com transparência suave (slate-300 a 20%)
+        backgroundSize: '32px 32px', // Tamanho de cada quadradinho
+      }}>{children}</main>
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, BookOpen, School, Upload, Lightbulb } from 'lucide-react';
+import { Map, BookOpen, School, Upload, Lightbulb, Coffee } from 'lucide-react';
 import { HeightRule } from 'docx';
 
 export default function Sidebar({
@@ -21,11 +21,12 @@ export default function Sidebar({
     { id: 'Projetos', label: 'Feed de Projetos', icon: Map, tooltip: 'Explorar projetos' },
     { id: 'diario', label: 'Diário de Bordo', icon: BookOpen, tooltip: 'Registros diários' },
     { id: 'inpi', label: 'INPI Patentes', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
+    { id: 'forum', label: 'Café Digital', icon: Coffee, tooltip: 'Fórum de discussão' },
   ];
 
   return (
     <aside
-      className="w-24 h-full min-h-screen glass-surface border-r border-white/80 flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
+      className="w-24 h-full min-h-screen glass-surface flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
       aria-label="Menu principal"
     >
       {/* Navegação principal */}
@@ -87,6 +88,16 @@ export default function Sidebar({
       </nav>
 
       {/* Perfil do usuário (apenas se logado) */}
+
+      {/* Logo SECTI no final da sidebar */}
+      <div className="mt-auto w-full px-2 pb-4 flex justify-center">
+        <img
+          src="/images/Secti_Vertical.png"
+          alt="SECTI"
+          className="h-20 object-contain opacity-90 hover:opacity-100 transition-opacity duration-300"
+          loading="lazy"
+        />
+      </div>
     </aside>
   );
 }

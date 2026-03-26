@@ -30,6 +30,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/projetos/$(projectId)).data.clube_id == clubeId;
     }
 
+    function isExternalMember(clubeId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid))
+        && get(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid)).data.clube_id == clubeId;
+    }
+
     match /clubes_ciencia/{clubeId} {
       allow read: if true;
       allow create, update, delete: if belongsToClub(clubeId);
@@ -56,9 +61,27 @@ service cloud.firestore {
         && projectBelongsToClub(resource.data.projeto_id, resource.data.clube_id);
     }
 
+    function isProjectOrientador(resource) {
+      return resource.data.orientador_ids is list && request.auth != null
+        && request.auth.uid in resource.data.orientador_ids;
+    }
+
     match /projetos/{projectId} {
       allow read: if true;
-      allow write: if false;
+
+      allow create: if (isMentor() || isMyClub(request.resource.data.clube_id))
+        && request.resource.data.titulo is string
+        && request.resource.data.clube_id is string
+        && request.resource.data.escola_id is string
+        && request.resource.data.createdAt is timestamp
+        && (request.resource.data.imagens is list ? request.resource.data.imagens.size() <= 2 : true);
+
+      allow update: if (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
+        && resource.data.clube_id is string
+        && request.resource.data.clube_id == resource.data.clube_id;
+
+      allow delete: if (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
+        && resource.data.clube_id is string;
     }
 
     match /usuarios/{userId} {
@@ -70,6 +93,66 @@ service cloud.firestore {
     match /unidades_escolares/{schoolId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // ─── Fórum: Tópicos ──────────────────────────────────
+    match /forum_topicos/{topicId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.clube_id is string
+        && request.resource.data.titulo is string
+        && request.resource.data.autor_id == request.auth.uid;
+
+      // Permite a atualização de contadores de atividade por autor (inclui membros externos)
+      // e edição total por mentor/miembros do clube.
+      allow update: if isSignedIn() &&
+        ((isMentor() && isMyClub(resource.data.clube_id)) || request.auth.uid == resource.data.autor_id) &&
+        request.resource.data.clube_id == resource.data.clube_id;
+
+      allow delete: if isSignedIn()
+        && isMentor()
+        && isMyClub(resource.data.clube_id);
+    }
+
+    // ─── Fórum: Mensagens ────────────────────────────────
+    match /forum_mensagens/{msgId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.topico_id is string
+        && request.resource.data.conteudo is string
+        && request.resource.data.autor_id == request.auth.uid;
+
+      allow delete: if isSignedIn()
+        && (request.auth.uid == resource.data.autor_id
+            || (isMentor() && isMyClub(resource.data.clube_id)));
+    }
+
+    // ─── Fórum: Solicitações de Entrada ──────────────────
+    match /forum_solicitacoes/{reqId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.solicitante_id == request.auth.uid
+        && request.resource.data.clube_id is string;
+
+      allow update: if isSignedIn()
+        && isMentor()
+        && isMyClub(resource.data.clube_id);
+    }
+
+    // ─── Fórum: Membros Externos ─────────────────────────
+    match /forum_membros_externos/{memId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isMentor()
+        && isMyClub(request.resource.data.clube_id);
+
+      allow delete: if isSignedIn()
+        && isMentor()
+        && isMyClub(resource.data.clube_id);
     }
 
     match /{document=**} {

@@ -150,6 +150,29 @@ O projeto agora inclui o arquivo `firestore.rules` com a seguinte política:
 - apenas **professor orientador** pode criar, atualizar ou excluir registros em `diario_bordo` quando o `projeto_id` pertencer ao mesmo `clube_id` do orientador
 - as coleções `projetos`, `usuarios` e `unidades_escolares` ficam somente leitura
 
+### Coleções do Fórum (Café Digital)
+
+O módulo de fórum adiciona 4 coleções:
+
+- **`forum_topicos`** — Tópicos de discussão vinculados a um clube
+  - Campos: `clube_id`, `titulo`, `descricao`, `autor_id`, `autor_nome`, `createdAt`, `lastActivityAt`, `mensagens_count`, `pinned`, `locked`
+  - Criação: qualquer usuário autenticado (com `autor_id == uid`)
+  - Moderação (pin/lock/delete): orientadores/coorientadores do clube
+
+- **`forum_mensagens`** — Mensagens dentro de um tópico
+  - Campos: `topico_id`, `clube_id`, `autor_id`, `autor_nome`, `conteudo`, `createdAt`
+  - Criação: qualquer autenticado (com `autor_id == uid`)
+  - Exclusão: autor da mensagem ou moderador do clube
+
+- **`forum_solicitacoes`** — Pedidos de entrada de membros externos em fóruns de outros clubes
+  - Campos: `clube_id`, `solicitante_id`, `solicitante_nome`, `solicitante_clube_id`, `status` (pendente/aceito/recusado), `respondido_por`, `createdAt`, `respondidoAt`
+  - Criação: solicitante autenticado
+  - Aprovação/Rejeição: mentor do clube alvo
+
+- **`forum_membros_externos`** — Registro de membros aceitos em fóruns de outros clubes
+  - Campos: `clube_id`, `membro_id`, `membro_nome`, `aceito_por`, `createdAt`
+  - Criação/Exclusão: mentor do clube
+
 ### Premissa de autenticação
 
 As regras assumem que o usuário autenticado no Firebase Auth possui `uid` igual ao ID do documento em `usuarios`.

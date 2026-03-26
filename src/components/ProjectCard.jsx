@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users } from 'lucide-react';
+
+// IMPORTAÇÃO DO MODAL (ajuste o caminho se necessário)
+import ModalPerfil from './ModalPerfil';
 
 export default function ProjectCard({
     project,
@@ -17,6 +20,18 @@ export default function ProjectCard({
     const [likesCount, setLikesCount] = useState(project?.likes || 195);
     const [isHovered, setIsHovered] = useState(false);
 
+    // NOVOS ESTADOS PARA O MODAL DE PERFIL
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+
+    // FUNÇÃO QUE ABRE O PERFIL E BLOQUEIA A IDA PRO CLUBE
+    const handleUserClick = (e, user) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setSelectedUser(user);
+        setIsProfileModalOpen(true);
+    };
+
     // Fallbacks para garantir que o layout não quebre se os dados estiverem vazios
     const orientador = team?.orientadores?.[0] || { 
         nome: 'André Matos Sousa', 
@@ -27,6 +42,17 @@ export default function ProjectCard({
     const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comércio Local";
     const tagText = project?.status || "EIXO PROJETOS";
     const descricao = project?.descricao || "Projeto inovador que conecta estudantes do ensino médio com pequenos comerciantes locais para promover a transformação digital e o desenvolvimento comunitário sustentável.";
+    const projectImage = project?.imagens?.[0] || project?.imagem || '';
+    const imageCount = Array.isArray(project?.imagens) ? project.imagens.length : (project?.imagem ? 1 : 0);
+
+    const fallbackBackgrounds = ['/images/BG_1.png', '/images/BG_2.png', '/images/BG_3.png'];
+    const isFallbackImage = !projectImage;
+    const backgroundImage = useMemo(() => {
+        if (!isFallbackImage) return '';
+        return fallbackBackgrounds[Math.floor(Math.random() * fallbackBackgrounds.length)];
+    }, [isFallbackImage]);
+    const displayImage = isFallbackImage ? backgroundImage : projectImage;
+
     
     // Cores baseadas no status do projeto
     const getTagColor = () => {
@@ -63,7 +89,6 @@ export default function ProjectCard({
         } else {
             // Fallback share
             navigator.clipboard.writeText(window.location.href);
-            alert('Link copiado para a área de transferência!');
         }
     };
 
@@ -76,8 +101,13 @@ export default function ProjectCard({
             
             {/* Cabeçalho: Info do Autor e Tag */}
             <div className="p-5 flex items-center justify-between bg-white border-b border-gray-100">
-                <div className="flex items-center gap-4">
-                    {/* Avatar do Orientador com animação */}
+                
+                {/* AQUI ESTÁ A MÁGICA: Transformei a div inteira do autor em clicável para abrir o perfil */}
+                <div 
+                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={(e) => handleUserClick(e, orientador)}
+                >
+                    {/* Avatar do Orientador */}
                     <div className="relative">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5AC8C8] to-[#3EA8A8] overflow-hidden flex-shrink-0 border-2 border-white shadow-md">
                             {orientador.avatar ? (
@@ -90,13 +120,12 @@ export default function ProjectCard({
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
+                    
                     <div className="flex flex-col">
-                        <button 
-                            onClick={onClubClick}
-                            className="font-bold text-gray-800 text-base hover:text-[#5AC8C8] transition-colors text-left"
-                        >
+                        {/* Removi o onClubClick que estava aqui e troquei por span */}
+                        <span className="font-bold text-gray-800 text-base hover:text-[#5AC8C8] transition-colors text-left">
                             {orientador.nome}
-                        </button>
+                        </span>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                             <span>{orientador.papel || 'Orientador'}</span>
                             {orientador.instituicao && (
@@ -115,16 +144,24 @@ export default function ProjectCard({
                 </span>
             </div>
 
-            {/* Imagem Principal com overlay e efeito de zoom */}
+            {/* Imagem Principal */}
             <div className="relative w-full h-[260px] sm:h-[320px] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer">
-                {project?.imagem ? (
+                {displayImage ? (
                     <>
                         <img 
-                            src={project.imagem} 
+                            src={displayImage} 
                             alt={titulo}
                             className={`w-full h-full object-cover transition-transform duration-700 ${isHovered ? 'scale-110' : 'scale-100'}`}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        {imageCount > 1 && (
+                            <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-semibold px-2 py-0.5 rounded">{imageCount} fotos</div>
+                        )}
+                        {isFallbackImage && (
+                            <div className="absolute bottom-3 left-3 bg-black/70 text-white text-[11px] sm:text-xs px-2 py-1 rounded-lg font-medium">
+                                Projeto sem foto. Imagem ilustrativa.
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
@@ -132,12 +169,6 @@ export default function ProjectCard({
                         <span>Imagem do Projeto não disponível</span>
                     </div>
                 )}
-                
-                {/* Badge de visualizações */}
-                <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-white text-xs flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    <span>{project?.views || '2.3k'} visualizações</span>
-                </div>
             </div>
 
             {/* Conteúdo: Título e Descrição */}
@@ -146,7 +177,6 @@ export default function ProjectCard({
                     {titulo}
                 </h2>
                 
-                {/* Descrição do projeto */}
                 <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
                     {descricao}
                 </p>
@@ -162,7 +192,8 @@ export default function ProjectCard({
                             {displayTeam.map((member, idx) => (
                                 <div 
                                     key={idx} 
-                                    className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-[3px] border-white bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden shadow-sm transition-all duration-300 hover:scale-110 hover:z-10"
+                                    onClick={(e) => handleUserClick(e, member)} // AQUI TAMBÉM ABRE O PERFIL
+                                    className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-[3px] border-white bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer"
                                     title={`${member.nome} - ${member.type === 'orientador' ? 'Orientador' : member.type === 'coorientador' ? 'Coorientador' : 'Membro'}`}
                                 >
                                     {member.avatar ? (
@@ -187,10 +218,7 @@ export default function ProjectCard({
 
             {/* Métricas e Indicadores */}
             <div className="px-6 pb-6 pt-2">
-                {/* Métricas de interação */}
-                <div className="flex items-center gap-4 sm:gap-6 mb-4">
-                  
-                </div>
+                <div className="flex items-center gap-4 sm:gap-6 mb-4"></div>
 
                 {/* Indicador de progresso se o projeto estiver em andamento */}
                 {isCompleted === false && project?.progress && (
@@ -209,7 +237,7 @@ export default function ProjectCard({
                 )}
             </div>
 
-            {/* Botão Acessar Diário - Posicionado no canto inferior direito absoluto */}
+            {/* Botão Acessar Diário */}
             <div className="absolute bottom-6 right-6 z-10">
                 <button 
                     onClick={onDiaryClick}
@@ -219,7 +247,14 @@ export default function ProjectCard({
                     Acessar Diário
                     <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-y-0.5" />
                 </button>
-            </div>
+            </div> 
+
+            {/* MODAL RENDERIZADO AQUI */}
+            <ModalPerfil 
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                usuario={selectedUser}
+            />
         </article>
     );
 }

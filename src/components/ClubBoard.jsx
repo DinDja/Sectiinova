@@ -1,354 +1,275 @@
 import React, { useState } from 'react';
-import { User, School, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, ArrowRight, Target, GraduationCap, FileText, PlusCircle } from 'lucide-react';
+import { User, School, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, ArrowRight, Target, GraduationCap, FileText, PlusCircle, Sparkles, Zap, Building2 } from 'lucide-react';
 import EmptyState from './EmptyState';
-import { getInitials, getLattesAreas, getLattesEducation, getLattesLink, getLattesSummary } from '../utils/helpers';
+import CreateProjectForm from './CreateProjectForm';
+import { getInitials, getLattesAreas, getLattesEducation, getLattesLink, getLattesSummary, compressImageFiles } from '../utils/helpers';
 
-const MentorList = ({ people = [], accent = 'cyan', title, emptyMessage }) => {
-    const palette = accent === 'orange'
-        ? {
-            avatar: 'bg-[#FF5722]',
-            badge: 'border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100',
-            chip: 'bg-orange-50 text-orange-800'
-        }
-        : {
-            avatar: 'bg-[#00B5B5]',
-            badge: 'border-[#00B5B5]/30 bg-[#F0F9F9] text-[#0F5257] hover:bg-[#E5F6F6]',
-            chip: 'bg-[#EAF7F7] text-[#0F5257]'
-        };
+export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubProjects, viewingClubUsers, viewingClubOrientadores, viewingClubCoorientadores, viewingClubInvestigadores, viewingClubDiaryCount, setSelectedClubId, setSelectedProjectId, setCurrentView, handleCreateProject }) {
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-    return (
-        <div className="premium-card p-6" style={{maxHeight: "400px", overflow: "auto"}}>
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">{title}</h3>
-            {people.length === 0 ? (
-                <p className="text-sm text-slate-400 italic text-center py-4">{emptyMessage}</p>
-            ) : (
-                <ul className="space-y-3">
-                    {people.map((person) => {
-                        const lattesLink = getLattesLink(person);
-                        const summary = getLattesSummary(person);
-                        const areas = getLattesAreas(person).slice(0, 2);
-                        const education = getLattesEducation(person).slice(0, 1);
-
-                        return (
-                            <li key={person.id} className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full ${palette.avatar} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
-                                            {getInitials(person.nome)}
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-sm text-slate-800">{person.nome}</p>
-                                            {person.email && <p className="text-xs text-slate-500">{person.email}</p>}
-                                        </div>
-                                    </div>
-                                    {lattesLink && (
-                                        <a href={lattesLink} target="_blank" rel="noreferrer" className={`shrink-0 inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold ${palette.badge}`} title="Ver Currículo Lattes">
-                                            <ExternalLink className="w-3 h-3" />Lattes
-                                        </a>
-                                    )}
-                                </div>
-
-                                {(summary || areas.length > 0 || education.length > 0) && (
-                                    <div className="mt-3 space-y-2.5 border-t border-slate-200 pt-3">
-                                        {summary && (
-                                            <div>
-                                                <p className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                                                    <FileText className="w-3.5 h-3.5" /> Resumo
-                                                </p>
-                                                <p className="text-xs leading-relaxed text-slate-600">{summary}</p>
-                                            </div>
-                                        )}
-                                        {areas.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {areas.map((area) => (
-                                                    <span key={area} className={`rounded-full px-2 py-1 text-[10px] ${palette.chip}`}>
-                                                        {area}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {education.length > 0 && (
-                                            <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                                                <GraduationCap className="w-3.5 h-3.5" /> {education[0]}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
-        </div>
-    );
-};
-
-export default function ClubBoard({
-    viewingClub,
-    viewingClubSchool,
-    viewingClubProjects,
-    viewingClubUsers,
-    viewingClubOrientadores,
-    viewingClubCoorientadores,
-    viewingClubInvestigadores,
-    viewingClubDiaryCount,
-    setSelectedClubId,
-    setSelectedProjectId,
-    setCurrentView,
-    handleCreateProject
-}) {
     if (!viewingClub) {
         return (
-            <div className="premium-card p-10">
-                <EmptyState
-                    icon={School}
-                    title="Nenhum clube selecionado"
-                    description="Acesse o Feed de Inovação e clique no ícone de escola em um projeto para visualizar as informações do clube responsável."
-                />
+            <div className="min-h-[60vh] flex items-center justify-center p-10 bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden shadow-inner">
+                {/* Soft background accents */}
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FF5722]/5 rounded-full blur-[100px] pointer-events-none"></div>
+                
+                <div className="relative z-10 bg-white/50 backdrop-blur-xl p-12 rounded-[2rem] border border-white/80 shadow-lg text-center">
+                    <Building2 className="w-16 h-16 text-[#00B5B5] mx-auto mb-6 opacity-80" />
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Selecione um Ecossistema</h2>
+                    <p className="text-slate-600 max-w-md mx-auto">Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.</p>
+                </div>
             </div>
         );
     }
 
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [projectForm, setProjectForm] = useState({
-        titulo: '',
-        descricao: '',
-        area_tematica: '',
-        status: 'Em andamento',
-        tipo: 'Projeto Científico',
-        coorientador_ids: [],
-        investigadores_ids: []
-    });
-    const [projectMessage, setProjectMessage] = useState('');
+    const investigatorCount = viewingClubInvestigadores.length;
+    const memberCount = viewingClubUsers.length;
+    const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
 
-    const handleSubmitProject = async (event) => {
-        event.preventDefault();
+    // Funcões auxiliares para o design (Adaptadas para Light Mode)
+    const AvatarStack = ({ people, max = 5, color = "cyan" }) => {
+        const displayPeople = people.slice(0, max);
+        const remaining = people.length - max;
+        
+        // Cores vibrantes em fundo claro
+        const colorClasses = color === "cyan" 
+            ? "bg-[#00B5B5] text-white border-white" 
+            : "bg-[#FF5722] text-white border-white";
 
-        if (!handleCreateProject) {
-            setProjectMessage('Função de criação não disponível.');
-            return;
-        }
-
-        try {
-            await handleCreateProject(projectForm);
-            setProjectMessage('Projeto criado com sucesso!');
-            setProjectForm({
-                titulo: '',
-                descricao: '',
-                area_tematica: '',
-                status: 'Em andamento',
-                tipo: 'Projeto Científico',
-                coorientador_ids: [],
-                investigadores_ids: []
-            });
-            setIsCreateOpen(false);
-        } catch (error) {
-            setProjectMessage('Erro ao criar projeto. Verifique os dados e tente novamente.');
-        }
-    };
-
-    const toggleMemberSelection = (fieldName, id) => {
-        setProjectForm((prev) => {
-            const currentValues = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
-            const normalizedId = String(id || '').trim();
-
-            if (!normalizedId) {
-                return prev;
-            }
-
-            const exists = currentValues.includes(normalizedId);
-
-            return {
-                ...prev,
-                [fieldName]: exists
-                    ? currentValues.filter((value) => value !== normalizedId)
-                    : [...currentValues, normalizedId]
-            };
-        });
+        return (
+            <div className="flex -space-x-3 isolate">
+                {displayPeople.map((p, i) => (
+                    <div key={p.id} className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ring-2 ring-white shadow-md z-[${max - i}] ${colorClasses} hover:-translate-y-2 transition-transform duration-300 cursor-pointer`} title={p.nome}>
+                        {getInitials(p.nome)}
+                    </div>
+                ))}
+                {remaining > 0 && (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-600 ring-2 ring-white shadow-md z-0">
+                        +{remaining}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
-        <div className="space-y-6 mx-auto pb-12">
-            <div
-                className="premium-card overflow-hidden border border-slate-200 relative text-white"
-                style={{
-                    backgroundImage: "url('/clubeBG.svg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat'
-                }}
-            >
-                <div className="absolute inset-0 bg-slate-950/40 pointer-events-none"></div>
-                <div className="h-2 bg-gradient-to-r from-[#00B5B5] via-[#004B8D] to-[#FF5722]"></div>
-                <div className="p-6 md:p-10 flex flex-col md:flex-row gap-8 items-start relative">
-                    <div className="w-20 h-20 rounded-xl bg-[#F0F9F9] border-2 border-[#00B5B5]/30 flex items-center justify-center text-[#00B5B5] font-black text-2xl shrink-0">{viewingClub.nome?.slice(0, 2).toUpperCase()}</div>
-                    <div className="flex-1">
-                        <div className="flex items-start justify-between gap-4 mb-2">
+        // Base clara: slate-50/100
+        <div className="space-y-8 mx-auto pb-20  font-sans bg-slate-50 p-3 md:p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-slate-800 relative overflow-hidden">
+            
+            {/* HERO BANNER - Milk Glass & Soft Gradients */}
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 group min-h-[320px] flex flex-col justify-end p-8 md:p-12 shadow-sm">
+                
+                {/* Soft Background Accents (Orbs) */}
+                <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/15 transition-colors duration-700 pointer-events-none"></div>
+                <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/5 rounded-full blur-[60px] pointer-events-none"></div>
+                
+                {/* Subtle Texture - Adapted for Light */}
+                <div className="absolute inset-0  mix-blend-multiply pointer-events-none" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
+
+                <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-end">
+                    <div className="max-w-3xl flex-1">
+                        {/* Texto escuro com leve gradiente para sofisticação */}
+                        <h1 className="text-5xl md:text-6xl text-white tracking-tighter from-slate-950 via-slate-800 to-slate-700 mb-4 leading-tight">
+                            {viewingClub.nome}
+                        </h1>
+                        
+                        <p className="text-white font-medium text-lg flex items-center gap-2.5">
+                            <MapIcon className="w-5 h-5 text-[#00B5B5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                            <span className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-sm font-semibold text-white">
+                                <Microscope className="w-4 h-4 text-[#FF5722]" />
+                                Força Investigadora: {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
+                            </span>
+                            <span className="text-xs font-bold text-white/80 bg-[#00B5B5]/20 px-2 py-1 rounded-full">
+                                {investigatorRatio}% da equipe
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Botão Primário VIBRANTE em Fundo Claro */}
+                    <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#00B5B5]/30 shrink-0">
+                        <Zap className={`w-5 h-5 transition-transform ${isCreateOpen ? 'rotate-45 text-amber-200' : 'text-white'}`} />
+                        {isCreateOpen ? 'Cancelar Criação' : 'Iniciar Novo Projeto'}
+                    </button>
+                </div>
+            </div>
+
+            {isCreateOpen && (
+                <CreateProjectForm
+                    isOpen={isCreateOpen}
+                    onClose={() => setIsCreateOpen(false)}
+                    viewingClub={viewingClub}
+                    viewingClubOrientadores={viewingClubOrientadores}
+                    viewingClubCoorientadores={viewingClubCoorientadores}
+                    viewingClubInvestigadores={viewingClubInvestigadores}
+                    handleCreateProject={handleCreateProject}
+                    onSuccess={() => {
+                        // Caso queira atualizar o estado do club, adicione lógica aqui.
+                        // Ex: recarregar lista de projetos ou mostrar mensagem.
+                    }}
+                />
+            )}
+
+            {/* BENTO GRID ASSIMÉTRICO (Cartões Brancos) */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
+                
+                {/* Bloco 1: Estatísticas (Span 4) */}
+                <div className="md:col-span-4 grid grid-cols-2 gap-4">
+                    {[
+                        { icon: FolderKanban, count: viewingClubProjects.length, label: "Projetos", color: "text-[#00B5B5]", bg: "bg-[#E0F7F7]", border: "border-[#00B5B5]/20" },
+                        { icon: Users, count: viewingClubUsers.length, label: "Membros", color: "text-[#FF5722]", bg: "bg-[#FFF3E0]", border: "border-[#FF5722]/20" },
+                        { icon: BookOpen, count: viewingClubDiaryCount, label: "Registros", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+                        { icon: Target, count: viewingClubOrientadores.length + viewingClubCoorientadores.length, label: "Mentores", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" }
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col justify-between hover:border-[#00B5B5]/30 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 group">
                             <div>
-                                <h2 className="text-2xl md:text-3xl font-bold text-white text-slate-900 leading-tight">{viewingClub.nome}</h2>
-                                <p className="text-[#00B5B5] font-semibold text-sm mt-1 flex items-center gap-1.5"><MapIcon className="w-4 h-4" /> {viewingClubSchool?.nome || 'Escola não vinculada'}</p>
+                                <h4 className="text-4xl font-black text-slate-950 tracking-tight group-hover:text-[#00B5B5] transition-colors">{stat.count}</h4>
+                                <p className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500 mt-1.5">{stat.label}</p>
                             </div>
-                            <span className="shrink-0 bg-[#E0F2F2] text-[#00B5B5] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Clube Ativo</span>
                         </div>
-                        {viewingClub.descricao && <p className="text-slate-100 text-sm leading-relaxed mt-3 max-w-2xl">{viewingClub.descricao}</p>}
-                        <div className="flex flex-wrap gap-4 mt-5 text-slate-100">
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-700"><FolderKanban className="w-4 h-4 text-[#00B5B5]" /><span className="font-bold text-slate-900">{viewingClubProjects.length}</span><span>Projetos</span></div>
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-700"><Users className="w-4 h-4 text-[#00B5B5]" /><span className="font-bold text-slate-900">{viewingClubUsers.length}</span><span>Membros</span></div>
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-700"><BookOpen className="w-4 h-4 text-[#00B5B5]" /><span className="font-bold text-slate-900">{viewingClubDiaryCount}</span><span>Registros no Diário</span></div>
-                        </div>
+                    ))}
+                </div>
+
+                {/* Bloco 2: Equipe Docente (Span 4) */}
+                <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
+                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Equipe Docente</h3>
+                    
+                    <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
+                        {[...viewingClubOrientadores, ...viewingClubCoorientadores].length === 0 ? (
+                            <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                                <User className="w-10 h-10 mx-auto mb-3 opacity-50"/>
+                                <p className="text-sm">Sem mentores registrados.</p>
+                            </div>
+                        ) : (
+                            [...viewingClubOrientadores, ...viewingClubCoorientadores].map((person) => (
+                                <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Orientador' : 'Coorientador'}</p>
+                                        </div>
+                                    </div>
+                                    {getLattesLink(person) && (
+                                        <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Bloco 3: Investigadores Empilhados (Span 4 - Orange Accent) */}
+                <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-[#FF5722]/5 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><Microscope className="w-6 h-6 text-[#FF5722]" /> Força Investigadora</h3>
+                    <span className="absolute top-7 right-7 z-10 px-4 py-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 text-xs font-black shadow-inner">{viewingClubInvestigadores.length}</span>
+
+                    <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
+                        {viewingClubInvestigadores.length === 0 ? (
+                            <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                                <Users className="w-10 h-10 mx-auto mb-3 opacity-50"/>
+                                <p className="text-sm">Nenhum estudante vinculado.</p>
+                            </div>
+                        ) : (
+                            viewingClubInvestigadores.map((person) => (
+                                <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#FF5722] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Investigador</p>
+                                        </div>
+                                    </div>
+                                    {getLattesLink(person) && (
+                                        <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 flex items-center justify-center hover:bg-[#FF5722] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-3">
-                <button
-                    type="button"
-                    onClick={() => {
-                        setIsCreateOpen((current) => !current);
-                        setProjectMessage('');
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-[#00B5B5] bg-white shadow-sm hover:bg-slate-50 transition-colors"
-                >
-                    <PlusCircle className="w-4 h-4" />
-                    {isCreateOpen ? 'Cancelar novo projeto' : 'Registrar novo projeto'}
-                </button>
+            {/* RADAR DE PROJETOS (Fundo Milk Glass para contraste) */}
+            <div className="pt-10 relative z-10">
+                <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                    <div className="flex items-center gap-3 mb-10">
+                        <div className="h-8 w-2 bg-[#00B5B5] rounded-full shadow-inner"></div>
+                        <h3 className="text-3xl font-black text-slate-950 tracking-tight">Projetos Ativos</h3>
+                    </div>
 
-                {isCreateOpen && (
-                    <form onSubmit={handleSubmitProject} className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <input
-                                value={projectForm.titulo}
-                                onChange={(e) => setProjectForm((prev) => ({ ...prev, titulo: e.target.value }))}
-                                required
-                                placeholder="Título do projeto"
-                                className="w-full border border-slate-300 px-3 py-2 rounded"
-                            />
-                            <input
-                                value={projectForm.area_tematica}
-                                onChange={(e) => setProjectForm((prev) => ({ ...prev, area_tematica: e.target.value }))}
-                                placeholder="Área temática"
-                                className="w-full border border-slate-300 px-3 py-2 rounded"
-                            />
-                            <input
-                                value={projectForm.tipo}
-                                onChange={(e) => setProjectForm((prev) => ({ ...prev, tipo: e.target.value }))}
-                                placeholder="Tipo (ex: Projeto Científico)"
-                                className="w-full border border-slate-300 px-3 py-2 rounded"
-                            />
-                            <input
-                                value={projectForm.status}
-                                onChange={(e) => setProjectForm((prev) => ({ ...prev, status: e.target.value }))}
-                                placeholder="Status (ex: Em andamento)"
-                                className="w-full border border-slate-300 px-3 py-2 rounded"
-                            />
+                    {viewingClubProjects.length === 0 ? (
+                        <div className="h-72 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center p-10 text-center hover:border-[#00B5B5]/30 transition-colors group">
+                            <EmptyState icon={Sparkles} title="O Radar está Limpo" description="Nenhum projeto detectado neste ecossistema ainda. Que tal iniciar a primeira onda de inovação?" />
                         </div>
-                        <textarea
-                            value={projectForm.descricao}
-                            onChange={(e) => setProjectForm((prev) => ({ ...prev, descricao: e.target.value }))}
-                            placeholder="Descrição"
-                            className="w-full border border-slate-300 px-3 py-2 rounded mt-3"
-                            rows={3}
-                        />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {viewingClubProjects.map((project) => {
+                                const isCompleted = project.status?.toLowerCase().includes('conclu');
+                                const projectImage = project?.imagens?.[0] || project?.imagem || '';
+                                const imageCount = Array.isArray(project?.imagens) ? project.imagens.length : (project?.imagem ? 1 : 0);
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                                <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">Professores coorientadores (inclui orientadores)</p>
-                                {(!viewingClubCoorientadores.length && !viewingClubOrientadores.length) ? (
-                                    <p className="text-xs text-slate-400">Nenhum professor disponível.</p>
-                                ) : (
-                                    <div className="space-y-2 max-h-36 overflow-auto pr-1">
-                                        {[...new Map(
-                                            [...viewingClubCoorientadores, ...viewingClubOrientadores]
-                                                .map((person) => [String(person.id), person])
-                                        ).values()].map((person) => {
-                                            const checked = projectForm.coorientador_ids.includes(String(person.id));
-                                            return (
-                                                <label key={person.id} className="flex items-center gap-2 text-sm text-slate-700">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => toggleMemberSelection('coorientador_ids', person.id)}
-                                                        className="rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                                                    />
-                                                    <span>{person.nome}</span>
-                                                </label>
-                                            );
-                                        })}
+                                return (
+                                    <div key={project.id} className="group relative bg-white border border-slate-100 hover:border-[#00B5B5]/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10 min-h-[420px]">
+                                        {/* Imagem do projeto */}
+                                        <div className="h-44 sm:h-48 w-full bg-slate-100 overflow-hidden relative">
+                                            {projectImage ? (
+                                                <img
+                                                    src={projectImage}
+                                                    alt={project.titulo || 'Imagem do projeto'}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-semibold border-b border-slate-200">
+                                                    Imagem não disponível
+                                                </div>
+                                            )}
+                                            {imageCount > 1 && (
+                                                <span className="absolute top-2 right-2 px-2 py-1 rounded-full text-[11px] font-black bg-black/65 text-white">
+                                                    {imageCount} fotos
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="p-6 flex flex-col h-[calc(100%-12rem)]">
+                                            <div className="flex justify-between items-start mb-4 gap-4">
+                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-inner ${isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-[#E0F7F7] text-[#008A8A] border-[#00B5B5]/20'}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isCompleted ? 'bg-emerald-500' : 'bg-[#00B5B5] animate-pulse'}`}></span>
+                                                    {project.status || 'Em andamento'}
+                                                </span>
+                                            </div>
+
+                                            <h4 className="font-extrabold text-xl text-slate-950 leading-tight mb-3 group-hover:text-[#00B5B5] transition-colors">{project.titulo || 'Projeto sem título'}</h4>
+
+                                            <p className="text-sm text-slate-600 line-clamp-3 mb-8 flex-1 leading-relaxed">{project.descricao || project.introducao || 'Projeto aguardando documentação descritiva.'}</p>
+
+                                            <div className="mt-auto pt-3 border-t border-slate-100">
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                    {project.area_tematica ? (
+                                                        <span className="text-[10px] font-extrabold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm">
+                                                            {project.area_tematica}
+                                                        </span>
+                                                    ) : ""}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(project.id); setCurrentView('diario'); }}
+                                                    className="w-full text-center bg-[#00B5B5] hover:bg-[#009E9E] text-white px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 shadow-sm"
+                                                >
+                                                    Acessar Diário
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-
-                            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                                <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">Alunos investigadores</p>
-                                {viewingClubInvestigadores.length === 0 ? (
-                                    <p className="text-xs text-slate-400">Nenhum investigador disponível.</p>
-                                ) : (
-                                    <div className="space-y-2 max-h-36 overflow-auto pr-1">
-                                        {viewingClubInvestigadores.map((person) => {
-                                            const checked = projectForm.investigadores_ids.includes(String(person.id));
-                                            return (
-                                                <label key={person.id} className="flex items-center gap-2 text-sm text-slate-700">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => toggleMemberSelection('investigadores_ids', person.id)}
-                                                        className="rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                                                    />
-                                                    <span>{person.nome}</span>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
+                                );
+                            })}
                         </div>
-
-                        <p className="text-xs text-slate-500 mt-2">
-                            Selecionados: {projectForm.coorientador_ids.length} coorientador(es) e {projectForm.investigadores_ids.length} investigador(es).
-                        </p>
-
-                        <div className="flex justify-end mt-3">
-                            <button
-                                type="submit"
-                                className="px-4 py-2 bg-[#00B5B5] text-white font-semibold rounded-lg hover:bg-[#009191] transition-colors"
-                            >
-                                Criar projeto
-                            </button>
-                        </div>
-                        {projectMessage && <p className="text-sm mt-2 text-slate-600">{projectMessage}</p>}
-                    </form>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <MentorList
-                    people={viewingClubOrientadores}
-                    accent="cyan"
-                    title={<><div className="w-7 h-7 rounded-lg bg-[#F0F9F9] flex items-center justify-center"><User className="w-4 h-4 text-[#00B5B5]" /></div>Professores Orientadores</>}
-                    emptyMessage="Nenhum orientador cadastrado."
-                />
-                <MentorList
-                    people={viewingClubCoorientadores}
-                    accent="orange"
-                    title={<><div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center"><User className="w-4 h-4 text-[#FF5722]" /></div>Coorientadores</>}
-                    emptyMessage="Nenhum coorientador cadastrado."
-                />
-            </div>
-
-            {viewingClubInvestigadores.length > 0 && (
-                <div className="premium-card p-6" style={{maxHeight: "400px", overflow: "auto"}}> 
-                    <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4 pb-3 border-b border-slate-100"><div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Microscope className="w-4 h-4 text-blue-600" /></div>Investigadores / Estudantes<span className="ml-auto text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{viewingClubInvestigadores.length}</span></h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">{viewingClubInvestigadores.map((person) => (<div key={person.id} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-100 text-center"><div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">{person.nome?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}</div><p className="text-xs font-semibold text-slate-700 leading-tight">{person.nome}</p>{person.matricula && <p className="text-[10px] text-slate-400">Mat. {person.matricula}</p>}</div>))}</div>
+                    )}
                 </div>
-            )}
-
-            <div>
-                <div className="flex items-center justify-between mb-4"><h3 className="text-xl font-bold text-slate-800">Projetos do Clube</h3><span className="text-xs text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">{viewingClubProjects.length} projeto(s)</span></div>
-                {viewingClubProjects.length === 0 ? (
-                    <div className="premium-card border-dashed border-slate-300 p-10 text-center"><EmptyState icon={FolderKanban} title="Nenhum projeto encontrado" description="Este clube ainda não tem projetos publicados ou os projetos não foram vinculados corretamente." /></div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{viewingClubProjects.map((project) => { const isCompleted = project.status?.toLowerCase().includes('conclu'); return (<div key={project.id} className="premium-card p-5 flex flex-col gap-3"><div className="flex items-start justify-between gap-2"><h4 className="font-bold text-slate-900 text-sm leading-snug">{project.titulo || 'Projeto sem título'}</h4><span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${isCompleted ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-blue-100 text-blue-700 bg-blue-50'}`}>{project.status || 'Em andamento'}</span></div><p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{project.descricao || project.introducao || 'Sem descrição cadastrada.'}</p>{project.area_tematica && <span className="self-start inline-flex items-center gap-1 bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-semibold px-2 py-0.5 rounded"><Target className="w-3 h-3" />{project.area_tematica}</span>}<button onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(project.id); setCurrentView('diario'); }} className="mt-auto self-end inline-flex items-center gap-1.5 text-xs font-semibold text-[#00B5B5] hover:text-[#008A8A] transition-colors">Ver Diário <ArrowRight className="w-3.5 h-3.5" /></button></div>); })}</div>
-                )}
             </div>
         </div>
     );

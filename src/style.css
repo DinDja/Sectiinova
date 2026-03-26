@@ -107,3 +107,93 @@
 		transform: translateY(0);
 	}
 }
+
+/* CSS dos Cards Animados */
+.animated-card {
+	position: relative;
+	width: 220px;
+	height: 280px;
+	background: white;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	border-radius: 24px;
+	cursor: pointer;
+	box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+	border: 1px solid #f3f4f6;
+	overflow: hidden;
+}
+
+.animated-card .inner-content {
+	z-index: 10;
+	transition: opacity 0.4s ease;
+}
+
+.animated-card::before,
+.animated-card::after {
+	position: absolute;
+	content: "";
+	width: 20%;
+	height: 20%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 22px;
+	font-weight: 900;
+	color: white;
+	transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+	z-index: 20;
+}
+
+/* Cores baseadas no gradiente do projeto */
+.card-blue::before,
+.card-blue::after {
+	background-color: #004B8D;
+}
+.card-indigo::before,
+.card-indigo::after {
+	background-color: #007A99;
+}
+.card-teal::before,
+.card-teal::after {
+	background-color: #00B5B5;
+}
+
+.animated-card::before {
+	top: 0;
+	right: 0;
+	border-radius: 0 24px 0 100%;
+}
+
+.animated-card::after {
+	bottom: 0;
+	left: 0;
+	border-radius: 0 100% 0 24px;
+}
+
+.animated-card:hover::before,
+.animated-card:hover::after {
+	width: 100%;
+	height: 100%;
+	border-radius: 24px;
+	transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Textos revelados no hover */
+.card-blue:hover::after {
+	content: "INOVAÇÃO";
+}
+
+.card-teal:hover::after {
+	content: "CIÊNCIA";
+}
+.card-indigo:hover::after {
+	content: "Tecnologia";
+}
+
+/* Esconde o conteúdo interno quando as abas se fecham */
+.animated-card:hover .inner-content {
+	opacity: 0;
+}

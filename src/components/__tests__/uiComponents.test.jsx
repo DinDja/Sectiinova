@@ -106,7 +106,7 @@ describe('helpers', () => {
 describe('ClubBoard', () => {
   it('renders empty state when no club is selected', () => {
     render(<ClubBoard viewingClub={null} />);
-    expect(screen.getByText('Nenhum clube selecionado')).toBeInTheDocument();
+    expect(screen.getByText('Selecione um Ecossistema')).toBeInTheDocument();
   });
 
   it('renders mentor extra lattes data in club board', () => {
@@ -137,5 +137,27 @@ describe('ClubBoard', () => {
 
     expect(screen.getByText('Atua com divulgação científica.')).toBeInTheDocument();
     expect(screen.getByText('Educação Científica')).toBeInTheDocument();
+  });
+
+  it('exibe a força investigadora no cabeçalho do clube', () => {
+    render(
+      <ClubBoard
+        viewingClub={{ id: 'c1', nome: 'Clube A' }}
+        viewingClubSchool={{ nome: 'Escola X' }}
+        viewingClubProjects={[]}
+        viewingClubUsers={[{ id: 'i1', nome: 'Aluno 1', perfil: 'investigador' }]}
+        viewingClubOrientadores={[]}
+        viewingClubCoorientadores={[]}
+        viewingClubInvestigadores={[{ id: 'i1', nome: 'Aluno 1', perfil: 'investigador' }]}
+        viewingClubDiaryCount={0}
+        setSelectedClubId={vi.fn()}
+        setSelectedProjectId={vi.fn()}
+        setCurrentView={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Força Investigadora:/)).toBeInTheDocument();
+    expect(screen.getByText('1 pesquisador')).toBeInTheDocument();
+    expect(screen.getByText(/100% da equipe/)).toBeInTheDocument();
   });
 });

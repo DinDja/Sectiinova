@@ -8,6 +8,8 @@ export const STAGES = [
 
 export const PROJECTS_PAGE_SIZE = 12;
 
+export const FORUM_EXPLORE_PAGE_SIZE = 12;
+
 export const PERFIS_LOGIN = [
     { value: 'orientador', label: 'Orientador' },
     { value: 'coorientador', label: 'Coorientador' },

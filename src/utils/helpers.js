@@ -119,3 +119,59 @@ export function composeMentoriaLabel(orientadores, coorientadores) {
 
     return mentorList.length > 0 ? mentorList.join(' | ') : 'Sem Orientador informado';
 }
+
+export function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+export function loadImage(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+    });
+}
+
+export function compressImageFile(file, options = {}) {
+    const { maxWidth = 1024, maxHeight = 1024, quality = 0.75, outputType = 'image/jpeg' } = options;
+
+    return readFileAsDataURL(file)
+        .then((dataUrl) => loadImage(dataUrl))
+        .then((img) => {
+            const ratio = Math.min(1, maxWidth / img.naturalWidth, maxHeight / img.naturalHeight);
+            const width = Math.round(img.naturalWidth * ratio);
+            const height = Math.round(img.naturalHeight * ratio);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            return canvas.toDataURL(outputType, quality);
+        });
+}
+
+export async function compressImageFiles(files, options = {}) {
+    const selectedFiles = Array.from(files).slice(0, 2);
+    const compressed = [];
+
+    for (const file of selectedFiles) {
+        try {
+            const dataUrl = await compressImageFile(file, options);
+            compressed.push(dataUrl);
+        } catch (err) {
+            console.error('Falha ao processar imagem:', err);
+        }
+    }
+
+    return compressed;
+}
+
