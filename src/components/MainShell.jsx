@@ -81,6 +81,7 @@ export default function MainShell({
             myClub={myClub}
             handleLogout={handleLogout}
             onSaveProfile={onSaveProfile}
+            currentView={currentView}
           />
 
           <main

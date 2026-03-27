@@ -12,7 +12,7 @@ function getInitials(value) {
         .join('');
 }
 
-export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser, selectedClub, myClub, handleLogout, onSaveProfile }) {
+export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser, selectedClub, myClub, handleLogout, onSaveProfile, currentView }) {
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [searchInputValue, setSearchInputValue] = useState(searchTerm);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -44,6 +44,8 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
     }, []);
 
     const handleSearch = () => {
+        // Só permite buscar se estiver no feed (currentView === 'Projetos')
+        if (currentView !== 'Projetos') return;
         startTransition(() => {
             setSearchTerm(searchInputValue.trim());
         });
@@ -125,7 +127,7 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                             ref={searchInputRef}
                             type="text"
                             placeholder="Pesquisar projetos, clubes, Pesquisadores..."
-                            className="w-full py-3.5 pl-14 pr-32 text-sm text-slate-900 placeholder:text-slate-400 bg-white/80 border border-slate-200 rounded-full outline-none transition-all duration-300 shadow-sm focus:shadow-md focus:shadow-cyan-500/10 focus:bg-white focus:border-[#00B5B5]/50 focus:ring-4 focus:ring-[#00B5B5]/10 hover:border-slate-300"
+                            className={`w-full py-3.5 pl-14 pr-32 text-sm placeholder:text-slate-400 bg-white/80 border border-slate-200 rounded-full outline-none transition-all duration-300 shadow-sm focus:shadow-md focus:shadow-cyan-500/10 focus:bg-white focus:border-[#00B5B5]/50 focus:ring-4 focus:ring-[#00B5B5]/10 hover:border-slate-300 ${currentView !== 'Projetos' ? 'opacity-60 cursor-not-allowed bg-slate-100 text-slate-400' : 'text-slate-900'}`}
                             value={searchInputValue}
                             onChange={handleSearchChange}
                             onKeyDown={(e) => {
@@ -135,6 +137,8 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                                 }
                             }}
                             aria-label="Campo de busca"
+                            disabled={currentView !== 'Projetos'}
+                            title={currentView !== 'Projetos' ? 'A busca só está disponível no Feed de Projetos.' : ''}
                         />
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-[#00B5B5] transition-colors" />
                         
@@ -150,9 +154,11 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                         
                         <button
                             onClick={handleSearch}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-slate-900 hover:bg-[#00B5B5] text-white text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-[#00B5B5]/30"
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-sm ${currentView !== 'Projetos' ? 'bg-slate-300 text-slate-400 cursor-not-allowed opacity-70' : 'bg-slate-900 hover:bg-[#00B5B5] text-white hover:shadow-lg hover:shadow-[#00B5B5]/30'}`}
                             type="button"
                             aria-label="Buscar"
+                            disabled={currentView !== 'Projetos'}
+                            title={currentView !== 'Projetos' ? 'A busca só está disponível no Feed de Projetos.' : ''}
                         >
                             Buscar
                         </button>

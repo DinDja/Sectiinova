@@ -1,45 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 320" width="100%" height="100%">
     <defs>
-        <!-- Importação de Fontes do Google -->
+        <!-- Importação de Fontes do Google e Estilos de Texto -->
         <style>
-            @import
-            url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@700;800&amp;display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@700;800&amp;display=swap');
+            
             .title-text {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 800;
-            font-size: 68px;
-            letter-spacing: -1.5px;
+                font-family: 'Montserrat', sans-serif;
+                font-weight: 800;
+                font-size: 68px;
+                letter-spacing: -1.5px;
             }
             .title-blue { fill: #0F172A; }
             .title-orange { fill: #EA580C; }
 
             .subtitle-text {
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            font-size: 22px;
-            fill: #475569;
-            letter-spacing: 0.5px;
+                font-family: 'Inter', sans-serif;
+                font-weight: 500;
+                font-size: 22px;
+                fill: #475569;
+                letter-spacing: 0.5px;
             }
             .subtitle-bold {
-            font-weight: 700;
-            fill: #1E293B;
+                font-weight: 700;
+                fill: #1E293B;
             }
         </style>
 
-        <!-- Gradiente do Escudo Base -->
-        <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#1E3A8A" /> <!-- Azul Profundo -->
-            <stop offset="100%" stop-color="#3B82F6" /> <!-- Azul Brilhante -->
+        <!-- Gradientes Profissionais -->
+        <linearGradient id="orangeLiquid" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FBBF24" /> <!-- Amarelo Dourado -->
+            <stop offset="100%" stop-color="#EA580C" /> <!-- Laranja Laboratório -->
         </linearGradient>
 
-        <!-- Gradiente da Lâmpada -->
-        <radialGradient id="bulbFill" cx="50%" cy="35%" r="60%">
-            <stop offset="0%" stop-color="#FEF08A" /> <!-- Amarelo Claro -->
-            <stop offset="60%" stop-color="#F59E0B" /> <!-- Laranja Vivo -->
-            <stop offset="100%" stop-color="#D97706" /> <!-- Laranja Escuro -->
-        </radialGradient>
+        <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FEF08A" />
+            <stop offset="100%" stop-color="#F59E0B" />
+        </linearGradient>
 
-        <!-- Filtro de Brilho para Elétrons e Estrelas -->
+        <!-- Filtros e Efeitos -->
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.25" />
+        </filter>
+
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
             <feMerge>
@@ -47,110 +49,99 @@
                 <feMergeNode in="SourceGraphic" />
             </feMerge>
         </filter>
+
+        <!-- Geometria do Frasco centralizada no loop do 'P' (Usado para Máscara e Clip) -->
+        <path id="flaskShape" d="M 180 80 L 220 80 L 220 115 L 265 185 A 15 15 0 0 1 252 210 L 148 210 A 15 15 0 0 1 135 185 L 180 115 Z" />
+        <rect id="flaskLip" x="170" y="70" width="60" height="12" rx="6" />
+
+        <clipPath id="flaskClip">
+            <use href="#flaskShape" />
+            <use href="#flaskLip" />
+        </clipPath>
+
+        <mask id="flaskMask">
+            <!-- Branco é sólido (o 'P' aparece), Preto é transparente (cria o buraco do frasco) -->
+            <rect x="0" y="0" width="1000" height="320" fill="white" />
+            <use href="#flaskShape" fill="black" />
+            <use href="#flaskLip" fill="black" />
+        </mask>
     </defs>
 
-    <title>Logo PatentesClub</title>
-    <desc>Um logotipo moderno combinando um escudo, uma lâmpada, órbitas atômicas e uma fechadura.</desc>
+    <title>Logo PatentesLab - Design Clean e Espaço Negativo</title>
 
     <!-- ========================================== -->
-    <!-- ÍCONE ESQUERDO (EMBLEMA)                   -->
+    <!-- ÍCONE PRINCIPAL: O "P" COM ESPAÇO NEGATIVO -->
     <!-- ========================================== -->
+    
+    <!-- 1. O Líquido do Laboratório (Atrás do P, visível apenas pelo buraco) -->
+    <g clip-path="url(#flaskClip)">
+        <!-- Camada de fundo do líquido (onda escura) -->
+        <path d="M 120 160 C 145 180, 175 140, 200 160 C 225 180, 255 140, 280 160 L 280 220 L 120 220 Z" fill="#C2410C" opacity="0.6" />
+        
+        <!-- Camada frontal do líquido (onda brilhante) -->
+        <path d="M 120 170 C 145 150, 175 190, 200 170 C 225 150, 255 190, 280 170 L 280 220 L 120 220 Z" fill="url(#orangeLiquid)" />
+        
+        <!-- Bolhas borbulhando -->
+        <circle cx="170" cy="180" r="6" fill="#FFFFFF" opacity="0.9" />
+        <circle cx="195" cy="190" r="4.5" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.9" />
+        <circle cx="215" cy="165" r="7" fill="#FFFFFF" opacity="0.9" />
+        <circle cx="235" cy="180" r="3" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8" />
+        <circle cx="185" cy="145" r="3" fill="#FFFFFF" opacity="0.8" />
+        <circle cx="225" cy="135" r="5" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.8" />
+    </g>
 
-    <!-- Fundo / Escudo -->
-    <g id="Emblem">
-        <!-- Metade esquerda e direita do escudo (Base) -->
-        <path
-            d="M 150 35 Q 210 35 250 60 L 250 145 C 250 215 190 265 150 290 C 110 265 50 215 50 145 L 50 60 Q 90 35 150 35 Z"
-            fill="url(#shieldGrad)" />
-
-        <!-- Sombra 3D (Metade Direita do Escudo) -->
-        <path d="M 150 35 Q 210 35 250 60 L 250 145 C 250 215 190 265 150 290 Z" fill="#000000"
-            opacity="0.15" />
-
-        <!-- Bordas internas sutis para dar volume -->
-        <path
-            d="M 150 38 Q 208 38 246 62 L 246 145 C 246 212 188 261 150 285 C 112 261 54 212 54 145 L 54 62 Q 92 38 150 38 Z"
-            fill="none" stroke="#60A5FA" stroke-width="2" opacity="0.3" />
-
-        <!-- Centro do Emblema (Lâmpada, Átomo e Fechadura) -->
-        <g transform="translate(150, 150)">
-
-            <!-- Órbitas Atômicas (Atrás da Lâmpada) -->
-            <g stroke="#60A5FA" stroke-width="2.5" fill="none">
-                <!-- Brilhos sutis sob as linhas -->
-                <ellipse cx="0" cy="0" rx="80" ry="24" stroke-width="6" opacity="0.2"
-                    transform="rotate(30)" />
-                <ellipse cx="0" cy="0" rx="80" ry="24" stroke-width="6" opacity="0.2"
-                    transform="rotate(90)" />
-                <ellipse cx="0" cy="0" rx="80" ry="24" stroke-width="6" opacity="0.2"
-                    transform="rotate(150)" />
-
-                <!-- Linhas principais das órbitas -->
-                <ellipse cx="0" cy="0" rx="80" ry="24" transform="rotate(30)" />
-                <ellipse cx="0" cy="0" rx="80" ry="24" transform="rotate(90)" />
-                <ellipse cx="0" cy="0" rx="80" ry="24" transform="rotate(150)" />
-            </g>
-
-            <!-- Corpo da Lâmpada (Ideia / Inovação) -->
-            <path
-                d="M 0 -45 C -26 -45 -46 -25 -46 0 C -46 17 -34 32 -20 40 L -20 58 C -20 62 -16 66 -12 66 L 12 66 C 16 66 20 62 20 58 L 20 40 C 34 32 46 17 46 0 C 46 -25 26 -45 0 -45 Z"
-                fill="url(#bulbFill)" />
-
-            <!-- Base metálica/dourada da Lâmpada -->
-            <path d="M -15 68 L 15 68 L 11 83 L -11 83 Z" fill="#F59E0B" />
-            <line x1="-16" y1="71" x2="16" y2="71" stroke="#FEF08A" stroke-width="2"
-                stroke-linecap="round" />
-            <line x1="-14" y1="76" x2="14" y2="76" stroke="#FEF08A" stroke-width="2"
-                stroke-linecap="round" />
-            <path d="M -6 83 C -6 88 6 88 6 83 Z" fill="#FDE047" />
-
-            <!-- Fechadura (Proteção / Patente) - Efeito de vazamento revelando o fundo azul -->
-            <path
-                d="M 0 -16 C -8 -16 -14 -10 -14 -2 C -14 3 -11 7 -6 10 L -8 24 L 8 24 L 6 10 C 11 7 14 3 14 -2 C 14 -10 8 -16 0 -16 Z"
-                fill="#1E3A8A" />
-
-            <!-- Elétrons Brilhantes nas Órbitas -->
-            <circle cx="80" cy="0" r="4.5" fill="#FFFFFF" filter="url(#glow)" transform="rotate(30)" />
-            <circle cx="-80" cy="0" r="4.5" fill="#FFFFFF" filter="url(#glow)"
-                transform="rotate(90)" />
-            <circle cx="0" cy="24" r="4.5" fill="#FFFFFF" filter="url(#glow)"
-                transform="rotate(150)" />
-
-            <!-- Centelhas de Inovação (Estrelas) -->
-            <path d="M 35 -50 Q 35 -60 45 -60 Q 35 -60 35 -70 Q 35 -60 25 -60 Q 35 -60 35 -50 Z"
-                fill="#FEF08A" filter="url(#glow)" />
-            <path d="M -40 25 Q -40 20 -45 20 Q -40 20 -40 15 Q -40 20 -35 20 Q -40 20 -40 25 Z"
-                fill="#FEF08A" filter="url(#glow)" />
-
+    <!-- 2. O Corpo da Letra "P" (Com o buraco do frasco e sombra projetada) -->
+    <g filter="url(#dropShadow)">
+        <g mask="url(#flaskMask)">
+            <!-- Corpo unificado do P: Haste e Curva integrados em uma única forma de cor sólida para tom perfeitamente uniforme -->
+            <path d="M 100 40 
+                     A 30 30 0 0 0 70 70 
+                     L 70 250 
+                     A 30 30 0 0 0 130 250 
+                     L 130 240 
+                     L 180 240 
+                     A 100 100 0 0 0 280 140 
+                     A 100 100 0 0 0 180 40 
+                     Z" fill="#1E3A8A" />
         </g>
     </g>
 
-    <!-- ========================================== -->
-    <!-- LINHA DIVISÓRIA   -->
-    <!-- ========================================== -->
-    <line x1="295" y1="60" x2="295" y2="260" stroke="#CBD5E1" stroke-width="2"
-        stroke-linecap="round" />
+    <!-- 3. Detalhes em Vidro (Reflexos do frasco sobre o vazio) -->
+    <!-- Esses traços brancos dão volume 3D ao vidro recortado no P -->
+    <path d="M 150 190 L 180 125" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.5" fill="none" />
+    <path d="M 215 85 L 215 105" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.5" fill="none" />
+    <path d="M 178 76 L 198 76" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.7" fill="none" />
+
+    <!-- 4. A Centelha de Inovação (Estrela emergindo do topo do frasco) -->
+    <path d="M 200 5 Q 200 25 220 25 Q 200 25 200 45 Q 200 25 180 25 Q 200 25 200 5 Z" fill="url(#sparkGrad)" filter="url(#glow)" />
+    
+    <!-- Pequenas partículas flutuando ao redor -->
+    <circle cx="180" cy="50" r="2.5" fill="#FBBF24" opacity="0.8" />
+    <circle cx="220" cy="55" r="1.5" fill="#FBBF24" opacity="0.6" />
+    <circle cx="230" cy="35" r="2" fill="#FBBF24" opacity="0.9" />
 
     <!-- ========================================== -->
-    <!-- TEXTO E TIPOGRAFIA   -->
+    <!-- LINHA DIVISÓRIA                            -->
     <!-- ========================================== -->
+    <!-- Afastada levemente para dar respiro ao design do P -->
+    <line x1="320" y1="60" x2="320" y2="260" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round" />
 
-    <g transform="translate(330, 0)">
-
+    <!-- ========================================== -->
+    <!-- TEXTO E TIPOGRAFIA                         -->
+    <!-- ========================================== -->
+    <g transform="translate(355, 0)">
         <!-- Título Principal -->
         <text x="0" y="145" class="title-text">
-            <tspan class="title-blue">Patentes</tspan>
-            <tspan class="title-orange">Club</tspan>
+            <tspan class="title-blue">Patentes</tspan><tspan class="title-orange">Lab</tspan>
         </text>
 
         <!-- Subtítulo -->
-        <text x="5" y="195" class="subtitle-text"> Assistente de <tspan class="subtitle-bold">Propriedade
-            Intelectual</tspan>
+        <text x="5" y="195" class="subtitle-text">
+            Assistente de <tspan class="subtitle-bold">Solicitações de Patentes</tspan>
         </text>
-        <text x="5" y="230" class="subtitle-text"> para os <tspan class="subtitle-bold">Clubes de
-            Ciências</tspan>
+        <text x="5" y="230" class="subtitle-text">
+            para os <tspan class="subtitle-bold">Clubes de Ciências</tspan>
         </text>
-
     </g>
 
 </svg>

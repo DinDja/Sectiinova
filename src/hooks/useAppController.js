@@ -90,7 +90,8 @@ export default function useAppController() {
         nextSteps: '',
         tags: ''
     });
-    const [sidebarOrder, setSidebarOrder] = useState(['Projetos', 'diario', 'inpi', 'forum', 'clube']);
+    const defaultSidebarOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+    const [sidebarOrder, setSidebarOrder] = useState(defaultSidebarOrder);
 
     const isRegisteringRef = useRef(false);
     const projectsCursorRef = useRef(null);
@@ -503,11 +504,10 @@ export default function useAppController() {
                         
                         // Carregar ordem do sidebar se existir
                         if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
-                            // Garantir que 'clube' está incluído (compatibilidade com versões antigas)
-                            const updatedOrder = userData.sidebarOrder.includes('clube') 
-                                ? userData.sidebarOrder 
-                                : [...userData.sidebarOrder, 'clube'];
-                            setSidebarOrder(updatedOrder);
+                            const defaultOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+                            const filteredOrder = userData.sidebarOrder.filter((item) => defaultOrder.includes(item));
+                            const mergedOrder = [...new Set([...filteredOrder, ...defaultOrder])];
+                            setSidebarOrder(mergedOrder);
                         }
                     } else {
                         setAuthUser(null);

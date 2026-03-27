@@ -10,6 +10,7 @@ import DiaryBoard from './components/DiaryBoard';
 import ClubBoard from './components/ClubBoard';
 import INPI from './components/INPI';
 import ForumBoard from './components/ForumBoard';
+import TrilhaPedagogica from './components/TrilhaPedagogica';
 import { STAGES, PERFIS_LOGIN } from './constants/appConstants';
 import useAppController from './hooks/useAppController';
 
@@ -225,6 +226,8 @@ export default function App() {
                         users={users}
                     />
                 )}
+
+                {currentView === 'trilha' && <TrilhaPedagogica />}
             </div>
 
             <DiaryModal

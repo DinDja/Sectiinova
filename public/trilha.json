@@ -1,0 +1,686 @@
+[
+  {
+    "area_de_conhecimento": "LINGUAGENS E SUAS TECNOLOGIAS",
+    "objetivos": [
+      {
+        "descricao_objetivo": "1. Aplicar métodos investigativos e analíticos na compreensão crítica dos processos de produção, circulação e recepção das diversas formas de linguagem (verbal, visual, corporal, multimodal e digital), reconhecendo-as como fenômenos socio-histórico-culturais e político- econômicos, mobilizando conhecimentos interdisciplinares para avaliar e utilizar os discursos e as práticas sociais da linguagem, promovendo autonomia na produção e interpretação de sentidos para a na democratização dos saberes.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Auditoria de Algoritmos e Vieses Linguísticos\"",
+            "qualidades_do_projeto": {
+              "foco": "Tecnologia (IA) e Ciência (Linguística Computacional). Neste projeto, o Clube de Ciência investiga como as Inteligências Artificiais Generativas (como o ChatGPT ou Gemini) e algoritmos de busca reproduzem preconceitos socio-históricos através da linguagem.",
+              "a_investigação_científica": "Os alunos formulam prompts idênticos mudando apenas variáveis sociais (ex: \"Descreva um cientista de sucesso\" vs \"Descreva uma pessoa de sucesso na periferia\"). Eles coletam os dados textuais e visuais gerados.",
+              "o_componente_tecnológico": "Uso de ferramentas de Processamento de Linguagem Natural (NLP) simples ou análise de nuvem de palavras para identificar padrões de exclusão ou estereótipos.",
+              "inovação": "Desenvolvimento de um \"Protocolo de Prompt Ético\" para a escola, ensinando outros alunos a identificar e mitigar vieses em ferramentas digitais."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Infovis e Democratização de Dados Públicos\"",
+            "qualidades_do_projeto": {
+              "foco": "Inovação (Comunicação Científica) e Ciência (Análise de Dados). O objetivo é transformar dados científicos complexos (frequentemente inacessíveis) em linguagem multimodal (infográficos, mapas interativos ou vídeos curtos) que a comunidade escolar consiga entender.",
+              "a_investigação_científica": "Coleta de dados brutos de fontes oficiais (ex: índices de vacinação locais, qualidade do ar na cidade ou consumo de energia da escola).",
+              "o_componente_tecnológico": "Utilização de softwares de visualização de dados (como Canva, Tableau Public ou ferramentas de código aberto como o Orange Data Mining).",
+              "inovação": "Criação de um \"Painel de Ciência Cidadã\" físico ou digital no pátio da escola, onde a linguagem visual é usada para traduzir números em ações sociais diretas."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Hacking de Acessibilidade: Linguagem Corporal e Tátil\"",
+            "qualidades_do_projeto": {
+              "foco": "Tecnologia (Hardware Livre) e Ciência (Neurociência da Percepção). Investigar como a tecnologia pode transpor barreiras de linguagem para pessoas com deficiência, criando novos canais de recepção sensorial.",
+              "a_investigação_científica": "Estudo de como o cérebro processa diferentes formas de linguagem (o que acontece quando transformamos som em vibração?).",
+              "o_componente_tecnológico": "Uso de Arduino ou Micro:bit para construir protótipos de tecnologias assistivas. Por exemplo, um sensor de distância que traduz proximidade em \"pulsos de linguagem tátil\" (vibrações) para auxiliar a locomoção.",
+              "inovação": "Prototipagem de um dispositivo de baixo custo que ajude na interpretação de sentidos para alunos com deficiência visual ou auditiva dentro do laboratório de ciências. Resumo da Abordagem CT&I para o Clube de Ciência Proposta\tCiência (O que investiga?)\tTecnologia (O que usa?)\tInovação (O que entrega?) Auditoria de IA\tVieses cognitivos e sociais na linguagem.\tIA Generativa e NLP.\tGuia de Ética Digital para a comunidade. Infovis Social\tMétodos estatísticos e semiótica visual.\tFerramentas de Data Viz.\tDemocratização do acesso à informação. Hacking Tátil\tFisiologia da percepção e comunicação.\tRobótica e Sensores.\tDispositivo assistivo de baixo custo."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "2. Desenvolver o senso estético ampliando o repertório cultural para reconhecer, valorizar e fruir manifestações artísticas, discursivas e culturais como expressões identitárias e históricas nos campos artístico-literário e midiático, analisando criticamente suas relações com os contextos sociais e evidenciando as contribuições de grupos historicamente marginalizados na construção de performances narrativas e das artes, promovendo a diversidade, a equidade e os Direitos Humanos na produção, circulação e recepção de discursos e práticas culturais.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Arqueologia Digital e Reconstrução de Memórias\"",
+            "qualidades_do_projeto": {
+              "foco": "Inovação (Preservação Digital) e Ciência (História e Antropologia). Neste projeto, os alunos utilizam tecnologia de ponta para resgatar e valorizar expressões culturais de grupos indígenas, quilombolas ou periféricos que foram silenciadas pelo tempo ou pela falta de registros formais.",
+              "a_investigação_científica": "Pesquisa de campo e documental sobre manifestações artísticas locais (ex: arquitetura de terreiros, grafismos indígenas ou estéticas de periferia). Como esses objetos resistiram ao tempo?",
+              "o_componente_tecnológico": "Uso de Fotogrametria (transformar fotos de celular em modelos 3D) para criar um acervo digital de artefatos ou monumentos culturais.",
+              "inovação": "Criação de um Museu Virtual em Realidade Aumentada (AR). O senso estético é exercitado na curadoria das texturas, luzes e narrativas que acompanham os objetos digitais, promovendo a fruição dessas identidades."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Algoritmos de Escuta: Etnomusicologia e Ciência de Dados\"",
+            "qualidades_do_projeto": {
+              "foco": "Tecnologia (Processamento de Áudio) e Ciência (Física Acústica e Sociologia). Explorar a contribuição de grupos marginalizados na música (ritmos afro-brasileiros, música regional) através da análise de frequências e padrões matemáticos.",
+              "a_investigação_científica": "Análise física dos timbres e ritmos. Por que certos padrões de percussão geram respostas emocionais específicas? Como a matemática está presente na polirritmia africana?",
+              "o_componente_tecnológico": "Uso de softwares de edição e análise de áudio (como Audacity ou linguagens de programação como Python) para mapear a \"impressão digital\" sonora dessas manifestações.",
+              "inovação": "Produção de Arte Generativa Visual baseada nos sons. Os alunos criam códigos que transformam o som do tambor em padrões visuais dinâmicos, unindo a performance corporal à tecnologia digital."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Bio-Corantes e Química Ancestral: Ciência na Moda de Resistência\"",
+            "qualidades_do_projeto": {
+              "foco": "Ciência (Química Orgânica) e Inovação (Design Sustentável). Valorizar o repertório cultural de povos tradicionais que utilizam a biodiversidade para criar estéticas únicas (pinturas corporais, tingimento de tecidos).",
+              "a_investigação_científica": "Estudo químico dos pigmentos naturais (urucum, jenipapo, anil). Investigação sobre a durabilidade, oxidação e fixação desses elementos químicos em diferentes superfícies.",
+              "o_componente_tecnológico": "Desenvolvimento de métodos de extração mais eficientes ou sustentáveis que respeitem o saber tradicional sem a necessidade de químicos sintéticos poluentes.",
+              "inovação": "Criação de uma \"Coleção de Ciência e Identidade\" — tecidos ou objetos artísticos que contam a história de um grupo marginalizado através das cores, unindo o senso estético à biotecnologia."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "3. Utilizar, de maneira autônoma, ética e responsável, as diferentes linguagens (artísticas, corporais, verbais, multimodais e digitais) como instrumentos de mediação e intervenção social mobilizando conhecimentos sobre práticas discursivas e linguísticas para promover o diálogo intercultural, a justiça social e os Direitos Humanos e para fortalecer a participação cidadã.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Sentinelas de Dados: Ciência Cidadã e Justiça Ambiental\"",
+            "qualidades_do_projeto": {
+              "foco": "Linguagem Digital e Multimodal / Intervenção Social. Este projeto utiliza a Ciência Cidadã para monitorar problemas ambientais que afetam desproporcionalmente grupos vulneráveis (ex: poluição sonora ou do ar em bairros periféricos).",
+              "a_investigação_científica": "Os alunos constroem sensores de baixo custo (usando IoT/Arduino) para medir a qualidade do ar, ruído ou pureza da água em pontos estratégicos da comunidade. O componente Tecnológico: Os dados brutos são \"traduzidos\" para uma linguagem multimodal acessível (mapas de calor e infográficos) e publicados em um site ou jornal comunitário.",
+              "inovação": "O Clube organiza uma \"Audiência Pública Digital\", usando os dados como evidência científica para dialogar com o poder público, promovendo a justiça social através de provas técnicas."
+            }
+          },
+          {
+            "titulo": "Projeto: \"IA Inclusiva: Auditoria Ética de Linguagem e Acessibilidade\"",
+            "qualidades_do_projeto": {
+              "foco": "Linguagem Verbal e Digital / Ética e Direitos Humanos. Investigar como as tecnologias de mediação (como tradutores automáticos, assistentes de voz e legendas de IA) falham ao lidar com dialetos regionais, gírias periféricas ou línguas minoritárias.",
+              "a_investigação_científica": "Testar algoritmos de reconhecimento de voz com diferentes sotaques e variações linguísticas do Brasil (interculturalidade). Mapear onde a IA \"silencia\" ou \"erra\" por falta de diversidade nos dados de treinamento.",
+              "o_componente_tecnológico": "Uso de ferramentas de Machine Learning simples para treinar um modelo de \"IA Comunitária\" que reconheça e valorize a linguagem local.",
+              "inovação": "Criação de um \"Manifesto por uma Algoritmia Ética\", propondo diretrizes tecnológicas que respeitem a diversidade linguística como um direito humano digital."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Interfaces de Diálogo: Prototipagem Assistiva para Direitos Humanos\"",
+            "qualidades_do_projeto": {
+              "foco": "Linguagem Corporal e Multimodal / Fortalecimento da Participação Cidadã. Desenvolver tecnologias que permitam a pessoas com deficiência ou dificuldades de comunicação participar ativamente dos espaços de decisão da escola e da cidade.",
+              "a_investigação_científica": "Estudo da ergonomia e da experiência do usuário (UX). Como a tecnologia pode mediar a linguagem corporal (LIBRAS) para quem não a conhece, ou transformar o olhar em cliques de computador?",
+              "o_componente_tecnológico": "Desenvolvimento de protótipos de interfaces vestíveis (wearables) ou softwares de comunicação alternativa e aumentativa (CAA) de código aberto.",
+              "inovação": "Implementação de um \"Terminal de Sugestões Acessíveis\" na escola, onde qualquer aluno, independentemente de suas limitações físicas ou sensoriais, possa exercer sua autonomia e voz política."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "4. Reconhecer as manifestações da cultura corporal de movimento e os sentidos e significados do corpo humano e das práticas corporais na área de Linguagens e suas Tecnologias nos campos da vida pessoal e da vida pública, compreendendo-as como expressões culturais e identitárias, mobilizando conhecimentos interdisciplinares e recursos tecnológicos, promovendo inclusão social, sustentabilidade e convivência democrática.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Laboratório de Captura de Movimento (MoCap) e Identidade\"",
+            "qualidades_do_projeto": {
+              "foco": "Tecnologia (Visão Computacional) e Ciência (Física e Biomecânica). O corpo em movimento gera uma \"assinatura\" única. Este projeto investiga as manifestações culturais (como a Capoeira, o Passinho ou danças indígenas) através da digitalização do movimento.",
+              "a_investigação_científica": "Estudo dos vetores de força, centros de massa e ângulos articulares durante práticas corporais específicas. Como a física explica a eficiência de um movimento cultural?",
+              "o_componente_tecnológico": "Uso de softwares de código aberto (como o Kinovea ou bibliotecas de Python como MediaPipe) para rastrear pontos articulares em vídeos gravados pelos alunos.",
+              "inovação": "Criação de um \"Arquivo Digital de Gestos Culturais\". Os alunos transformam movimentos tradicionais em modelos 3D ou avatares, preservando a identidade cultural através da tecnologia de ponta."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Wearables Assistivos: Sincronia e Inclusão\"",
+            "qualidades_do_projeto": {
+              "foco": "Tecnologia (IoT/Sensores) e Ciência (Neurofisiologia). Como a tecnologia pode promover a inclusão social de pessoas com deficiência em práticas de cultura corporal? O foco aqui é a Sustentabilidade (usando lixo eletrônico ou componentes de baixo custo).",
+              "a_investigação_científica": "Estudo de como o corpo percebe o ritmo e o espaço. Podemos substituir um sentido pelo outro? (Ex: transformar som em vibração tátil para que um aluno surdo sinta o ritmo da música).",
+              "o_componente_tecnológico": "Construção de wearables (dispositivos vestíveis) com Arduino. Por exemplo: uma pulseira que vibra em frequências diferentes para indicar a proximidade de obstáculos ou para marcar o tempo de uma coreografia.",
+              "inovação": "Prototipagem de equipamentos esportivos adaptados e sustentáveis que permitam a convivência democrática e a participação de todos nas práticas corporais da escola."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Bio-Hacking e Ergonomia Digital: O Corpo no Século XXI\"",
+            "qualidades_do_projeto": {
+              "foco": "Ciência (Saúde Pública) e Inovação (Design de Produto). Investigar os impactos das tecnologias digitais no corpo humano (o fenômeno do \"Tech Neck\", sedentarismo e lesões por esforço repetitivo) e inovar em soluções preventivas.",
+              "a_investigação_científica": "Coleta de dados antropométricos e estatísticos entre os estudantes. Quais são as dores corporais mais comuns causadas pelo uso excessivo de telas? Estudo da fisiologia da postura.",
+              "o_componente_tecnológico": "Desenvolvimento de um aplicativo ou sensor de postura simples que utilize a câmera do celular para alertar quando o usuário está em uma posição prejudicial à coluna.",
+              "inovação": "Criação de mobiliário ergonômico \"open source\" feito com materiais reciclados ou de baixo custo, promovendo a saúde coletiva no ambiente escolar (vida pública). Tabela de Integração: Corpo, Cultura e CT&I Projeto\tPrática Corporal\tCiência Aplicada\tInovação Tecnológica MoCap Cultural\tDanças e Lutas\tBiomecânica e Cinemática\tPreservação Digital (3D) Wearables de Inclusão\tEsporte e Lazer\tBiofeedback e Sensoriamento\tTecnologia Assistiva (IoT) Ergonomia Digital\tPostura e Movimento\tFisiologia e Antropometria\tApps de Saúde e Design Social"
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "5. Mobilizar práticas de linguagem, apropriando-se das Tecnologias Digitais de Informação e Comunicação – TDICs para ampliar as formas de comunicação, produção e compartilhamento de conhecimentos, promovendo produções autorais que articulem criatividade, estética, responsabilidade social e inovação tecnológica, promovendo a democratização do saber, a participação cidadã e a fruição de bens culturais materiais e imateriais.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Museu de Bolso: Realidade Aumentada (AR) para Saberes Locais\"",
+            "qualidades_do_projeto": {
+              "foco": "Produção Autoral / Fruição de Bens Culturais. O objetivo é democratizar o acesso a bens culturais e científicos da comunidade que não possuem um espaço físico de exposição, utilizando dispositivos móveis.",
+              "a_investigação_científica": "Curadoria de conhecimentos \"invisíveis\" (ex: plantas medicinais da região, processos químicos de uma culinária local ou a física de um monumento histórico).",
+              "o_componente_tecnológico": "Uso de plataformas de Realidade Aumentada (como o ZapWorks ou Adobe Aero). Os alunos criam \"marcadores\" (QR Codes) que, ao serem lidos pelo celular, projetam modelos 3D, áudios explicativos ou vídeos sobre aquele saber. Inovação e Estética: Espalhar esses marcadores pela escola e pela cidade, criando uma trilha científica e cultural digital que qualquer cidadão pode acessar."
+            }
+          },
+          {
+            "titulo": "Projeto: \"PodLab: Divulgação Científica e Combate à Desinformação\"",
+            "qualidades_do_projeto": {
+              "foco": "Comunicação e Produção / Responsabilidade Social. Apropriar-se das linguagens multimodais (áudio e vídeo) para combater o negacionismo científico e democratizar o acesso a descobertas recentes, usando técnicas de storytelling.",
+              "a_investigação_científica": "Analisar artigos científicos complexos ou notícias virais. Os alunos devem validar as fontes e traduzir o conteúdo para uma linguagem acessível, sem perder o rigor.",
+              "o_componente_tecnológico": "Uso de softwares de edição (como Audacity ou CapCut) e plataformas de distribuição (Spotify, YouTube). Introdução a ferramentas de IA para melhoria de áudio e criação de artes visuais (estética). Inovação e Cidadania: Criação de uma \"Agência de Notícias Científicas\" da escola, onde a produção autoral dos alunos serve como fonte confiável para a comunidade escolar e pais."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Plataforma Open Science: Repositório de Inovações Escolares\"",
+            "qualidades_do_projeto": {
+              "foco": "Compartilhamento de Conhecimentos / Inovação Tecnológica. Desenvolver um ecossistema digital onde as descobertas do Clube de Ciência possam ser replicadas por outras escolas, promovendo a cultura do software/hardware livre.",
+              "a_investigação_científica": "Sistematização de experimentos feitos no clube. O que deu certo? Como pode ser replicado com materiais de baixo custo?",
+              "o_componente_tecnológico": "Criação de um site ou repositório (usando GitHub ou Google Sites) estruturado com licenças Creative Commons. Uso de ferramentas de documentação técnica (Markdown) e diagramação digital. Inovação e Participação: Transformar o Clube em um \"Nó\" de uma rede de inovação, onde os alunos participam de fóruns globais de ciência, compartilhando seus códigos de Arduino ou roteiros experimentais. Resumo das Propostas sob a ótica de CT&I Projeto\tTDIC Utilizada\tDimensão Ética/Social\tProduto Autoral Museu de Bolso\tRealidade Aumentada (AR)\tValorização de saberes locais.\tGaleria Digital Interativa PodLab\tEdição Multimodal e IA\tCombate às Fake News.\tPodcast de Divulgação Científica Open Science\tRepositórios Online (Web)\tDemocratização do Saber.\tPlataforma de Inovação Aberta"
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "6. Aplicar estratégias de comunicação nos campos da vida pessoal, das práticas de estudo e pesquisa e da vida pública para mobilizar conhecimentos linguísticos, discursivos e culturais, articulando autoconhecimento e consciência política e intercultural nas relações sociais e de trabalho, promovendo o diálogo, a inclusão e a valorização da diversidade linguística e cultural.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Diplomacia Científica e Mediação de Conflitos Locais\"",
+            "qualidades_do_projeto": {
+              "foco": "Vida Pública / Consciência Política e Intercultural. Como a ciência pode ajudar a resolver disputas na comunidade (ex: uso de uma nascente, instalação de uma antena, gestão de resíduos) sem impor um discurso tecnocrata e excludente?",
+              "a_investigação_científica": "Mapeamento de problemas socioambientais da região que geram conflito de opiniões. Estudo de técnicas de Comunicação Não Violenta (CNV) e negociação baseada em evidências.",
+              "o_componente_tecnológico": "Uso de ferramentas de Mapeamento Colaborativo (GIS) como o OpenStreetMap ou Google My Maps para sobrepor dados técnicos (áreas de risco, poluição) com relatos orais da comunidade (dados culturais).",
+              "inovação": "Simulação de uma \"Cúpula de Soluções\", onde os alunos usam a linguagem científica para mediar o diálogo entre diferentes atores sociais (moradores, empresários, políticos), promovendo a inclusão de saberes tradicionais no relatório final."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Glossário Científico em Línguas de Herança e Variedades Linguísticas\"",
+            "qualidades_do_projeto": {
+              "foco": "Valorização da Diversidade Linguística / Práticas de Estudo e Pesquisa. Muitas vezes, a ciência utiliza um \"dialeto\" próprio que exclui quem não domina a norma culta ou línguas estrangeiras (inglês/latim). Este projeto visa \"hackear\" essa barreira.",
+              "a_investigação_científica": "Pesquisa sobre termos científicos e sua correspondência em línguas indígenas, quilombolas ou gírias regionais. Como esses grupos nomeiam fenômenos biológicos ou físicos?",
+              "o_componente_tecnológico": "Desenvolvimento de um Web-App ou Bot de Telegram que funcione como um dicionário multilíngue e intercultural de termos científicos. Uso de ferramentas de No-Code (como Glide ou Adalo).",
+              "inovação": "Promoção da \"Justiça Linguística\". O Clube produz materiais de estudo que validam a variação linguística dos alunos, provando que é possível fazer ciência de alto nível respeitando a identidade cultural de cada um."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Portfólio Digital: O Cientista como Marca e Cidadão\"",
+            "qualidades_do_projeto": {
+              "foco": "Vida Pessoal e de Trabalho / Autoconhecimento. Preparar o jovem para o mundo do trabalho em CT&I, articulando sua trajetória pessoal com suas competências técnicas de forma ética e profissional.",
+              "a_investigação_científica": "Autoanálise de competências (Soft e Hard Skills). Pesquisa sobre a presença de minorias na ciência e como construir narrativas de resistência e competência no ambiente profissional.",
+              "o_componente_tecnológico": "Criação de um Portfólio Digital ou Currículo Lattes/LinkedIn Criativo usando linguagens digitais (vídeo-currículo, sites pessoais em Wix ou Canva). Introdução à segurança de dados e ética em redes profissionais.",
+              "inovação": "Mentoria entre pares. Os alunos mais velhos ajudam os mais novos a comunicar suas descobertas científicas, treinando a oratória para congressos, feiras de ciências e entrevistas de emprego. Tabela de Integração: Comunicação, Ética e CT&I Projeto\tEstratégia de Comunicação\tTecnologia Aplicada\tObjetivo de Cidadania Diplomacia Científica\tNegociação e Mediação\tGeoprocessamento (GIS)\tResolução de conflitos locais. Glossário Diverso\tTradução Intercultural\tApp No-Code / Chatbots\tValorização da diversidade linguística. Portfólio Digital\tIdentidade e Oratória\tRedes Profissionais e Vídeo\tInserção ética no mundo do trabalho."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "area_de_conhecimento": "MATEMÁTICA E SUAS TECNOLOGIAS",
+    "objetivos": [
+      {
+        "descricao_objetivo": "1. Propor soluções para desafios sociais complexos por meio da coleta, organização e interpretação de dados, utilizando conceitos estatísticos e modelagem matemática para a previsão de tendências e validação de hipóteses.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Sentinelas da Saúde: Modelagem Preditiva de Epidemias Locais\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "Sazonalidade de doenças (Dengue, Gripe, etc.) e o impacto na rede pública de saúde da comunidade.",
+              "a_investigação_científica": "Coleta de dados históricos de fontes oficiais (DataSUS ou postos de saúde locais) e cruzamento com variáveis climáticas (pluviosidade e temperatura). Os alunos testam a hipótese: \"O aumento de 2°C na temperatura média antecipa o pico de casos em 15 dias?\".",
+              "o_componente_tecnológico": "Uso de planilhas eletrônicas avançadas ou linguagens de programação (como Python ou R) para criar modelos de regressão linear e correlação.",
+              "inovação": "Desenvolvimento de um Dashboard de Alerta Antecipado para a escola e arredores, prevendo tendências de surtos e sugerindo campanhas de prevenção baseadas em dados."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Smart School: Eficiência Energética e Sustentabilidade de Dados\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "Consumo desenfreado de recursos naturais e gastos públicos com energia e água no ambiente escolar.",
+              "a_investigação_científica": "Instalação de sensores de monitoramento (IoT) em pontos estratégicos ou leitura sistemática de hidrômetros e relógios de luz. Organização dos dados em séries temporais para identificar padrões de desperdício (ex: picos de consumo em horários de intervalo).",
+              "o_componente_tecnológico": "Utilização de ferramentas de Business Intelligence (BI) para visualizar o fluxo de consumo. Modelagem matemática para calcular o ROI (Retorno sobre Investimento) de possíveis trocas tecnológicas (ex: lâmpadas LED vs. Fluorescentes).",
+              "inovação": "Criação de um \"Plano de Gestão Inteligente\", utilizando modelagem para prever a economia anual e propor o reinvestimento desse valor em outras áreas do Clube de Ciência."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Algoritmo da Desigualdade: Auditoria Estatística em Sistemas de Decisão\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "Como a matemática e os algoritmos podem, involuntariamente, reproduzir preconceitos sociais e econômicos.",
+              "a_investigação_científica": "Simulação de sistemas de pontuação (score) para concessão de bolsas ou auxílios. Os alunos criam diferentes modelos matemáticos e analisam se certos critérios (como CEP ou renda) excluem desproporcionalmente grupos específicos, mesmo sem a intenção direta.",
+              "o_componente_tecnológico": "Introdução a conceitos de Machine Learning e inteligência artificial. Uso de simuladores para entender como a \"caixa-preta\" dos algoritmos funciona.",
+              "inovação": "Proposta de um Algoritmo Ético e Transparente. Os alunos redesenham a modelagem matemática para incluir fatores de correção socioeconômica, validando a hipótese de que a matemática pode ser uma ferramenta de equidade e justiça social."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "2. Propor ações de intervenção comunitária e social, avaliando criticamente o uso de tecnologias, mídias e redes sociais, analisando a qualidade das informações, os riscos à saúde mental, a Lei Geral de Proteção de Dados – LGPD, o bullying e a desinformação, e utilizando conhecimentos matemáticos para desenvolver soluções para desafios socioeconômicos, ambientais e culturais, promovendo equidade e desenvolvimento sustentável.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Escudo Digital: Auditoria de Dados e LGPD na Escola\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "A vulnerabilidade de dados pessoais e o risco à privacidade de menores em ambientes digitais escolares e redes sociais.",
+              "a_investigação_científica": "Realizar um \"Censo de Pegada Digital\" na escola. Os alunos coletam dados (anonimizados) sobre quais permissões os aplicativos mais usados pelos colegas exigem (microfone, localização, contatos).",
+              "o_componente_tecnológico": "Estudo da Lei Geral de Proteção de Dados (LGPD) aplicada a termos de uso. Uso de ferramentas de análise de redes para mapear como os dados circulam.",
+              "inovação": "Criação de uma calculadora de \"Índice de Risco de Privacidade\". Utilizando lógica matemática e pesos para diferentes tipos de dados, os alunos desenvolvem um selo de segurança para os apps, promovendo a conscientização sobre proteção de dados."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Algoritmos do Bem-Estar: Matemática contra o Vício Digital\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "O impacto do design persuasivo das redes sociais na saúde mental (tempo de tela, ansiedade e bullying).",
+              "a_investigação_científica": "Aplicação de métodos estatísticos para analisar a correlação entre o tempo de uso de telas e indicadores de bem-estar (horas de sono, humor, foco). Teste de hipótese: \"A redução de 30 minutos de uso de redes sociais antes de dormir melhora o desempenho cognitivo matinal em 15%?\".",
+              "o_componente_tecnológico": "Uso de aplicativos de monitoramento de tempo e análise de frequência. Modelagem matemática de Grafos para entender como o bullying se propaga em redes sociais escolares (quem são os nós centrais? como quebrar a cadeia de propagação?).",
+              "inovação": "Desenvolvimento de um protótipo de \"App de Dieta Digital\" ou uma extensão de navegador que bloqueia gatilhos de ansiedade, utilizando algoritmos de filtragem ética."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Fact-Check Matemático: Desconstruindo a Desinformação\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "A propagação de fake news que utilizam dados estatísticos manipulados para enganar a população.",
+              "a_investigação_científica": "Coleta de notícias virais que apresentam gráficos ou porcentagens duvidosas. Os alunos aplicam métodos de análise de consistência interna e verificação de fontes oficiais (IBGE, IPCA, etc.).",
+              "o_componente_tecnológico": "Uso de ferramentas de busca reversa e análise de metadados. Introdução à Estatística Descritiva para identificar como gráficos são distorcidos para criar falsas percepções (ex: eixos fora de escala).",
+              "inovação": "Criação de uma \"Agência Escolar de Verificação de Dados\". Os alunos produzem conteúdos multimodais (vídeos curtos ou infográficos) que ensinam a comunidade a ler gráficos criticamente, promovendo a equidade informacional e a cidadania."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "3. Avaliar práticas econômicas e financeiras no contexto pessoal, comunitário e profissional, considerando suas implicações nas relações sociais e de trabalho, aplicando conceitos de planejamento financeiro, consumo sustentável e economia solidária para propor soluções inovadoras que promovam a equidade, a justiça social e a sustentabilidade, utilizando estratégias de comunicação eficazes para facilitar a tomada de decisões conscientes e responsáveis.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Laboratório de Economia Circular e Crédito Solidário\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "O desperdício de recursos e a falta de acesso a capital em comunidades de baixa renda.",
+              "a_investigação_científica": "Mapeamento do ciclo de vida de produtos escolares (uniformes, livros, eletrônicos). Aplicação de análise de sistemas para identificar onde o valor é perdido.",
+              "o_componente_tecnológico": "Criação de uma Moeda Social Digital ou um sistema de \"Banco de Tempo\" para a escola, utilizando uma plataforma de gestão simples (ou até simulando uma estrutura de blockchain em planilha) para garantir transparência.",
+              "inovação": "Desenvolvimento de um modelo de Economia Solidária onde os alunos \"financiam\" projetos de outros colegas com créditos gerados por ações sustentáveis (como reciclagem ou monitoria), testando a hipótese: \"Um sistema de trocas não monetárias aumenta a equidade de recursos no Clube em 40%?\"."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Algoritmo do Consumo Consciente: Simulador de Impacto Socioambiental\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "O consumo impulsivo e a falta de percepção sobre as \"externalidades\" (custos ocultos de produção, como pegada de carbono e exploração laboral).",
+              "a_investigação_científica": "Coleta de dados sobre produtos comuns (ex: um smartphone ou uma camiseta). Levantamento de preços, durabilidade média e custos ambientais de produção.",
+              "o_componente_tecnológico": "Construção de um Algoritmo de Decisão em Python ou Excel. O aluno insere o preço do produto e o algoritmo calcula o \"Preço Real\" (Preço + Impacto Ambiental + Custo por Uso).",
+              "inovação": "Criação de um aplicativo ou interface de Comunicação Eficaz que gera um \"Score de Sustentabilidade\" para compras da comunidade escolar, facilitando a tomada de decisão responsável baseada em modelagem matemática."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Planejamento Financeiro Preditivo com Ciência de Dados\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "O endividamento das famílias brasileiras e a falta de ferramentas de previsão financeira acessíveis.",
+              "a_investigação_científica": "Estudo de séries temporais de inflação (IPCA), juros (SELIC) e variação de preços de alimentos básicos. Os alunos utilizam Estatística Descritiva para entender padrões de consumo sazonais.",
+              "o_componente_tecnológico": "Desenvolvimento de um simulador de Matemática Financeira que utiliza modelagem estocástica simples para prever diferentes cenários econômicos (ex: \"E se a inflação subir 2%? Como fica o orçamento familiar?\").",
+              "inovação": "Criação de oficinas de \"Clínica Financeira\" para a comunidade, onde os alunos utilizam suas ferramentas tecnológicas para ajudar famílias a renegociar dívidas e planejar o futuro, promovendo justiça social através da literacia técnica."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "4. Analisar desafios sociais, econômicos e ambientais, aplicando o método científico e integrando conhecimentos interdisciplinares, por meio da análise de dados e do uso de ferramentas tecnológicas para identificar padrões, promover a inclusão social, o protagonismo das minorias e sustentabilidade socioambiental.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Mapa de Vulnerabilidades e Protagonismo Periférico\"",
+            "qualidades_do_projeto": {
+              "o_desafio_social": "A invisibilidade de problemas infraestruturais em áreas de minorias e a falta de dados para exigir melhorias.",
+              "a_investigação_científica": "Aplicação do método científico para testar a hipótese: \"A distância de equipamentos públicos de saúde/lazer está correlacionada com indicadores de bem-estar autodeclarados na comunidade X?\".",
+              "o_componente_tecnológico": "Uso de sistemas de informações geográficas (GIS) como o QGIS ou Google Earth Engine. Os alunos cruzam dados de satélite (mancha urbana, áreas verdes) com dados demográficos e de infraestrutura.",
+              "inovação": "Produção de uma plataforma de Cartografia Social. Os alunos treinam moradores de grupos minoritários para \"plottar\" seus próprios desafios no mapa, transformando dados técnicos em uma ferramenta de pressão política e protagonismo social."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Biotecnologia Social: Saneamento Ecológico e Justiça Ambiental\"",
+            "qualidades_do_projeto": {
+              "o_desafio_ambiental": "A falta de tratamento de resíduos em comunidades vulneráveis, impactando a saúde pública e os ecossistemas locais.",
+              "a_investigação_científica": "Estudo microbiológico e químico de solo e água. Teste de hipóteses sobre a eficiência de fitorremediação (uso de plantas para despoluir): \"A espécie vegetal X é capaz de reduzir a carga de metais pesados na água cinza em 60% em 30 dias?\".",
+              "o_componente_tecnológico": "Construção de sensores de monitoramento de efluentes com Arduino (sensores de turbidez, pH e condutividade) para validar a eficácia do sistema em tempo real.",
+              "inovação": "Prototipagem de um Biofiltro de Baixo Custo com materiais recicláveis, desenhado para ser replicado por famílias de baixa renda, promovendo saúde e sustentabilidade socioambiental."
+            }
+          },
+          {
+            "titulo": "Projeto: \"IA para a Diversidade: Combate ao Viés de Dados\"",
+            "qualidades_do_projeto": {
+              "a_investigação_científica": "Experimento controlado de \"Auditoria de Algoritmos\". Os alunos criam datasets propositalmente enviesados e analisam como a máquina toma decisões discriminatórias.",
+              "o_componente_tecnológico": "Introdução à Ciência de Dados e Machine Learning utilizando plataformas como Orange Data Mining ou Google Teachable Machine.",
+              "inovação": "Desenvolvimento de um \"Corretor de Viés\" (um modelo matemático de compensação) que ajusta os dados para garantir equidade em processos de seleção simulados, demonstrando como a tecnologia pode ser reprogramada para a justiça social."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "5. Elaborar modelos matemáticos, por meio da seleção de dados, da integração de conhecimentos interdisciplinares e do uso de ferramentas tecnológicas digitais, para a experimentação, investigação e solução de problemas, considerando critérios científicos, éticos, sociais e ambientais e favorecendo a formação integral e a intervenção sociocultural.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Cidades Resilientes: Simulação de Fluxos e Desastres\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como preparar a comunidade para eventos climáticos extremos ou problemas de mobilidade urbana?",
+              "a_investigação_científica": "Seleção de dados históricos de pluviometria (chuvas) e topografia da região escolar. Os alunos integram conhecimentos de Geografia e Física para entender o escoamento de água.",
+              "o_componente_tecnológico": "Uso de softwares de modelagem e simulação (como o NetLogo para modelos baseados em agentes ou planilhas de cálculo iterativo).",
+              "inovação": "Os alunos criam um modelo matemático que prevê quais áreas da comunidade são mais vulneráveis a alagamentos. A solução não é apenas técnica, mas social: um Plano de Evasão Comunitário desenhado a partir da simulação, considerando critérios de acessibilidade para idosos e pessoas com deficiência."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Bio-Matemática: Modelando a Recuperação de Ecossistemas\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como acelerar o reflorestamento de uma área degradada no entorno da escola com o menor custo e maior biodiversidade?",
+              "a_investigação": "Integração de Biologia (sucessão ecológica) e Matemática (progressões e matrizes). Coleta de dados sobre o crescimento de espécies nativas vs. invasoras.",
+              "o_componente_tecnológico": "Uso de ferramentas digitais para criar modelos de crescimento populacional (Logístico e Malthusiano). Programação de pequenos algoritmos em Python para simular a dispersão de sementes por aves ou vento.",
+              "inovação": "O \"produto\" é um Algoritmo de Plantio Inteligente. Ele indica à comunidade quais espécies plantar e em que ordem, otimizando recursos financeiros e garantindo a regeneração ambiental em menor tempo."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Economia do Cuidado: Modelagem de Sistemas de Troca Coletiva\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como organizar a distribuição de alimentos ou recursos em uma cooperativa local de forma justa e eficiente?",
+              "a_investigação_científica": "Estudo de Pesquisa Operacional e Teoria dos Jogos. Os alunos selecionam dados de produção local e necessidades de consumo das famílias participantes.",
+              "o_componente_tecnológico": "Uso de softwares de otimização linear (como o suplemento Solver do Excel ou ferramentas de grafos).",
+              "inovação": "Elaboração de um modelo de Logística Solidária. O modelo matemático garante que a distribuição minimize o desperdício de combustível (critério ambiental) e maximize a equidade na entrega (critério social), promovendo uma intervenção direta na economia da comunidade."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "area_de_conhecimento": "CIÊNCIAS DA NATUREZA",
+    "objetivos": [
+      {
+        "descricao_objetivo": "1. Analisar criticamente as diferentes formas de produção, organização e aplicação do conhecimento científico, compreendendo sua evolução ao longo do tempo, valorizando as contribuições de diferentes povos e culturas.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Arqueologia das Descobertas: A Ciência antes da Ciência\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Desmistificar a ideia de que a ciência \"nasceu\" na Europa moderna, investigando as raízes africanas, asiáticas e originárias das Américas.",
+              "a_investigação_científica": "Grupos de alunos escolhem uma tecnologia atual (ex: vacinas, metalurgia, navegação ou cálculo) e realizam uma \"engenharia reversa histórica\". Eles devem encontrar as evidências de como povos como os Maias (astronomia), Egípcios (medicina) ou Chineses (pólvora e bússola) aplicavam o método empírico.",
+              "o_componente_tecnológico": "Uso de Simuladores de Astronomia (como o Stellarium) para reproduzir como povos antigos mapeavam o céu, ou ferramentas de Realidade Virtual para explorar sítios arqueológicos tecnológicos.",
+              "inovação": "Criação de uma Timeline Interativa Digital. Os alunos alimentam uma plataforma (como o Padlet ou TimelineJS) com dados que provam a polifonia do conhecimento científico, combatendo o eurocentrismo."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Bio-Prospecção Ética: Saberes Tradicionais e Biotecnologia\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como a ciência moderna se apropria de conhecimentos ancestrais (etnobotânica) e como garantir a ética e o reconhecimento dessas culturas?",
+              "a_investigação_científica": "Estudo de plantas medicinais utilizadas pela comunidade local ou povos originários. Os alunos realizam extrações laboratoriais simples (destilação, maceração) e comparam os princípios ativos com medicamentos sintéticos.",
+              "o_componente_tecnológico": "Introdução à Bioinformática. Uso de bancos de dados genômicos e de moléculas para entender como a indústria farmacêutica \"codifica\" o conhecimento tradicional em patentes.",
+              "inovação": "Desenvolvimento de um Protocolo de Repartição de Benefício. Os alunos elaboram um modelo de contrato (baseado na Lei de Biodiversidade) que simula como uma inovação tecnológica baseada em saber tradicional deveria remunerar e proteger a cultura de origem."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Hackathon de Tecnologias Sociais: O Futuro é Ancestral\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Aplicar métodos científicos para validar e aprimorar tecnologias sociais de baixo custo criadas por povos marginalizados.",
+              "a_investigação_científica": "Análise da física e engenharia por trás de tecnologias como o \"Filtro de Barro\" (brasileiro), as cisternas de placa ou sistemas de irrigação por vasos de cerâmica (técnica milenar). O Clube testa a eficiência desses métodos em comparação com filtros industriais caros.",
+              "o_componente_tecnológico": "Uso de sensores de baixo custo (Arduino) para medir a pureza da água ou a umidade do solo em sistemas de plantio agroecológico inspirados em técnicas tradicionais.",
+              "inovação": "O \"produto\" é um Manual de Inovação Aberta. Os alunos sistematizam os resultados em uma linguagem acessível e digital, promovendo a democratização do saber científico de forma que ele retorne à comunidade como solução prática."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "2. Compreender criticamente fenômenos complexos, articulando conhecimentos das Ciências da Natureza com saberes de outras áreas para propor ações individuais e coletivas.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"O Nexo Água-Energia-Alimento: Simulador de Crise\"",
+            "qualidades_do_projeto": {
+              "a_investigação_científica": "Os alunos investigam como a seca (Física/Climatologia) afeta as hidrelétricas e a irrigação (Engenharia/Biologia), gerando impactos no preço da cesta básica (Economia).",
+              "o_componente_tecnológico": "Uso de Modelagem de Dinâmica de Sistemas (softwares como Stella ou Vensim, ou simuladores online de pegada hídrica). Os alunos criam um modelo onde, ao alterar uma variável (ex: chuva), observam o efeito dominó nas outras.",
+              "inovação": "Criação de um Plano de Resiliência Escolar. Os alunos propõem ações coletivas, como sistemas de captação de água da chuva para horta orgânica, calculando o ROI (Retorno sobre Investimento) e o impacto na segurança alimentar da cantina."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Cidades Sensíveis ao Clima: Ilhas de Calor Urbanas\"",
+            "qualidades_do_projeto": {
+              "a_investigação_científica": "Uso do método científico para medir a temperatura em diferentes pontos da escola/bairro (asfalto, sombra, grama, concreto). Integração com saberes de Geografia Urbana e Saúde Coletiva (estudo de doenças respiratórias e cardiovasculares ligadas ao calor).",
+              "o_componente_tecnológico": "Utilização de Termografia infravermelha (sensores térmicos acoplados a celulares) e Drones (se disponíveis) para mapear pontos quentes. Uso de satélites (Google Earth Engine) para analisar o índice de vegetação (NDVI).",
+              "inovação": "Prototipagem de Telhados Verdes ou Pinturas Refletivas de baixo custo. Os alunos testam quais materiais inovadores reduzem a temperatura interna das salas, apresentando os resultados em um relatório técnico para a direção da escola."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Epidemiologia de Dados: O Fenômeno das Zoonoses\"",
+            "qualidades_do_projeto": {
+              "a_investigação_científica": "Estudo do ciclo de vida de vetores (mosquitos, carrapatos) em áreas de transição urbana. Articulação com a História das pandemias e a Psicologia das massas (por que as pessoas aderem ou não a vacinas?).",
+              "o_componente_tecnológico": "Introdução à Bioestatística e ferramentas de Geoprocessamento. Os alunos utilizam dados abertos da prefeitura para criar mapas de risco de transmissão de doenças na comunidade.",
+              "inovação": "Desenvolvimento de uma Campanha Multimodal de Intervenção. Uso de redes sociais, podcasts e cartazes interativos (com QR codes para dados reais) para promover ações coletivas de limpeza e prevenção, baseadas em evidências científicas coletadas pelo próprio clube."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "3. Propor alternativas inovadoras para a exploração e gestão de recursos naturais, articulando saberes ancestrais com avanços científicos e tecnológicos, com ênfase na promoção da saúde, sustentabilidade, viabilidade econômica e desenvolvimento social.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Bio-Refinaria Comunitária: Óleos Essenciais e Ancestralidade\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como agregar valor econômico à flora local (ervas, frutos, sementes) de forma sustentável, utilizando saberes de comunidades tradicionais?",
+              "a_investigação_científica": "Os alunos realizam entrevistas com detentores de saberes locais (benzedeiras, raizeiros ou agricultores) sobre o uso de plantas nativas. No laboratório, utilizam métodos de destilação por arraste de vapor ou extração por solvente natural para isolar princípios ativos e óleos essenciais.",
+              "o_componente_tecnológico": "Uso de Cromatografia em Camada Delgada (CCD) para validar a pureza dos extratos e ferramentas de Design de Embalagem Biodegradável (bioplásticos feitos de amido).",
+              "inovação": "Criação de um modelo de Cooperativa Digital. Os alunos desenvolvem um plano de negócios que inclui rastreabilidade via QR Code, contando a história da planta e garantindo que a renda retorne à comunidade, promovendo viabilidade econômica e saúde."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Aquaponia Inteligente: O Sistema de Chinampas no Século XXI\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Produção de alimentos em pequenos espaços com desperdício zero de água, inspirando-se em técnicas astecas e indígenas.",
+              "a_investigação_científica": "Estudo do ciclo do nitrogênio e simbiose entre peixes (amônia) e plantas (nitrato). Comparação com as Chinampas (ilhas artificiais de cultivo) e sistemas de irrigação ancestrais.",
+              "o_componente_tecnológico": "Automação do sistema com Sensores IoT (Arduino/ESP32). Os alunos programam sensores de pH, oxigênio dissolvido e nível de água para monitorar o ecossistema em tempo real via dashboard digital.",
+              "inovação": "Proposta de um Módulo de Segurança Alimentar Urbana. O sistema é desenhado para ser instalado em telhados ou pátios escolares, provando que a união entre biologia e automação pode gerar desenvolvimento social e economia de recursos."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Geobiologia e Materiais Vivos: Bioconstrução de Baixo Impacto\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Substituir materiais de construção altamente poluentes (cimento/aço) por alternativas baseadas na geologia local e saberes de construção em terra (adobe, taipa).",
+              "a_investigação_científica": "Testes de resistência mecânica e térmica de diferentes misturas de terra, fibras naturais e aglutinantes orgânicos. Estudo da Micologia (uso de micélio de fungos como isolante e cola natural).",
+              "o_componente_tecnológico": "Uso de Impressão 3D de Argila ou moldagens assistidas por computador para criar formas arquitetônicas otimizadas que economizam material.",
+              "inovação": "Desenvolvimento de um protótipo de Unidade Habitacional Resiliente. O foco é o conforto térmico passivo (reduzindo gasto com energia) e a eliminação de materiais tóxicos, promovendo saúde ocupacional e sustentabilidade ambiental."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "4. Avaliar dinâmicas próprias das Tecnologias Digitais da Informação e da Comunicação – TDICs, articulando conhecimentos das Ciências da Natureza com outras áreas, propondo ações individuais e coletivas que promovam o desenvolvimento sustentável e o bem-estar social.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Pegada de Carbono Digital: O Invisível Material\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Conscientizar sobre o consumo de energia e recursos naturais demandados pela infraestrutura da internet e do armazenamento em nuvem.",
+              "a_investigação_científica": "Cálculo da energia dissipada (Física/Termodinâmica) por dispositivos eletrônicos e servidores. Os alunos investigam o ciclo de vida dos componentes (Química/Mineração) e o impacto das emissões de CO₂ do setor de TI.",
+              "o_componente_tecnológico": "Uso de APIs de monitoramento de carbono e extensões de navegador que medem o impacto ambiental da navegação em tempo real.",
+              "inovação": "Criação de um \"Guia de Higiene Digital Sustentável\" para a escola. Os alunos propõem ações coletivas, como a limpeza de servidores de e-mail e a otimização de sites escolares para consumir menos dados (e energia), aliando o bem-estar social à eficiência energética."
+            }
+          },
+          {
+            "titulo": "Projeto: \"E-Lixo: Mineração Urbana e Economia Circular\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "O descarte irresponsável de hardware e a contaminação do solo e da água por metais pesados.",
+              "a_investigação_científica": "Estudo da toxicidade de componentes (chumbo, mercúrio, cádmio) presentes em placas de circuito. Os alunos realizam testes de lixiviação simulada para entender como esses materiais interagem com o meio ambiente (Ciências da Natureza).",
+              "o_componente_tecnológico": "Uso de técnicas de Upcycling Tecnológico. Os alunos aprendem a testar componentes reaproveitáveis (sensores, motores, telas) de aparelhos descartados para criar novos dispositivos.",
+              "inovação": "Implementação de um Ponto de Logística Reversa Inteligente na escola. O Clube desenvolve um sistema digital (app ou dashboard) que rastreia o destino do lixo eletrônico coletado, transformando resíduos em \"kits robóticos\" para estudantes mais novos, promovendo inclusão digital e sustentabilidade."
+            }
+          },
+          {
+            "titulo": "Projeto: \"IA para Monitoramento de Biomas: Ciência de Dados da Natureza\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Usar a potência das TDICs para prever e prevenir desastres ambientais ou perda de biodiversidade local.",
+              "a_investigação_científica": "Integração de Ecologia com Processamento de Dados. Os alunos estudam os sinais biológicos de estresse em plantas ou a mudança no comportamento de fauna local frente a variações climáticas.",
+              "o_componente_tecnológico": "Uso de Inteligência Artificial (Machine Learning) para reconhecimento de padrões. Os alunos podem usar plataformas como o Google Teachable Machine ou Lobe para treinar modelos que identifiquem espécies invasoras ou sinais de queimadas através de fotos de satélite ou sensores de som.",
+              "inovação": "Criação de uma Rede de Alerta Comunitária. O sistema utiliza bots de comunicação (Telegram/WhatsApp) para enviar alertas automáticos baseados nos dados coletados, fortalecendo a participação cidadã e a proteção dos recursos naturais da região."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "5. Comunicar informações científicas de forma clara, crítica e acessível, utilizando diferentes linguagens e ferramentas tecnológicas, promovendo a democratização do conhecimento científico e o diálogo fundamentado sobre desafios contemporâneos.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Cientistas Criadores: O Laboratório de Conteúdo Viral\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Como usar a linguagem das redes sociais (TikTok, Reels, Shorts) para explicar fenômenos científicos complexos sem perder o rigor?",
+              "a_investigação_científica": "Os alunos selecionam um tema \"quente\" (ex: edição genética CRISPR, fusão nuclear ou vacinas de RNAm). Eles devem pesquisar as fontes originais e identificar os principais conceitos-chave.",
+              "o_componente_tecnológico": "Uso de softwares de edição de vídeo, ferramentas de IA para legendagem automática e Design de Narrativa (Storytelling). Estudo de algoritmos de retenção: o que faz uma informação científica ser compartilhada?",
+              "inovação": "Criação de uma série de \"Pílulas Científicas\". O foco é a tradução de jargão: como explicar \"entropia\" ou \"biotecnologia\" para uma criança de 10 anos ou para um idoso?"
+            }
+          },
+          {
+            "titulo": "Projeto: \"Data-Viz Cidadã: Transformando Números em Narrativas Visuais\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Dados brutos são difíceis de interpretar. Como torná-los compreensíveis e críticos para a tomada de decisão da comunidade?",
+              "a_investigação_científica": "Coleta de dados sobre desafios locais (ex: índices de poluição do ar no bairro, gastos públicos com saúde ou eficácia de métodos de reciclagem na escola).",
+              "o_componente_tecnológico": "Uso de ferramentas de Visualização de Dados (Data-Viz) como Canva, Flourish ou Tableau. Os alunos aprendem sobre semiótica das cores e tipos de gráficos (pizza, barras, dispersão) para evitar manipulações visuais.",
+              "inovação": "Desenvolvimento de um Infográfico Interativo para o site da escola ou painéis físicos. A proposta é promover um diálogo fundamentado: \"Os dados mostram que X; o que podemos fazer coletivamente sobre isso?\"."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Podcast 'Ciência de Boteco': Diálogos Interculturais e Éticos\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Criar espaços de conversa onde o conhecimento científico dialogue com o senso comum e os saberes populares, promovendo a inclusão.",
+              "a_investigação_científica": "Escolha de dilemas éticos contemporâneos (ex: o uso de IAs no trabalho, carne de laboratório ou exploração espacial). Os alunos preparam a fundamentação teórica para o debate.",
+              "o_componente_tecnológico": "Uso de Estúdios Digitais de Áudio (como o Audacity ou Anchor). Introdução a técnicas de microfonação e edição de som para garantir clareza e acessibilidade auditiva.",
+              "inovação": "Produção de episódios de podcast que incluam convidados da comunidade (comerciantes, pais, líderes locais) para discutir como a ciência impacta a vida deles. O resultado é um documento sonoro que valida a ciência como algo do cotidiano, e não algo distante."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "area_de_conhecimento": "CIÊNCIAS HUMANAS E SOCIAIS APLICADAS",
+    "objetivos": [
+      {
+        "descricao_objetivo": "1. Aplicar métodos e procedimentos científicos das Ciências Humanas para investigar, analisar e interpretar processos políticos, econômicos, sociais, ambientais e culturais, articulando diferentes perspectivas e fontes, de modo a construir argumentos, para posicionar-se de forma ética, crítica e propositiva em relação às dinâmicas da sociedade.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Antropologia do Algoritmo: A Tecnologia na Minha Comunidade\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Investigar como as inovações tecnológicas (apps de entrega, redes sociais, sistemas de vigilância) alteram as relações de trabalho e a cultura local.",
+              "a_investigação_científica": "Os alunos utilizam o método da Etnografia Digital e entrevistas semiestruturadas com diferentes atores sociais (ex: trabalhadores de aplicativos, idosos, comerciantes locais). Eles buscam responder: \"Como a tecnologia X mudou a economia ou o convívio social no nosso bairro?\".",
+              "o_componente_tecnológico": "Uso de ferramentas de Transcrição de Áudio por IA para agilizar a análise de entrevistas e softwares de Análise Qualitativa de Dados (como o NVivo ou alternativas gratuitas como o Taguette).",
+              "inovação": "Produção de um Relatório de Impacto Social. Os alunos devem construir argumentos éticos e críticos, propondo \"Cartas de Recomendações\" para empresas de tecnologia ou órgãos públicos sobre como tornar essas ferramentas mais inclusivas e menos precarizantes."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Observatório de Conflitos Socioambientais via Satélite\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Analisar processos políticos e ambientais em áreas de vulnerabilidade, cruzando fontes oficiais com a percepção da comunidade.",
+              "a_investigação_científica": "Articulação de diferentes fontes (dados do IBGE, mapas de desmatamento ou queimadas e relatos de moradores). Os alunos investigam a relação entre decisões políticas (leis de zoneamento) e impactos ambientais reais.",
+              "o_componente_tecnológico": "Uso de Sistemas de Informação Geográfica (GIS) e imagens de satélite históricas (via Google Earth Engine). Introdução à Ciência de Dados Aplicada às Humanidades para identificar padrões de desigualdade espacial.",
+              "inovação": "Criação de um StoryMap interativo. Os alunos narram a evolução do conflito ambiental, posicionando-se de forma propositiva ao sugerir soluções tecnológicas (como redes de monitoramento comunitário) para a preservação local."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Laboratório de Economia Comportamental e Finanças Éticas\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Interpretar os processos econômicos contemporâneos e como a tecnologia (Pix, Criptomoedas, Gamificação de apostas) influencia o comportamento de consumo e a saúde financeira dos jovens.",
+              "a_investigação_científica": "Aplicação do método experimental. Os alunos desenham pesquisas de campo e formulários digitais para coletar dados sobre o \"Nudging\" (empurrões comportamentais) que as interfaces digitais usam para induzir gastos.",
+              "o_componente_tecnológico": "Uso de Visualização de Dados (Data Viz) para comparar fontes de dados econômicos nacionais com os dados coletados na escola. Uso de simuladores de modelos econômicos para prever tendências de endividamento.",
+              "inovação": "Desenvolvimento de um Protótipo de 'Tecnologia Humana'. Pode ser um jogo, um bot de orientação ou uma campanha de intervenção que utilize conhecimentos das Ciências Humanas para promover a ética financeira e a justiça social no uso de ferramentas digitais de pagamento."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "2. Avaliar as interações entre as atividades humanas e o espaço geográfico, discutindo os impactos ambientais e suas implicações socioambientais, incluindo o racismo ambiental, propondo soluções éticas e sustentáveis, e promovendo a consciência e o consumo responsável nos âmbitos local, regional, nacional e global.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Cartografia da (In)justiça: Monitorando o Racismo Ambiental\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Identificar como as populações marginalizadas (periferias, quilombolas, ribeirinhos) são as mais afetadas por lixões, falta de saneamento ou riscos de desabamento.",
+              "a_investigação_científica": "Os alunos realizam um cruzamento de dados demográficos (cor/raça e renda) com dados de infraestrutura e riscos ambientais da cidade. O objetivo é testar a hipótese: \"As áreas com menor investimento em infraestrutura ambiental coincidem com as áreas de maior concentração de populações negras e pardas?\".",
+              "o_componente_tecnológico": "Uso de Sistemas de Informação Geográfica (GIS) e ferramentas como o Google Earth Engine para analisar imagens históricas de satélite e mapas de calor de vulnerabilidade.",
+              "inovação": "Criação de um Índice de Equidade Ambiental para o bairro ou cidade. Os alunos desenvolvem um dashboard interativo que expõe essas desigualdades, propondo soluções de urbanismo sustentável e políticas públicas baseadas em evidências."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Sistemas de Alerta Comunitário e Tecnologias de Baixo Custo\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Propor soluções para mitigar os impactos ambientais em comunidades que sofrem com a falta de monitoramento estatal.",
+              "a_investigação_científica": "Estudo da geomorfologia local e dos ciclos hidrológicos. Os alunos investigam como a impermeabilização do solo e o descarte de resíduos alteram a dinâmica do espaço geográfico e aumentam os riscos socioambientais.",
+              "o_componente_tecnológico": "Prototipagem com Internet das Coisas (IoT). Utilizando sensores de nível de água ou de umidade do solo (Arduino/Micro:bit), os alunos constroem estações meteorológicas ou de alerta de enchente de baixo custo.",
+              "inovação": "Instalação desses protótipos em áreas vulneráveis da comunidade. O projeto promove a Ciência Cidadã, onde a tecnologia serve como ferramenta de proteção da vida e fortalecimento da consciência local."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Rastreabilidade e Consumo Responsável: Do Global ao Local\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Analisar os impactos ambientais das cadeias de consumo globais e propor alternativas baseadas na economia circular e no consumo local.",
+              "a_investigação_científica": "Análise do \"ciclo de vida\" de produtos comuns (eletrônicos ou roupas). Os alunos investigam de onde vêm as matérias-primas e onde o descarte causa maior impacto (geralmente em países do Sul Global, caracterizando um racismo ambiental em escala global).",
+              "o_componente_tecnológico": "Desenvolvimento de um App de Consumo Ético (No-Code). Os alunos utilizam plataformas como Glide ou AppSheet para criar um catálogo de produtores locais e um sistema de \"pontuação de sustentabilidade\" para produtos, baseado na pegada de carbono e ética social.",
+              "inovação": "Promoção de uma feira de Inovação Sustentável na escola, onde os alunos apresentam as rotas tecnológicas para a reciclagem de materiais e incentivam o consumo responsável regional."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "3. Mediar conflitos, promovendo o diálogo, a empatia e a escuta ativa, por meio de estratégias de negociação e tomada de decisão, considerando contextos históricos, culturais, sociais e políticos, com especial atenção ao Sul Global, para discutir soluções colaborativas que respondam a desafios locais e globais.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Diplomacia Digital e Simuladores de Conflitos Socioambientais\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Mediar o conflito entre o desenvolvimento econômico (ex: mineração ou agronegócio) e a preservação de territórios tradicionais (indígenas ou quilombolas) no Sul Global.",
+              "a_investigação_científica": "Os alunos pesquisam casos reais de conflitos de terras no Brasil ou em países vizinhos. Eles analisam os dados biológicos (impacto na fauna/flora) e os dados sociais (contexto histórico de ocupação).",
+              "o_componente_tecnológico": "Uso de Teoria dos Jogos e Simuladores de Decisão. Os alunos podem usar ferramentas de árvores de decisão ou programar um simulador simples que mostre as consequências de diferentes escolhas (ganha-perde vs. ganha-ganha).",
+              "inovação": "O Clube organiza uma \"Cúpula de Negociação Científica\". Utilizando Realidade Aumentada (AR) ou mapas interativos, os alunos projetam os cenários futuros para cada proposta, usando a visualização de dados como um \"terceiro elemento\" neutro para facilitar a empatia e a escuta ativa entre os \"lados\" representados."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Plataforma de Escuta Ativa: IA para Mediação Comunitária\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Conflitos urbanos locais (ex: barulho, lixo, uso de espaços públicos) que muitas vezes escalam por falta de uma comunicação eficaz e empática.",
+              "a_investigação_científica": "Estudo da Comunicação Não Violenta (CNV) e da psicologia social. Os alunos coletam \"pontos de dor\" da comunidade escolar ou do bairro através de métodos qualitativos de escuta.",
+              "o_componente_tecnológico": "Desenvolvimento de um Chatbot de Mediação. Usando ferramentas de processamento de linguagem natural (NLP), os alunos treinam um bot que ajuda as partes a formularem seus sentimentos e necessidades antes de um encontro presencial, filtrando linguagens agressivas e sugerindo termos empáticos.",
+              "inovação": "O bot funciona como um \"pré-mediador\" digital. A inovação está em aplicar inteligência artificial não para substituir o humano, mas para preparar o terreno para um diálogo presencial fundamentado e pacífico."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Tecnologias de Baixo Custo para Soberania do Sul Global\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "A dependência tecnológica de países do Norte Global muitas vezes gera conflitos econômicos e sociais. Como propor soluções colaborativas locais?",
+              "a_investigação_científica": "Análise de tecnologias proprietárias e caras (ex: purificadores de água industriais ou softwares de gestão agrícola) que são inacessíveis para comunidades locais.",
+              "o_componente_tecnológico": "Engenharia Reversa e Open Source. O Clube trabalha com hardware livre (Arduino, Raspberry Pi) para criar versões acessíveis e adaptadas ao clima e solo local (Sul Global).",
+              "inovação": "Criação de um Wiki de Inovação Colaborativa. Os alunos documentam seus projetos em uma plataforma aberta, convidando estudantes de outras escolas (inclusive de outros países do Sul Global) para colaborar, promovendo a empatia intercultural e a solução conjunta de desafios globais como a crise hídrica ou energética."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "4. Analisar criticamente as desigualdades históricas e estruturais que impactam diferentes grupos sociais, reconhecendo os saberes tradicionais, o papel dos movimentos sociais e das minorias na construção de conhecimentos e na promoção da diversidade, desenvolvendo iniciativas que fortaleçam a educação decolonial, o combate ao racismo, a valorização dos Direitos Humanos e a inclusão social de forma ética e sustentável.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Genealogia do Saber: Ciência Não Contada\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Combater o apagamento histórico de cientistas negros, indígenas e mulheres, reconhecendo como o racismo estrutural influenciou quem \"merece\" o crédito por grandes inovações.",
+              "a_investigação_científica": "Os alunos realizam uma pesquisa documental sobre patentes e descobertas científicas (ex: medicina tropical, metalurgia, navegação astronômica). Eles devem investigar as \"raízes\" dessas tecnologias em saberes africanos e indígenas.",
+              "o_componente_tecnológico": "Criação de um Museu Digital de Ciência Decolonial. Usando ferramentas de Realidade Aumentada (AR) ou sites interativos, os alunos criam QR Codes que, espalhados pela escola, revelam a história de cientistas \"invisibilizados\" por trás de conceitos ensinados em sala de aula.",
+              "inovação": "Produção de um material didático autoral (e-book ou infográficos) que valoriza a diversidade na ciência, promovendo a educação decolonial como base para o pensamento crítico."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Laboratório de Etnobotânica e Patentes Éticas\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Reconhecer os saberes tradicionais sobre a flora local e discutir criticamente a biopirataria e a apropriação indébita de conhecimentos de minorias pela indústria global.",
+              "a_investigação_científica": "Estudo químico e biológico de plantas utilizadas por comunidades tradicionais da região. Os alunos analisam as propriedades (ex: antissépticas ou repelentes) e documentam o saber associado a cada espécie.",
+              "o_componente_tecnológico": "Uso de Blockchain ou bancos de dados distribuídos para criar um \"Registro de Saberes Tradicionais\". Os alunos simulam como a tecnologia pode ser usada para garantir a proteção intelectual dessas comunidades, assegurando que o crédito e os benefícios retornem a elas.",
+              "inovação": "Desenvolvimento de produtos bio-sustentáveis (ex: sabões ou extratos) baseados no diálogo entre a química moderna e a tradição, com um selo de \"Inovação Ética e Decolonial\"."
+            }
+          },
+          {
+            "titulo": "Projeto: \"IA Contra o Racismo Algorítmico e Estrutural\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Analisar criticamente como as novas tecnologias (reconhecimento facial, algoritmos de crédito) podem reproduzir e ampliar desigualdades históricas.",
+              "a_investigação_científica": "Experimentos de \"Auditoria de Dados\". Os alunos testam IAs de reconhecimento facial ou geradores de imagem para verificar vieses raciais e de gênero. Eles investigam a origem dos dados: quem foi usado para \"treinar\" a máquina?",
+              "o_componente_tecnológico": "Desenvolvimento de Algoritmos de Inclusão. Usando linguagens de programação simples ou plataformas de Machine Learning visual, os alunos criam modelos que priorizam a diversidade e corrigem desigualdades (ex: um sistema de triagem escolar que considera marcadores de vulnerabilidade histórica).",
+              "inovação": "Criação de um \"Manifesto por uma Tecnologia Antirracista\". Os alunos utilizam as TDICs para promover campanhas de conscientização sobre os riscos da vigilância digital para minorias, propondo diretrizes para uma tecnologia mais justa."
+            }
+          }
+        ]
+      },
+      {
+        "descricao_objetivo": "5. Desenvolver ações de protagonismo juvenil, enquanto agente social, político, ambiental, profissional e cultural, analisando suas identidades e culturas juvenis em diferentes contextos, promovendo reflexões para o planejamento de projetos de vida éticos e conscientes, alinhando aspirações pessoais ao bem-estar coletivo e à transformação social.",
+        "projetos": [
+          {
+            "titulo": "Projeto: \"Hackathon de Projetos de Vida: Inovação com Propósito\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Alinhar as aspirações profissionais dos jovens (Carreira em STEM, Artes, Saúde, etc.) com as necessidades reais da comunidade local.",
+              "a_investigação_científica": "Os alunos realizam uma autoanálise de suas competências e paixões (Ikigai) e cruzam esses dados com um levantamento de \"dores\" da comunidade (Problemas ambientais, sociais ou tecnológicos locais).",
+              "o_componente_tecnológico": "Uso de Metodologias Ágeis (Design Thinking e Canvas de Projeto) e ferramentas de Gestão de Projetos Digitais (como Trello ou Notion).",
+              "inovação": "O Clube organiza uma feira de soluções onde cada jovem apresenta seu \"Projeto de Inovação de Vida\". Não é apenas sobre uma profissão, mas sobre como sua futura carreira pode ser uma ferramenta de transformação social."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Cientistas Cidadãos: Monitoramento Coletivo de Identidades\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Analisar as culturas juvenis e os comportamentos da geração Z/Alpha através da ciência de dados, promovendo reflexões sobre saúde mental e convivência digital.",
+              "a_investigação_científica": "Os alunos desenham uma pesquisa científica rigorosa sobre sua própria geração (ex: hábitos de consumo de informação, níveis de eco-ansiedade ou impacto da IA na educação). Eles atuam como pesquisadores e sujeitos da pesquisa.",
+              "o_componente_tecnológico": "Uso de ferramentas de Análise Estatística e Visualização de Dados (Data-Viz). Os alunos aprendem a interpretar grandes volumes de dados (Big Data) para entender tendências de sua própria cultura.",
+              "inovação": "Os resultados são transformados em Políticas de Convivência Escolar. Os jovens apresentam os dados à direção da escola e propõem intervenções (ações coletivas) que melhorem o bem-estar coletivo, baseadas no que a ciência de dados revelou sobre eles."
+            }
+          },
+          {
+            "titulo": "Projeto: \"Bio-Hub de Inovação Social: Da Escola para o Mercado\"",
+            "qualidades_do_projeto": {
+              "o_desafio": "Transformar o conhecimento técnico do clube em um protótipo de Empreendedorismo Social ou ambiental que possa ser incubado.",
+              "a_investigação_científica": "Validação técnica de um produto ou processo (ex: um novo tipo de fertilizante orgânico, um app de caronas escolares ou uma tecnologia assistiva). O foco é o rigor da Experimentação Científica.",
+              "o_componente_tecnológico": "Prototipagem rápida usando Impressão 3D, Corte a Laser ou desenvolvimento de software (No-Code/Low-Code). Estudo de viabilidade técnica e escalabilidade.",
+              "inovação": "O jovem assume o papel de Empreendedor Científico. Ele deve planejar não apenas o \"como funciona\", mas \"para quem serve\" e \"como se sustenta de forma ética\", alinhando o sucesso pessoal ao desenvolvimento sustentável da região."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

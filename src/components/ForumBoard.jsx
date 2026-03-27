@@ -534,8 +534,31 @@ export default function ForumBoard({
   // ─── Render: Main View ───────────────────────────────────
   return (
     <>
+      {/* Fundo animado de cubos 3D (trilha pedagógica) */}
+      <style>{`
+        .bg-3d-cubes {
+          background-color: #FAFBFF;
+          background-image:
+            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
+            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
+            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
+            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
+            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24)),
+            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24));
+          background-size: 80px 140px;
+          background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+          animation: panCubes 60s linear infinite;
+        }
+        @keyframes panCubes {
+          0% { background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px; }
+          100% { background-position: 80px 140px, 80px 140px, 120px 210px, 120px 210px, 80px 140px, 120px 210px; }
+        }
+      `}</style>
       <ConfirmModal />
-      <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      <div className="max-w-5xl mx-auto space-y-6 pb-12 bg-3d-cubes relative overflow-x-hidden">
+        {/* Overlay sutil para garantir leitura perfeita sobre os cubos */}
+        <div className="absolute inset-0 bg-white/20 pointer-events-none z-0"></div>
+        <div className="relative z-10">
       {/* Hero & Tabs */}
       <div className="premium-card overflow-hidden bg-white shadow-sm border border-slate-100">
         <div className="bg-gradient-to-r from-[#5AC8C8] via-[#5AC8C8] to-[#3DB0B0] p-8 text-white relative overflow-hidden">
@@ -995,8 +1018,8 @@ export default function ForumBoard({
           onClose={() => setToast({ message: '', type: 'error' })}
         />
       )}
-
-    </div>
-  </>
+        </div>
+      </div>
+    </>
   );
 }

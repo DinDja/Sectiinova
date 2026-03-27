@@ -193,25 +193,37 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {viewingClubProjects.map((project) => {
+                            {/* Adicionado o parâmetro index aqui */}
+                            {viewingClubProjects.map((project, index) => {
                                 const isCompleted = project.status?.toLowerCase().includes('conclu');
                                 const projectImage = project?.imagens?.[0] || project?.imagem || '';
                                 const imageCount = Array.isArray(project?.imagens) ? project.imagens.length : (project?.imagem ? 1 : 0);
 
+                                // --- LÓGICA DE FALLBACK ---
+                                const fallbackBackgrounds = ['/images/BG_1.png', '/images/BG_2.png', '/images/BG_3.png'];
+                                const isFallbackImage = !projectImage;
+                                const displayImage = isFallbackImage 
+                                    ? fallbackBackgrounds[index % fallbackBackgrounds.length] 
+                                    : projectImage;
+
                                 return (
                                     <div key={project.id} className="group relative bg-white border border-slate-100 hover:border-[#00B5B5]/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10 min-h-[420px]">
                                         <div className="h-44 sm:h-48 w-full bg-slate-100 overflow-hidden relative">
-                                            {projectImage ? (
-                                                <img
-                                                    src={projectImage}
-                                                    alt={project.titulo || 'Imagem do projeto'}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-semibold border-b border-slate-200">
-                                                    Imagem não disponível
+                                            
+                                            {/* Renderização da imagem (padrão ou original) */}
+                                            <img
+                                                src={displayImage}
+                                                alt={project.titulo || 'Imagem do projeto'}
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            />
+                                            
+                                            {/* Tarja ilustrativa caso seja imagem padrão */}
+                                            {isFallbackImage && (
+                                                <div className="absolute bottom-3 left-3 bg-black/70 text-white text-[11px] sm:text-xs px-2 py-1 rounded-lg font-medium">
+                                                    Projeto sem foto. Imagem ilustrativa.
                                                 </div>
                                             )}
+
                                             {imageCount > 1 && (
                                                 <span className="absolute top-2 right-2 px-2 py-1 rounded-full text-[11px] font-black bg-black/65 text-white">
                                                     {imageCount} fotos

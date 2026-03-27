@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Map, BookOpen, School, Lightbulb, Coffee, GripHorizontal } from 'lucide-react';
+import { Map, BookOpen, Layers, School, Lightbulb, Coffee, GripHorizontal } from 'lucide-react';
 import { HeightRule } from 'docx';
 
 export default function Sidebar({
@@ -18,17 +18,17 @@ export default function Sidebar({
   const [tempOrder, setTempOrder] = useState(null);
 
   const allNavItems = [
-    { id: 'Projetos', label: 'Feed de Projetos', icon: Map, tooltip: 'Explorar projetos' },
+    { id: 'Projetos', label: 'ColabTec', icon: Map, tooltip: 'Explorar projetos' },
     { id: 'diario', label: 'Diário de Bordo', icon: BookOpen, tooltip: 'Registros diários' },
-    { id: 'inpi', label: 'INPI Patentes', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
+    { id: 'trilha', label: 'Trilha Pedagógica', icon: Layers, tooltip: 'Planejar trilha CT&I' },
+    { id: 'inpi', label: 'PatentesLab', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
     { id: 'forum', label: 'Café Digital', icon: Coffee, tooltip: 'Fórum de discussão' },
     { id: 'clube', label: 'Meu Clube', icon: School, tooltip: 'Gerenciar meu clube' },
   ];
 
   // Ordenar itens: usar tempOrder durante drag, senão usar sidebarOrder salva
-  const displayOrder = tempOrder || (sidebarOrder && sidebarOrder.length > 0 
-    ? (sidebarOrder.includes('clube') ? sidebarOrder : [...sidebarOrder, 'clube'])
-    : ['Projetos', 'diario', 'inpi', 'forum', 'clube']);
+  const defaultOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+  const displayOrder = tempOrder || (sidebarOrder && sidebarOrder.length > 0 ? sidebarOrder : defaultOrder);
   const navItems = displayOrder
     .map(id => allNavItems.find(item => item.id === id))
     .filter(Boolean);
