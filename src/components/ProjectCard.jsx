@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 
-// IMPORTAÇÃO DO MODAL (ajuste o caminho se necessário)
 import ModalPerfil from './ModalPerfil';
 
 export default function ProjectCard({
@@ -20,11 +19,9 @@ export default function ProjectCard({
     const [likesCount, setLikesCount] = useState(project?.likes || 195);
     const [isHovered, setIsHovered] = useState(false);
 
-    // NOVOS ESTADOS PARA O MODAL DE PERFIL
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    // FUNÇÃO QUE ABRE O PERFIL E BLOQUEIA A IDA PRO CLUBE
     const handleUserClick = (e, user) => {
         e.stopPropagation();
         e.preventDefault();
@@ -32,7 +29,6 @@ export default function ProjectCard({
         setIsProfileModalOpen(true);
     };
 
-    // Fallbacks para garantir que o layout não quebre se os dados estiverem vazios
     const orientador = team?.orientadores?.[0] || { 
         nome: 'André Matos Sousa', 
         papel: 'Orientador',
@@ -54,7 +50,6 @@ export default function ProjectCard({
     const displayImage = isFallbackImage ? backgroundImage : projectImage;
 
     
-    // Cores baseadas no status do projeto
     const getTagColor = () => {
         const status = tagText.toLowerCase();
         if (status.includes('concluído') || status.includes('concluido')) return 'bg-green-500';
@@ -63,7 +58,6 @@ export default function ProjectCard({
         return 'bg-[#5AC8C8]';
     };
 
-    // Simulação de equipe para as fotos sobrepostas
     const teamMembers = [
         ...(team?.orientadores?.map(o => ({ ...o, type: 'orientador' })) || []),
         ...(team?.coorientadores?.map(c => ({ ...c, type: 'coorientador' })) || []),
@@ -87,7 +81,6 @@ export default function ProjectCard({
         if (onShareClick) {
             onShareClick(project);
         } else {
-            // Fallback share
             navigator.clipboard.writeText(window.location.href);
         }
     };
@@ -99,15 +92,12 @@ export default function ProjectCard({
             onMouseLeave={() => setIsHovered(false)}
         >
             
-            {/* Cabeçalho: Info do Autor e Tag */}
             <div className="p-5 flex items-center justify-between bg-white border-b border-gray-100">
                 
-                {/* Transformei a div inteira do autor em clicável para abrir o perfil */}
                 <div 
                     className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={(e) => handleUserClick(e, orientador)}
                 >
-                    {/* Avatar do Orientador */}
                     <div className="relative">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5AC8C8] to-[#3EA8A8] overflow-hidden flex-shrink-0 border-2 border-white shadow-md">
                             {orientador.avatar ? (
@@ -137,7 +127,6 @@ export default function ProjectCard({
                     </div>
                 </div>
                 
-                {/* Tag de Status com gradiente */}
                 <span className={`${getTagColor()} text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm transition-all duration-300 hover:scale-105 cursor-pointer`}>
                     {tagText}
                 </span>
