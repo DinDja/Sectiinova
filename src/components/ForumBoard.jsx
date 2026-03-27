@@ -396,6 +396,11 @@ export default function ForumBoard({
     [isMentor, loggedUser, currentForumClubId],
   );
 
+  const internalMembers = useMemo(
+    () => (users || []).filter((u) => String(u.clube_id) === String(myClubId)),
+    [users, myClubId],
+  );
+
   // ─── Handlers Otimizados (useCallback) ─────────────────────
   const handleCreateTopic = useCallback(
     async (e) => {

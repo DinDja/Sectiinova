@@ -10,7 +10,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
     if (!viewingClub) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center p-10 bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden shadow-inner">
-                {/* Soft background accents */}
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[100px] pointer-events-none"></div>
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FF5722]/5 rounded-full blur-[100px] pointer-events-none"></div>
                 
@@ -19,7 +18,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Selecione um Ecossistema</h2>
                     <p className="text-slate-600 max-w-md mx-auto">Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.</p>
                 </div>
-            </div>
+            </div> 
         );
     }
 
@@ -27,12 +26,10 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
     const memberCount = viewingClubUsers.length;
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
 
-    // Funcões auxiliares para o design (Adaptadas para Light Mode)
     const AvatarStack = ({ people, max = 5, color = "cyan" }) => {
         const displayPeople = people.slice(0, max);
         const remaining = people.length - max;
         
-        // Cores vibrantes em fundo claro
         const colorClasses = color === "cyan" 
             ? "bg-[#00B5B5] text-white border-white" 
             : "bg-[#FF5722] text-white border-white";
@@ -54,22 +51,17 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
     };
 
     return (
-        // Base clara: slate-50/100
         <div className="space-y-8 mx-auto pb-20  font-sans bg-slate-50 p-3 md:p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-slate-800 relative overflow-hidden">
             
-            {/* HERO BANNER - Milk Glass & Soft Gradients */}
             <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 group min-h-[320px] flex flex-col justify-end p-8 md:p-12 shadow-sm">
                 
-                {/* Soft Background Accents (Orbs) */}
                 <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/15 transition-colors duration-700 pointer-events-none"></div>
                 <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/5 rounded-full blur-[60px] pointer-events-none"></div>
                 
-                {/* Subtle Texture - Adapted for Light */}
                 <div className="absolute inset-0  mix-blend-multiply pointer-events-none" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
 
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-end">
                     <div className="max-w-3xl flex-1">
-                        {/* Texto escuro com leve gradiente para sofisticação */}
                         <h1 className="text-5xl md:text-6xl text-white tracking-tighter from-slate-950 via-slate-800 to-slate-700 mb-4 leading-tight">
                             {viewingClub.nome}
                         </h1>
@@ -88,7 +80,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                         </div>
                     </div>
 
-                    {/* Botão Primário VIBRANTE em Fundo Claro */}
                     <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#00B5B5]/30 shrink-0">
                         <Zap className={`w-5 h-5 transition-transform ${isCreateOpen ? 'rotate-45 text-amber-200' : 'text-white'}`} />
                         {isCreateOpen ? 'Cancelar Criação' : 'Iniciar Novo Projeto'}
@@ -106,16 +97,13 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     viewingClubInvestigadores={viewingClubInvestigadores}
                     handleCreateProject={handleCreateProject}
                     onSuccess={() => {
-                        // Caso queira atualizar o estado do club, adicione lógica aqui.
-                        // Ex: recarregar lista de projetos ou mostrar mensagem.
+
                     }}
                 />
             )}
 
-            {/* BENTO GRID ASSIMÉTRICO (Cartões Brancos) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
                 
-                {/* Bloco 1: Estatísticas (Span 4) */}
                 <div className="md:col-span-4 grid grid-cols-2 gap-4">
                     {[
                         { icon: FolderKanban, count: viewingClubProjects.length, label: "Projetos", color: "text-[#00B5B5]", bg: "bg-[#E0F7F7]", border: "border-[#00B5B5]/20" },
@@ -132,7 +120,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     ))}
                 </div>
 
-                {/* Bloco 2: Equipe Docente (Span 4) */}
                 <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
                     <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Equipe Docente</h3>
                     
@@ -161,7 +148,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     </div>
                 </div>
 
-                {/* Bloco 3: Investigadores Empilhados (Span 4 - Orange Accent) */}
                 <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-[#FF5722]/5 rounded-full blur-2xl pointer-events-none"></div>
                     
@@ -194,7 +180,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                 </div>
             </div>
 
-            {/* RADAR DE PROJETOS (Fundo Milk Glass para contraste) */}
             <div className="pt-10 relative z-10">
                 <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex items-center gap-3 mb-10">
@@ -215,7 +200,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
 
                                 return (
                                     <div key={project.id} className="group relative bg-white border border-slate-100 hover:border-[#00B5B5]/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10 min-h-[420px]">
-                                        {/* Imagem do projeto */}
                                         <div className="h-44 sm:h-48 w-full bg-slate-100 overflow-hidden relative">
                                             {projectImage ? (
                                                 <img

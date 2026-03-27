@@ -1,5 +1,5 @@
-import React from 'react';
-import { Map, BookOpen, School, Upload, Lightbulb, Coffee } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Map, BookOpen, School, Lightbulb, Coffee, GripHorizontal } from 'lucide-react';
 import { HeightRule } from 'docx';
 
 export default function Sidebar({
@@ -9,39 +9,127 @@ export default function Sidebar({
   loggedUser,
   myClubId,
   setViewingClubId,
+  sidebarOrder,
+  setSidebarOrder,
+  saveSidebarOrder,
 }) {
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempOrder, setTempOrder] = useState(null);
+
+  const allNavItems = [
+    { id: 'Projetos', label: 'Feed de Projetos', icon: Map, tooltip: 'Explorar projetos' },
+    { id: 'diario', label: 'Diário de Bordo', icon: BookOpen, tooltip: 'Registros diários' },
+    { id: 'inpi', label: 'INPI Patentes', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
+    { id: 'forum', label: 'Café Digital', icon: Coffee, tooltip: 'Fórum de discussão' },
+    { id: 'clube', label: 'Meu Clube', icon: School, tooltip: 'Gerenciar meu clube' },
+  ];
+
+  // Ordenar itens: usar tempOrder durante drag, senão usar sidebarOrder salva
+  const displayOrder = tempOrder || (sidebarOrder && sidebarOrder.length > 0 
+    ? (sidebarOrder.includes('clube') ? sidebarOrder : [...sidebarOrder, 'clube'])
+    : ['Projetos', 'diario', 'inpi', 'forum', 'clube']);
+  const navItems = displayOrder
+    .map(id => allNavItems.find(item => item.id === id))
+    .filter(Boolean);
+
   const handleMyClubClick = () => {
     setCurrentView('clube');
     const targetClubId = String(loggedUser?.clube_id || myClubId || '').trim();
     if (targetClubId) setViewingClubId(targetClubId);
   };
 
-  // Itens de navegação (facilita manutenção)
-  const navItems = [
-    { id: 'Projetos', label: 'Feed de Projetos', icon: Map, tooltip: 'Explorar projetos' },
-    { id: 'diario', label: 'Diário de Bordo', icon: BookOpen, tooltip: 'Registros diários' },
-    { id: 'inpi', label: 'INPI Patentes', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
-    { id: 'forum', label: 'Café Digital', icon: Coffee, tooltip: 'Fórum de discussão' },
-  ];
+  const handleDragStart = (e, index) => {
+    if (!isEditing) return;
+    setDraggedItem(index);
+    // Inicializar tempOrder com a ordem atual se ainda não existe
+    if (!tempOrder) {
+      setTempOrder([...displayOrder]);
+    }
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    if (!isEditing || draggedItem === null) return;
+    e.preventDefault();
+    
+    if (draggedItem === index) return;
+
+    const workingOrder = tempOrder || displayOrder;
+    const newOrder = [...workingOrder];
+    const draggedItemId = newOrder[draggedItem];
+    
+    newOrder.splice(draggedItem, 1);
+    newOrder.splice(index, 0, draggedItemId);
+    
+    setDraggedItem(index);
+    setTempOrder(newOrder);
+  };
+
+  const handleDragEnd = async () => {
+    setDraggedItem(null);
+    
+    // Salvar a ordem final
+    if (tempOrder) {
+      setSidebarOrder(tempOrder);
+      if (saveSidebarOrder) {
+        await saveSidebarOrder(tempOrder);
+      }
+    }
+    
+    setTempOrder(null);
+  };
 
   return (
     <aside
       className="w-24 h-full min-h-screen glass-surface flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
       aria-label="Menu principal"
     >
+      {/* Botão de editar ordem */}
+      <button
+        onClick={() => setIsEditing(!isEditing)}
+        className={`
+          mb-3 p-2 rounded-lg transition-all duration-200
+          ${isEditing
+            ? 'bg-[#00B5B5]/20 text-[#0F5257] border border-[#00B5B5]'
+            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
+          }
+        `}
+        title={isEditing ? 'Salvo automaticamente' : 'Reordenar itens'}
+      >
+        <GripHorizontal className="w-5 h-5" strokeWidth={1.75} />
+      </button>
+
       {/* Navegação principal */}
       <nav className="flex flex-col w-full px-3 space-y-1" aria-label="Navegação">
-        {navItems.map((item) => {
+        {navItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
+          
+          const handleClick = () => {
+            if (!isEditing) {
+              if (item.id === 'clube') {
+                handleMyClubClick();
+              } else {
+                setCurrentView(item.id);
+              }
+            }
+          };
+
           return (
             <button
               key={item.id}
-              onClick={() => setCurrentView(item.id)}
+              draggable={isEditing}
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onClick={handleClick}
               className={`
                 relative flex flex-col items-center py-3 px-2 w-full rounded-xl
                 transition-all duration-200 group
                 focus:outline-none focus:ring-2 focus:ring-[#00B5B5] focus:ring-offset-1
+                ${isEditing ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
+                ${draggedItem === index ? 'opacity-50' : 'opacity-100'}
                 ${isActive
                   ? 'bg-gradient-to-br from-[#00B5B5]/12 to-[#00B5B5]/5 text-[#0F5257] shadow-md border border-[#00B5B5]/15'
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
@@ -52,36 +140,17 @@ export default function Sidebar({
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon className="w-6 h-6 mb-1.5 transition-transform group-hover:scale-105" strokeWidth={1.75} />
-              <span className="text-[11px] font-medium text-center leading-tight">{item.label}</span>
+              {item.id === 'clube' ? (
+                <span className="text-[11px] font-medium text-center leading-tight">Meu<br />Clube</span>
+              ) : (
+                <span className="text-[11px] font-medium text-center leading-tight">{item.label}</span>
+              )}
               {isActive && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#00B5B5] rounded-r-full" />
               )}
             </button>
           );
         })}
-
-        {/* Meu Clube (tratamento especial) */}
-        <button
-          onClick={handleMyClubClick}
-          className={`
-            relative flex flex-col items-center py-3 px-2 w-full rounded-xl
-            transition-all duration-200 group
-            focus:outline-none focus:ring-2 focus:ring-[#00B5B5] focus:ring-offset-1
-            ${currentView === 'clube'
-              ? 'bg-gradient-to-br from-[#00B5B5]/12 to-[#00B5B5]/5 text-[#0F5257] shadow-md border border-[#00B5B5]/15'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
-            }
-          `}
-          title="Gerenciar meu clube"
-          aria-label="Meu Clube"
-          aria-current={currentView === 'clube' ? 'page' : undefined}
-        >
-          <School className="w-6 h-6 mb-1.5 transition-transform group-hover:scale-105" strokeWidth={1.75} />
-          <span className="text-[11px] font-medium text-center leading-tight">Meu<br />Clube</span>
-          {currentView === 'clube' && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#00B5B5] rounded-r-full" />
-          )}
-        </button>
 
         {/* Divisor */}
         <div className="my-3 border-t border-slate-200/70 w-12 mx-auto" />

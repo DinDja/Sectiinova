@@ -18,7 +18,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
         return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
     };
 
-    // Fecha o modal ao clicar fora dele
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) onClose();
     };
@@ -30,7 +29,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
         >
             <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 scrollbar-hide">
                 
-                {/* Header com Gradiente e Botão de Fechar */}
                 <div className="relative h-32 bg-gradient-to-r from-[#0B3B5F] via-[#1B4F72] to-[#2E86C1] overflow-hidden">
                     <button 
                         onClick={onClose}
@@ -44,7 +42,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
                 </div>
 
                 <div className="px-6 pb-8 relative">
-                    {/* Foto e Nome */}
                     <div className="relative flex flex-col items-center -mt-16 mb-6">
                         <div className="relative w-28 h-28 rounded-full border-4 border-white bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
                             {usuario.fotoUrl || usuario.fotoBase64 ? (
@@ -74,14 +71,12 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
                         )}
                     </div>
 
-                    {/* Cards de Estatísticas */}
                     <div className="grid grid-cols-3 gap-3 mb-6">
                         <StatCard icon={TrendingUp} label="Projetos" value={stats.projetos} color="from-blue-500 to-cyan-500" />
                         <StatCard icon={Users} label="Seguidores" value={stats.seguidores} color="from-indigo-500 to-blue-500" />
                         <StatCard icon={Award} label="Conquistas" value={stats.conquistas} color="from-purple-500 to-pink-500" />
                     </div>
 
-                    {/* Informações */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <InfoCard icon={School} label="Clube / Escola" value={usuario.clube || 'Não informado'} color="text-blue-600" />
                         <InfoCard icon={Shield} label="Perfil" value={usuario.perfil || 'Membro'} color="text-purple-600" />
@@ -101,7 +96,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
     );
 }
 
-// Mini-componentes auxiliares
 function StatCard({ icon: Icon, label, value, color }) {
     return (
         <div className="p-3 rounded-xl bg-slate-50 border border-gray-100 shadow-sm text-center">

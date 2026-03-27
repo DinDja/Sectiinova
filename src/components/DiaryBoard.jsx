@@ -3,9 +3,7 @@ import { BookOpen, Target, User, Users, Map, Database, CheckCircle, Calendar, Cl
 import EmptyState from './EmptyState';
 import { getInitials, getLattesAreas, getLattesEducation, getLattesSummary, getLattesUpdatedAt } from '../utils/helpers';
 
-// ----------------------------------------------------------------------
-// SUBCOMPONENTES
-// ----------------------------------------------------------------------
+
 
 const MentorBadge = ({ person, getLattesLink }) => {
     const lattesLink = getLattesLink(person);
@@ -13,7 +11,6 @@ const MentorBadge = ({ person, getLattesLink }) => {
     const updatedAt = getLattesUpdatedAt(person);
     const areas = getLattesAreas(person).slice(0, 3);
     const education = getLattesEducation(person).slice(0, 2);
-
     return (
         <article className="group relative min-w-[280px] flex-1 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-xl hover:shadow-cyan-500/5 hover:border-[#00B5B5]/20 transition-all duration-500 overflow-hidden"
       > 
@@ -81,10 +78,8 @@ const MentorBadge = ({ person, getLattesLink }) => {
 
 const DiaryEntryCard = ({ entry }) => (
     <div className="group relative bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-cyan-500/5 hover:border-[#00B5B5]/30 transition-all duration-500 overflow-hidden w-full">
-        {/* Indicador lateral sutil */}
         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#00B5B5] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
         
-        {/* Card Header */}
         <div className="bg-slate-50/50 border-b border-slate-100 px-8 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h4 className="text-xl font-extrabold text-slate-900 tracking-tight mb-2 group-hover:text-[#00B5B5] transition-colors">{entry.title}</h4>
@@ -99,7 +94,6 @@ const DiaryEntryCard = ({ entry }) => (
             </div>
         </div>
 
-        {/* Card Body */}
         <div className="p-8 space-y-6">
             <div className="bg-emerald-50/30 border border-emerald-100/50 rounded-2xl p-5">
                 <h5 className="flex items-center text-xs font-black text-emerald-800 uppercase tracking-widest mb-3">
@@ -144,9 +138,6 @@ const DiaryEntryCard = ({ entry }) => (
     </div>
 );
 
-// ----------------------------------------------------------------------
-// COMPONENTE PRINCIPAL
-// ----------------------------------------------------------------------
 
 export default function DiaryBoard({ selectedProject, selectedClub, selectedSchool, selectedTeam, derivedDiaryEntries = [], canEditDiary, setIsModalOpen, getInvestigatorDisplayNames, getLattesLink }) {
     
@@ -178,7 +169,6 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
     return (
         <div className="space-y-10 mx-auto font-sans text-slate-800 max-w-7xl pt-5">
             
-            {/* HERO DO PROJETO - Estilo Bento Grid */}
             <section className="relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm">
                 <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#00B5B5]/5 rounded-full blur-[80px] pointer-events-none"></div>
                 
@@ -212,7 +202,6 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                         </div>
                     </div>
 
-                    {/* Metadados - Bento Mini Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-center hover:border-[#00B5B5]/30 transition-colors shadow-sm">
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Map className="w-3 h-3"/> Unidade Escolar</span>
@@ -230,7 +219,6 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                         </div>
                     </div>
 
-                    {/* Galeria de Imagens (Se houver) */}
                     {selectedProject.imagens?.length > 0 && (
                         <div className="mb-8 pt-4 border-t border-slate-100">
                             <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Evidências Visuais</h4>
@@ -242,7 +230,6 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                         </div>
                     )}
 
-                    {/* Mentores */}
                     {uniqueMentors.length > 0 && (
                         <div className="pt-6 border-t border-slate-100">
                             <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -258,7 +245,6 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                 </div>
             </section>
 
-            {/* SEÇÃO DO DIÁRIO */}
             <section className="bg-white rounded-[3rem] p-6 md:p-10 border border-slate-100 shadow-inner">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-6 mb-10">
                     <div>
@@ -290,15 +276,12 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                             />
                         </div>
                     ) : (
-                        /* CONTAINER DA LINHA DO TEMPO */
                         <div className="relative border-l-2 border-slate-200 ml-4 md:ml-6 space-y-10 pb-6">
                             {derivedDiaryEntries.map((entry) => (
                                 <div key={entry.id} className="group relative pl-6 md:pl-10">
                                     
-                                    {/* PONTO DA TIMELINE */}
                                     <div className="absolute -left-[9px] top-8 w-4 h-4 rounded-full bg-[#00B5B5] ring-4 ring-slate-50 shadow-sm z-10 transition-transform duration-300 group-hover:scale-125 group-hover:ring-[#00B5B5]/20"></div>
                                     
-                                    {/* CARD */}
                                     <DiaryEntryCard entry={entry} />
                                 </div>
                             ))}

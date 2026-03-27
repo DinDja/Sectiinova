@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users } from 'lucide-react';
+import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 
 // IMPORTAÇÃO DO MODAL (ajuste o caminho se necessário)
 import ModalPerfil from './ModalPerfil';
@@ -102,7 +102,7 @@ export default function ProjectCard({
             {/* Cabeçalho: Info do Autor e Tag */}
             <div className="p-5 flex items-center justify-between bg-white border-b border-gray-100">
                 
-                {/* AQUI ESTÁ A MÁGICA: Transformei a div inteira do autor em clicável para abrir o perfil */}
+                {/* Transformei a div inteira do autor em clicável para abrir o perfil */}
                 <div 
                     className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={(e) => handleUserClick(e, orientador)}
@@ -122,7 +122,6 @@ export default function ProjectCard({
                     </div>
                     
                     <div className="flex flex-col">
-                        {/* Removi o onClubClick que estava aqui e troquei por span */}
                         <span className="font-bold text-gray-800 text-base hover:text-[#5AC8C8] transition-colors text-left">
                             {orientador.nome}
                         </span>
@@ -192,7 +191,7 @@ export default function ProjectCard({
                             {displayTeam.map((member, idx) => (
                                 <div 
                                     key={idx} 
-                                    onClick={(e) => handleUserClick(e, member)} // AQUI TAMBÉM ABRE O PERFIL
+                                    onClick={(e) => handleUserClick(e, member)}
                                     className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-[3px] border-white bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer"
                                     title={`${member.nome} - ${member.type === 'orientador' ? 'Orientador' : member.type === 'coorientador' ? 'Coorientador' : 'Membro'}`}
                                 >
@@ -217,7 +216,7 @@ export default function ProjectCard({
             </div>
 
             {/* Métricas e Indicadores */}
-            <div className="px-6 pb-6 pt-2">
+            <div className="px-6 pb-20 pt-2">
                 <div className="flex items-center gap-4 sm:gap-6 mb-4"></div>
 
                 {/* Indicador de progresso se o projeto estiver em andamento */}
@@ -237,10 +236,29 @@ export default function ProjectCard({
                 )}
             </div>
 
-            {/* Botão Acessar Diário */}
-            <div className="absolute bottom-6 right-6 z-10">
+            {/* Botões de Ação: Clube e Diário */}
+            <div className="absolute bottom-6 right-6 z-10 flex items-center gap-3">
+                {/* Botão Acessar Clube */}
+                {club && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onClubClick) onClubClick();
+                        }}
+                        className="group/btn-club bg-white/90 backdrop-blur-sm border-2 border-[#5AC8C8] text-[#5AC8C8] hover:bg-[#5AC8C8] hover:text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                        title="Ver página do clube"
+                    >
+                        <School className="w-4 h-4 transition-transform duration-300 group-hover/btn-club:scale-110" />
+                        Ver Clube
+                    </button>
+                )}
+
+                {/* Botão Acessar Diário */}
                 <button 
-                    onClick={onDiaryClick}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDiaryClick) onDiaryClick();
+                    }}
                     className="group/btn bg-gradient-to-r from-[#5AC8C8] to-[#4EAEAE] hover:from-[#4EAEAE] hover:to-[#3E9E9E] text-white px-6 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105"
                 >
                     <BookOpen className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-12" />

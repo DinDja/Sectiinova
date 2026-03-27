@@ -14,14 +14,12 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     const [avatarSrc, setAvatarSrc] = useState('');
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-    // Função para resetar o formulário para os dados originais do usuário
     const resetForm = () => {
         if (loggedUser) {
             setFormData({
                 nome: loggedUser.nome || '',
                 email: loggedUser.email || '',
                 telefone: loggedUser.telefone || '',
-                // CORREÇÃO AQUI: Removido o loggedUser.cargo do fallback
                 lattesLink: loggedUser.lattes || loggedUser.lattesLink || '',
                 bio: loggedUser.bio || '',
                 localizacao: loggedUser.localizacao || '',
@@ -31,7 +29,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
-    // Atualiza o formulário sempre que o usuário logado mudar
     useEffect(() => {
         resetForm();
     }, [loggedUser]);
@@ -60,10 +57,9 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         );
     }
 
-    // Máscara de Telefone (XX) XXXXX-XXXX
     const formatPhone = (value) => {
         if (!value) return '';
-        const numbers = value.replace(/\D/g, ''); // Remove tudo que não for número
+        const numbers = value.replace(/\D/g, ''); 
         if (numbers.length <= 2) return `(${numbers}`;
         if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
         if (numbers.length <= 10) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
@@ -120,7 +116,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
             const compressedBase64 = await compressImageFile(file, 600, 0.7);
             setAvatarSrc(compressedBase64);
             setFormData((prev) => ({ ...prev, fotoBase64: compressedBase64 }));
-            // Liga o modo de edição automaticamente se a pessoa alterar a foto
             if (!isEditing) setIsEditing(true);
         } catch (error) {
             console.error('Erro ao processar a foto:', error);
@@ -138,13 +133,12 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
-    // Função genérica e segura para atualizar os campos do formulário
     const handleInputChange = (field, value) => {
         setFormData((prev) => prev ? { ...prev, [field]: value } : null);
     };
 
     const handleCancelEdit = () => {
-        resetForm(); // Desfaz qualquer alteração não salva
+        resetForm(); 
         setIsEditing(false);
     };
 
@@ -172,7 +166,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
-    // Estatísticas
     const stats = {
         projetos: loggedUser?.projetosCount || 8,
         seguidores: loggedUser?.seguidoresCount || 156,
@@ -183,7 +176,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         <div className="w-full max-w-4xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
                 
-                {/* Header com Gradiente */}
                 <div className="relative h-36 bg-gradient-to-r from-[#0B3B5F] via-[#1B4F72] to-[#2E86C1] overflow-hidden">
                     <svg className="absolute bottom-0 left-0 w-full h-16" preserveAspectRatio="none" viewBox="0 0 1440 120">
                         <path fill="white" fillOpacity="1" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z"></path>
@@ -210,9 +202,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     </div>
                 </div>
 
-                {/* Conteúdo Principal */}
                 <div className="px-6 sm:px-8 pb-8 relative">
-                    {/* Avatar e Nome */}
                     <div className="relative flex flex-col items-center -mt-16 mb-6">
                         <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-[#0B3B5F] to-[#2E86C1] rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -277,14 +267,12 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                         )}
                     </div>
 
-                    {/* Cards de Estatísticas */}
                     <div className="grid grid-cols-3 gap-3 mb-8">
                         <StatCard icon={TrendingUp} label="Projetos" value={stats.projetos} color="from-blue-500 to-cyan-500" />
                         <StatCard icon={Users} label="Seguidores" value={stats.seguidores} color="from-indigo-500 to-blue-500" />
                         <StatCard icon={Award} label="Conquistas" value={stats.conquistas} color="from-purple-500 to-pink-500" />
                     </div>
 
-                    {/* Informações Principais */}
                     {!isEditing ? (
                         <div className="space-y-4 animate-in fade-in duration-500">
                             <div className="grid grid-cols-2 gap-3">
@@ -325,7 +313,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                             </div>                          
                         </div>
                     ) : (
-                        /* Formulário de Edição */
                         <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputGroup 
@@ -395,7 +382,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     );
 }
 
-// Componente de Card de Estatística
 function StatCard({ icon: Icon, label, value, color }) {
     return (
         <div className="p-3 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-gray-100 shadow-sm text-center">
@@ -408,7 +394,6 @@ function StatCard({ icon: Icon, label, value, color }) {
     );
 }
 
-// Componente de Card de Informação
 function InfoCard({ icon: Icon, label, value, color, isLink = false }) {
     return (
         <div className="p-3 rounded-xl bg-slate-50 border border-gray-100">
@@ -429,7 +414,6 @@ function InfoCard({ icon: Icon, label, value, color, isLink = false }) {
     );
 }
 
-// Componente de Input do Formulário
 function InputGroup({ label, type = "text", value, onChange, icon: Icon, disabled = false, placeholder, required, rows, maxLength }) {
     const isTextarea = type === 'textarea';
     

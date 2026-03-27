@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"; 
 
 import React, { useState } from 'react';
@@ -14,7 +13,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
       
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col border border-slate-100 max-h-[90vh]">
         
-        {/* Cabeçalho */}
         <div className="bg-indigo-50/50 px-6 py-4 md:px-8 md:py-5 flex justify-between items-center border-b border-indigo-100/50">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-md">
@@ -35,17 +33,14 @@ const ModalLogin = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Corpo do Conteúdo - Dividido em 2 colunas no Desktop */}
         <div className="flex flex-col lg:flex-row overflow-y-auto">
           
-          {/* Coluna da Esquerda: Passo a Passo */}
           <div className="p-6 md:p-8 text-slate-700 space-y-6 lg:w-1/2 flex-shrink-0">
             <p className="text-sm md:text-base leading-relaxed text-slate-600 mb-2">
               Para depositar sua patente, você precisa de um login unificado no sistema e-INPI. Siga os passos abaixo:
             </p>
 
             <div className="space-y-5">
-              {/* Passo 1 */}
               <div className="flex gap-3 items-start">
                 <div className="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                   1
@@ -66,7 +61,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Passo 2 */}
               <div className="flex gap-3 items-start">
                 <div className="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                   2
@@ -79,7 +73,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Passo 3 */}
               <div className="flex gap-3 items-start">
                 <div className="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                   3
@@ -95,7 +88,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Passo 4 */}
               <div className="flex gap-3 items-start">
                 <div className="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                   4
@@ -110,7 +102,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Coluna da Direita: Espaço para o GIF */}
           <div className="bg-slate-50 p-6 md:p-8 lg:w-1/2 border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col items-center justify-center">
             
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 w-full text-left">
@@ -143,7 +134,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
 
         </div>
 
-        {/* Rodapé */}
         <div className="bg-white px-6 py-4 md:px-8 md:py-5 flex justify-end rounded-b-3xl border-t border-slate-100">
           <button 
             onClick={onClose} 
@@ -155,7 +145,6 @@ const ModalLogin = ({ isOpen, onClose }) => {
 
       </div>
 
-      {/* OVERLAY TELA CHEIA PARA O GIF */}
       {gifFullscreen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/90 p-4">
           <button

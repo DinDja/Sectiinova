@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"; 
 
 import React, { useEffect } from 'react';
@@ -17,7 +16,6 @@ const ModalPI = ({ isOpen, onClose }) => {
       <div className="absolute inset-0 h-screen bg-blue-950/30 backdrop-blur-sm transition-opacity" onClick={onClose} aria-hidden="true" />
       <div className="relative m-4 sm:m-6 bg-white rounded-3xl shadow-3xl w-full max-w-2xl overflow-hidden transform transition-all flex flex-col border border-gray-100 max-h-[90vh]">
         
-        {/* Cabeçalho */}
         <div className="bg-blue-50/50 px-8 py-5 flex justify-between items-center border-b border-blue-100/50">
           <div className="flex items-center gap-4">
             <div className="bg-blue-600 p-3 rounded-xl text-white shadow-md">
@@ -40,7 +38,6 @@ const ModalPI = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Corpo do Conteúdo */}
         <div className="p-8 text-gray-700 space-y-8 overflow-y-auto max-h-[65vh]">
           <p className="text-lg leading-relaxed font-medium">
             Uma <strong className="text-gray-950 font-semibold">Patente de Invenção</strong> é um título de propriedade concedido pelo INPI que garante ao inventor o direito exclusivo de explorar sua criação comercialmente.
@@ -95,7 +92,6 @@ const ModalPI = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Rodapé */}
         <div className="bg-gray-50/50 px-8 py-5 flex justify-end rounded-b-3xl border-t border-gray-100/50">
           <button 
             onClick={onClose} 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"; 
 
 import React, { useEffect } from 'react';
@@ -17,11 +16,9 @@ const ModalMU = ({ isOpen, onClose }) => {
       <div className="absolute inset-0 h-screen bg-emerald-950/30 backdrop-blur-sm transition-opacity" onClick={onClose} aria-hidden="true" />
       <div className="relative m-4 sm:m-6 bg-white rounded-3xl shadow-3xl w-full max-w-2xl overflow-hidden transform transition-all flex flex-col border border-gray-100 max-h-[90vh]">
         
-        {/* Cabeçalho */}
         <div className="bg-emerald-50/50 px-8 py-5 flex justify-between items-center border-b border-emerald-100/50">
           <div className="flex items-center gap-4">
             <div className="bg-emerald-600 p-3 rounded-xl text-white shadow-md">
-              {/* Ícone de Ferramenta (representando melhoria prática/MU) */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.492-3.053c.217-.266.358-.595.4-.945l.1-1.071c.045-.487.48-.838.96-.838h.619c.48 0 .915-.351.96-.838l.1-1.071c.042-.35.183-.68.4-.945l2.492-3.053M11.42 15.17l-3.052 2.492c-.266.217-.595.358-.945.4l-1.071.1c-.487.045-.838.48-.838.96v.619c0 .48-.351.915-.838.96l-1.071.1c-.35.042-.68.183-.945.4l-3.052 2.492" />
               </svg>
@@ -41,7 +38,6 @@ const ModalMU = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Corpo do Conteúdo */}
         <div className="p-8 text-gray-700 space-y-8 overflow-y-auto max-h-[65vh]">
           <p className="text-lg leading-relaxed font-medium">
             Um <strong className="text-gray-950 font-semibold">Modelo de Utilidade</strong> (frequentemente chamado de "pequena patente") é destinado a objetos de uso prático que apresentem uma nova forma ou disposição, resultando em uma melhoria funcional no seu uso ou fabricação.
@@ -96,7 +92,6 @@ const ModalMU = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Rodapé */}
         <div className="bg-gray-50/50 px-8 py-5 flex justify-end rounded-b-3xl border-t border-gray-100/50">
           <button 
             onClick={onClose} 

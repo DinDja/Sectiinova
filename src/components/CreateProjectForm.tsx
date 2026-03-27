@@ -4,7 +4,6 @@ import { X, Search, ChevronDown, CheckCircle, UploadCloud } from 'lucide-react';
 export default function CreateProjectModal({
   isOpen,
   onClose,
-  // Mantendo os mesmos props funcionais para integração
   viewingClub,
   viewingClubOrientadores = [],
   viewingClubCoorientadores = [],
@@ -12,29 +11,25 @@ export default function CreateProjectModal({
   handleCreateProject,
   onSuccess
 }) {
-  // Estado do formulário
   const [projectForm, setProjectForm] = useState({
     titulo: '',
     descricao: '',
-    area_tematica: '', // Campo opcional baseado na imagem
-    status: 'Em andamento', // Padrão
-    tipo: 'Projeto Científico', // Padrão
+    area_tematica: '', 
+    status: 'Em andamento', 
+    tipo: 'Projeto Científico', 
     coorientador_ids: [],
     investigadores_ids: [],
-    imagens: [] // Lista de URLs base64 para preview
+    imagens: [] 
   });
 
-  // Estados de feedback e UI
   const [projectMessage, setProjectMessage] = useState('');
   const [imageUploadMessage, setImageUploadMessage] = useState('');
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [descriptionLength, setDescriptionLength] = useState(0);
 
-  // Estados de busca (simulados para a UI)
   const [searchCoorientador, setSearchCoorientador] = useState('');
   const [searchInvestigador, setSearchInvestigador] = useState('');
 
-  // Mantendo a lógica de compressão de imagens original
   const compressImageFiles = async (files) => {
     const toDataUrl = (file) => new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -103,19 +98,16 @@ export default function CreateProjectModal({
     setProjectForm((prev) => ({ ...prev, imagens: compressedImages }));
   };
 
-  // Função para remover uma imagem específica
   const handleRemoveImage = (indexToRemove) => {
     setProjectForm(prev => ({
       ...prev,
       imagens: prev.imagens.filter((_, index) => index !== indexToRemove)
     }));
-    // Resetar o input para permitir re-upload do mesmo arquivo
     if (projectForm.imagens.length === 1) {
       setFileInputKey(Date.now());
     }
   }
 
-  // Atualizar contagem de caracteres na descrição
   const handleDescriptionChange = (e) => {
     const value = e.target.value;
     if (value.length <= 1000) {
@@ -124,7 +116,6 @@ export default function CreateProjectModal({
     }
   }
 
-  // Mantendo a lógica de seleção de membros original
   const toggleMemberSelection = (fieldName, id) => {
     setProjectForm((prev) => {
       const currentValues = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
@@ -154,7 +145,6 @@ export default function CreateProjectModal({
     try {
       await handleCreateProject(projectForm);
       setProjectMessage('Projeto criado com sucesso!');
-      // Limpar formulário
       setProjectForm({
         titulo: '',
         descricao: '',
@@ -171,7 +161,7 @@ export default function CreateProjectModal({
       if (typeof onSuccess === 'function') {
         onSuccess();
       }
-      onClose(); // Fechar o modal após sucesso
+      onClose(); 
     } catch (error) {
       console.error('Erro ao criar projeto:', error);
       setProjectMessage('Erro ao criar projeto. Verifique os dados e tente novamente.');
@@ -184,7 +174,6 @@ export default function CreateProjectModal({
     <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
         
-        {/* Header do Modal */}
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-[#0E0F0F] tracking-tight">Criar Novo Projeto</h2>
           <p className="text-base text-slate-500 mt-1">Preencha os detalhes para registrar seu projeto</p>
@@ -192,11 +181,9 @@ export default function CreateProjectModal({
 
         <form onSubmit={handleSubmitProject} className="space-y-6">
           
-          {/* 1. INFORMAÇÕES BÁSICAS */}
           <section className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">1. INFORMAÇÕES BÁSICAS</h3>
             <div className="grid grid-cols-2 gap-4">
-              {/* Título */}
               <div className="col-span-2 space-y-1">
                 <label className="text-sm font-medium text-slate-700">Título do Projeto</label>
                 <input
@@ -208,7 +195,6 @@ export default function CreateProjectModal({
                 />
               </div>
               
-              {/* Área Temática (Simplificado na imagem) */}
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700">Área Temática</label>
                 <input
@@ -219,7 +205,6 @@ export default function CreateProjectModal({
                 />
               </div>
 
-              {/* Tipo (Dropdown) */}
               <div className="space-y-1 relative">
                 <label className="text-sm font-medium text-slate-700">Tipo</label>
                 <select
@@ -229,12 +214,10 @@ export default function CreateProjectModal({
                 >
                   <option value="Projeto Científico">Projeto Científico</option>
                   <option value="Iniciação Tecnológica">Iniciação Tecnológica</option>
-                  {/* Adicionar mais opções */}
                 </select>
                 <ChevronDown className="absolute right-3 top-10 text-slate-400 w-4 h-4 pointer-events-none" />
               </div>
 
-              {/* Status (Dropdown - na mesma linha do Tipo) */}
               <div className="col-span-2 md:col-span-1 space-y-1 relative">
                 <label className="text-sm font-medium text-slate-700">Status</label>
                 <select
@@ -252,7 +235,6 @@ export default function CreateProjectModal({
             </div>
           </section>
 
-          {/* 2. DESCRIÇÃO */}
           <section className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">2. DESCRIÇÃO</h3>
             <div className="space-y-1 relative">
@@ -268,11 +250,9 @@ export default function CreateProjectModal({
             </div>
           </section>
 
-          {/* 3. MÍDIA */}
           <section className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">3. MÍDIA</h3>
             <div className="flex gap-4">
-              {/* Área de Upload (Inspirado na UI da nuvem) */}
               <div className="flex-1 relative group cursor-pointer border-2 border-dashed border-slate-200 rounded-xl hover:border-[#00B5B5]/50 transition bg-slate-50 p-6 text-center">
                 <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-[#00B5B5]/70 mx-auto transition" />
                 <p className="text-sm text-slate-500 font-medium mt-2">Arraste até 2 fotos ou clique para enviar</p>
@@ -286,7 +266,6 @@ export default function CreateProjectModal({
                 />
               </div>
 
-              {/* Área de Preview (Adaptando o preview original) */}
               {projectForm.imagens?.length > 0 && (
                 <div className="flex gap-2">
                   {projectForm.imagens.map((imgSrc, index) => (
@@ -296,7 +275,6 @@ export default function CreateProjectModal({
                         alt={`Preview imagem ${index + 1}`}
                         className="w-full h-full object-cover group-hover:opacity-80 transition"
                       />
-                      {/* Botão X para remover (Novo) */}
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(index)}
@@ -312,12 +290,10 @@ export default function CreateProjectModal({
             {imageUploadMessage && <p className="text-xs text-orange-600 mt-1">{imageUploadMessage}</p>}
           </section>
 
-          {/* 4. EQUIPE */}
           <section className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">4. EQUIPE</h3>
             <div className="grid md:grid-cols-2 gap-6">
               
-              {/* Professores */}
               <div className="space-y-2">
                 <div className="relative">
                   <input
@@ -332,7 +308,6 @@ export default function CreateProjectModal({
                 <div className="space-y-1 max-h-48 overflow-auto pr-1">
                   <h4 className="text-xs font-semibold text-slate-600 mb-1">PROFESSORES COORIENTADORES</h4>
                   
-                  {/* EXEMPLOS VISUAIS DA IMAGEM (Substituir pela lógica real) */}
                   <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
                      <input
                         type="checkbox"
@@ -354,16 +329,13 @@ export default function CreateProjectModal({
                      <span className="text-sm text-slate-800 font-medium">Carlos Lima</span>
                   </label>
 
-                  {/* LÓGICA ORIGINAL (Integrada) */}
                   {[...new Map(
                     [...viewingClubCoorientadores, ...viewingClubOrientadores]
                       .map((person) => [String(person.id), person])
                   ).values()].map((person) => {
-                    // Filtrar exemplos visuais acima
                     if (['ana_souza_id', 'carlos_lima_id'].includes(String(person.id))) return null;
 
                     const checked = projectForm.coorientador_ids.includes(String(person.id));
-                    // Gerar iniciais para o avatar
                     const initials = person.nome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
                     return (
@@ -374,7 +346,6 @@ export default function CreateProjectModal({
                           onChange={() => toggleMemberSelection('coorientador_ids', person.id)}
                           className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
                         />
-                        {/* Avatar dinâmico */}
                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
                         <span className="text-sm text-slate-800 font-medium">{person.nome}</span>
                       </label>
@@ -383,7 +354,6 @@ export default function CreateProjectModal({
                 </div>
               </div>
 
-              {/* Alunos */}
               <div className="space-y-2">
                  <div className="relative">
                   <input
@@ -398,7 +368,6 @@ export default function CreateProjectModal({
                  <div className="space-y-1 max-h-48 overflow-auto pr-1">
                   <h4 className="text-xs font-semibold text-slate-600 mb-1">ALUNOS INVESTIGADORES</h4>
                   
-                  {/* EXEMPLOS VISUAIS DA IMAGEM (Substituir pela lógica real) */}
                    <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
                      <input
                         type="checkbox"
@@ -420,9 +389,7 @@ export default function CreateProjectModal({
                      <span className="text-sm text-slate-800 font-medium">Marina Dias</span>
                   </label>
 
-                  {/* LÓGICA ORIGINAL (Integrada) */}
                   {viewingClubInvestigadores.map((person) => {
-                     // Filtrar exemplos visuais acima
                      if (['bruno_silva_id', 'marina_dias_id'].includes(String(person.id))) return null;
 
                     const checked = projectForm.investigadores_ids.includes(String(person.id));
@@ -447,7 +414,6 @@ export default function CreateProjectModal({
             </div>
           </section>
 
-          {/* Rodapé e Botões de Ação */}
           <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
              <button
               type="submit"
@@ -468,7 +434,6 @@ export default function CreateProjectModal({
           {projectMessage && <p className="text-sm mt-3 text-slate-600 font-medium text-center">{projectMessage}</p>}
         </form>
 
-        {/* Botão X para fechar o modal (Novo) */}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition"

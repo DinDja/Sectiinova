@@ -92,7 +92,10 @@ export default function App() {
         newEntry,
         setNewEntry,
         handleAddEntry,
-        savingEntry
+        savingEntry,
+        sidebarOrder,
+        setSidebarOrder,
+        saveSidebarOrder
     } = useAppController();
 
     if (authLoading) {
@@ -146,6 +149,9 @@ export default function App() {
             onIncreaseFont={increaseFont}
             isHighContrast={isHighContrast}
             onToggleContrast={toggleContrast}
+            sidebarOrder={sidebarOrder}
+            setSidebarOrder={setSidebarOrder}
+            saveSidebarOrder={saveSidebarOrder}
         >
             <div className="mx-auto">
                 {loading && (

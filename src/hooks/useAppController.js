@@ -90,6 +90,7 @@ export default function useAppController() {
         nextSteps: '',
         tags: ''
     });
+    const [sidebarOrder, setSidebarOrder] = useState(['Projetos', 'diario', 'inpi', 'forum', 'clube']);
 
     const isRegisteringRef = useRef(false);
     const projectsCursorRef = useRef(null);
@@ -472,6 +473,19 @@ export default function useAppController() {
         void submitDiaryEntry(event);
     };
 
+    const saveSidebarOrder = async (newOrder) => {
+        if (!authUser) return;
+        
+        try {
+            await updateDoc(doc(db, 'usuarios', authUser.uid), {
+                sidebarOrder: newOrder
+            });
+            setSidebarOrder(newOrder);
+        } catch (error) {
+            console.error('Erro ao salvar ordem do sidebar:', error);
+        }
+    };
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (isRegisteringRef.current) {
@@ -484,7 +498,17 @@ export default function useAppController() {
                     const snap = await getDoc(doc(db, 'usuarios', user.uid));
                     if (snap.exists()) {
                         setAuthUser(user);
-                        setLoggedUser({ id: snap.id, ...snap.data() });
+                        const userData = snap.data();
+                        setLoggedUser({ id: snap.id, ...userData });
+                        
+                        // Carregar ordem do sidebar se existir
+                        if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
+                            // Garantir que 'clube' está incluído (compatibilidade com versões antigas)
+                            const updatedOrder = userData.sidebarOrder.includes('clube') 
+                                ? userData.sidebarOrder 
+                                : [...userData.sidebarOrder, 'clube'];
+                            setSidebarOrder(updatedOrder);
+                        }
                     } else {
                         setAuthUser(null);
                         setLoggedUser(null);
@@ -902,7 +926,10 @@ export default function useAppController() {
         setNewEntry,
         handleAddEntry,
         savingEntry,
-        isMentoriaPerfil
+        isMentoriaPerfil,
+        sidebarOrder,
+        setSidebarOrder,
+        saveSidebarOrder
     };
 }
 

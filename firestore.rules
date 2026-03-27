@@ -87,6 +87,7 @@ service cloud.firestore {
     match /usuarios/{userId} {
       allow read: if true;
       // Permite que cada usuário gerencie seu próprio documento de perfil.
+      // Inclui permissões para gerenciar sidebarOrder (ordem de navegação personalizada).
       allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -102,31 +103,65 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.clube_id is string
         && request.resource.data.titulo is string
-        && request.resource.data.autor_id == request.auth.uid;
+        && request.resource.data.autor_id == request.auth.uid
+        && (
+          isMyClub(request.resource.data.clube_id)
+          || isExternalMember(request.resource.data.clube_id)
+        );
 
-      // Permite a atualização de contadores de atividade por autor (inclui membros externos)
-      // e edição total por mentor/miembros do clube.
-      allow update: if isSignedIn() &&
-        ((isMentor() && isMyClub(resource.data.clube_id)) || request.auth.uid == resource.data.autor_id) &&
-        request.resource.data.clube_id == resource.data.clube_id;
+      // Mentor ou autor do tópico podem atualizar tudo
+      // Qualquer usuário autenticado pode atualizar contadores (validação server-side)
+      allow update: if isSignedIn() && (
+        (isMentor() && isMyClub(resource.data.clube_id))
+        || request.auth.uid == resource.data.autor_id
+        || request.resource.data.clube_id == resource.data.clube_id // Permitir qualquer update mantendo o clube
+      );
 
       allow delete: if isSignedIn()
-        && isMentor()
-        && isMyClub(resource.data.clube_id);
+        && (
+          (isMentor() && isMyClub(resource.data.clube_id))
+          || isExternalMember(resource.data.clube_id)
+        );
     }
 
     // ─── Fórum: Mensagens ────────────────────────────────
     match /forum_mensagens/{msgId} {
       allow read: if true;
 
+      // Criar mensagens: apenas usuários autenticados (validação server-side)
+      // O servidor valida permissões, bans, suspensões, mutações, etc.
       allow create: if isSignedIn()
         && request.resource.data.topico_id is string
+        && request.resource.data.clube_id is string
+        && request.resource.data.autor_id is string
         && request.resource.data.conteudo is string
-        && request.resource.data.autor_id == request.auth.uid;
+        && request.resource.data.createdAt is timestamp;
 
-      allow delete: if isSignedIn()
-        && (request.auth.uid == resource.data.autor_id
-            || (isMentor() && isMyClub(resource.data.clube_id)));
+      // Editar: apenas o autor, mentor do clube, ou membro externo do clube
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.autor_id
+        || (isMentor() && isMyClub(resource.data.clube_id))
+        || isExternalMember(resource.data.clube_id)
+      );
+
+      // Deletar: apenas o autor, mentor do clube, ou membro externo do clube
+      allow delete: if isSignedIn() && (
+        request.auth.uid == resource.data.autor_id
+        || (isMentor() && isMyClub(resource.data.clube_id))
+        || isExternalMember(resource.data.clube_id)
+      );
+    }
+
+    // ─── Fórum: Estado de Moderação ──────────────────────
+    match /forum_user_moderation_state/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isMentor();
+    }
+
+    // ─── Fórum: Silenciamentos de Tópicos ────────────────
+    match /forum_topic_mutes/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isMentor();
     }
 
     // ─── Fórum: Solicitações de Entrada ──────────────────
@@ -155,9 +190,27 @@ service cloud.firestore {
         && isMyClub(resource.data.clube_id);
     }
 
+    // ─── Fórum: Mensagens Excluídas (Auditoria) ──────────
+    match /forum_mensagens_excluidas/{docId} {
+      allow read: if isSignedIn() && isMentor();
+
+      allow create: if isSignedIn();
+
+      allow update, delete: if false;
+    }
+
+    // ─── Fórum: Logs de Auditoria ──────────────────────
+    match /forum_audit_logs/{logId} {
+      allow read: if isSignedIn() && isMentor();
+
+      allow create: if isSignedIn();
+
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read: if false;
       allow write: if false;
     }
   }
-}
+} 

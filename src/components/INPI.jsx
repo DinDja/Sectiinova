@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -35,7 +34,6 @@ export default function INPI({ clubProjects = [] }) {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-            {/* Header */}
             <header className="bg-emerald-50 text-white shadow-md">
                 <div className="mx-auto px-4 py-6">
                     <div className="flex items-center gap-3">
@@ -44,7 +42,6 @@ export default function INPI({ clubProjects = [] }) {
                 </div>
             </header>
 
-            {/* Navigation */}
             <nav className="bg-white border-b border-slate-200 sticky top-0 z-10 flex justify-center">
                 <div className=" mx-auto px-4 flex overflow-x-auto">
                     <button
@@ -80,7 +77,6 @@ export default function INPI({ clubProjects = [] }) {
 
             <ModalPesquisaAnterioridade isOpen={isPesquisaModalOpen} onClose={() => setIsPesquisaModalOpen(false)} />
 
-            {/* Main Content */}
             <main className=" mx-auto px-4 py-8">
                 <div className="grid lg:grid-cols-[380px_1fr] gap-8">
                     <aside className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 sticky top-20 self-start">
@@ -100,7 +96,6 @@ export default function INPI({ clubProjects = [] }) {
     );
 }
 
-// ========== TAB 1: GUIA COMPLETO ==========
 function GuiaINPI({ onOpenPesquisa }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalMUOpen, setIsModalMUOpen] = useState(false); 
@@ -147,7 +142,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                     Uma patente é um título de propriedade temporária concedido pelo Estado, que garante ao inventor o direito exclusivo de explorar sua invenção, impedindo terceiros de produzir, usar ou vender sem autorização. No Brasil, o Instituto Nacional da Propriedade Industrial (INPI) é o órgão responsável.
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 mt-6">
-                    {/* CARD CLICÁVEL PI */}
                     <div
                         onClick={() => setIsModalOpen(true)}
                         className="bg-blue-50 p-6 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all group"
@@ -159,7 +153,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                         <p className="text-blue-900/80 text-sm">Para produtos ou processos novos, com atividade inventiva. Proteção de 20 anos a partir do depósito. Clique para saber mais.</p>
                     </div>
 
-                    {/* CARD CLICÁVEL MU */}
                     <div 
                         onClick={() => setIsModalMUOpen(true)}
                         className="bg-emerald-50 p-6 rounded-lg border border-emerald-100 cursor-pointer hover:bg-emerald-100 hover:shadow-md transition-all group"
@@ -201,7 +194,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                             <h3 className="text-xl font-bold text-slate-800 mb-2">{step.title}</h3>
                             <p className="text-slate-600 leading-relaxed">{step.desc}</p>
                             
-                            {/* Botão Pesquisa Anterioridade */}
                             {idx === 0 && (
                                 <button
                                     onClick={onOpenPesquisa}
@@ -211,7 +203,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                                 </button>
                             )}
 
-                            {/* Botão Cadastro INPI */}
                             {idx === 1 && (
                                 <button
                                     onClick={() => setIsLoginModalOpen(true)}
@@ -225,7 +216,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                 ))}
             </div>
 
-            {/* Dicas de descontos e prazos */}
             <div className="grid md:grid-cols-2 gap-6 mt-8">
                 <div className="bg-white p-6 rounded-xl border border-slate-200">
                     <h3 className="flex items-center gap-2 font-bold text-slate-800 mb-3"><DollarSign className="w-5 h-5 text-emerald-600" /> Descontos (até 60%)</h3>
@@ -249,7 +239,6 @@ function GuiaINPI({ onOpenPesquisa }) {
                 </div>
             </div>
 
-            {/* RENDERIZAÇÃO DOS MODAIS */}
             <ModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             <ModalMU isOpen={isModalMUOpen} onClose={() => setIsModalMUOpen(false)} />
             <ModalLogin isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
@@ -257,10 +246,9 @@ function GuiaINPI({ onOpenPesquisa }) {
     );
 }
 
-// ========== TAB 2: GERADOR DE DOCUMENTOS ==========
 function GeradorDocumentos() {
     const [copiedText, setCopiedText] = useState(false);
-    const [activeTab, setActiveTab] = useState('relatorio'); // relatorio, reivindicacoes, desenhos, resumo
+    const [activeTab, setActiveTab] = useState('relatorio'); 
 
     const [formData, setFormData] = useState({
         titulo: '',
@@ -313,7 +301,6 @@ function GeradorDocumentos() {
         </div>
     );
 
-    // Geradores de Texto para cada Documento
     const generators = {
         relatorio: () => `${formData.titulo.toUpperCase() || '[TÍTULO DO SEU PEDIDO DE PATENTE]'}
 
@@ -377,9 +364,8 @@ const exportToDocx = async () => {
     const lines = textToExport.split('\n');
     const paragraphs = [];
     
-    let paragraphCounter = 1; // Contador para a numeração [0001]
+    let paragraphCounter = 1; 
 
-    // Lista de subtítulos que devem ficar em negrito e alinhados à esquerda
     const subtitulos = [
         "Campo da invenção",
         "Fundamentos da invenção",
@@ -391,10 +377,8 @@ const exportToDocx = async () => {
     for (let line of lines) {
         const trimmedLine = line.trim();
         
-        // Pula linhas totalmente em branco
         if (!trimmedLine) continue;
 
-        // 1. Verifica se é o Título Principal (Tudo em Maiúsculo) ou Cabeçalhos de Seção
         const isMainTitle = trimmedLine === (formData.titulo.toUpperCase() || '[TÍTULO DO SEU PEDIDO DE PATENTE]') 
                          || ["RESUMO", "REIVINDICAÇÕES", "DESENHOS"].includes(trimmedLine);
                          
@@ -402,12 +386,12 @@ const exportToDocx = async () => {
             paragraphs.push(
                 new Paragraph({
                     alignment: AlignmentType.CENTER,
-                    spacing: { after: 240 }, // Espaço após o título
+                    spacing: { after: 240 }, 
                     children: [
                         new TextRun({
                             text: trimmedLine,
                             font: "Arial",
-                            size: 24, // 24 = 12pt
+                            size: 24, 
                             bold: true,
                             color: "000000"
                         })
@@ -417,7 +401,6 @@ const exportToDocx = async () => {
             continue;
         }
 
-        // 2. Verifica se é um Subtítulo
         if (subtitulos.includes(trimmedLine) || trimmedLine.startsWith("Figura ")) {
             paragraphs.push(
                 new Paragraph({
@@ -427,7 +410,7 @@ const exportToDocx = async () => {
                         new TextRun({
                             text: trimmedLine,
                             font: "Arial",
-                            size: 24, // 12pt
+                            size: 24, 
                             bold: true,
                             color: "000000"
                         })
@@ -437,10 +420,8 @@ const exportToDocx = async () => {
             continue;
         }
 
-        // 3. Parágrafos Normais de Texto (Corpo do documento)
         let prefix = "";
         
-        // Adiciona a numeração [0001] apenas na aba de Relatório Descritivo
         if (activeTab === 'relatorio') {
             const paddedCounter = String(paragraphCounter).padStart(4, '0');
             prefix = `[${paddedCounter}] `;
@@ -449,16 +430,16 @@ const exportToDocx = async () => {
 
         paragraphs.push(
             new Paragraph({
-                alignment: AlignmentType.JUSTIFIED, // Texto justificado conforme a imagem
+                alignment: AlignmentType.JUSTIFIED, 
                 spacing: { 
-                    after: 120, // Espaçamento entre parágrafos
-                    line: 360   // Espaçamento entre linhas 1.5 (240 * 1.5)
+                    after: 120, 
+                    line: 360   
                 },
                 children: [
                     new TextRun({
                         text: prefix + trimmedLine,
                         font: "Arial",
-                        size: 24, // 12pt
+                        size: 24, 
                         color: "000000"
                     })
                 ]
@@ -466,16 +447,15 @@ const exportToDocx = async () => {
         );
     }
 
-    // Criação do Documento com as margens padrão do INPI (3cm superior/esquerda, 2cm inferior/direita)
     const doc = new Document({
         sections: [{
             properties: {
                 page: {
                     margin: {
-                        top: 1701,    // 3cm
-                        left: 1701,   // 3cm
-                        bottom: 1134, // 2cm
-                        right: 1134,  // 2cm
+                        top: 1701,    
+                        left: 1701,  
+                        bottom: 1134, 
+                        right: 1134,  
                     },
                 },
             },
@@ -497,7 +477,6 @@ const exportToDocx = async () => {
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-            {/* Navegação por Abas */}
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
                 {tabs.map(tab => (
                     <button
@@ -520,16 +499,13 @@ const exportToDocx = async () => {
                     onClick={() => {
                         const json = localStorage.getItem('inpi_agent_autodoc');
                         if (!json) {
-                            // Removido toast/alerta conforme solicitação
                             return;
                         }
                         try {
                             const data = JSON.parse(json);
                             setFormData((prev) => ({ ...prev, ...data }));
-                            // Removido toast/alerta conforme solicitação
                         } catch (err) {
                             console.error(err);
-                            // Removido toast/alerta conforme solicitação
                         }
                     }}
                     className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
@@ -539,7 +515,6 @@ const exportToDocx = async () => {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
-                {/* Formulário Dinâmico */}
                 <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200">
                     <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                         {tabs.find(t => t.id === activeTab)?.label}
@@ -621,7 +596,6 @@ const exportToDocx = async () => {
                     </form>
                 </div>
 
-                {/* Preview e Ações */}
                 <div className="flex flex-col h-full lg:h-auto">
                     <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                         <h2 className="text-xl font-bold text-slate-800">Pré-visualização</h2>
@@ -659,7 +633,6 @@ const exportToDocx = async () => {
     );
 }
 
-// ========== TAB 3: DOCUMENTOS OBRIGATÓRIOS ==========
 function DocumentosObrigatorios() {
     return (
         <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 animate-in fade-in duration-500">
@@ -726,7 +699,6 @@ function DocumentosObrigatorios() {
     );
 }
 
-// ========== CHECKLIST SIDEBAR ==========
 function ChecklistSidebar() {
     const [tasks, setTasks] = useState([
         { id: 1, text: 'Definir título e categoria (PI ou MU)', done: false },

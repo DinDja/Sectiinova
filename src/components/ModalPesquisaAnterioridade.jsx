@@ -14,7 +14,6 @@ import {
 export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
   const [gifFullscreen, setGifFullscreen] = useState(false);
 
-  // Previne o scroll da página de fundo quando o modal está aberto
   useEffect(() => {
     if (isOpen || gifFullscreen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
@@ -25,17 +24,14 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      {/* Overlay com desfoque */}
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Container do Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
         
-        {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
@@ -54,10 +50,8 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Corpo com Scroll */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6">
           
-          {/* Seção de Introdução + GIF */}
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="w-full md:w-1/2 space-y-4">
               <p className="text-slate-600 leading-relaxed text-lg">
@@ -101,7 +95,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
 
           <hr className="border-slate-100" />
 
-          {/* Dicas Estratégicas em Grid */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Lightbulb className="text-amber-500" size={20} />
@@ -109,7 +102,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Card 1 */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-emerald-300 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <Search size={18} className="text-blue-500" />
@@ -120,7 +112,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
                 </p>
               </div>
 
-              {/* Card 2 */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-emerald-300 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <ShieldAlert size={18} className="text-red-500" />
@@ -131,7 +122,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
                 </p>
               </div>
 
-              {/* Card 3 */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-emerald-300 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <Tags size={18} className="text-purple-500" />
@@ -142,7 +132,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
                 </p>
               </div>
 
-              {/* Card 4 */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-emerald-300 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText size={18} className="text-emerald-600" />
@@ -157,7 +146,6 @@ export default function ModalPesquisaAnterioridade({ isOpen, onClose }) {
 
         </div>
 
-        {/* Rodapé fixo */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end">
           <button 
             onClick={onClose} 
