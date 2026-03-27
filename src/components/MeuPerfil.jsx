@@ -206,7 +206,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     <div className="relative flex flex-col items-center -mt-16 mb-6">
                         <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-[#0B3B5F] to-[#2E86C1] rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div className="relative w-28 h-28 rounded-full border-4 border-white bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
+                            <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
                                 {avatarSrc ? (
                                     <img src={avatarSrc} alt={loggedUser.nome} className="w-full h-full object-cover" />
                                 ) : (
@@ -225,7 +225,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
 
                                 <label htmlFor="profileImageInput" className="absolute inset-0 bg-gradient-to-br from-[#0B3B5F]/70 to-[#2E86C1]/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
                                     {uploadingAvatar ? (
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <div className="w-5 h-5 rounded-full animate-spin"></div>
                                     ) : (
                                         <Camera className="w-6 h-6 text-white" />
                                     )}
@@ -359,7 +359,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                     />
                                 </div>
                             </div>
-                            <div className="pt-3 flex justify-end gap-3 border-t border-gray-100">
+                            <div className="pt-3 flex justify-end gap-3 ">
                                 <button 
                                     type="button" 
                                     onClick={handleCancelEdit}
@@ -384,7 +384,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
 
 function StatCard({ icon: Icon, label, value, color }) {
     return (
-        <div className="p-3 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-gray-100 shadow-sm text-center">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-slate-50 to-white  shadow-sm text-center">
             <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${color} flex items-center justify-center mx-auto mb-1`}>
                 <Icon className="w-4 h-4 text-white" />
             </div>
@@ -396,7 +396,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 
 function InfoCard({ icon: Icon, label, value, color, isLink = false }) {
     return (
-        <div className="p-3 rounded-xl bg-slate-50 border border-gray-100">
+        <div className="p-3 rounded-xl bg-slate-50 ">
             <div className="flex items-center gap-2">
                 <div className={`p-1.5 rounded-lg bg-white ${color}`}>
                     <Icon className="w-4 h-4" />
@@ -435,7 +435,7 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
                         rows={rows || 3}
                         placeholder={placeholder}
                         maxLength={maxLength}
-                        className={`block w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0B3B5F] focus:border-[#0B3B5F] outline-none transition-all resize-none ${
+                        className={`block w-full pl-9 pr-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#0B3B5F] focus:border-[#0B3B5F] outline-none transition-all resize-none ${
                             disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900'
                         }`}
                     />

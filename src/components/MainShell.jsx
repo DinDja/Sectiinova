@@ -82,6 +82,7 @@ export default function MainShell({
             handleLogout={handleLogout}
             onSaveProfile={onSaveProfile}
             currentView={currentView}
+            setCurrentView={setCurrentView}
           />
 
           <main

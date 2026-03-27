@@ -29,10 +29,22 @@ export default function ProjectCard({
         setIsProfileModalOpen(true);
     };
 
-    const orientador = team?.orientadores?.[0] || { 
-        nome: 'André Matos Sousa', 
+    const defaultOrientador = {
+        nome: 'Orientador não informado',
         papel: 'Orientador',
-        instituicao: 'Universidade Federal'
+        instituicao: ''
+    };
+
+    const firstAvailableMentor =
+        team?.orientadores?.[0] ||
+        team?.coorientadores?.[0] ||
+        team?.investigadores?.[0] ||
+        defaultOrientador;
+
+    const orientador = {
+        ...defaultOrientador,
+        ...firstAvailableMentor,
+        papel: firstAvailableMentor.papel || 'Orientador'
     };
     
     const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comércio Local";

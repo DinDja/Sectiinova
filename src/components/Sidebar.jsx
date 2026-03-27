@@ -19,6 +19,7 @@ export default function Sidebar({
 
   const allNavItems = [
     { id: 'Projetos', label: 'ColabTec', icon: Map, tooltip: 'Explorar projetos' },
+    { id: 'meusProjetos', label: 'Meus Projetos', icon: BookOpen, tooltip: 'Projetos que participo' },
     { id: 'diario', label: 'Diário de Bordo', icon: BookOpen, tooltip: 'Registros diários' },
     { id: 'trilha', label: 'Trilha Pedagógica', icon: Layers, tooltip: 'Planejar trilha CT&I' },
     { id: 'inpi', label: 'PatentesLab', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
@@ -27,7 +28,7 @@ export default function Sidebar({
   ];
 
   // Ordenar itens: usar tempOrder durante drag, senão usar sidebarOrder salva
-  const defaultOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+  const defaultOrder = ['Projetos', 'meusProjetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
   const displayOrder = tempOrder || (sidebarOrder && sidebarOrder.length > 0 ? sidebarOrder : defaultOrder);
   const navItems = displayOrder
     .map(id => allNavItems.find(item => item.id === id))
@@ -108,6 +109,7 @@ export default function Sidebar({
           
           const handleClick = () => {
             if (!isEditing) {
+              console.log('Sidebar click:', item.id);
               if (item.id === 'clube') {
                 handleMyClubClick();
               } else {

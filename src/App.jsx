@@ -11,6 +11,7 @@ import ClubBoard from './components/ClubBoard';
 import INPI from './components/INPI';
 import ForumBoard from './components/ForumBoard';
 import TrilhaPedagogica from './components/TrilhaPedagogica';
+import MeusProjetos from './components/MeusProjetos';
 import { STAGES, PERFIS_LOGIN } from './constants/appConstants';
 import useAppController from './hooks/useAppController';
 
@@ -217,6 +218,7 @@ export default function App() {
 
                 {currentView === 'inpi' && <INPI clubProjects={myClubProjects} />}
 
+                {console.log('App currentView:', currentView)}
                 {currentView === 'forum' && (
                     <ForumBoard
                         loggedUser={loggedUser}
@@ -228,6 +230,19 @@ export default function App() {
                 )}
 
                 {currentView === 'trilha' && <TrilhaPedagogica />}
+
+                {currentView === 'meusProjetos' && (
+                    <MeusProjetos
+                        feedProjects={feedProjects}
+                        clubProjects={myClubProjects}
+                        loggedUser={loggedUser}
+                        clubs={clubs}
+                        users={users}
+                        diaryEntries={diaryEntries}
+                        getProjectTeam={getProjectTeam}
+                        getInvestigatorDisplayNames={getInvestigatorDisplayNames}
+                    />
+                )}
             </div>
 
             <DiaryModal
