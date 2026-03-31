@@ -264,19 +264,19 @@ export default function AuthPage({
                 desc: "Crie e gerencie projetos científicos",
               },
               {
-                icon: Users,
+                icon: "/iconesAuth/logoAnimated.svg",
                 title: "ConectaClub",
                 desc: "Conecte-se com sua unidade escolar e seus orientadores",
               },
               {
-                icon: BookOpen,
+                icon: "/iconesAuth/patentes.svg",
                 title: "PatentesLab",
                 desc: "Gerador de documentos, agente de instrução e suporte para patentes",
               },
               {
-                icon: Globe,
-                title: "Rede Estadual",
-                desc: "Faça parte da rede de jovens cientistas da Bahia",
+                icon: "/iconesAuth/mapa.svg",
+                title: "RBCC",
+                desc: "Faça parte da rede Baiana de clubes de ciência.",
               },
             ].map((feature, idx) => (
               <a
@@ -287,14 +287,24 @@ export default function AuthPage({
                 {/* Borda tracejada de fundo */}
                 <span className="absolute inset-0 border-2 border-dashed border-slate-300"></span>
 
-                {/* Card principal com animação de translação */}
-                <div className="relative flex h-full w-full transform items-end border-2 border-slate-300 bg-white transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2">
-                  {/* Estado Padrão (some no hover) */}
-                  <div className="px-4 pb-4 transition-opacity group-hover:absolute group-hover:opacity-0 sm:px-6 sm:pb-4 lg:px-8 lg:pb-8 w-full">
+                {/* Card principal com ícone de fundo transparente */}
+                <div className="relative flex h-full w-full transform items-end border-2 border-slate-300 bg-white transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2 overflow-hidden">
+                  {(typeof feature.icon === "string" && feature.icon) ? (
+                    <div className="pointer-events-none absolute inset-0">
+                      <div
+                        className="absolute inset-0 bg-center bg-no-repeat bg-contain opacity-20"
+                        style={{ backgroundImage: `url(${feature.icon})` }}
+                      />
+                    </div>
+                  ) : (
                     <feature.icon
-                      className="size-10 sm:size-12 text-[#004B8D]"
+                      className="pointer-events-none absolute right-4 top-4 w-28 h-28 text-[#004B8D] opacity-20"
                       strokeWidth={1.5}
                     />
+                  )}
+
+                  {/* Estado Padrão (some no hover) */}
+                  <div className="relative z-10 px-4 pb-4 transition-opacity group-hover:absolute group-hover:opacity-0 sm:px-6 sm:pb-4 lg:px-8 lg:pb-8 w-full">
                     <h2 className="mt-4 text-lg font-bold text-gray-900 sm:text-xl">
                       {feature.title}
                     </h2>

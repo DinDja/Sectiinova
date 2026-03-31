@@ -1,0 +1,82 @@
+<svg width="300" height="300" viewBox="0 0 94 102" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .lampada-pisca {
+      transform-origin: 47px 51px;
+      animation: piscarLampada 1.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes piscarLampada {
+      0% {
+        opacity: 0.7;
+        filter: drop-shadow(0 0 2px white);
+      }
+      50% {
+        opacity: 1;
+        filter: drop-shadow(0 0 8px white) drop-shadow(0 0 15px white);
+      }
+      100% {
+        opacity: 0.7;
+        filter: drop-shadow(0 0 2px white);
+      }
+    }
+  </style>
+  
+    <path id="orbita-vermelha" d="M54.9711 64.8564C76.4943 52.43 90.3606 36.1527 85.9423 28.5C81.524 20.8473 60.4943 24.7172 38.9711 37.1436C17.448 49.57 3.58172 65.8473 8 73.5C12.4183 81.1527 33.448 77.2828 54.9711 64.8564Z" stroke="#BA0C2F" stroke-width="3"/>
+  <path id="orbita-azul" d="M38.9711 64.8564C60.4943 77.2828 81.524 81.1527 85.9423 73.5C90.3606 65.8473 76.4943 49.57 54.9711 37.1436C33.448 24.7172 12.4183 20.8473 8 28.5C3.58172 36.1527 17.448 52.43 38.9711 64.8564Z" stroke="#003882" stroke-width="3"/>
+  <path id="orbita-amarela" d="M30.9711 51C30.9711 75.8528 38.1346 96 46.9711 96C55.8077 96 62.9711 75.8528 62.9711 51C62.9711 26.1472 55.8077 6 46.9711 6C38.1346 6 30.9711 26.1472 30.9711 51Z" stroke="#FFC72C" stroke-width="3"/>
+
+    <g>
+        <path d="M46.9711 34.5L57.4711 40L61.4711 42.5L62.9711 55.5C60.6307 64 45.4711 68 45.4711 68C45.4711 68 31.9711 64.1034 31.9711 55L32.4711 42.5L36.9711 39.5517L46.9711 34.5Z" fill="#FFC72C"/>
+    
+        <g class="lampada-pisca">
+            <path d="M47.2211 52.4348C50.1206 52.4348 52.4711 50.3227 52.4711 47.7174C52.4711 45.112 50.1206 43 47.2211 43C44.3217 43 41.9711 45.112 41.9711 47.7174C41.9711 50.3227 44.3217 52.4348 47.2211 52.4348Z" fill="white"/>
+      <path d="M44.2211 51.7609H50.2211L49.4711 55.8043H44.9711L44.2211 51.7609Z" fill="white"/>
+      <path d="M48.7211 56.4783H45.7211V58.5H48.7211V56.4783Z" fill="white"/>
+
+      <g>
+        <path d="M47.22,41 L47.22,38" stroke="white" stroke-width="0.75" />
+        <path d="M47.22,55 L47.22,58" stroke="white" stroke-width="0.75" />
+        <path d="M40,47.71 L37,47.71" stroke="white" stroke-width="0.75" />
+        <path d="M54,47.71 L57,47.71" stroke="white" stroke-width="0.75" />
+        <path d="M42.5,43 L40.5,41" stroke="white" stroke-width="0.75" />
+        <path d="M52,43 L54,41" stroke="white" stroke-width="0.75" />
+        <path d="M42.5,52 L40.5,54" stroke="white" stroke-width="0.75" />
+        <path d="M52,52 L54,54" stroke="white" stroke-width="0.75" />
+      </g>
+    </g>
+  </g>
+
+    <circle r="6" fill="#BA0C2F">
+    <animateMotion dur="4s" repeatCount="indefinite">
+      <mpath href="#orbita-vermelha"/>
+    </animateMotion>
+  </circle>
+  <circle r="6" fill="#BA0C2F">
+    <animateMotion dur="4s" begin="2s" repeatCount="indefinite">
+      <mpath href="#orbita-vermelha"/>
+    </animateMotion>
+  </circle>
+
+    <circle r="6" fill="#003882">
+    <animateMotion dur="4.5s" repeatCount="indefinite">
+      <mpath href="#orbita-azul"/>
+    </animateMotion>
+  </circle>
+  <circle r="6" fill="#003882">
+    <animateMotion dur="4.5s" begin="2.25s" repeatCount="indefinite">
+      <mpath href="#orbita-azul"/>
+    </animateMotion>
+  </circle>
+
+    <circle r="6" fill="#FFC72C">
+    <animateMotion dur="3.5s" repeatCount="indefinite">
+      <mpath href="#orbita-amarela"/>
+    </animateMotion>
+  </circle>
+  <circle r="6" fill="#FFC72C">
+    <animateMotion dur="3.5s" begin="1.75s" repeatCount="indefinite">
+      <mpath href="#orbita-amarela"/>
+    </animateMotion>
+  </circle>
+
+</svg>

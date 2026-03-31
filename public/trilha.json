@@ -12,6 +12,28 @@
               "a_investigação_científica": "Os alunos formulam prompts idênticos mudando apenas variáveis sociais (ex: \"Descreva um cientista de sucesso\" vs \"Descreva uma pessoa de sucesso na periferia\"). Eles coletam os dados textuais e visuais gerados.",
               "o_componente_tecnológico": "Uso de ferramentas de Processamento de Linguagem Natural (NLP) simples ou análise de nuvem de palavras para identificar padrões de exclusão ou estereótipos.",
               "inovação": "Desenvolvimento de um \"Protocolo de Prompt Ético\" para a escola, ensinando outros alunos a identificar e mitigar vieses em ferramentas digitais."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Infográfico comparativo: prompts idênticos com resultados diferentes gerados por IA",
+                  "fonte_sugerida": "Criado pelos alunos"
+                },
+                {
+                  "descricao": "Nuvem de palavras mostrando estereótipos recorrentes em respostas de chatbots",
+                  "fonte_sugerida": "Análise com ferramenta Voyant Tools"
+                }
+              ],
+              "referencias": [
+                "NOBLE, Safiya Umoja. *Algorithms of Oppression*. NYU Press, 2018.",
+                "BUOLAMWINI, Joy; GEBRU, Timnit. \"Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification\". *Proceedings of Machine Learning Research*, 2018.",
+                "BRASIL. *Guia para uma IA Ética*. Ministério da Ciência, Tecnologia e Inovações, 2023."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Coded Bias* (Netflix, 2020) sobre vieses em algoritmos de reconhecimento facial.",
+                "ferramenta": "Voyant Tools (voyant-tools.org) para análise textual.",
+                "leitura": "Artigo \"ChatGPT e os vieses ocultos na linguagem\" – disponível em portal SciELO."
+              }
             }
           },
           {
@@ -21,6 +43,28 @@
               "a_investigação_científica": "Coleta de dados brutos de fontes oficiais (ex: índices de vacinação locais, qualidade do ar na cidade ou consumo de energia da escola).",
               "o_componente_tecnológico": "Utilização de softwares de visualização de dados (como Canva, Tableau Public ou ferramentas de código aberto como o Orange Data Mining).",
               "inovação": "Criação de um \"Painel de Ciência Cidadã\" físico ou digital no pátio da escola, onde a linguagem visual é usada para traduzir números em ações sociais diretas."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Painel digital interativo com indicadores de saúde escolar",
+                  "fonte_sugerida": "Tableau Public"
+                },
+                {
+                  "descricao": "Infográfico impresso explicando a taxa de vacinação no bairro",
+                  "fonte_sugerida": "Canva"
+                }
+              ],
+              "referencias": [
+                "TUFTE, Edward. *The Visual Display of Quantitative Information*. Graphics Press, 2001.",
+                "CAIRO, Alberto. *Infografia Digital: Jornalismo, Design e Visualização de Dados*. Editora Autêntica, 2019.",
+                "DATASUS. Portal de dados abertos do SUS. Disponível em: datasus.saude.gov.br"
+              ],
+              "conteudo_adicional": {
+                "tutorial": "Curso gratuito 'Visualização de Dados com Tableau Public' no YouTube (Data Science Academy).",
+                "ferramenta": "Orange Data Mining – software de código aberto para análise visual.",
+                "leitura": "Capítulo 'Data Literacy' do livro *Storytelling with Data* de Cole Nussbaumer Knaflic."
+              }
             }
           },
           {
@@ -30,6 +74,28 @@
               "a_investigação_científica": "Estudo de como o cérebro processa diferentes formas de linguagem (o que acontece quando transformamos som em vibração?).",
               "o_componente_tecnológico": "Uso de Arduino ou Micro:bit para construir protótipos de tecnologias assistivas. Por exemplo, um sensor de distância que traduz proximidade em \"pulsos de linguagem tátil\" (vibrações) para auxiliar a locomoção.",
               "inovação": "Prototipagem de um dispositivo de baixo custo que ajude na interpretação de sentidos para alunos com deficiência visual ou auditiva dentro do laboratório de ciências. Resumo da Abordagem CT&I para o Clube de Ciência Proposta\tCiência (O que investiga?)\tTecnologia (O que usa?)\tInovação (O que entrega?) Auditoria de IA\tVieses cognitivos e sociais na linguagem.\tIA Generativa e NLP.\tGuia de Ética Digital para a comunidade. Infovis Social\tMétodos estatísticos e semiótica visual.\tFerramentas de Data Viz.\tDemocratização do acesso à informação. Hacking Tátil\tFisiologia da percepção e comunicação.\tRobótica e Sensores.\tDispositivo assistivo de baixo custo."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Esquema de montagem de uma luva vibratória com Arduino",
+                  "fonte_sugerida": "Fritzing (software de diagramação)"
+                },
+                {
+                  "descricao": "Foto do protótipo sendo testado por estudante com deficiência visual",
+                  "fonte_sugerida": "Acervo do Clube"
+                }
+              ],
+              "referencias": [
+                "SANTAELLA, Lucia. *Comunicação e Percepção: Tecnologias da Inteligência*. Cengage Learning, 2017.",
+                "PEREIRA, A. et al. \"Tecnologias Assistivas de Baixo Custo: Revisão Sistemática\". *Revista Brasileira de Informática na Educação*, v. 28, 2020.",
+                "Projeto Arduino – arduino.cc"
+              ],
+              "conteudo_adicional": {
+                "video": "Série 'Tecnologia Assistiva com Arduino' – Canal 'FabLab Livre' no YouTube.",
+                "site": "Portal da Associação Brasileira de Tecnologia Assistiva (ABRA).",
+                "leitura": "Artigo 'Neurociência e Design Inclusivo' na revista *Pesquisa FAPESP*, ed. 320."
+              }
             }
           }
         ]
@@ -44,6 +110,28 @@
               "a_investigação_científica": "Pesquisa de campo e documental sobre manifestações artísticas locais (ex: arquitetura de terreiros, grafismos indígenas ou estéticas de periferia). Como esses objetos resistiram ao tempo?",
               "o_componente_tecnológico": "Uso de Fotogrametria (transformar fotos de celular em modelos 3D) para criar um acervo digital de artefatos ou monumentos culturais.",
               "inovação": "Criação de um Museu Virtual em Realidade Aumentada (AR). O senso estético é exercitado na curadoria das texturas, luzes e narrativas que acompanham os objetos digitais, promovendo a fruição dessas identidades."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Modelo 3D de um grafismo indígena reconstruído por fotogrametria",
+                  "fonte_sugerida": "Captura com celular + Meshroom"
+                },
+                {
+                  "descricao": "QR code que projeta em realidade aumentada um artefato histórico no pátio da escola",
+                  "fonte_sugerida": "Adobe Aero"
+                }
+              ],
+              "referencias": [
+                "KRENAK, Ailton. *Ideias para Adiar o Fim do Mundo*. Companhia das Letras, 2019.",
+                "MUNANGA, Kabengele. *Arte Afro-Brasileira: Uma Introdução*. C/Arte, 2019.",
+                "Projeto 'Museus em Realidade Aumentada' – Instituto TIM."
+              ],
+              "conteudo_adicional": {
+                "tutorial": "Como fazer fotogrametria com Meshroom – vídeo da Digital Life Collective.",
+                "ferramenta": "Blender para edição de modelos 3D; Sketchfab para hospedar objetos.",
+                "leitura": "Caderno 'Patrimônio Cultural Imaterial' do IPHAN (disponível online)."
+              }
             }
           },
           {
@@ -53,6 +141,28 @@
               "a_investigação_científica": "Análise física dos timbres e ritmos. Por que certos padrões de percussão geram respostas emocionais específicas? Como a matemática está presente na polirritmia africana?",
               "o_componente_tecnológico": "Uso de softwares de edição e análise de áudio (como Audacity ou linguagens de programação como Python) para mapear a \"impressão digital\" sonora dessas manifestações.",
               "inovação": "Produção de Arte Generativa Visual baseada nos sons. Os alunos criam códigos que transformam o som do tambor em padrões visuais dinâmicos, unindo a performance corporal à tecnologia digital."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Espectrograma do ritmo de um tambor de congada",
+                  "fonte_sugerida": "Gerado com Sonic Visualiser"
+                },
+                {
+                  "descricao": "Projeção de visualização generativa durante apresentação musical na escola",
+                  "fonte_sugerida": "Processing + biblioteca Minim"
+                }
+              ],
+              "referencias": [
+                "SCHAFER, R. Murray. *O Ouvido Pensante*. Editora Unesp, 2011.",
+                "TIMM, Cláudia. *Música e Tecnologia: Interfaces*. Ed. Sulina, 2018.",
+                "Artigo 'Polirritmia Africana e Matemática' – Revista *Música Hodie*, v. 20."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'O Algoritmo do Samba' – Canal do Museu do Amanhã.",
+                "software": "Sonic Visualiser (análise de áudio); Processing (arte generativa).",
+                "leitura": "Livro *A Música da Natureza* de David Rothenberg."
+              }
             }
           },
           {
@@ -62,6 +172,28 @@
               "a_investigação_científica": "Estudo químico dos pigmentos naturais (urucum, jenipapo, anil). Investigação sobre a durabilidade, oxidação e fixação desses elementos químicos em diferentes superfícies.",
               "o_componente_tecnológico": "Desenvolvimento de métodos de extração mais eficientes ou sustentáveis que respeitem o saber tradicional sem a necessidade de químicos sintéticos poluentes.",
               "inovação": "Criação de uma \"Coleção de Ciência e Identidade\" — tecidos ou objetos artísticos que contam a história de um grupo marginalizado através das cores, unindo o senso estético à biotecnologia."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Experimento de extração de corante do urucum em laboratório",
+                  "fonte_sugerida": "Foto de bancada com reagentes"
+                },
+                {
+                  "descricao": "Peça de vestuário tingida com anil e desenhos inspirados em grafismos quilombolas",
+                  "fonte_sugerida": "Acervo do projeto"
+                }
+              ],
+              "referencias": [
+                "MAZZA, Paulo. *Arte e Tecnologia: Estéticas da Biodiversidade*. Ed. SENAC, 2018.",
+                "CORRÊA, A. D. et al. \"Corantes Naturais: Da Extração à Aplicação\". *Química Nova*, v. 38, 2015.",
+                "Caderno 'Saberes Tradicionais e Propriedade Intelectual' – INPI."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Tecendo o Futuro: Moda Ancestral* (Canal Futura).",
+                "tutorial": "Como fazer tingimento com anil – vídeo da Casa da Ciência (UFRJ).",
+                "leitura": "Artigo 'Etnobotânica e Cosmetologia' na revista *Ciência Hoje*."
+              }
             }
           }
         ]
@@ -75,6 +207,28 @@
               "foco": "Linguagem Digital e Multimodal / Intervenção Social. Este projeto utiliza a Ciência Cidadã para monitorar problemas ambientais que afetam desproporcionalmente grupos vulneráveis (ex: poluição sonora ou do ar em bairros periféricos).",
               "a_investigação_científica": "Os alunos constroem sensores de baixo custo (usando IoT/Arduino) para medir a qualidade do ar, ruído ou pureza da água em pontos estratégicos da comunidade. O componente Tecnológico: Os dados brutos são \"traduzidos\" para uma linguagem multimodal acessível (mapas de calor e infográficos) e publicados em um site ou jornal comunitário.",
               "inovação": "O Clube organiza uma \"Audiência Pública Digital\", usando os dados como evidência científica para dialogar com o poder público, promovendo a justiça social através de provas técnicas."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Mapa de calor da poluição sonora no bairro, sobreposto a regiões de escolas e hospitais",
+                  "fonte_sugerida": "QGIS + dados dos sensores"
+                },
+                {
+                  "descricao": "Fotos da montagem dos sensores com Arduino pelos alunos",
+                  "fonte_sugerida": "Registro fotográfico do clube"
+                }
+              ],
+              "referencias": [
+                "JACOBI, Pedro et al. *Ciência Cidadã e Políticas Públicas*. IEE/USP, 2021.",
+                "IRVINE, R. et al. \"Low-cost air quality sensors: A review\". *Sensors*, 2021.",
+                "Manual 'Arduino para Monitoramento Ambiental' – Fábrica de Inovações."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Como construir um medidor de ruído com Arduino' – Canal Mundo Maker.",
+                "ferramenta": "Arduino IDE, plataforma Ubidots para IoT.",
+                "leitura": "Guia 'Ciência Cidadã na Escola' – Instituto Alana."
+              }
             }
           },
           {
@@ -84,6 +238,28 @@
               "a_investigação_científica": "Testar algoritmos de reconhecimento de voz com diferentes sotaques e variações linguísticas do Brasil (interculturalidade). Mapear onde a IA \"silencia\" ou \"erra\" por falta de diversidade nos dados de treinamento.",
               "o_componente_tecnológico": "Uso de ferramentas de Machine Learning simples para treinar um modelo de \"IA Comunitária\" que reconheça e valorize a linguagem local.",
               "inovação": "Criação de um \"Manifesto por uma Algoritmia Ética\", propondo diretrizes tecnológicas que respeitem a diversidade linguística como um direito humano digital."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Comparação de legendas automáticas: uma versão com erros por sotaque nordestino, outra corrigida",
+                  "fonte_sugerida": "Capturas de tela do YouTube"
+                },
+                {
+                  "descricao": "Gráfico de acurácia de reconhecimento de fala por região do Brasil",
+                  "fonte_sugerida": "Dados coletados pelos alunos"
+                }
+              ],
+              "referencias": [
+                "GRIES, Stefan Th. *Quantitative Corpus Linguistics with R*. Routledge, 2017.",
+                "ROSA, M. C. et al. \"Linguagem e Tecnologias: Desafios da Diversidade\". *Revista Calidoscópio*, v. 19, 2021.",
+                "Declaração de Montreal para uma IA Responsável (2018)."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Algoritmos e Racismo' – Dra. Nina da Hora no TEDx.",
+                "ferramenta": "Google Teachable Machine para treinar modelos simples.",
+                "leitura": "Capítulo 'Language and Power' do livro *Critical Digital Studies* de A. Feenberg."
+              }
             }
           },
           {
@@ -93,6 +269,28 @@
               "a_investigação_científica": "Estudo da ergonomia e da experiência do usuário (UX). Como a tecnologia pode mediar a linguagem corporal (LIBRAS) para quem não a conhece, ou transformar o olhar em cliques de computador?",
               "o_componente_tecnológico": "Desenvolvimento de protótipos de interfaces vestíveis (wearables) ou softwares de comunicação alternativa e aumentativa (CAA) de código aberto.",
               "inovação": "Implementação de um \"Terminal de Sugestões Acessíveis\" na escola, onde qualquer aluno, independentemente de suas limitações físicas ou sensoriais, possa exercer sua autonomia e voz política."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Design do terminal acessível com botões físicos e leitor de QR code",
+                  "fonte_sugerida": "Maquete 3D em SketchUp"
+                },
+                {
+                  "descricao": "Aluno utilizando um dispositivo de rastreamento ocular (eye tracker) para dar opinião em votação",
+                  "fonte_sugerida": "Foto do protótipo"
+                }
+              ],
+              "referencias": [
+                "NICOLAU, H. et al. \"Wearable Assistive Technology: A Review\". *IEEE Access*, 2020.",
+                "CONSELHO NACIONAL DOS DIREITOS DA PESSOA COM DEFICIÊNCIA. *Guia de Tecnologia Assistiva*. 2022.",
+                "Manual 'Comunicação Aumentativa e Alternativa' – Portal da Educação Inclusiva (MEC)."
+              ],
+              "conteudo_adicional": {
+                "video": "Projeto 'EyeWriter' – documentário sobre dispositivo de baixo custo para rastreamento ocular.",
+                "ferramenta": "Arduino + módulo de câmera; OpenCV para detecção de olhar.",
+                "leitura": "Artigo 'Design Universal na Escola' – Revista *Arquitetura & Educação*, v. 7."
+              }
             }
           }
         ]
@@ -107,6 +305,28 @@
               "a_investigação_científica": "Estudo dos vetores de força, centros de massa e ângulos articulares durante práticas corporais específicas. Como a física explica a eficiência de um movimento cultural?",
               "o_componente_tecnológico": "Uso de softwares de código aberto (como o Kinovea ou bibliotecas de Python como MediaPipe) para rastrear pontos articulares em vídeos gravados pelos alunos.",
               "inovação": "Criação de um \"Arquivo Digital de Gestos Culturais\". Os alunos transformam movimentos tradicionais em modelos 3D ou avatares, preservando a identidade cultural através da tecnologia de ponta."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Esqueleto digital sobreposto a vídeo de um gingado de capoeira, mostrando ângulos articulares",
+                  "fonte_sugerida": "Captura com MediaPipe + Python"
+                },
+                {
+                  "descricao": "Avatar 3D dançando passinho do Rio, gerado a partir de dados de MoCap",
+                  "fonte_sugerida": "Blender + arquivos BVH"
+                }
+              ],
+              "referencias": [
+                "LATASH, Mark. *Fundamentals of Biomechanics*. Springer, 2012.",
+                "SANTOS, D. S. et al. \"Análise Biomecânica da Capoeira\". *Revista Brasileira de Ciências do Esporte*, 2019.",
+                "MediaPipe – Google AI (google.github.io/mediapipe)."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Motion Capture com Webcam e Python' – Canal 'Programação Dinâmica'.",
+                "ferramenta": "Kinovea (software gratuito de análise de movimento); Blender para animação.",
+                "leitura": "Livro *Corpo e Tecnologia* de Lucia Santaella."
+              }
             }
           },
           {
@@ -116,6 +336,28 @@
               "a_investigação_científica": "Estudo de como o corpo percebe o ritmo e o espaço. Podemos substituir um sentido pelo outro? (Ex: transformar som em vibração tátil para que um aluno surdo sinta o ritmo da música).",
               "o_componente_tecnológico": "Construção de wearables (dispositivos vestíveis) com Arduino. Por exemplo: uma pulseira que vibra em frequências diferentes para indicar a proximidade de obstáculos ou para marcar o tempo de uma coreografia.",
               "inovação": "Prototipagem de equipamentos esportivos adaptados e sustentáveis que permitam a convivência democrática e a participação de todos nas práticas corporais da escola."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Protótipo de pulseira vibratória com motor e módulo Bluetooth",
+                  "fonte_sugerida": "Fritzing + foto real"
+                },
+                {
+                  "descricao": "Aluno surdo utilizando a pulseira durante aula de dança, sincronizado com o ritmo da música",
+                  "fonte_sugerida": "Registro do clube"
+                }
+              ],
+              "referencias": [
+                "BONSI, C. et al. \"Wearable Haptic Devices for Deaf and Hard of Hearing\". *IEEE Haptics Symposium*, 2020.",
+                "MANZINI, Ezio. *Design para a Inovação Social e Sustentabilidade*. Ed. UFMG, 2015.",
+                "Projeto 'Pulseira Tátil para Dança' – Laboratório de Acessibilidade da Unicamp."
+              ],
+              "conteudo_adicional": {
+                "video": "Reportagem 'Tecnologia que Vibra: Inclusão na Dança' – Canal da TV Brasil.",
+                "ferramenta": "Arduino IDE; motores vibratórios de celulares reaproveitados.",
+                "leitura": "Capítulo 'Sistemas Táteis' do livro *Interfaces Humano-Computador* de J. Preece."
+              }
             }
           },
           {
@@ -125,6 +367,28 @@
               "a_investigação_científica": "Coleta de dados antropométricos e estatísticos entre os estudantes. Quais são as dores corporais mais comuns causadas pelo uso excessivo de telas? Estudo da fisiologia da postura.",
               "o_componente_tecnológico": "Desenvolvimento de um aplicativo ou sensor de postura simples que utilize a câmera do celular para alertar quando o usuário está em uma posição prejudicial à coluna.",
               "inovação": "Criação de mobiliário ergonômico \"open source\" feito com materiais reciclados ou de baixo custo, promovendo a saúde coletiva no ambiente escolar (vida pública). Tabela de Integração: Corpo, Cultura e CT&I Projeto\tPrática Corporal\tCiência Aplicada\tInovação Tecnológica MoCap Cultural\tDanças e Lutas\tBiomecânica e Cinemática\tPreservação Digital (3D) Wearables de Inclusão\tEsporte e Lazer\tBiofeedback e Sensoriamento\tTecnologia Assistiva (IoT) Ergonomia Digital\tPostura e Movimento\tFisiologia e Antropometria\tApps de Saúde e Design Social"
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Interface do aplicativo que mostra um alerta 'Sua postura está incorreta' com ilustração",
+                  "fonte_sugerida": "Mockup feito no Figma"
+                },
+                {
+                  "descricao": "Bancada escolar ergonômica feita com pallets e suporte ajustável para laptop",
+                  "fonte_sugerida": "Foto do protótipo construído"
+                }
+              ],
+              "referencias": [
+                "SANTOS, A. et al. \"Tecnologia e Saúde Postural em Jovens: Revisão Sistemática\". *Revista Brasileira de Medicina do Trabalho*, 2022.",
+                "NEVES, J. P. *Ergonomia na Escola: Fundamentos e Práticas*. Ed. SENAC, 2020.",
+                "Manual 'Construindo Móveis com Pallet' – Instituto Reciclagem."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *The Social Dilemma* (Netflix) – trechos sobre design persuasivo e postura.",
+                "ferramenta": "App 'Posture Pal' (código aberto no GitHub); TensorFlow Lite para detecção.",
+                "leitura": "Artigo 'Ergonomia Digital e Saúde Mental' – Revista *Saúde em Debate*, v. 45."
+              }
             }
           }
         ]
@@ -138,6 +402,28 @@
               "foco": "Produção Autoral / Fruição de Bens Culturais. O objetivo é democratizar o acesso a bens culturais e científicos da comunidade que não possuem um espaço físico de exposição, utilizando dispositivos móveis.",
               "a_investigação_científica": "Curadoria de conhecimentos \"invisíveis\" (ex: plantas medicinais da região, processos químicos de uma culinária local ou a física de um monumento histórico).",
               "o_componente_tecnológico": "Uso de plataformas de Realidade Aumentada (como o ZapWorks ou Adobe Aero). Os alunos criam \"marcadores\" (QR Codes) que, ao serem lidos pelo celular, projetam modelos 3D, áudios explicativos ou vídeos sobre aquele saber. Inovação e Estética: Espalhar esses marcadores pela escola e pela cidade, criando uma trilha científica e cultural digital que qualquer cidadão pode acessar."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "QR code fixado em uma árvore do pátio; ao ser lido, projeta um modelo 3D da planta com informações medicinais",
+                  "fonte_sugerida": "Adobe Aero"
+                },
+                {
+                  "descricao": "Mapa da escola com a localização dos marcadores de AR",
+                  "fonte_sugerida": "Google My Maps"
+                }
+              ],
+              "referencias": [
+                "COSTA, R. M. *Realidade Aumentada na Educação*. Ed. Appris, 2021.",
+                "FREITAS, A. et al. \"AR para valorização de patrimônio imaterial\". *Revista Novas Tecnologias na Educação*, v. 18, 2020.",
+                "Plataforma 'ZapWorks' – documentação oficial."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Criando Experiências de AR com Adobe Aero' – Adobe Live.",
+                "ferramenta": "QR Code Generator (qr-code-generator.com); Blender para modelos 3D.",
+                "leitura": "Livro *Museus Digitais* de Helena Mendes (Ed. UFRJ)."
+              }
             }
           },
           {
@@ -146,6 +432,28 @@
               "foco": "Comunicação e Produção / Responsabilidade Social. Apropriar-se das linguagens multimodais (áudio e vídeo) para combater o negacionismo científico e democratizar o acesso a descobertas recentes, usando técnicas de storytelling.",
               "a_investigação_científica": "Analisar artigos científicos complexos ou notícias virais. Os alunos devem validar as fontes e traduzir o conteúdo para uma linguagem acessível, sem perder o rigor.",
               "o_componente_tecnológico": "Uso de softwares de edição (como Audacity ou CapCut) e plataformas de distribuição (Spotify, YouTube). Introdução a ferramentas de IA para melhoria de áudio e criação de artes visuais (estética). Inovação e Cidadania: Criação de uma \"Agência de Notícias Científicas\" da escola, onde a produção autoral dos alunos serve como fonte confiável para a comunidade escolar e pais."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Arte de capa do podcast com tema 'Vacinas: da ciência ao coração'",
+                  "fonte_sugerida": "Canva"
+                },
+                {
+                  "descricao": "Estúdio de gravação improvisado na escola com equipamentos de áudio básicos",
+                  "fonte_sugerida": "Foto do clube"
+                }
+              ],
+              "referencias": [
+                "MASSUCHIN, M. et al. *Comunicação Científica e Divulgação*. Fiocruz, 2019.",
+                "GOLDENBERG, M. *A Arte de Pesquisar*. Ed. Record, 2019.",
+                "Manual 'Como Combater Fake News' – Portal da Imprensa."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Storytelling para Ciência' – Dra. Suzana Herculano-Houzel no YouTube.",
+                "ferramenta": "Audacity (edição de áudio); Canva (artes visuais).",
+                "leitura": "Capítulo 'Divulgação Científica no Século XXI' do livro *Ciência na Praça* de O. Pessoa."
+              }
             }
           },
           {
@@ -154,6 +462,28 @@
               "foco": "Compartilhamento de Conhecimentos / Inovação Tecnológica. Desenvolver um ecossistema digital onde as descobertas do Clube de Ciência possam ser replicadas por outras escolas, promovendo a cultura do software/hardware livre.",
               "a_investigação_científica": "Sistematização de experimentos feitos no clube. O que deu certo? Como pode ser replicado com materiais de baixo custo?",
               "o_componente_tecnológico": "Criação de um site ou repositório (usando GitHub ou Google Sites) estruturado com licenças Creative Commons. Uso de ferramentas de documentação técnica (Markdown) e diagramação digital. Inovação e Participação: Transformar o Clube em um \"Nó\" de uma rede de inovação, onde os alunos participam de fóruns globais de ciência, compartilhando seus códigos de Arduino ou roteiros experimentais. Resumo das Propostas sob a ótica de CT&I Projeto\tTDIC Utilizada\tDimensão Ética/Social\tProduto Autoral Museu de Bolso\tRealidade Aumentada (AR)\tValorização de saberes locais.\tGaleria Digital Interativa PodLab\tEdição Multimodal e IA\tCombate às Fake News.\tPodcast de Divulgação Científica Open Science\tRepositórios Online (Web)\tDemocratização do Saber.\tPlataforma de Inovação Aberta"
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Página do repositório no GitHub com os projetos listados e licença Creative Commons",
+                  "fonte_sugerida": "Captura de tela"
+                },
+                {
+                  "descricao": "Infográfico mostrando o fluxo de replicação dos projetos entre escolas parceiras",
+                  "fonte_sugerida": "Canva"
+                }
+              ],
+              "referencias": [
+                "OPEN SCIENCE FRAMEWORK. *Guia de Ciência Aberta para Escolas*. OSF, 2023.",
+                "SILVA, R. *Cultura Maker e Educação*. Ed. Penso, 2020.",
+                "Creative Commons – creativecommons.org/licenses/by-sa/4.0/"
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Ciência Aberta na Educação Básica' – Fórum Mundial de Educação (YouTube).",
+                "ferramenta": "GitHub Pages; Markdown; Arduino IDE.",
+                "leitura": "Artigo 'Repositórios Digitais em Escolas' – Revista *Educação e Pesquisa*, v. 48."
+              }
             }
           }
         ]
@@ -168,6 +498,28 @@
               "a_investigação_científica": "Mapeamento de problemas socioambientais da região que geram conflito de opiniões. Estudo de técnicas de Comunicação Não Violenta (CNV) e negociação baseada em evidências.",
               "o_componente_tecnológico": "Uso de ferramentas de Mapeamento Colaborativo (GIS) como o OpenStreetMap ou Google My Maps para sobrepor dados técnicos (áreas de risco, poluição) com relatos orais da comunidade (dados culturais).",
               "inovação": "Simulação de uma \"Cúpula de Soluções\", onde os alunos usam a linguagem científica para mediar o diálogo entre diferentes atores sociais (moradores, empresários, políticos), promovendo a inclusão de saberes tradicionais no relatório final."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Mapa colaborativo mostrando pontos de conflito (ex: local do lixão) com ícones coloridos para cada ator social",
+                  "fonte_sugerida": "Google My Maps"
+                },
+                {
+                  "descricao": "Fotos da simulação da Cúpula com alunos caracterizados como diferentes atores",
+                  "fonte_sugerida": "Acervo do clube"
+                }
+              ],
+              "referencias": [
+                "ROSENBERG, Marshall. *Comunicação Não-Violenta*. Ed. Ágora, 2006.",
+                "JACOBI, P. et al. *Conflitos Socioambientais e Educação*. Annablume, 2020.",
+                "Guia 'Mediação de Conflitos na Escola' – Ministério Público do Trabalho."
+              ],
+              "conteudo_adicional": {
+                "video": "Curso online 'Mediação de Conflitos' – Canal da Escola de Mediação do TJSP.",
+                "ferramenta": "OpenStreetMap; QGIS; Google My Maps.",
+                "leitura": "Livro *Diplomacia Científica* de V. Almeida (Ed. FUNAG)."
+              }
             }
           },
           {
@@ -177,6 +529,28 @@
               "a_investigação_científica": "Pesquisa sobre termos científicos e sua correspondência em línguas indígenas, quilombolas ou gírias regionais. Como esses grupos nomeiam fenômenos biológicos ou físicos?",
               "o_componente_tecnológico": "Desenvolvimento de um Web-App ou Bot de Telegram que funcione como um dicionário multilíngue e intercultural de termos científicos. Uso de ferramentas de No-Code (como Glide ou Adalo).",
               "inovação": "Promoção da \"Justiça Linguística\". O Clube produz materiais de estudo que validam a variação linguística dos alunos, provando que é possível fazer ciência de alto nível respeitando a identidade cultural de cada um."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Interface do Web-App mostrando a palavra 'fotossíntese' em português, tupi e quilombola",
+                  "fonte_sugerida": "Glide"
+                },
+                {
+                  "descricao": "Cartazes na escola com QR code que levam ao glossário",
+                  "fonte_sugerida": "Fotos do ambiente escolar"
+                }
+              ],
+              "referencias": [
+                "SANTOS, L. G. *Línguas em Perigo: Diversidade Linguística no Brasil*. Ed. UFSC, 2018.",
+                "LIMA, C. et al. \"Terminologia e Interculturalidade na Educação Científica\". *Revista Brasileira de Linguística Aplicada*, 2021.",
+                "Projeto 'Dicionário Tupi' – Universidade de São Paulo."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Línguas: Vivências e Resistências* (Canal Curta!).",
+                "ferramenta": "Glide (app builder); Telegram Bot API.",
+                "leitura": "Capítulo 'Ciência em Línguas Minoritárias' do livro *Decolonizando a Ciência* de C. Alves."
+              }
             }
           },
           {
@@ -186,6 +560,28 @@
               "a_investigação_científica": "Autoanálise de competências (Soft e Hard Skills). Pesquisa sobre a presença de minorias na ciência e como construir narrativas de resistência e competência no ambiente profissional.",
               "o_componente_tecnológico": "Criação de um Portfólio Digital ou Currículo Lattes/LinkedIn Criativo usando linguagens digitais (vídeo-currículo, sites pessoais em Wix ou Canva). Introdução à segurança de dados e ética em redes profissionais.",
               "inovação": "Mentoria entre pares. Os alunos mais velhos ajudam os mais novos a comunicar suas descobertas científicas, treinando a oratória para congressos, feiras de ciências e entrevistas de emprego. Tabela de Integração: Comunicação, Ética e CT&I Projeto\tEstratégia de Comunicação\tTecnologia Aplicada\tObjetivo de Cidadania Diplomacia Científica\tNegociação e Mediação\tGeoprocessamento (GIS)\tResolução de conflitos locais. Glossário Diverso\tTradução Intercultural\tApp No-Code / Chatbots\tValorização da diversidade linguística. Portfólio Digital\tIdentidade e Oratória\tRedes Profissionais e Vídeo\tInserção ética no mundo do trabalho."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Exemplo de portfólio digital criado no Wix com seções: projetos, artigos, vídeos",
+                  "fonte_sugerida": "Captura de tela"
+                },
+                {
+                  "descricao": "Alunos participando de mentoria de oratória com gravação de vídeo-currículo",
+                  "fonte_sugerida": "Foto do clube"
+                }
+              ],
+              "referencias": [
+                "HARARI, Yuval Noah. *21 Lições para o Século XXI*. Companhia das Letras, 2018.",
+                "LATTES, C. *Plataforma Lattes: Guia para Jovens Pesquisadores*. CNPq, 2023.",
+                "Cartilha 'Segurança de Dados para Adolescentes' – SaferNet Brasil."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Como criar um portfólio que impressiona' – TEDxYouth.",
+                "ferramenta": "Wix, Canva, LinkedIn Learning.",
+                "leitura": "Artigo 'Soft Skills para Cientistas' – *Nature Careers*, 2022."
+              }
             }
           }
         ]
@@ -205,6 +601,28 @@
               "a_investigação_científica": "Coleta de dados históricos de fontes oficiais (DataSUS ou postos de saúde locais) e cruzamento com variáveis climáticas (pluviosidade e temperatura). Os alunos testam a hipótese: \"O aumento de 2°C na temperatura média antecipa o pico de casos em 15 dias?\".",
               "o_componente_tecnológico": "Uso de planilhas eletrônicas avançadas ou linguagens de programação (como Python ou R) para criar modelos de regressão linear e correlação.",
               "inovação": "Desenvolvimento de um Dashboard de Alerta Antecipado para a escola e arredores, prevendo tendências de surtos e sugerindo campanhas de prevenção baseadas em dados."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Dashboard interativo com gráficos de casos de dengue e precipitação",
+                  "fonte_sugerida": "Tableau / Power BI"
+                },
+                {
+                  "descricao": "Mapa de calor mostrando focos do Aedes aegypti no bairro",
+                  "fonte_sugerida": "QGIS"
+                }
+              ],
+              "referencias": [
+                "DataSUS – dados.gov.br/dataset/sistema-de-informacao-de-agravos-de-notificacao-sinan",
+                "SOUZA, L. et al. \"Modelagem Matemática de Epidemias: Uma Revisão\". *Cadernos de Saúde Pública*, 2020.",
+                "Manual 'Python para Análise de Dados' – Wes McKinney."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Análise de Dados de Saúde com Python' – Canal 'Ciência Programada'.",
+                "ferramenta": "Jupyter Notebook; Pandas; Plotly.",
+                "leitura": "Capítulo 'Epidemiologia Matemática' do livro *Modelagem em Biologia* de J. D. Murray."
+              }
             }
           },
           {
@@ -214,6 +632,28 @@
               "a_investigação_científica": "Instalação de sensores de monitoramento (IoT) em pontos estratégicos ou leitura sistemática de hidrômetros e relógios de luz. Organização dos dados em séries temporais para identificar padrões de desperdício (ex: picos de consumo em horários de intervalo).",
               "o_componente_tecnológico": "Utilização de ferramentas de Business Intelligence (BI) para visualizar o fluxo de consumo. Modelagem matemática para calcular o ROI (Retorno sobre Investimento) de possíveis trocas tecnológicas (ex: lâmpadas LED vs. Fluorescentes).",
               "inovação": "Criação de um \"Plano de Gestão Inteligente\", utilizando modelagem para prever a economia anual e propor o reinvestimento desse valor em outras áreas do Clube de Ciência."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Gráfico de consumo de energia por hora, destacando picos no intervalo",
+                  "fonte_sugerida": "Power BI"
+                },
+                {
+                  "descricao": "Sensores de corrente (ACS712) instalados no quadro de luz da escola",
+                  "fonte_sugerida": "Foto real"
+                }
+              ],
+              "referencias": [
+                "EPA (Environmental Protection Agency). *Energy Efficiency in Schools*. 2022.",
+                "CASEY, M. *Data Science for IoT*. O'Reilly, 2021.",
+                "Projeto 'Escola Sustentável' – Instituto Akatu."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Monitoramento de Consumo com Arduino e Thingspeak' – Canal 'Maker BR'.",
+                "ferramenta": "Arduino; Node-RED; Power BI.",
+                "leitura": "Artigo 'Séries Temporais na Gestão de Energia Escolar' – *Revista de Educação Ambiental*."
+              }
             }
           },
           {
@@ -223,6 +663,28 @@
               "a_investigação_científica": "Simulação de sistemas de pontuação (score) para concessão de bolsas ou auxílios. Os alunos criam diferentes modelos matemáticos e analisam se certos critérios (como CEP ou renda) excluem desproporcionalmente grupos específicos, mesmo sem a intenção direta.",
               "o_componente_tecnológico": "Introdução a conceitos de Machine Learning e inteligência artificial. Uso de simuladores para entender como a \"caixa-preta\" dos algoritmos funciona.",
               "inovação": "Proposta de um Algoritmo Ético e Transparente. Os alunos redesenham a modelagem matemática para incluir fatores de correção socioeconômica, validando a hipótese de que a matemática pode ser uma ferramenta de equidade e justiça social."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Árvore de decisão mostrando como diferentes variáveis influenciam na concessão de bolsa",
+                  "fonte_sugerida": "Orange Data Mining"
+                },
+                {
+                  "descricao": "Gráfico de dispersão comparando a renda per capita com a nota atribuída pelo algoritmo",
+                  "fonte_sugerida": "Python Matplotlib"
+                }
+              ],
+              "referencias": [
+                "O'NEIL, Cathy. *Armas de Destruição Matemática*. Zahar, 2020.",
+                "HARDY, J. et al. \"Algorithmic Bias in Education\". *International Journal of Artificial Intelligence in Education*, 2021.",
+                "Projeto 'AI Fairness 360' – IBM."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *O Dilema dos Algoritmos* (Netflix).",
+                "ferramenta": "Orange Data Mining; Python Scikit-learn.",
+                "leitura": "Capítulo 'Fairness in Machine Learning' do livro *Ethics of Data Science* de D. Boyd."
+              }
             }
           }
         ]
@@ -237,6 +699,28 @@
               "a_investigação_científica": "Realizar um \"Censo de Pegada Digital\" na escola. Os alunos coletam dados (anonimizados) sobre quais permissões os aplicativos mais usados pelos colegas exigem (microfone, localização, contatos).",
               "o_componente_tecnológico": "Estudo da Lei Geral de Proteção de Dados (LGPD) aplicada a termos de uso. Uso de ferramentas de análise de redes para mapear como os dados circulam.",
               "inovação": "Criação de uma calculadora de \"Índice de Risco de Privacidade\". Utilizando lógica matemática e pesos para diferentes tipos de dados, os alunos desenvolvem um selo de segurança para os apps, promovendo a conscientização sobre proteção de dados."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Infográfico explicando as permissões solicitadas por aplicativos populares",
+                  "fonte_sugerida": "Canva"
+                },
+                {
+                  "descricao": "Selo de segurança desenvolvido pelos alunos para apps da escola",
+                  "fonte_sugerida": "Adobe Illustrator"
+                }
+              ],
+              "referencias": [
+                "BRASIL. Lei nº 13.709/2018 – LGPD.",
+                "ANPD. *Guia para Agentes de Tratamento de Dados*. 2023.",
+                "CARDOSO, T. *Proteção de Dados Pessoais na Escola*. Ed. Juspodivm, 2021."
+              ],
+              "conteudo_adicional": {
+                "video": "Vídeo animado 'LGPD na Prática' – Canal da ANPD no YouTube.",
+                "ferramenta": "Calculadora de risco (Excel ou Google Sheets).",
+                "leitura": "Cartilha 'Proteção de Dados para Crianças e Adolescentes' – SaferNet."
+              }
             }
           },
           {
@@ -246,6 +730,28 @@
               "a_investigação_científica": "Aplicação de métodos estatísticos para analisar a correlação entre o tempo de uso de telas e indicadores de bem-estar (horas de sono, humor, foco). Teste de hipótese: \"A redução de 30 minutos de uso de redes sociais antes de dormir melhora o desempenho cognitivo matinal em 15%?\".",
               "o_componente_tecnológico": "Uso de aplicativos de monitoramento de tempo e análise de frequência. Modelagem matemática de Grafos para entender como o bullying se propaga em redes sociais escolares (quem são os nós centrais? como quebrar a cadeia de propagação?).",
               "inovação": "Desenvolvimento de um protótipo de \"App de Dieta Digital\" ou uma extensão de navegador que bloqueia gatilhos de ansiedade, utilizando algoritmos de filtragem ética."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Grafo de rede social escolar mostrando nós (alunos) e arestas (interações negativas)",
+                  "fonte_sugerida": "Gephi"
+                },
+                {
+                  "descricao": "Interface do protótipo de extensão de navegador com timer e bloqueio seletivo",
+                  "fonte_sugerida": "Figma"
+                }
+              ],
+              "referencias": [
+                "HARRIS, T. *The Attention Economy*. Center for Humane Technology, 2022.",
+                "PRZYBYLSKI, A. et al. \"Social Media Use and Mental Health\". *Journal of Adolescent Health*, 2020.",
+                "Manual 'Graph Theory for Social Network Analysis' – Network Science Institute."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *The Social Dilemma* (Netflix) – foco em design persuasivo.",
+                "ferramenta": "Gephi (análise de redes); JavaScript para extensão de navegador.",
+                "leitura": "Capítulo 'Vício Digital' do livro *O Cérebro no Mundo Digital* de M. Spitzer."
+              }
             }
           },
           {
@@ -255,6 +761,28 @@
               "a_investigação_científica": "Coleta de notícias virais que apresentam gráficos ou porcentagens duvidosas. Os alunos aplicam métodos de análise de consistência interna e verificação de fontes oficiais (IBGE, IPCA, etc.).",
               "o_componente_tecnológico": "Uso de ferramentas de busca reversa e análise de metadados. Introdução à Estatística Descritiva para identificar como gráficos são distorcidos para criar falsas percepções (ex: eixos fora de escala).",
               "inovação": "Criação de uma \"Agência Escolar de Verificação de Dados\". Os alunos produzem conteúdos multimodais (vídeos curtos ou infográficos) que ensinam a comunidade a ler gráficos criticamente, promovendo a equidade informacional e a cidadania."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Comparação entre um gráfico enganoso e sua versão corrigida com escalas adequadas",
+                  "fonte_sugerida": "Criado pelos alunos"
+                },
+                {
+                  "descricao": "Infográfico 'Como identificar gráficos enganosos' fixado na sala de aula",
+                  "fonte_sugerida": "Canva"
+                }
+              ],
+              "referencias": [
+                "LEVITIN, Daniel. *A Mentira na Era Digital*. Zahar, 2018.",
+                "IBGE. *Boas Práticas na Divulgação de Dados*. 2021.",
+                "Projeto 'Comprova' – comprova.org.br."
+              ],
+              "conteudo_adicional": {
+                "video": "Vídeo 'Como mentir com gráficos' – Canal 'Nerdologia' (YouTube).",
+                "ferramenta": "Google Imagens (busca reversa); Excel para reconstrução de gráficos.",
+                "leitura": "Guia 'Fact-Checking para Escolas' – Instituto Palavra Aberta."
+              }
             }
           }
         ]
@@ -269,6 +797,28 @@
               "a_investigação_científica": "Mapeamento do ciclo de vida de produtos escolares (uniformes, livros, eletrônicos). Aplicação de análise de sistemas para identificar onde o valor é perdido.",
               "o_componente_tecnológico": "Criação de uma Moeda Social Digital ou um sistema de \"Banco de Tempo\" para a escola, utilizando uma plataforma de gestão simples (ou até simulando uma estrutura de blockchain em planilha) para garantir transparência.",
               "inovação": "Desenvolvimento de um modelo de Economia Solidária onde os alunos \"financiam\" projetos de outros colegas com créditos gerados por ações sustentáveis (como reciclagem ou monitoria), testando a hipótese: \"Um sistema de trocas não monetárias aumenta a equidade de recursos no Clube em 40%?\"."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Fluxograma do sistema de crédito solidário: ações sustentáveis → créditos → financiamento",
+                  "fonte_sugerida": "Lucidchart"
+                },
+                {
+                  "descricao": "Interface da moeda social digital (aplicativo simples)",
+                  "fonte_sugerida": "Glide"
+                }
+              ],
+              "referencias": [
+                "SINGER, Paul. *Introdução à Economia Solidária*. Ed. Fundação Perseu Abramo, 2002.",
+                "BRAUNGART, M.; MCDONOUGH, W. *Cradle to Cradle*. Editora Gustavo Gili, 2009.",
+                "Manual 'Economia Circular na Escola' – WWF Brasil."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Economia Circular: Um Novo Modelo* (TEDx Talks).",
+                "ferramenta": "Glide (app no-code); Planilhas com registro de transações.",
+                "leitura": "Livro *A Economia do Bem Comum* de Christian Felber."
+              }
             }
           },
           {
@@ -278,6 +828,28 @@
               "a_investigação_científica": "Coleta de dados sobre produtos comuns (ex: um smartphone ou uma camiseta). Levantamento de preços, durabilidade média e custos ambientais de produção.",
               "o_componente_tecnológico": "Construção de um Algoritmo de Decisão em Python ou Excel. O aluno insere o preço do produto e o algoritmo calcula o \"Preço Real\" (Preço + Impacto Ambiental + Custo por Uso).",
               "inovação": "Criação de um aplicativo ou interface de Comunicação Eficaz que gera um \"Score de Sustentabilidade\" para compras da comunidade escolar, facilitando a tomada de decisão responsável baseada em modelagem matemática."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Tela do simulador mostrando dois produtos comparados com seus scores de sustentabilidade",
+                  "fonte_sugerida": "Python Tkinter / Excel"
+                },
+                {
+                  "descricao": "QR code que leva ao simulador, colocado próximo a cantina escolar",
+                  "fonte_sugerida": "Impresso e fixado"
+                }
+              ],
+              "referencias": [
+                "GABRIEL, M. *Você, Eu e os Robôs*. Editora Atlas, 2021.",
+                "ROODMAN, D. *The Environmental Footprint of Products*. MIT Press, 2020.",
+                "Base de dados 'Ecoinvent' – inventário de ciclo de vida."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Como calcular pegada de carbono de um produto' – Canal 'Cidades Sustentáveis'.",
+                "ferramenta": "Python (biblioteca Streamlit); Excel avançado.",
+                "leitura": "Artigo 'Análise do Ciclo de Vida na Educação Básica' – *Revista Sustentabilidade em Debate*."
+              }
             }
           },
           {
@@ -287,6 +859,28 @@
               "a_investigação_científica": "Estudo de séries temporais de inflação (IPCA), juros (SELIC) e variação de preços de alimentos básicos. Os alunos utilizam Estatística Descritiva para entender padrões de consumo sazonais.",
               "o_componente_tecnológico": "Desenvolvimento de um simulador de Matemática Financeira que utiliza modelagem estocástica simples para prever diferentes cenários econômicos (ex: \"E se a inflação subir 2%? Como fica o orçamento familiar?\").",
               "inovação": "Criação de oficinas de \"Clínica Financeira\" para a comunidade, onde os alunos utilizam suas ferramentas tecnológicas para ajudar famílias a renegociar dívidas e planejar o futuro, promovendo justiça social através da literacia técnica."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Dashboard mostrando projeções de orçamento familiar sob diferentes cenários de inflação",
+                  "fonte_sugerida": "Power BI"
+                },
+                {
+                  "descricao": "Fotos das oficinas comunitárias com os alunos orientando famílias",
+                  "fonte_sugerida": "Acervo do clube"
+                }
+              ],
+              "referencias": [
+                "IPEA. *Série Histórica de Preços e Inflação*. ipea.gov.br.",
+                "HASTIE, T. et al. *The Elements of Statistical Learning*. Springer, 2009.",
+                "BACEN. *Simulador de Orçamento Familiar* – site do Banco Central."
+              ],
+              "conteudo_adicional": {
+                "video": "Curso 'Matemática Financeira para Todos' – Canal do Sebrae.",
+                "ferramenta": "Python (Pandas, NumPy); Google Sheets.",
+                "leitura": "Livro *Finanças Pessoais: Uma Abordagem Prática* de G. Cerbasi."
+              }
             }
           }
         ]
@@ -301,6 +895,28 @@
               "a_investigação_científica": "Aplicação do método científico para testar a hipótese: \"A distância de equipamentos públicos de saúde/lazer está correlacionada com indicadores de bem-estar autodeclarados na comunidade X?\".",
               "o_componente_tecnológico": "Uso de sistemas de informações geográficas (GIS) como o QGIS ou Google Earth Engine. Os alunos cruzam dados de satélite (mancha urbana, áreas verdes) com dados demográficos e de infraestrutura.",
               "inovação": "Produção de uma plataforma de Cartografia Social. Os alunos treinam moradores de grupos minoritários para \"plottar\" seus próprios desafios no mapa, transformando dados técnicos em uma ferramenta de pressão política e protagonismo social."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Mapa do bairro com camadas: áreas verdes, equipamentos públicos, e marcadores de relatos comunitários",
+                  "fonte_sugerida": "QGIS"
+                },
+                {
+                  "descricao": "Oficina de mapeamento com moradores utilizando tablets e celulares",
+                  "fonte_sugerida": "Foto do clube"
+                }
+              ],
+              "referencias": [
+                "SANTOS, M. *A Natureza do Espaço*. Ed. USP, 2002.",
+                "ACUTO, M. *Geotecnologias e Inclusão Social*. Ed. UFSC, 2020.",
+                "Manual 'OpenStreetMap para Mapeamento Participativo' – YouthMappers."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Mapeando Invisibilidades* – Canal 'Mídia Ninja'.",
+                "ferramenta": "QGIS; OpenStreetMap; Google Earth Engine.",
+                "leitura": "Capítulo 'Cartografia Social' do livro *Pesquisa Participativa* de D. Schuler."
+              }
             }
           },
           {
@@ -310,6 +926,28 @@
               "a_investigação_científica": "Estudo microbiológico e químico de solo e água. Teste de hipóteses sobre a eficiência de fitorremediação (uso de plantas para despoluir): \"A espécie vegetal X é capaz de reduzir a carga de metais pesados na água cinza em 60% em 30 dias?\".",
               "o_componente_tecnológico": "Construção de sensores de monitoramento de efluentes com Arduino (sensores de turbidez, pH e condutividade) para validar a eficácia do sistema em tempo real.",
               "inovação": "Prototipagem de um Biofiltro de Baixo Custo com materiais recicláveis, desenhado para ser replicado por famílias de baixa renda, promovendo saúde e sustentabilidade socioambiental."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Esquema do biofiltro: camadas de brita, areia, carvão ativado e plantas aquáticas",
+                  "fonte_sugerida": "Desenho técnico"
+                },
+                {
+                  "descricao": "Dados de pH e turbidez antes/depois da passagem pelo filtro",
+                  "fonte_sugerida": "Sensor Arduino + dashboard"
+                }
+              ],
+              "referencias": [
+                "BIDONE, F. *Saneamento Ecológico: Princípios e Práticas*. Ed. Rima, 2019.",
+                "EPA. *Constructed Wetlands for Wastewater Treatment*. 2020.",
+                "Manual 'Fitorremediação de Solos' – Embrapa."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Água Viva: Saneamento Ecológico* (Canal do Meio).",
+                "ferramenta": "Arduino; sensores de pH e turbidez; planilhas.",
+                "leitura": "Artigo 'Tecnologias Sociais em Saneamento' – *Revista Ambiente & Sociedade*, v. 24."
+              }
             }
           },
           {
@@ -318,6 +956,28 @@
               "a_investigação_científica": "Experimento controlado de \"Auditoria de Algoritmos\". Os alunos criam datasets propositalmente enviesados e analisam como a máquina toma decisões discriminatórias.",
               "o_componente_tecnológico": "Introdução à Ciência de Dados e Machine Learning utilizando plataformas como Orange Data Mining ou Google Teachable Machine.",
               "inovação": "Desenvolvimento de um \"Corretor de Viés\" (um modelo matemático de compensação) que ajusta os dados para garantir equidade em processos de seleção simulados, demonstrando como a tecnologia pode ser reprogramada para a justiça social."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Comparação da acurácia de um modelo original e do modelo corrigido por grupo populacional",
+                  "fonte_sugerida": "Orange Data Mining"
+                },
+                {
+                  "descricao": "Poster explicando o conceito de viés algorítmico e como detectá-lo",
+                  "fonte_sugerida": "Canva"
+                }
+              ],
+              "referencias": [
+                "BUOLAMWINI, J. *Gender Shades*. MIT Media Lab, 2018.",
+                "MEHARBI, N. et al. \"Machine Learning and Social Justice\". *ACM Conference on Fairness*, 2021.",
+                "IBM. *AI Fairness 360 Toolkit Documentation*."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Justiça Algorítmica' – Profa. Sandra Avila (Unicamp).",
+                "ferramenta": "Orange Data Mining; Google Teachable Machine; Python (AIF360).",
+                "leitura": "Capítulo 'Bias in Data' do livro *Weapons of Math Destruction* de C. O'Neil."
+              }
             }
           }
         ]
@@ -332,6 +992,28 @@
               "a_investigação_científica": "Seleção de dados históricos de pluviometria (chuvas) e topografia da região escolar. Os alunos integram conhecimentos de Geografia e Física para entender o escoamento de água.",
               "o_componente_tecnológico": "Uso de softwares de modelagem e simulação (como o NetLogo para modelos baseados em agentes ou planilhas de cálculo iterativo).",
               "inovação": "Os alunos criam um modelo matemático que prevê quais áreas da comunidade são mais vulneráveis a alagamentos. A solução não é apenas técnica, mas social: um Plano de Evasão Comunitário desenhado a partir da simulação, considerando critérios de acessibilidade para idosos e pessoas com deficiência."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Simulação de alagamento em modelo baseado em agentes (NetLogo)",
+                  "fonte_sugerida": "NetLogo"
+                },
+                {
+                  "descricao": "Mapa de rotas de evacuação destacando áreas de risco e pontos de encontro",
+                  "fonte_sugerida": "QGIS"
+                }
+              ],
+              "referencias": [
+                "WILENSKY, U. *NetLogo: Modeling Complex Systems*. Northwestern University, 2021.",
+                "CEPED. *Atlas Brasileiro de Desastres Naturais*. UFSC, 2020.",
+                "Manual 'Resiliência Urbana' – Banco Mundial."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Modelagem de Inundações com NetLogo' – Canal 'Complexity Explorer'.",
+                "ferramenta": "NetLogo; QGIS; Google Earth Engine.",
+                "leitura": "Capítulo 'Modelagem Matemática de Desastres' do livro *Matemática e Meio Ambiente* de J. M. B. Silva."
+              }
             }
           },
           {
@@ -341,6 +1023,28 @@
               "a_investigação": "Integração de Biologia (sucessão ecológica) e Matemática (progressões e matrizes). Coleta de dados sobre o crescimento de espécies nativas vs. invasoras.",
               "o_componente_tecnológico": "Uso de ferramentas digitais para criar modelos de crescimento populacional (Logístico e Malthusiano). Programação de pequenos algoritmos em Python para simular a dispersão de sementes por aves ou vento.",
               "inovação": "O \"produto\" é um Algoritmo de Plantio Inteligente. Ele indica à comunidade quais espécies plantar e em que ordem, otimizando recursos financeiros e garantindo a regeneração ambiental em menor tempo."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Gráfico de crescimento de espécies nativas vs. invasoras ao longo do tempo (modelo logístico)",
+                  "fonte_sugerida": "Python Matplotlib"
+                },
+                {
+                  "descricao": "Mapa de áreas prioritárias para plantio com base no algoritmo",
+                  "fonte_sugerida": "QGIS"
+                }
+              ],
+              "referencias": [
+                "MURRAY, J. D. *Mathematical Biology*. Springer, 2002.",
+                "SILVA, L. M. et al. \"Modelagem de Dispersão de Sementes\". *Ecologia Matemática*, 2019.",
+                "Manual 'Restauração Ecológica' – WRI Brasil."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Matemática para Salvar Florestas' – Canal 'Matemática em Todo Lugar'.",
+                "ferramenta": "Python (SciPy, NumPy); planilhas.",
+                "leitura": "Livro *Ecologia Numérica* de R. R. Sokal e F. J. Rohlf."
+              }
             }
           },
           {
@@ -350,6 +1054,28 @@
               "a_investigação_científica": "Estudo de Pesquisa Operacional e Teoria dos Jogos. Os alunos selecionam dados de produção local e necessidades de consumo das famílias participantes.",
               "o_componente_tecnológico": "Uso de softwares de otimização linear (como o suplemento Solver do Excel ou ferramentas de grafos).",
               "inovação": "Elaboração de um modelo de Logística Solidária. O modelo matemático garante que a distribuição minimize o desperdício de combustível (critério ambiental) e maximize a equidade na entrega (critério social), promovendo uma intervenção direta na economia da comunidade."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Rede de distribuição otimizada: vértices = famílias; arestas = rotas com menor custo",
+                  "fonte_sugerida": "Gephi / Python NetworkX"
+                },
+                {
+                  "descricao": "Tabela de alocação de recursos gerada pelo Solver do Excel",
+                  "fonte_sugerida": "Captura de tela"
+                }
+              ],
+              "referencias": [
+                "HILLIER, F. *Introduction to Operations Research*. McGraw-Hill, 2018.",
+                "SINGER, P. *A Economia Solidária no Brasil*. Ed. Contexto, 2018.",
+                "Manual 'Logística Humanitária' – Federação Internacional da Cruz Vermelha."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Economia Solidária: Outra Economia é Possível* (Canal da TV USP).",
+                "ferramenta": "Excel Solver; Python (PuLP); Gephi.",
+                "leitura": "Capítulo 'Pesquisa Operacional Social' do livro *Matemática e Cidadania* de M. B. Almeida."
+              }
             }
           }
         ]
@@ -369,6 +1095,28 @@
               "a_investigação_científica": "Grupos de alunos escolhem uma tecnologia atual (ex: vacinas, metalurgia, navegação ou cálculo) e realizam uma \"engenharia reversa histórica\". Eles devem encontrar as evidências de como povos como os Maias (astronomia), Egípcios (medicina) ou Chineses (pólvora e bússola) aplicavam o método empírico.",
               "o_componente_tecnológico": "Uso de Simuladores de Astronomia (como o Stellarium) para reproduzir como povos antigos mapeavam o céu, ou ferramentas de Realidade Virtual para explorar sítios arqueológicos tecnológicos.",
               "inovação": "Criação de uma Timeline Interativa Digital. Os alunos alimentam uma plataforma (como o Padlet ou TimelineJS) com dados que provam a polifonia do conhecimento científico, combatendo o eurocentrismo."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Linha do tempo interativa mostrando contribuições de diversas civilizações para a ciência",
+                  "fonte_sugerida": "TimelineJS"
+                },
+                {
+                  "descricao": "Simulação do céu noturno com as constelações identificadas pelos maias",
+                  "fonte_sugerida": "Stellarium"
+                }
+              ],
+              "referencias": [
+                "GLEISER, M. *A Dança do Universo*. Companhia das Letras, 2018.",
+                "SILVA, F. *Cientistas Negros e Indígenas: Uma História Esquecida*. Ed. Malê, 2021.",
+                "Projeto 'Africanos na Ciência' – Instituto Serrapilheira."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *A História da Ciência na África* (BBC).",
+                "ferramenta": "Stellarium; TimelineJS; Google Arts & Culture.",
+                "leitura": "Livro *A Ciência na Antiguidade* de C. C. Gillespie."
+              }
             }
           },
           {
@@ -378,6 +1126,28 @@
               "a_investigação_científica": "Estudo de plantas medicinais utilizadas pela comunidade local ou povos originários. Os alunos realizam extrações laboratoriais simples (destilação, maceração) e comparam os princípios ativos com medicamentos sintéticos.",
               "o_componente_tecnológico": "Introdução à Bioinformática. Uso de bancos de dados genômicos e de moléculas para entender como a indústria farmacêutica \"codifica\" o conhecimento tradicional em patentes.",
               "inovação": "Desenvolvimento de um Protocolo de Repartição de Benefício. Os alunos elaboram um modelo de contrato (baseado na Lei de Biodiversidade) que simula como uma inovação tecnológica baseada em saber tradicional deveria remunerar e proteger a cultura de origem."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Extração de óleo essencial de ervas locais com aparato de destilação",
+                  "fonte_sugerida": "Foto do laboratório"
+                },
+                {
+                  "descricao": "Fluxograma do protocolo de repartição de benefícios",
+                  "fonte_sugerida": "Lucidchart"
+                }
+              ],
+              "referencias": [
+                "BRASIL. Lei nº 13.123/2015 (Biodiversidade).",
+                "SHIVA, V. *Biopirataria: A Pilhagem da Natureza*. Ed. Vozes, 2000.",
+                "Banco de dados 'PubChem' – pubchem.ncbi.nlm.nih.gov."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *O Saber das Plantas* (Canal da TV Cultura).",
+                "ferramenta": "PubChem; ChemDraw; Arduino para destilação controlada.",
+                "leitura": "Capítulo 'Etnobotânica e Propriedade Intelectual' do livro *Biodiversidade e Conhecimento Tradicional* de C. M. Carneiro."
+              }
             }
           },
           {
@@ -387,6 +1157,28 @@
               "a_investigação_científica": "Análise da física e engenharia por trás de tecnologias como o \"Filtro de Barro\" (brasileiro), as cisternas de placa ou sistemas de irrigação por vasos de cerâmica (técnica milenar). O Clube testa a eficiência desses métodos em comparação com filtros industriais caros.",
               "o_componente_tecnológico": "Uso de sensores de baixo custo (Arduino) para medir a pureza da água ou a umidade do solo em sistemas de plantio agroecológico inspirados em técnicas tradicionais.",
               "inovação": "O \"produto\" é um Manual de Inovação Aberta. Os alunos sistematizam os resultados em uma linguagem acessível e digital, promovendo a democratização do saber científico de forma que ele retorne à comunidade como solução prática."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Comparação da eficiência de filtros: barro, carvão ativado e membrana industrial",
+                  "fonte_sugerida": "Gráfico com dados coletados"
+                },
+                {
+                  "descricao": "Manual ilustrado com passo a passo para construção de cisterna de placa",
+                  "fonte_sugerida": "PDF criado pelos alunos"
+                }
+              ],
+              "referencias": [
+                "SILVA, A. M. *Tecnologias Sociais: Caminhos para a Sustentabilidade*. Ed. UFRN, 2019.",
+                "Manual 'Cisternas de Placa' – ASA Brasil.",
+                "ARTIGO: 'Filtro de Barro: Uma Tecnologia Social Brasileira' – *Revista Tecnologia e Sociedade*, 2020."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Água e Tecnologia Social* – ASA Brasil.",
+                "ferramenta": "Arduino; sensores de turbidez; Canva para manual.",
+                "leitura": "Livro *Ciência Cidadã e Tecnologias Sociais* de J. L. B. Silva."
+              }
             }
           }
         ]
@@ -400,6 +1192,28 @@
               "a_investigação_científica": "Os alunos investigam como a seca (Física/Climatologia) afeta as hidrelétricas e a irrigação (Engenharia/Biologia), gerando impactos no preço da cesta básica (Economia).",
               "o_componente_tecnológico": "Uso de Modelagem de Dinâmica de Sistemas (softwares como Stella ou Vensim, ou simuladores online de pegada hídrica). Os alunos criam um modelo onde, ao alterar uma variável (ex: chuva), observam o efeito dominó nas outras.",
               "inovação": "Criação de um Plano de Resiliência Escolar. Os alunos propõem ações coletivas, como sistemas de captação de água da chuva para horta orgânica, calculando o ROI (Retorno sobre Investimento) e o impacto na segurança alimentar da cantina."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Diagrama de estoque e fluxo do sistema água-energia-alimento",
+                  "fonte_sugerida": "Stella Architect"
+                },
+                {
+                  "descricao": "Simulação mostrando a variação do preço dos alimentos conforme o nível dos reservatórios",
+                  "fonte_sugerida": "Vensim"
+                }
+              ],
+              "referencias": [
+                "FORRESTER, J. *Dinâmica de Sistemas*. Ed. Atlas, 2018.",
+                "ANA. *Conjuntura dos Recursos Hídricos no Brasil*. 2022.",
+                "FAO. *The Water-Energy-Food Nexus*. 2020."
+              ],
+              "conteudo_adicional": {
+                "video": "Palestra 'Water-Energy-Food Nexus' – Stockholm Environment Institute.",
+                "ferramenta": "Stella; Vensim; simuladores online (ex: 'Water Footprint Calculator').",
+                "leitura": "Capítulo 'Sistemas Complexos' do livro *Thinking in Systems* de D. Meadows."
+              }
             }
           },
           {
@@ -408,6 +1222,28 @@
               "a_investigação_científica": "Uso do método científico para medir a temperatura em diferentes pontos da escola/bairro (asfalto, sombra, grama, concreto). Integração com saberes de Geografia Urbana e Saúde Coletiva (estudo de doenças respiratórias e cardiovasculares ligadas ao calor).",
               "o_componente_tecnológico": "Utilização de Termografia infravermelha (sensores térmicos acoplados a celulares) e Drones (se disponíveis) para mapear pontos quentes. Uso de satélites (Google Earth Engine) para analisar o índice de vegetação (NDVI).",
               "inovação": "Prototipagem de Telhados Verdes ou Pinturas Refletivas de baixo custo. Os alunos testam quais materiais inovadores reduzem a temperatura interna das salas, apresentando os resultados em um relatório técnico para a direção da escola."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Mapa de temperatura superficial da escola obtido por termografia",
+                  "fonte_sugerida": "FLIR One + QGIS"
+                },
+                {
+                  "descricao": "Comparação de temperatura antes/depois da aplicação de tinta refletiva no telhado",
+                  "fonte_sugerida": "Gráfico de séries temporais"
+                }
+              ],
+              "referencias": [
+                "OKE, T. *Urban Climates*. Cambridge University Press, 2017.",
+                "INPE. *Ilhas de Calor Urbanas: Monitoramento por Satélite*. 2021.",
+                "Manual 'Telhados Verdes' – Instituto Pólis."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Cidades no Calor* – Canal 'Planeta em Foco'.",
+                "ferramenta": "Google Earth Engine; QGIS; sensor térmico (MLX90614).",
+                "leitura": "Artigo 'Estratégias de Mitigação de Ilhas de Calor' – *Revista Brasileira de Meteorologia*, v. 37."
+              }
             }
           },
           {
@@ -416,6 +1252,28 @@
               "a_investigação_científica": "Estudo do ciclo de vida de vetores (mosquitos, carrapatos) em áreas de transição urbana. Articulação com a História das pandemias e a Psicologia das massas (por que as pessoas aderem ou não a vacinas?).",
               "o_componente_tecnológico": "Introdução à Bioestatística e ferramentas de Geoprocessamento. Os alunos utilizam dados abertos da prefeitura para criar mapas de risco de transmissão de doenças na comunidade.",
               "inovação": "Desenvolvimento de uma Campanha Multimodal de Intervenção. Uso de redes sociais, podcasts e cartazes interativos (com QR codes para dados reais) para promover ações coletivas de limpeza e prevenção, baseadas em evidências científicas coletadas pelo próprio clube."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Mapa de risco de dengue sobreposto a focos identificados pela comunidade",
+                  "fonte_sugerida": "QGIS"
+                },
+                {
+                  "descricao": "QR codes em cartazes que levam a dados atualizados de casos no bairro",
+                  "fonte_sugerida": "Impressos"
+                }
+              ],
+              "referencias": [
+                "BUSS, P. et al. *Zoonoses e Saúde Pública*. Fiocruz, 2019.",
+                "OMS. *Global Vector Control Response*. 2021.",
+                "Portal 'InfoDengue' – info.dengue.mat.br."
+              ],
+              "conteudo_adicional": {
+                "video": "Série 'Vetores: Inimigos Invisíveis' – Canal da Fiocruz.",
+                "ferramenta": "QGIS; Google Forms para coleta; Canva para campanhas.",
+                "leitura": "Livro *Epidemiologia para não Especialistas* de J. R. B. Alves."
+              }
             }
           }
         ]
@@ -430,6 +1288,28 @@
               "a_investigação_científica": "Os alunos realizam entrevistas com detentores de saberes locais (benzedeiras, raizeiros ou agricultores) sobre o uso de plantas nativas. No laboratório, utilizam métodos de destilação por arraste de vapor ou extração por solvente natural para isolar princípios ativos e óleos essenciais.",
               "o_componente_tecnológico": "Uso de Cromatografia em Camada Delgada (CCD) para validar a pureza dos extratos e ferramentas de Design de Embalagem Biodegradável (bioplásticos feitos de amido).",
               "inovação": "Criação de um modelo de Cooperativa Digital. Os alunos desenvolvem um plano de negócios que inclui rastreabilidade via QR Code, contando a história da planta e garantindo que a renda retorne à comunidade, promovendo viabilidade econômica e saúde."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Destilador de óleos essenciais montado com materiais reciclados",
+                  "fonte_sugerida": "Foto do protótipo"
+                },
+                {
+                  "descricao": "Rótulo do produto com QR code para a história da planta e da comunidade",
+                  "fonte_sugerida": "Design no Canva"
+                }
+              ],
+              "referencias": [
+                "SIMÕES, C. M. O. et al. *Farmacognosia: Da Planta ao Medicamento*. Ed. UFRGS, 2019.",
+                "SEBRAE. *Guia para Cooperativas de Agricultura Familiar*. 2022.",
+                "Manual 'Bioplásticos de Amido' – Embrapa."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Óleos Essenciais: Saberes e Inovação* (Canal 'Agroecologia').",
+                "ferramenta": "Cromatografia (kit simples); Arduino para controle de temperatura.",
+                "leitura": "Capítulo 'Etnofarmacologia e Economia Solidária' do livro *Plantas Medicinais* de E. Rodrigues."
+              }
             }
           },
           {
@@ -439,6 +1319,28 @@
               "a_investigação_científica": "Estudo do ciclo do nitrogênio e simbiose entre peixes (amônia) e plantas (nitrato). Comparação com as Chinampas (ilhas artificiais de cultivo) e sistemas de irrigação ancestrais.",
               "o_componente_tecnológico": "Automação do sistema com Sensores IoT (Arduino/ESP32). Os alunos programam sensores de pH, oxigênio dissolvido e nível de água para monitorar o ecossistema em tempo real via dashboard digital.",
               "inovação": "Proposta de um Módulo de Segurança Alimentar Urbana. O sistema é desenhado para ser instalado em telhados ou pátios escolares, provando que a união entre biologia e automação pode gerar desenvolvimento social e economia de recursos."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Esquema do sistema aquapônico com sensores e fluxo de água",
+                  "fonte_sugerida": "Fritzing"
+                },
+                {
+                  "descricao": "Dashboard com dados de pH, temperatura e oxigênio em tempo real",
+                  "fonte_sugerida": "ThingSpeak"
+                }
+              ],
+              "referencias": [
+                "RAKOCY, J. *Aquaponic Systems*. Ed. Aquaponic Source, 2019.",
+                "SANTOS, M. et al. \"Aquaponia Urbana: Revisão\". *Revista de Ciências Agrárias*, 2021.",
+                "Manual 'Chinampas: Agricultura Sustentável' – FAO."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Aquaponia: O Futuro da Alimentação* (Canal 'A Horta Inteligente').",
+                "ferramenta": "Arduino; ESP32; ThingSpeak; sensores de pH e condutividade.",
+                "leitura": "Livro *Sistemas de Aquaponia* de J. E. Rakocy."
+              }
             }
           },
           {
@@ -448,6 +1350,28 @@
               "a_investigação_científica": "Testes de resistência mecânica e térmica de diferentes misturas de terra, fibras naturais e aglutinantes orgânicos. Estudo da Micologia (uso de micélio de fungos como isolante e cola natural).",
               "o_componente_tecnológico": "Uso de Impressão 3D de Argila ou moldagens assistidas por computador para criar formas arquitetônicas otimizadas que economizam material.",
               "inovação": "Desenvolvimento de um protótipo de Unidade Habitacional Resiliente. O foco é o conforto térmico passivo (reduzindo gasto com energia) e a eliminação de materiais tóxicos, promovendo saúde ocupacional e sustentabilidade ambiental."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Blocos de terra comprimida (BTC) com diferentes percentuais de fibra",
+                  "fonte_sugerida": "Foto dos protótipos"
+                },
+                {
+                  "descricao": "Impressora 3D de argila extrudando uma parede curva",
+                  "fonte_sugerida": "Registro do clube"
+                }
+              ],
+              "referencias": [
+                "NEVES, C. *Técnicas de Construção com Terra*. Ed. PUC-Rio, 2017.",
+                "MARTINS, L. *Bioconstrução: Materiais e Técnicas*. Ed. Senac, 2020.",
+                "Manual 'Micélio como Material de Construção' – Ecovative Design."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Terra: Construindo o Futuro* (Canal 'Arquitetura Sustentável').",
+                "ferramenta": "Impressora 3D de argila (DIY); estufa para cultivo de micélio.",
+                "leitura": "Capítulo 'Biomateriais' do livro *Arquitetura Sustentável* de E. Gonçalves."
+              }
             }
           }
         ]
@@ -462,6 +1386,28 @@
               "a_investigação_científica": "Cálculo da energia dissipada (Física/Termodinâmica) por dispositivos eletrônicos e servidores. Os alunos investigam o ciclo de vida dos componentes (Química/Mineração) e o impacto das emissões de CO₂ do setor de TI.",
               "o_componente_tecnológico": "Uso de APIs de monitoramento de carbono e extensões de navegador que medem o impacto ambiental da navegação em tempo real.",
               "inovação": "Criação de um \"Guia de Higiene Digital Sustentável\" para a escola. Os alunos propõem ações coletivas, como a limpeza de servidores de e-mail e a otimização de sites escolares para consumir menos dados (e energia), aliando o bem-estar social à eficiência energética."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Infográfico comparando o consumo de energia de diferentes atividades digitais (1h de streaming, 1h de videoconferência)",
+                  "fonte_sugerida": "Canva"
+                },
+                {
+                  "descricao": "Extensão de navegador mostrando a pegada de carbono da página atual",
+                  "fonte_sugerida": "Mockup"
+                }
+              ],
+              "referencias": [
+                "ANDRAE, A. *The Carbon Footprint of ICT*. Springer, 2021.",
+                "GREENPEACE. *Click Clean Report*. 2022.",
+                "API 'Green Web Foundation' – thegreenwebfoundation.org."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *O Preço da Nuvem* (Al Jazeera).",
+                "ferramenta": "Extensões: 'Carbonalyser'; API da Green Web Foundation.",
+                "leitura": "Artigo 'A Pegada de Carbono da Internet' – *Revista Pesquisa FAPESP*, ed. 310."
+              }
             }
           },
           {
@@ -471,6 +1417,28 @@
               "a_investigação_científica": "Estudo da toxicidade de componentes (chumbo, mercúrio, cádmio) presentes em placas de circuito. Os alunos realizam testes de lixiviação simulada para entender como esses materiais interagem com o meio ambiente (Ciências da Natureza).",
               "o_componente_tecnológico": "Uso de técnicas de Upcycling Tecnológico. Os alunos aprendem a testar componentes reaproveitáveis (sensores, motores, telas) de aparelhos descartados para criar novos dispositivos.",
               "inovação": "Implementação de um Ponto de Logística Reversa Inteligente na escola. O Clube desenvolve um sistema digital (app ou dashboard) que rastreia o destino do lixo eletrônico coletado, transformando resíduos em \"kits robóticos\" para estudantes mais novos, promovendo inclusão digital e sustentabilidade."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Processo de desmontagem de celulares para separação de componentes",
+                  "fonte_sugerida": "Foto do clube"
+                },
+                {
+                  "descricao": "Dashboard de rastreabilidade com quantidade de materiais reciclados e kits produzidos",
+                  "fonte_sugerida": "Power BI"
+                }
+              ],
+              "referencias": [
+                "PNUMA. *Global E-waste Monitor*. 2020.",
+                "LEITE, P. *Logística Reversa*. Ed. Atlas, 2018.",
+                "Manual 'Upcycling de Hardware' – Maker Faire."
+              ],
+              "conteudo_adicional": {
+                "video": "Documentário *Lixo Eletrônico: Ouro Invisível* (DW Brasil).",
+                "ferramenta": "Arduino (reaproveitamento); Power BI; planilhas.",
+                "leitura": "Capítulo 'Economia Circular no Setor de TI' do livro *Gestão de Resíduos Eletroeletrônicos* de M. A. R. Santos."
+              }
             }
           },
           {
@@ -480,6 +1448,28 @@
               "a_investigação_científica": "Integração de Ecologia com Processamento de Dados. Os alunos estudam os sinais biológicos de estresse em plantas ou a mudança no comportamento de fauna local frente a variações climáticas.",
               "o_componente_tecnológico": "Uso de Inteligência Artificial (Machine Learning) para reconhecimento de padrões. Os alunos podem usar plataformas como o Google Teachable Machine ou Lobe para treinar modelos que identifiquem espécies invasoras ou sinais de queimadas através de fotos de satélite ou sensores de som.",
               "inovação": "Criação de uma Rede de Alerta Comunitária. O sistema utiliza bots de comunicação (Telegram/WhatsApp) para enviar alertas automáticos baseados nos dados coletados, fortalecendo a participação cidadã e a proteção dos recursos naturais da região."
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Modelo de IA identificando uma planta invasora em imagem capturada por drone",
+                  "fonte_sugerida": "Google Teachable Machine"
+                },
+                {
+                  "descricao": "Bot do Telegram enviando mensagem: 'Alerta: foco de queimada detectado a 2 km'",
+                  "fonte_sugerida": "Captura de tela"
+                }
+              ],
+              "referencias": [
+                "BONNET, P. et al. *Machine Learning for Ecology*. Springer, 2020.",
+                "INPE. *Queimadas: Monitoramento por Satélite*. 2023.",
+                "Projeto 'AI for Earth' – Microsoft."
+              ],
+              "conteudo_adicional": {
+                "video": "Tutorial 'Treinando IA para Identificar Espécies' – Canal 'Google AI'.",
+                "ferramenta": "Teachable Machine; Telegram Bot API; Python (OpenCV).",
+                "leitura": "Capítulo 'IA na Conservação Ambiental' do livro *Deep Learning for Nature* de M. H. Kristensen."
+              }
             }
           }
         ]
@@ -494,25 +1484,61 @@
               "a_investigação_científica": "Os alunos selecionam um tema \"quente\" (ex: edição genética CRISPR, fusão nuclear ou vacinas de RNAm). Eles devem pesquisar as fontes originais e identificar os principais conceitos-chave.",
               "o_componente_tecnológico": "Uso de softwares de edição de vídeo, ferramentas de IA para legendagem automática e Design de Narrativa (Storytelling). Estudo de algoritmos de retenção: o que faz uma informação científica ser compartilhada?",
               "inovação": "Criação de uma série de \"Pílulas Científicas\". O foco é a tradução de jargão: como explicar \"entropia\" ou \"biotecnologia\" para uma criança de 10 anos ou para um idoso?"
+            },
+            "recursos": {
+              "imagens": [
+                {
+                  "descricao": "Thumbnail de vídeo no estilo TikTok com visualização atrativa e texto explicativo",
+                  "fonte_sugerida": "Canva"
+                },
+                {
+                  "descricao": "Storyboard do roteiro de um Reels científico",
+                  "fonte_sugerida": "Papel e caneta"
+                }
+              ],
+              "referencias": [
+                "GARCIA, T. *Storytelling Científico*. Ed. Contexto, 2020.",
+                "Manual 'Como Criar Conteúdo Científico para Redes' – Portal 'Ciência em Foco'.",
+                "ARTIGO: 'Algoritmos e Divulgação Científica' – *Revista Comunicação & Educação*, v. 26."
+              ],
+              "conteudo_adicional": {
+                "video": "Canal 'Nerdologia' no YouTube – referência em comunicação científica.",
+                "ferramenta": "CapCut; InShot; Canva; legendagem automática com IA.",
+                "leitura": "Livro *A Ciência na Era da Pós-Verdade* de C. C. M. Silva."
+              }
             }
           },
           {
-            "titulo": "Projeto: \"Data-Viz Cidadã: Transformando Números em Narrativas Visuais\"",
-            "qualidades_do_projeto": {
-              "o_desafio": "Dados brutos são difíceis de interpretar. Como torná-los compreensíveis e críticos para a tomada de decisão da comunidade?",
-              "a_investigação_científica": "Coleta de dados sobre desafios locais (ex: índices de poluição do ar no bairro, gastos públicos com saúde ou eficácia de métodos de reciclagem na escola).",
-              "o_componente_tecnológico": "Uso de ferramentas de Visualização de Dados (Data-Viz) como Canva, Flourish ou Tableau. Os alunos aprendem sobre semiótica das cores e tipos de gráficos (pizza, barras, dispersão) para evitar manipulações visuais.",
-              "inovação": "Desenvolvimento de um Infográfico Interativo para o site da escola ou painéis físicos. A proposta é promover um diálogo fundamentado: \"Os dados mostram que X; o que podemos fazer coletivamente sobre isso?\"."
-            }
-          },
-          {
-            "titulo": "Projeto: \"Podcast 'Ciência de Boteco': Diálogos Interculturais e Éticos\"",
-            "qualidades_do_projeto": {
-              "o_desafio": "Criar espaços de conversa onde o conhecimento científico dialogue com o senso comum e os saberes populares, promovendo a inclusão.",
-              "a_investigação_científica": "Escolha de dilemas éticos contemporâneos (ex: o uso de IAs no trabalho, carne de laboratório ou exploração espacial). Os alunos preparam a fundamentação teórica para o debate.",
-              "o_componente_tecnológico": "Uso de Estúdios Digitais de Áudio (como o Audacity ou Anchor). Introdução a técnicas de microfonação e edição de som para garantir clareza e acessibilidade auditiva.",
-              "inovação": "Produção de episódios de podcast que incluam convidados da comunidade (comerciantes, pais, líderes locais) para discutir como a ciência impacta a vida deles. O resultado é um documento sonoro que valida a ciência como algo do cotidiano, e não algo distante."
-            }
+            "descricao_objetivo": "5. Comunicar informações científicas de forma clara, crítica e acessível, utilizando diferentes linguagens e ferramentas tecnológicas, promovendo a democratização do conhecimento científico e o diálogo fundamentado sobre desafios contemporâneos.",
+            "projetos": [
+              {
+                "titulo": "Projeto: \"Cientistas Criadores: O Laboratório de Conteúdo Viral\"",
+                "qualidades_do_projeto": {
+                  "o_desafio": "Como usar a linguagem das redes sociais (TikTok, Reels, Shorts) para explicar fenômenos científicos complexos sem perder o rigor?",
+                  "a_investigação_científica": "Os alunos selecionam um tema \"quente\" (ex: edição genética CRISPR, fusão nuclear ou vacinas de RNAm). Eles devem pesquisar as fontes originais e identificar os principais conceitos-chave.",
+                  "o_componente_tecnológico": "Uso de softwares de edição de vídeo, ferramentas de IA para legendagem automática e Design de Narrativa (Storytelling). Estudo de algoritmos de retenção: o que faz uma informação científica ser compartilhada?",
+                  "inovação": "Criação de uma série de \"Pílulas Científicas\". O foco é a tradução de jargão: como explicar \"entropia\" ou \"biotecnologia\" para uma criança de 10 anos ou para um idoso?"
+                }
+              },
+              {
+                "titulo": "Projeto: \"Data-Viz Cidadã: Transformando Números em Narrativas Visuais\"",
+                "qualidades_do_projeto": {
+                  "o_desafio": "Dados brutos são difíceis de interpretar. Como torná-los compreensíveis e críticos para a tomada de decisão da comunidade?",
+                  "a_investigação_científica": "Coleta de dados sobre desafios locais (ex: índices de poluição do ar no bairro, gastos públicos com saúde ou eficácia de métodos de reciclagem na escola).",
+                  "o_componente_tecnológico": "Uso de ferramentas de Visualização de Dados (Data-Viz) como Canva, Flourish ou Tableau. Os alunos aprendem sobre semiótica das cores e tipos de gráficos (pizza, barras, dispersão) para evitar manipulações visuais.",
+                  "inovação": "Desenvolvimento de um Infográfico Interativo para o site da escola ou painéis físicos. A proposta é promover um diálogo fundamentado: \"Os dados mostram que X; o que podemos fazer coletivamente sobre isso?\"."
+                }
+              },
+              {
+                "titulo": "Projeto: \"Podcast 'Ciência de Boteco': Diálogos Interculturais e Éticos\"",
+                "qualidades_do_projeto": {
+                  "o_desafio": "Criar espaços de conversa onde o conhecimento científico dialogue com o senso comum e os saberes populares, promovendo a inclusão.",
+                  "a_investigação_científica": "Escolha de dilemas éticos contemporâneos (ex: o uso de IAs no trabalho, carne de laboratório ou exploração espacial). Os alunos preparam a fundamentação teórica para o debate.",
+                  "o_componente_tecnológico": "Uso de Estúdios Digitais de Áudio (como o Audacity ou Anchor). Introdução a técnicas de microfonação e edição de som para garantir clareza e acessibilidade auditiva.",
+                  "inovação": "Produção de episódios de podcast que incluam convidados da comunidade (comerciantes, pais, líderes locais) para discutir como a ciência impacta a vida deles. O resultado é um documento sonoro que valida a ciência como algo do cotidiano, e não algo distante."
+                }
+              }
+            ]
           }
         ]
       }

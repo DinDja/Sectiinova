@@ -234,6 +234,9 @@ export default function TrilhaPedagogica() {
                 Siga os passos e revele o caminho do conhecimento científico e
                 tecnológico.
               </p>
+              <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
+                Estas são apenas sugestões de atividades e recursos. O(a) professor(a) tem autonomia para adaptar, rejeitar ou reorganizar conforme a realidade da turma.
+              </p>
             </header>
           </ScrollReveal>
 
@@ -496,6 +499,53 @@ export default function TrilhaPedagogica() {
                                       )}
                                     </button>
                                   </div>
+
+                                  {/* NOVA SEÇÃO DE RECURSOS (estrutura atualizada) */}
+                                  {projeto.recursos && (
+                                    <div className="mt-6 border-t border-slate-200 pt-6">
+                                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+                                        Recursos
+                                      </h4>
+
+                                      {projeto.recursos.referencias?.length > 0 && (
+                                        <div className="mb-4">
+                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Referências</p>
+                                          <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
+                                            {projeto.recursos.referencias.map((ref, i) => (
+                                              <li key={`ref-${i}`}>{ref}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+
+                                      {projeto.recursos.imagens?.length > 0 && (
+                                        <div className="mb-4">
+                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Imagens</p>
+                                          <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
+                                            {projeto.recursos.imagens.map((img, i) => (
+                                              <li key={`img-${i}`}>
+                                                <span className="font-semibold">{img.descricao}</span>
+                                                {img.fonte_sugerida && ` — ${img.fonte_sugerida}`}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+
+                                      {projeto.recursos.conteudo_adicional && (
+                                        <div className="mb-4">
+                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Conteúdo Adicional</p>
+                                          <div className="text-slate-600 text-sm space-y-1">
+                                            {Object.entries(projeto.recursos.conteudo_adicional).map(([key, value]) => (
+                                              <p key={key}>
+                                                <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span> {value}
+                                              </p>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>

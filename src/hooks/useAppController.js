@@ -629,6 +629,14 @@ export default function useAppController() {
             return;
         }
 
+        if (isMentoriaPerfil(registerForm.perfil)) {
+            const emailNormalized = String(registerForm.email || '').trim().toLowerCase();
+            if (!/@enova\.educacao\.ba\.gov\.br$/.test(emailNormalized)) {
+                setAuthError('Orientadores e coorientadores devem usar e-mail @enova.educacao.ba.gov.br.');
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         isRegisteringRef.current = true;
 
