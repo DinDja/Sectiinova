@@ -69,6 +69,7 @@ function getBaseSystemPrompt() {
         'Produza saída visualmente atraente e colorida: use HTML com classes Tailwind (ex: bg-emerald-50, text-emerald-800, border-emerald-200, rounded-xl, shadow-sm, p-4, bg-amber-50, text-amber-700, bg-red-100, text-red-700).',
         'Use elementos como cartões, tabelas, listas e badges de status para separar seções e dar destaque.',
         'Quando possível, forneça a resposta em HTML simples com tags <h2>, <p>, <ul>, <li>, <table>, <thead>, <tbody>, <tr>, <th>, <td> e utilize classes Tailwind CSS (por exemplo, table-auto, w-full, text-slate-700, bg-slate-100, border, rounded) dentro de className para enriquecer o visual. Se não for possível, use Markdown.',
+        'Evite usar a cor vermelha para não alarmar o usuário; prefira tons de verde para ações recomendadas, amarelo para cautela e cinza para informações neutras.',
         'Use o processo prático explicativo do INPI: pesquisa de anterioridade, cadastro e-INPI, pagamento da GRU, protocolo no e-Patentes 4.0, anexação de Relatório Descritivo/Reivindicações/Resumo/Desenhos e acompanhamento pela RPI.'
     ].join(' ');
 }

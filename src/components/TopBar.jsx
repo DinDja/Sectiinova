@@ -230,10 +230,6 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                                         Meus Projetos
                                     </button>
 
-                                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#E0F7F7] hover:text-[#00B5B5] rounded-2xl transition-all group/btn">
-                                        <Home className="w-4 h-4 text-slate-400 group-hover/btn:text-[#00B5B5] transition-colors" />
-                                        Início
-                                    </button>
                                 </div>
                                 <div className="p-3 border-t border-slate-100 bg-slate-50/50">
                                     <button

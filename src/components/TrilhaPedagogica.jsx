@@ -62,8 +62,10 @@ export default function TrilhaPedagogica() {
   const [selectedAreaId, setSelectedAreaId] = useState(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState(null);
   const [expandedProjectId, setExpandedProjectId] = useState(null);
+  const [selectedProjectAction, setSelectedProjectAction] = useState({});
   const [filterText, setFilterText] = useState("");
   const [copiedId, setCopiedId] = useState(null);
+  const [openResourcesIndex, setOpenResourcesIndex] = useState(null);
 
   const objectivesRef = useRef(null);
   const projectsRef = useRef(null);
@@ -186,6 +188,44 @@ export default function TrilhaPedagogica() {
     );
   };
 
+  // Helpers para renderizar listas que podem ser strings ou objetos
+  const renderList = (arr) => {
+    if (!arr || !arr.length) return null;
+    return (
+      <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
+        {arr.map((item, i) => (
+          <li key={i}>
+            {typeof item === "string"
+              ? item
+              : item.descricao ||
+                item.descricao_objetivo ||
+                item.title ||
+                JSON.stringify(item)}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const renderActivities = (acts) => {
+    if (!acts || !acts.length) return null;
+    return (
+      <ul className="list-disc list-inside text-slate-600 text-sm space-y-2">
+        {acts.map((a, i) => (
+          <li key={i}>
+            <span className="font-semibold">
+              {a.titulo || a.nome || `Atividade ${i + 1}`}
+            </span>
+            {a.descricao ? ` — ${a.descricao}` : null}
+            {a.duracao ? (
+              <span className="text-xs text-slate-400"> ({a.duracao})</span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   if (loading)
     return (
       <div className="min-h-screen bg-[#FAFBFF] flex items-center justify-center">
@@ -224,6 +264,11 @@ export default function TrilhaPedagogica() {
           {/* Header */}
           <ScrollReveal>
             <header className="text-center space-y-4">
+              <div className="mx-auto max-w-3xl">
+                <p className="inline-block bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-4 py-2 rounded-lg text-sm md:text-base font-extrabold leading-tight">
+                  RESOLUÇÃO CNE/CEB Nº 4, DE 12 DE MAIO DE 2025 — Institui os Parâmetros Nacionais para a Oferta dos Itinerários Formativos de Aprofundamento IFA´s no Ensino Médio.
+                </p>
+              </div>
               <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
                 Sua Jornada Em
                 <span className="ms-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
@@ -235,7 +280,9 @@ export default function TrilhaPedagogica() {
                 tecnológico.
               </p>
               <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
-                Estas são apenas sugestões de atividades e recursos. O(a) professor(a) tem autonomia para adaptar, rejeitar ou reorganizar conforme a realidade da turma.
+                Estas são apenas sugestões de atividades e recursos. O(a)
+                professor(a) tem autonomia para adaptar, rejeitar ou reorganizar
+                conforme a realidade da turma.
               </p>
             </header>
           </ScrollReveal>
@@ -372,6 +419,7 @@ export default function TrilhaPedagogica() {
                     const q = projeto.qualidades_do_projeto || {};
                     const theme = getThemeVars(q.foco || q.focus);
                     const isExpanded = expandedProjectId === index;
+                    const selectedAction = selectedProjectAction[index];
 
                     return (
                       <ScrollReveal key={index} delay={100}>
@@ -385,19 +433,29 @@ export default function TrilhaPedagogica() {
                             }`}
                           ></div>
 
-                          {/* Card do Projeto */}
-                          <div
-                            onClick={() =>
-                              setExpandedProjectId(isExpanded ? null : index)
-                            }
-                            className={`bg-white/80 backdrop-blur-sm rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden min-h-[220px] flex flex-col
-                              ${
-                                isExpanded
-                                  ? "border-slate-300 shadow-2xl shadow-slate-300/40 translate-x-2"
-                                  : "border-slate-200 border-b-4 hover:border-slate-300 shadow-md hover:shadow-xl hover:translate-x-1 hover:bg-white/90"
-                              }
-                            `}
-                          >
+                          {/* Card do Projeto (wrapper com barra de destaque) */}
+                          <div className="relative">
+                            <div className={`absolute left-4 top-6 bottom-6 w-1 rounded-r-xl transition-colors ${isExpanded ? theme.dot : 'bg-slate-200'}`}></div>
+                            <div
+                              onClick={() => {
+                                if (isExpanded) {
+                                  setExpandedProjectId(null);
+                                } else {
+                                  setExpandedProjectId(index);
+                                  setSelectedProjectAction((prev) => ({
+                                    ...prev,
+                                    [index]: null,
+                                  }));
+                                }
+                              }}
+                              className={`ml-6 bg-white/90 backdrop-blur-sm rounded-2xl border transition-all duration-500 cursor-pointer overflow-hidden min-h-[220px] flex flex-col
+                                ${
+                                  isExpanded
+                                    ? "border-slate-300 shadow-2xl shadow-slate-300/40 translate-x-2"
+                                    : "border-slate-200 border-b-4 hover:border-slate-300 shadow-md hover:shadow-xl hover:translate-x-1 hover:bg-white/95"
+                                }
+                              `}
+                            >
                             <div className="p-6 md:p-8">
                               <div className="flex items-center justify-between mb-3">
                                 <span
@@ -405,18 +463,35 @@ export default function TrilhaPedagogica() {
                                 >
                                   {q.foco || q.focus || "Geral"}
                                 </span>
-                                <span className="text-sm font-bold text-slate-300">
-                                  #{String(index + 1).padStart(2, "0")}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-300">#{String(index + 1).padStart(2, "0")}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenResourcesIndex(openResourcesIndex === index ? null : index);
+                                    }}
+                                    className="p-2 rounded-md hover:bg-slate-100"
+                                    aria-label="Ver recursos"
+                                  >
+                                    <BookOpen className="w-4 h-4 text-slate-500" />
+                                  </button>
+                                </div>
                               </div>
 
                               <h3 className="text-xl md:text-2xl font-bold text-slate-800 pr-8 leading-tight">
                                 {projeto.titulo}
                               </h3>
 
+                              {/* Resumo curto do projeto */}
+                              {projeto.resumo && (
+                                <p className="mt-2 text-sm text-slate-600 max-w-[70ch]">
+                                  {projeto.resumo.length > 160 ? projeto.resumo.slice(0, 160) + '...' : projeto.resumo}
+                                </p>
+                              )}
+
                               {!isExpanded && (
-                                <div className="mt-5 flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest opacity-80 group-hover:opacity-100 transition-opacity">
-                                  Desvendar projeto{" "}
+                                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest opacity-80 group-hover:opacity-100 transition-opacity">
+                                  Desvendar projeto
                                   <ChevronRight className="w-4 h-4" />
                                 </div>
                               )}
@@ -428,39 +503,297 @@ export default function TrilhaPedagogica() {
                             >
                               <div className="overflow-hidden bg-slate-50/80 border-t border-slate-100">
                                 <div className="p-6 md:p-8 space-y-6">
-                                  <div className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-widest">
-                                      <Microscope className="w-4 h-4 text-blue-500" />{" "}
-                                      Investigação Científica
-                                    </h4>
-                                    <p className="text-slate-600 text-sm md:text-base leading-relaxed bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                                      {q.a_investigação_científica ||
-                                        "Não especificado."}
-                                    </p>
-                                  </div>
-
-                                  <div className="grid sm:grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                      <h4 className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-widest">
-                                        <Code className="w-4 h-4 text-indigo-500" />{" "}
-                                        Tecnologia
-                                      </h4>
-                                      <p className="text-slate-600 text-sm leading-relaxed bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-full">
-                                        {q.o_componente_tecnológico ||
-                                          "Não especificado."}
+                                  {!selectedAction ? (
+                                    <div className="space-y-5">
+                                      <p className="text-sm font-bold text-slate-700">
+                                        O que você quer fazer hoje?
+                                      </p>
+                                      <div className="grid sm:grid-cols-3 gap-3">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProjectAction(
+                                              (prev) => ({
+                                                ...prev,
+                                                [index]: "investigacao",
+                                              }),
+                                            );
+                                          }}
+                                          className="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold hover:bg-blue-100"
+                                        >
+                                          <Microscope className="w-4 h-4 inline mr-1" />
+                                          Investigação Científica
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProjectAction(
+                                              (prev) => ({
+                                                ...prev,
+                                                [index]: "inovacao",
+                                              }),
+                                            );
+                                          }}
+                                          className="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 font-bold hover:bg-amber-100"
+                                        >
+                                          <Lightbulb className="w-4 h-4 inline mr-1" />
+                                          Inovação
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProjectAction(
+                                              (prev) => ({
+                                                ...prev,
+                                                [index]: "tecnologia",
+                                              }),
+                                            );
+                                          }}
+                                          className="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100"
+                                        >
+                                          <Code className="w-4 h-4 inline mr-1" />
+                                          Tecnologia
+                                        </button>
+                                      </div>
+                                      <p className="text-xs text-slate-500">
+                                        Selecione uma das opções para ver o
+                                        detalhe específico do projeto.
                                       </p>
                                     </div>
-
-                                    <div className="space-y-3">
-                                      <h4 className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-widest">
-                                        <Lightbulb className="w-4 h-4 text-amber-500" />{" "}
-                                        Inovação
-                                      </h4>
-                                      <p className="text-slate-600 text-sm leading-relaxed bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-full">
-                                        {q.inovação || "Não especificado."}
+                                  ) : (
+                                    <div className="space-y-4">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                                          {selectedAction === "investigacao"
+                                            ? "Investigação Científica"
+                                            : selectedAction === "inovacao"
+                                              ? "Inovação"
+                                              : "Tecnologia"}
+                                        </span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProjectAction(
+                                              (prev) => ({
+                                                ...prev,
+                                                [index]: null,
+                                              }),
+                                            );
+                                          }}
+                                          className="text-xs text-blue-600 underline"
+                                        >
+                                          Mudar opção
+                                        </button>
+                                      </div>
+                                      <p className="text-slate-600 text-sm leading-relaxed bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                        {selectedAction === "investigacao"
+                                          ? q.a_investigação_científica ||
+                                            "Não especificado."
+                                          : selectedAction === "inovacao"
+                                            ? q.inovação || "Não especificado."
+                                            : q.o_componente_tecnológico ||
+                                              "Não especificado."}
                                       </p>
+
+                                      {/* Detalhes por especificidade */}
+                                      {selectedAction === "investigacao" && (
+                                        <div className="mt-4 space-y-4">
+                                          {projeto.objetivos_especificos
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Objetivos de investigação
+                                              </p>
+                                              {renderList(
+                                                projeto.objetivos_especificos,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.metodologias?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Metodologias
+                                              </p>
+                                              <p className="text-slate-600 text-sm">
+                                                {projeto.metodologias.join(
+                                                  ", ",
+                                                )}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          {projeto.avaliacao?.indicadores
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Avaliação
+                                              </p>
+                                              <p className="text-slate-600 text-sm">
+                                                Métodos:{" "}
+                                                {projeto.avaliacao.metodos?.join(
+                                                  ", ",
+                                                )}
+                                              </p>
+                                              {renderList(
+                                                projeto.avaliacao.indicadores,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.atividades?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Atividades de investigação
+                                              </p>
+                                              {renderActivities(
+                                                projeto.atividades,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.recursos_necessarios
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Recursos de pesquisa
+                                              </p>
+                                              {renderList(
+                                                projeto.recursos_necessarios,
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {selectedAction === "inovacao" && (
+                                        <div className="mt-4 space-y-4">
+                                          {projeto.impacto_esperado && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Impacto esperado
+                                              </p>
+                                              <p className="text-slate-600 text-sm">
+                                                {projeto.impacto_esperado}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          {projeto.atividades?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Atividades de inovação
+                                              </p>
+                                              {renderActivities(
+                                                projeto.atividades,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.recursos_necessarios
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Recursos necessários
+                                              </p>
+                                              {renderList(
+                                                projeto.recursos_necessarios,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.parcerias?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Parcerias
+                                              </p>
+                                              {renderList(projeto.parcerias)}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {selectedAction === "tecnologia" && (
+                                        <div className="mt-4 space-y-4">
+                                          <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                              Componente tecnológico
+                                            </p>
+                                            <p className="text-slate-600 text-sm">
+                                              {q.o_componente_tecnológico ||
+                                                "Não especificado."}
+                                            </p>
+                                          </div>
+
+                                          {projeto.recursos_necessarios
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Recursos necessários
+                                              </p>
+                                              {renderList(
+                                                projeto.recursos_necessarios,
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {projeto.cronograma?.fases?.length >
+                                            0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Cronograma
+                                              </p>
+                                              <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
+                                                {projeto.cronograma.fases.map(
+                                                  (f, i) => (
+                                                    <li key={i}>
+                                                      {f.fase}
+                                                      {f.duracao_semanas
+                                                        ? ` — ${f.duracao_semanas} semanas`
+                                                        : ""}
+                                                    </li>
+                                                  ),
+                                                )}
+                                              </ul>
+                                            </div>
+                                          )}
+
+                                          {projeto.competencias?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Competências técnicas
+                                              </p>
+                                              <div className="flex flex-wrap gap-2">
+                                                {projeto.competencias.map(
+                                                  (c, i) => (
+                                                    <span
+                                                      key={i}
+                                                      className="px-2 py-1 bg-white text-slate-600 text-[11px] rounded-md border border-slate-200"
+                                                    >
+                                                      {c}
+                                                    </span>
+                                                  ),
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {projeto.acessibilidade?.adaptacoes
+                                            ?.length > 0 && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                                Acessibilidade
+                                              </p>
+                                              {renderList(
+                                                projeto.acessibilidade
+                                                  .adaptacoes,
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
-                                  </div>
+                                  )}
 
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-slate-200">
                                     <div className="flex flex-wrap gap-2">
@@ -500,15 +833,27 @@ export default function TrilhaPedagogica() {
                                     </button>
                                   </div>
 
-                                  {/* NOVA SEÇÃO DE RECURSOS (estrutura atualizada) */}
-                                  {projeto.recursos && (
-                                    <div className="mt-6 border-t border-slate-200 pt-6">
-                                      <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
-                                        Recursos
-                                      </h4>
+                                  {/* Recursos agora exibidos fora do card (popover) */}
+                                  {openResourcesIndex === index && projeto.recursos && (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="absolute right-4 top-6 z-50 w-80 md:w-96 bg-white border rounded-xl shadow-xl p-4 text-sm text-slate-700"
+                                    >
+                                      <div className="flex justify-between items-start mb-2">
+                                        <h5 className="font-bold">Recursos</h5>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenResourcesIndex(null);
+                                          }}
+                                          className="text-xs text-slate-400 hover:text-slate-600"
+                                        >
+                                          Fechar
+                                        </button>
+                                      </div>
 
                                       {projeto.recursos.referencias?.length > 0 && (
-                                        <div className="mb-4">
+                                        <div className="mb-3">
                                           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Referências</p>
                                           <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
                                             {projeto.recursos.referencias.map((ref, i) => (
@@ -519,7 +864,7 @@ export default function TrilhaPedagogica() {
                                       )}
 
                                       {projeto.recursos.imagens?.length > 0 && (
-                                        <div className="mb-4">
+                                        <div className="mb-3">
                                           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Imagens</p>
                                           <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
                                             {projeto.recursos.imagens.map((img, i) => (
@@ -533,8 +878,8 @@ export default function TrilhaPedagogica() {
                                       )}
 
                                       {projeto.recursos.conteudo_adicional && (
-                                        <div className="mb-4">
-                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Conteúdo Adicional</p>
+                                        <div>
+                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Conteúdo adicional</p>
                                           <div className="text-slate-600 text-sm space-y-1">
                                             {Object.entries(projeto.recursos.conteudo_adicional).map(([key, value]) => (
                                               <p key={key}>
@@ -550,6 +895,7 @@ export default function TrilhaPedagogica() {
                               </div>
                             </div>
                           </div>
+                        </div>
                         </div>
                       </ScrollReveal>
                     );

@@ -55,6 +55,7 @@ export default function useAppController() {
     }, []);
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savingEntry, setSavingEntry] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -97,8 +98,75 @@ export default function useAppController() {
     const projectsCursorRef = useRef(null);
     const hasMoreProjectsRef = useRef(true);
     const isFetchingProjectsRef = useRef(false);
-    const normalizedSearchTerm = useMemo(() => String(searchTerm || '').trim().toLowerCase(), [searchTerm]);
+
+    const normalizeText = (text) =>
+        String(text || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    const getLevenshteinDistance = (a, b) => {
+        const matrix = Array.from({ length: b.length + 1 }, () => []);
+
+        for (let i = 0; i <= b.length; i += 1) {
+            matrix[i][0] = i;
+        }
+
+        for (let j = 0; j <= a.length; j += 1) {
+            matrix[0][j] = j;
+        }
+
+        for (let i = 1; i <= b.length; i += 1) {
+            for (let j = 1; j <= a.length; j += 1) {
+                const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j - 1] + cost
+                );
+            }
+        }
+
+        return matrix[b.length][a.length];
+    };
+
+    const isFuzzyMatch = (term, text) => {
+        if (!term || !text) return false;
+
+        if (text.includes(term)) return true;
+
+        const termLength = term.length;
+        const maxDistance = Math.max(1, Math.floor(termLength * 0.35));
+
+        const words = text.split(/\s+/).filter(Boolean);
+        for (const word of words) {
+            if (Math.abs(word.length - termLength) > Math.max(2, termLength)) continue;
+            if (getLevenshteinDistance(term, word) <= maxDistance) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    const normalizedSearchTerm = useMemo(() => normalizeText(searchTerm), [searchTerm]);
     const deferredSearchTerm = useDeferredValue(normalizedSearchTerm);
+
+    useEffect(() => {
+        if (!searchTerm || !searchTerm.trim()) {
+            setIsSearchLoading(false);
+            return;
+        }
+
+        setIsSearchLoading(true);
+        const timer = window.setTimeout(() => {
+            setIsSearchLoading(false);
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [searchTerm]);
 
     const clubsById = useMemo(() => {
         return new Map(clubs.map((club) => [String(club.id), club]));
@@ -114,24 +182,25 @@ export default function useAppController() {
             const schoolId = String(project.escola_id || club?.escola_id || '');
             const school = schoolsById.get(schoolId);
 
+            const rawSearchText = [
+                project.titulo,
+                project.tipo,
+                project.status,
+                project.area_tematica,
+                project.descricao,
+                project.introducao,
+                project.escola_nome,
+                project.escola_id,
+                club?.nome,
+                club?.escola_nome,
+                school?.nome
+            ]
+                .filter(Boolean)
+                .join(' ');
+
             return {
                 project,
-                searchText: [
-                    project.titulo,
-                    project.tipo,
-                    project.status,
-                    project.area_tematica,
-                    project.descricao,
-                    project.introducao,
-                    project.escola_nome,
-                    project.escola_id,
-                    club?.nome,
-                    club?.escola_nome,
-                    school?.nome
-                ]
-                    .filter(Boolean)
-                    .join(' ')
-                    .toLowerCase()
+                searchText: normalizeText(rawSearchText)
             };
         });
     }, [allProjects, clubsById, schoolsById]);
@@ -295,7 +364,10 @@ export default function useAppController() {
         }
 
         return searchableProjects
-            .filter(({ searchText }) => searchText.includes(deferredSearchTerm))
+            .filter(({ searchText }) =>
+                searchText.includes(deferredSearchTerm) ||
+                isFuzzyMatch(deferredSearchTerm, searchText)
+            )
             .map(({ project }) => project);
     }, [deferredSearchTerm, searchableProjects]);
 

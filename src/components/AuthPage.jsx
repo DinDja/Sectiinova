@@ -171,12 +171,6 @@ export default function AuthPage({
                   Comece Agora
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button
-                  onClick={() => openAuthModal("login")}
-                  className="px-8 py-4 bg-white text-gray-700 font-bold rounded-2xl border-2 border-gray-200 hover:border-[#00B5B5] hover:text-[#00B5B5] transition-all"
-                >
-                  Saber Mais
-                </button>
               </div>
             </div>
 
@@ -731,7 +725,7 @@ export default function AuthPage({
                                   isMentoriaPerfil(novoPerfil) || isEstudante
                                     ? prev.matricula
                                     : "",
-                                lattes: isMentoriaPerfil(novoPerfil)
+                                lattes: isMentoriaPerfil(novoPerfil) || isEstudante
                                   ? prev.lattes
                                   : "",
                               }));
@@ -820,6 +814,37 @@ export default function AuthPage({
                             .includes("aluno")) && (
                           <div className="animate-in fade-in slide-in-from-top-2">
                             <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">
+                              Currículo Lattes (Opcional)
+                            </label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <ExternalLink className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <input
+                                type="url"
+                                value={registerForm.lattes}
+                                onChange={(e) =>
+                                  setRegisterForm((prev) => ({
+                                    ...prev,
+                                    lattes: e.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
+                                placeholder="https://lattes.cnpq.br/..."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {(isMentoriaPerfil(registerForm.perfil) ||
+                          (registerForm.perfil || "")
+                            .toLowerCase()
+                            .includes("estudante") ||
+                          (registerForm.perfil || "")
+                            .toLowerCase()
+                            .includes("aluno")) && (
+                          <div className="animate-in fade-in slide-in-from-top-2">
+                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">
                               Matrícula *
                             </label>
                             <input
@@ -896,31 +921,14 @@ export default function AuthPage({
                           </select>
                         </div>
 
+                        {/* Correção: Fechamento correto da condicional */}
                         {isMentoriaPerfil(registerForm.perfil) && (
                           <div className="animate-in fade-in slide-in-from-top-2">
-                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">
-                              Currículo Lattes (Opcional)
-                            </label>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <ExternalLink className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <input
-                                type="url"
-                                value={registerForm.lattes}
-                                onChange={(e) =>
-                                  setRegisterForm((prev) => ({
-                                    ...prev,
-                                    lattes: e.target.value,
-                                  }))
-                                }
-                                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
-                                placeholder="https://lattes.cnpq.br/..."
-                              />
-                            </div>
+                            {/* Conteúdo adicional de mentoria pode entrar aqui */}
                           </div>
                         )}
-                      </div>
+                      </div> {/* Correção: Fechamento da div max-h-[50vh] */}
+
                       <div className="pt-4 mt-2 border-t border-gray-100">
                         <button
                           type="submit"
@@ -935,7 +943,7 @@ export default function AuthPage({
                       </div>
                     </form>
                   )}
-                </div>
+                </div>                
               </div>
             </div>
           </div>

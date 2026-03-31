@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
     X, User, Map as MapIcon, FolderKanban, Users, 
     BookOpen, Microscope, ExternalLink, Target, 
     GraduationCap, Sparkles, Zap, Building2
 } from 'lucide-react';
 import EmptyState from './EmptyState';
+import ModalPerfil from './ModalPerfil';
 import { getInitials, getLattesLink } from '../utils/helpers';
 
 export default function ModalClubView({ 
@@ -22,6 +23,10 @@ export default function ModalClubView({
     setSelectedProjectId, 
     setCurrentView 
 }) {
+    // Estado para controlar o modal de perfil
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+
     // Travar o scroll da página quando o modal estiver aberto
     useEffect(() => {
         if (isOpen) {
@@ -48,7 +53,13 @@ export default function ModalClubView({
         setCurrentView('diario');
     };
 
+    const handleOpenProfile = (user) => {
+        setSelectedUser(user);
+        setIsProfileModalOpen(true);
+    };
+
     return (
+        <>
         <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 transition-opacity"
             onClick={onClose}
@@ -131,7 +142,13 @@ export default function ModalClubView({
                                     equipeDocente.map((person) => (
                                         <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item">
                                             <div className="flex items-center gap-3.5">
-                                                <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                                <div 
+                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors cursor-pointer"
+                                                    onClick={() => handleOpenProfile(person)}
+                                                    title="Ver perfil"
+                                                >
+                                                    {getInitials(person.nome)}
+                                                </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
                                                     <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.some(o => o.id === person.id) ? 'Orientador' : 'Coorientador'}</p>
@@ -165,7 +182,13 @@ export default function ModalClubView({
                                     viewingClubInvestigadores.map((person) => (
                                         <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item">
                                             <div className="flex items-center gap-3.5">
-                                                <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                                <div 
+                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors cursor-pointer"
+                                                    onClick={() => handleOpenProfile(person)}
+                                                    title="Ver perfil"
+                                                >
+                                                    {getInitials(person.nome)}
+                                                </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#FF5722] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
                                                     <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Investigador</p>
@@ -274,5 +297,13 @@ export default function ModalClubView({
                 </div>
             </div>
         </div>
+
+        {/* Modal de Perfil */}
+        <ModalPerfil 
+            isOpen={isProfileModalOpen} 
+            onClose={() => setIsProfileModalOpen(false)} 
+            usuario={selectedUser} 
+        />
+        </>
     );
 }
