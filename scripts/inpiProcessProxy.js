@@ -186,6 +186,24 @@ function getRequestedSource(sourceId) {
   return INPI_SOURCES[sourceId] || null;
 }
 
+function normalizeSearchInput(value = "") {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function normalizeNumberForSource(number, sourceId) {
+  const normalizedInput = normalizeSearchInput(number);
+
+  if (!normalizedInput) {
+    return "";
+  }
+
+  if (sourceId === "marca") {
+    return normalizedInput.replace(/\D/g, "");
+  }
+
+  return normalizedInput;
+}
+
 function getSourceOrder(number, requestedSourceId = "automatico") {
   const requestedSource = getRequestedSource(requestedSourceId);
 
@@ -193,14 +211,14 @@ function getSourceOrder(number, requestedSourceId = "automatico") {
     return [requestedSource];
   }
 
-  const normalizedNumber = String(number || "")
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, " ");
+  const compactNumber = normalizeSearchInput(number);
+  const digitsOnly = compactNumber.replace(/\D/g, "");
 
   const looksLikeProgram =
-    normalizedNumber.startsWith("BR 51") || /^\d{5}-\d$/.test(normalizedNumber);
-  const looksLikeMark = /^\d{9}$/.test(normalizedNumber.replace(/\D/g, ""));
+    compactNumber.startsWith("BR51") ||
+    /^51\d{11}$/.test(digitsOnly) ||
+    /^\d{5}-\d$/.test(compactNumber);
+  const looksLikeMark = /^\d{9}$/.test(digitsOnly);
 
   if (looksLikeProgram) {
     return [INPI_SOURCES.programa, INPI_SOURCES.patente, INPI_SOURCES.marca];
@@ -215,8 +233,9 @@ function getSourceOrder(number, requestedSourceId = "automatico") {
 
 async function fetchFromSource(number, source) {
   const trimmedNumber = String(number || "").trim();
+  const normalizedNumber = normalizeNumberForSource(trimmedNumber, source.id);
 
-  if (!trimmedNumber) {
+  if (!normalizedNumber) {
     throw new Error("Informe um número de pedido válido.");
   }
 
@@ -227,7 +246,7 @@ async function fetchFromSource(number, source) {
     cookieJar,
   });
 
-  const searchBody = source.buildSearchBody(trimmedNumber);
+  const searchBody = source.buildSearchBody(normalizedNumber);
 
   const searchResponse = await requestInpi({
     path: source.searchPath,
