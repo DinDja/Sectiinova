@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import https from "node:https";
 
 const INPI_HOST = "busca.inpi.gov.br";
@@ -73,6 +74,13 @@ const INPI_SOURCES = {
 
 export function isSupportedInpiSourceId(sourceId = "automatico") {
   return sourceId === "automatico" || Object.hasOwn(INPI_SOURCES, sourceId);
+}
+
+function createContentHash(value = "") {
+  return crypto
+    .createHash("sha256")
+    .update(String(value || ""), "utf8")
+    .digest("hex");
 }
 
 function updateCookieJar(cookieJar, setCookieHeader = []) {
@@ -272,6 +280,7 @@ async function fetchFromSource(number, source) {
       query: trimmedNumber,
       fetchedAt: new Date().toISOString(),
       officialSearchUrl: source.officialSearchUrl,
+      contentHash: createContentHash(searchResponse.body),
       searchHtml: searchResponse.body,
       detailHtml: "",
       detailPath: "",
@@ -297,6 +306,7 @@ async function fetchFromSource(number, source) {
     query: trimmedNumber,
     fetchedAt: new Date().toISOString(),
     officialSearchUrl: source.officialSearchUrl,
+    contentHash: createContentHash(detailResponse.body),
     searchHtml: searchResponse.body,
     detailHtml: detailResponse.body,
     detailPath,
@@ -331,6 +341,7 @@ export async function fetchInpiProcessFlow(number, requestedSourceId = "automati
     found: false,
     query: trimmedNumber,
     fetchedAt: new Date().toISOString(),
+    contentHash: "",
     officialSearchUrl: requestedSource?.officialSearchUrl || OFFICIAL_PORTAL_URL,
     requestedSourceId: requestedSourceId || "automatico",
     requestedSourceLabel: requestedSource?.label || "Busca automatica",

@@ -476,6 +476,7 @@ function buildPatentSummary(payload, searchData) {
     sourceId: payload.sourceId,
     sourceLabel: payload.sourceLabel,
     fetchedAt: payload.fetchedAt,
+    contentHash: payload.contentHash || "",
     officialSearchUrl:
       payload.officialSearchUrl || OFFICIAL_SEARCH_URLS[payload.sourceId],
     totalResults: searchData.totalResults,
@@ -520,6 +521,7 @@ function buildProgramSummary(payload, searchData) {
     sourceId: payload.sourceId,
     sourceLabel: payload.sourceLabel,
     fetchedAt: payload.fetchedAt,
+    contentHash: payload.contentHash || "",
     officialSearchUrl:
       payload.officialSearchUrl || OFFICIAL_SEARCH_URLS[payload.sourceId],
     totalResults: searchData.totalResults,
@@ -571,6 +573,7 @@ function buildMarkSummary(payload, searchData) {
     sourceId: payload.sourceId,
     sourceLabel: payload.sourceLabel,
     fetchedAt: payload.fetchedAt,
+    contentHash: payload.contentHash || "",
     officialSearchUrl:
       payload.officialSearchUrl || OFFICIAL_SEARCH_URLS[payload.sourceId],
     totalResults: searchData.totalResults,
@@ -609,6 +612,7 @@ function buildProcessSummary(payload) {
       totalResults: searchData.totalResults,
       query: payload.query,
       fetchedAt: payload.fetchedAt,
+      contentHash: payload.contentHash || "",
       sourceId,
       sourceLabel: payload.sourceLabel || payload.requestedSourceLabel || "Busca INPI",
       requestedSourceId: payload.requestedSourceId || "automatico",

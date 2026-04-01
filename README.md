@@ -62,6 +62,19 @@
 - O projeto já tem suporte a carregamento de clube do usuário conectado e ajuste automático de clube pelo `loggedUser.clube_id` / `escola_id`.
 - Personalize estilos em `src/style.css`, `tailwind.config.js` e `PostCSS`.
 - A consulta pública do agente INPI depende do endpoint local `/api/inpi/process`, exposto pelo servidor do Vite em desenvolvimento e preview. Em hospedagem estática, é preciso publicar um backend equivalente.
+- O acompanhamento automático do INPI usa duas Netlify Functions: `inpi-process` para a consulta pontual e `inpi-watch` para a varredura periódica das buscas monitoradas salvas em `usuarios` no Firestore.
+
+## Monitoramento automático do INPI
+- Buscas bem-sucedidas do rastreador INPI são salvas no documento `usuarios/{uid}`.
+- O campo `inpi_saved_searches` guarda as consultas salvas e `inpi_tracking_alerts` recebe alertas quando a function detectar mudança no conteúdo público do processo.
+- O campo `inpi_tracking_monitoring_count` é usado pela function agendada para filtrar apenas usuários com monitoramento ativo.
+- A function `netlify/functions/inpi-watch.js` roda a cada 6 horas e também pode ser executada manualmente.
+
+### Variáveis de ambiente da Netlify
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: recomendado. JSON completo da service account do Firebase Admin.
+- `FIREBASE_SERVICE_ACCOUNT_BASE64`: alternativa ao JSON puro, em Base64.
+- `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`: alternativa ao JSON completo.
+- `INPI_WATCH_RUN_TOKEN`: opcional. Se definido, protege a execução manual da function `inpi-watch`.
 
 ## Próximos passos sugeridos
 - Adicionar validação de campos avançada no registro de projeto

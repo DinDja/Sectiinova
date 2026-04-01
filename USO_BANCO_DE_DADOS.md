@@ -22,6 +22,12 @@ A exportação padrão gera as seguintes coleções no Firestore:
   - Documento por usuário (orientadores, coorientadores e estudantes)
   - ID do documento: número de matrícula (string)
   - Campos principais: `nome`, `email`, `telefone`, `perfil`, `escola_id`, `clube_id`
+  - Campos adicionais do módulo INPI:
+    - `inpi_saved_searches`: buscas salvas do rastreador de acompanhamento
+    - `inpi_tracking_alerts`: alertas de mudanças detectadas automaticamente
+    - `inpi_tracking_monitoring_count`: quantidade de buscas com monitoramento ativo
+    - `inpi_tracking_last_watch_run_at`: horário da última varredura da function
+    - `inpi_tracking_last_watch_summary`: resumo textual da última varredura
 
 - **`projetos`**
   - Documento por projeto
@@ -149,6 +155,13 @@ O projeto agora inclui o arquivo `firestore.rules` com a seguinte política:
 - apenas **professor orientador** pode criar, atualizar ou excluir documentos em `clubes_ciencia` do próprio clube
 - apenas **professor orientador** pode criar, atualizar ou excluir registros em `diario_bordo` quando o `projeto_id` pertencer ao mesmo `clube_id` do orientador
 - as coleções `projetos`, `usuarios` e `unidades_escolares` ficam somente leitura
+
+### Monitoramento automático do INPI via Netlify
+
+- O frontend grava as buscas do usuário diretamente no documento `usuarios/{uid}`.
+- A function agendada `netlify/functions/inpi-watch.js` usa Firebase Admin para ler apenas usuários com `inpi_tracking_monitoring_count > 0`.
+- Quando a function encontra alteração no conteúdo público de um processo monitorado, ela acrescenta um item em `inpi_tracking_alerts`.
+- Para a function rodar na Netlify, configure uma service account do Firebase Admin via `FIREBASE_SERVICE_ACCOUNT_JSON` ou variáveis equivalentes.
 
 ### Coleções do Fórum (Café Digital)
 

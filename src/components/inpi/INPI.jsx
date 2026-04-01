@@ -186,7 +186,9 @@ export default function INPI({ clubProjects = [], loggedUser = null }) {
             {activeTab === "documentos" && (
               <DocumentosObrigatorios viewMode={viewMode} />
             )}
-            {activeTab === "acompanhamento" && <INPIProcessTracker />}
+            {activeTab === "acompanhamento" && (
+              <INPIProcessTracker loggedUser={loggedUser} />
+            )}
             {activeTab === "agente" && (
               <AutonomousINPIAgent clubProjects={clubProjects} />
             )}
