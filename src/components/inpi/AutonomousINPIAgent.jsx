@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { LoaderCircle, Play, Square, Sparkles, CheckCircle2, CircleAlert } from 'lucide-react';
 
-import { AGENT_PHASES, DEFAULT_MODEL, PRESET_PROJECTS, runAutonomousInpiAgent } from '../services/openRouterAgentService';
+import { AGENT_PHASES, DEFAULT_MODEL, PRESET_PROJECTS, runAutonomousInpiAgent } from '../../services/openRouterAgentService';
 
 const INITIAL_PHASE_STATE = AGENT_PHASES.reduce((accumulator, phase) => {
     accumulator[phase.id] = {

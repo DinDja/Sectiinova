@@ -22,6 +22,7 @@ import {
   Palette,
   Calculator,
 } from "lucide-react";
+import { FcWorkflow } from "react-icons/fc";
 
 // --- COMPONENTE DE ANIMAÇÃO DE SCROLL ---
 const ScrollReveal = ({ children, delay = 0, className = "" }) => {
@@ -269,12 +270,15 @@ export default function TrilhaPedagogica() {
                   RESOLUÇÃO CNE/CEB Nº 4, DE 12 DE MAIO DE 2025 — Institui os Parâmetros Nacionais para a Oferta dos Itinerários Formativos de Aprofundamento IFA´s no Ensino Médio.
                 </p>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
-                Sua Jornada Em
-                <span className="ms-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                  CT&I
-                </span>
-              </h1>
+              <div className="flex items-center justify-center gap-3">
+                <FcWorkflow className="w-12 h-12 text-blue-600" />
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
+                  Sua Jornada Em
+                  <span className="ms-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                    CT&I
+                  </span>
+                </h1>
+              </div>
               <p className="text-slate-600 text-lg max-w-xl mx-auto font-medium">
                 Siga os passos e revele o caminho do conhecimento científico e
                 tecnológico.

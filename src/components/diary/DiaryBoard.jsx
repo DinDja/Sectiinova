@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BookOpen, Target, User, Users, Map, Database, CheckCircle, Calendar, Clock, Lightbulb, AlertCircle, ArrowRight, Plus, ExternalLink, GraduationCap, FileText, Sparkles, LayoutDashboard, Flag } from 'lucide-react';
-import EmptyState from './EmptyState';
-import { getInitials, getLattesAreas, getLattesEducation, getLattesSummary, getLattesUpdatedAt } from '../utils/helpers';
+import EmptyState from '../shared/EmptyState';
+import { getInitials, getLattesAreas, getLattesEducation, getLattesSummary, getLattesUpdatedAt } from '../../utils/helpers';
 
 
 

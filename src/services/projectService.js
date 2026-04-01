@@ -91,6 +91,58 @@ export function normalizePerfil(perfil) {
     return String(perfil || '').trim().toLowerCase();
 }
 
+export function isUserInProject(project, usuario, users = []) {
+    if (!project || !usuario) return false;
+
+    const userId = String(usuario.id || usuario.uid || usuario.matricula || '').trim();
+    const userEmail = String(usuario.email || usuario.emailPrincipal || usuario.email_usuario || '').toLowerCase().trim();
+    const userName = String(usuario.nome || usuario.nomeCompleto || usuario.fullName || '').toLowerCase().trim();
+
+    const userTokens = [userId, userEmail, userName]
+        .flatMap((v) => generateReferenceTokens(v))
+        .filter(Boolean);
+
+    try {
+        const team = getProjectTeam(project, users, project?.clube_id || '');
+        const participants = [
+            ...(team.orientadores || []),
+            ...(team.coorientadores || []),
+            ...(team.investigadores || [])
+        ];
+
+        for (const m of participants) {
+            if (!m) continue;
+            const memberTokens = [m.id, m.uid, m.matricula, m.email, m.nome]
+                .flatMap((v) => generateReferenceTokens(v))
+                .filter(Boolean);
+
+            if (memberTokens.some((t) => userTokens.includes(t))) {
+                return true;
+            }
+        }
+    } catch (err) {
+        // ignore and fallback to raw refs
+    }
+
+    const refs = [
+        ...extractMemberReferences(project),
+        ...extractRoleReferences(project, 'orientador'),
+        ...extractRoleReferences(project, 'coorientador'),
+        ...extractInvestigatorReferences(project)
+    ];
+
+    for (const ref of refs) {
+        if (!ref) continue;
+        const refTokens = generateReferenceTokens(ref);
+        if (refTokens.some((t) => userTokens.includes(t))) return true;
+        const refLower = String(ref).toLowerCase();
+        if (userName && refLower.includes(userName)) return true;
+        if (userEmail && refLower.includes(userEmail)) return true;
+    }
+
+    return false;
+}
+
 function extractMemberReferences(project) {
     const references = [];
 

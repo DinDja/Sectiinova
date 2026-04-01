@@ -166,11 +166,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
-    const stats = {
-        projetos: loggedUser?.projetosCount || 8,
-        seguidores: loggedUser?.seguidoresCount || 156,
-        conquistas: loggedUser?.conquistasCount || 12
-    };
+    const projetosCount = loggedUser?.projetosCount || 0;
 
     return (
         <div className="w-full max-w-4xl mx-auto">
@@ -187,7 +183,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                             className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-white transition-all duration-300 hover:scale-105"
                             title={isEditing ? "Cancelar edição" : "Editar Perfil"}
                         >
-                            {isEditing ? ""  : <Edit2 className="w-4 h-4" />}
+                            {isEditing ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                         </button>
                         
                         {onLogout && (
@@ -267,19 +263,26 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                         )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-8">
-                        <StatCard icon={TrendingUp} label="Projetos" value={stats.projetos} color="from-blue-500 to-cyan-500" />
-                        <StatCard icon={Users} label="Seguidores" value={stats.seguidores} color="from-indigo-500 to-blue-500" />
-                        <StatCard icon={Award} label="Conquistas" value={stats.conquistas} color="from-purple-500 to-pink-500" />
+                    {/* Card do Clube - agora com largura total e fonte menor */}
+                    <div className="flex justify-center mb-8">
+                        <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center mx-auto mb-2">
+                                <School className="w-5 h-5 text-white" />
+                            </div>
+                            <p className="text-lg font-bold text-slate-800 break-words">
+                                {myClub?.nome || 'Não informado'}
+                            </p>
+                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de Ciências</p>
+                        </div>
                     </div>
 
                     {!isEditing ? (
                         <div className="space-y-4 animate-in fade-in duration-500">
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <InfoCard 
-                                    icon={School} 
-                                    label="Clube / Escola" 
-                                    value={myClub?.nome || 'Não informado'} 
+                                    icon={TrendingUp} 
+                                    label="Projetos" 
+                                    value={projetosCount} 
                                     color="text-blue-600"
                                 />
                                 <InfoCard 
@@ -378,18 +381,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     )}
                 </div>
             </div>
-        </div>
-    );
-}
-
-function StatCard({ icon: Icon, label, value, color }) {
-    return (
-        <div className="p-3 rounded-xl bg-gradient-to-br from-slate-50 to-white  shadow-sm text-center">
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${color} flex items-center justify-center mx-auto mb-1`}>
-                <Icon className="w-4 h-4 text-white" />
-            </div>
-            <p className="text-xl font-bold text-slate-800">{value}</p>
-            <p className="text-xs text-slate-500 font-medium">{label}</p>
         </div>
     );
 }

@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
-import ProjectCard from '../ProjectCard';
-import DiaryBoard from '../DiaryBoard';
-import ClubBoard from '../ClubBoard';
+import ProjectCard from '../projects/ProjectCard';
+import DiaryBoard from '../diary/DiaryBoard';
+import ClubBoard from '../club/ClubBoard';
 
 describe('ProjectCard', () => {
   it('renders project data and actions', () => {

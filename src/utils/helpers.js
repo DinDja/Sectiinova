@@ -175,3 +175,39 @@ export async function compressImageFiles(files, options = {}) {
     return compressed;
 }
 
+export function isFailedToFetchError(error) {
+    return error instanceof TypeError && /failed to fetch/i.test(String(error?.message || ''));
+}
+
+export function normalizeNetworkErrorMessage(error, fallbackMessage, context = 'generic') {
+    if (!error) {
+        return fallbackMessage;
+    }
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return error.message || 'Operação interrompida.';
+    }
+
+    if (typeof error === 'string' && error.trim()) {
+        return error;
+    }
+
+    if (isFailedToFetchError(error)) {
+        if (context === 'inpi-tracker') {
+            return 'Não foi possível alcançar a consulta do agente no endpoint /api/inpi/process. Em ambiente local, rode o projeto pelo servidor Vite com npm run dev ou npm run preview. Em produção na Netlify, verifique se a Function inpi-process foi publicada e se o redirect do netlify.toml está ativo.';
+        }
+
+        if (context === 'openrouter-agent') {
+            return 'Não foi possível conectar ao serviço do agente. Verifique sua conexão com a internet e se o navegador consegue acessar a OpenRouter a partir deste ambiente.';
+        }
+
+        return fallbackMessage;
+    }
+
+    if (error instanceof Error && error.message) {
+        return error.message;
+    }
+
+    return fallbackMessage;
+}
+

@@ -7,8 +7,8 @@ import {
     deleteMessage,
     editMessage,
     togglePinMessage,
-} from '../services/forumService';
-import { compressImageToBase64, validateImageFile, getBase64Size } from '../utils/imageCompression';
+} from '../../services/forumService';
+import { compressImageToBase64, validateImageFile, getBase64Size } from '../../utils/imageCompression';
 import Toast from './Toast';
 
 const getUserInitials = (name) => {

@@ -61,6 +61,7 @@
 ## Observações
 - O projeto já tem suporte a carregamento de clube do usuário conectado e ajuste automático de clube pelo `loggedUser.clube_id` / `escola_id`.
 - Personalize estilos em `src/style.css`, `tailwind.config.js` e `PostCSS`.
+- A consulta pública do agente INPI depende do endpoint local `/api/inpi/process`, exposto pelo servidor do Vite em desenvolvimento e preview. Em hospedagem estática, é preciso publicar um backend equivalente.
 
 ## Próximos passos sugeridos
 - Adicionar validação de campos avançada no registro de projeto

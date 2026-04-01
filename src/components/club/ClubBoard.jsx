@@ -1,11 +1,31 @@
 import React, { useState } from 'react';
 import { User, School, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, ArrowRight, Target, GraduationCap, FileText, PlusCircle, Sparkles, Zap, Building2 } from 'lucide-react';
-import EmptyState from './EmptyState';
+import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
-import { getInitials, getLattesAreas, getLattesEducation, getLattesLink, getLattesSummary, compressImageFiles } from '../utils/helpers';
+import ModalPerfil from './ModalPerfil'; // Importação do Modal adicionada
+import { getInitials, getLattesAreas, getLattesEducation, getLattesLink, getLattesSummary, compressImageFiles } from '../../utils/helpers';
 
 export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubProjects, viewingClubUsers, viewingClubOrientadores, viewingClubCoorientadores, viewingClubInvestigadores, viewingClubDiaryCount, setSelectedClubId, setSelectedProjectId, setCurrentView, handleCreateProject }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    
+    // Estados do Modal
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+
+    // Função de clique para abrir o Modal
+    const handleUserClick = (e, user) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const enrichedUser = {
+            ...user,
+            clube: user.clube || viewingClub?.nome || user.clube_nome || '',
+            projetosCount: user.projetosCount ?? user.projetos?.length ?? user.projetos_ids?.length ?? user.projetosIds?.length ?? 0
+        };
+
+        setSelectedUser(enrichedUser);
+        setIsProfileModalOpen(true);
+    };
 
     if (!viewingClub) {
         return (
@@ -37,7 +57,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
         return (
             <div className="flex -space-x-3 isolate">
                 {displayPeople.map((p, i) => (
-                    <div key={p.id} className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ring-2 ring-white shadow-md z-[${max - i}] ${colorClasses} hover:-translate-y-2 transition-transform duration-300 cursor-pointer`} title={p.nome}>
+                    <div key={p.id} onClick={(e) => handleUserClick(e, p)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ring-2 ring-white shadow-md z-[${max - i}] ${colorClasses} hover:-translate-y-2 transition-transform duration-300 cursor-pointer`} title={p.nome}>
                         {getInitials(p.nome)}
                     </div>
                 ))}
@@ -131,7 +151,11 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                             </div>
                         ) : (
                             [...viewingClubOrientadores, ...viewingClubCoorientadores].map((person) => (
-                                <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item">
+                                <div 
+                                    key={person.id} 
+                                    onClick={(e) => handleUserClick(e, person)}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                >
                                     <div className="flex items-center gap-3.5">
                                         <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
                                         <div>
@@ -140,7 +164,16 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                                         </div>
                                     </div>
                                     {getLattesLink(person) && (
-                                        <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                        <a 
+                                            href={getLattesLink(person)} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            onClick={(e) => e.stopPropagation()} 
+                                            className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" 
+                                            title="Ver Lattes"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                        </a>
                                     )}
                                 </div>
                             ))
@@ -162,7 +195,11 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                             </div>
                         ) : (
                             viewingClubInvestigadores.map((person) => (
-                                <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item">
+                                <div 
+                                    key={person.id} 
+                                    onClick={(e) => handleUserClick(e, person)}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                >
                                     <div className="flex items-center gap-3.5">
                                         <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
                                         <div>
@@ -171,7 +208,16 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                                         </div>
                                     </div>
                                     {getLattesLink(person) && (
-                                        <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 flex items-center justify-center hover:bg-[#FF5722] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                        <a 
+                                            href={getLattesLink(person)} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 flex items-center justify-center hover:bg-[#FF5722] hover:text-white transition-all shadow-sm" 
+                                            title="Ver Lattes"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                        </a>
                                     )}
                                 </div>
                             ))
@@ -267,6 +313,16 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     )}
                 </div>
             </div>
+
+            {/* Modal de Perfil renderizado no final do componente */}
+            <ModalPerfil
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                usuario={selectedUser}
+                club={viewingClub}
+                clubProjects={viewingClubProjects}
+                clubUsers={viewingClubUsers}
+            />
         </div>
     );
 }

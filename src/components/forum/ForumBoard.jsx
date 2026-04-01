@@ -39,8 +39,8 @@ import {
   getForumsWhereAccepted,
   fetchClubsPage,
   getClubsTotalCount,
-} from "../services/forumService";
-import { FORUM_EXPLORE_PAGE_SIZE } from "../constants/appConstants";
+} from "../../services/forumService";
+import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
 
 // ─── Constantes e Helpers ─────────────────────────────────────────
@@ -555,324 +555,186 @@ export default function ForumBoard({
         }
       `}</style>
       <ConfirmModal />
-      <div className="max-w-5xl mx-auto space-y-6 pb-12 bg-3d-cubes relative overflow-x-hidden">
-        {/* Overlay sutil para garantir leitura perfeita sobre os cubos */}
-        <div className="absolute inset-0 bg-white/20 pointer-events-none z-0"></div>
-        <div className="relative z-10">
-      {/* Hero & Tabs */}
-      <div className="premium-card overflow-hidden bg-white shadow-sm border border-slate-100">
-        <div className="bg-gradient-to-r from-[#5AC8C8] via-[#5AC8C8] to-[#3DB0B0] p-8 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-          <div className="flex items-center gap-4 mb-2 relative z-10">
-            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <img src="./cafe.svg" alt="" className="w-12 h-12" />
+      
+      {/* NOVA DIV WRAPPER: Ocupa a tela inteira (min-h-screen w-full) e recebe o fundo */}
+      <div className="min-h-screen w-full bg-3d-cubes relative overflow-x-hidden">
+        {/* Overlay sutil para garantir leitura perfeita (agora com fixed para cobrir o scroll) */}
+        <div className="fixed inset-0 bg-white/40 pointer-events-none z-0"></div>
+        
+        {/* DIV DO CONTEÚDO: Limita a largura e centraliza */}
+        <div className="max-w-5xl mx-auto space-y-6 pb-12 pt-6 relative z-10 px-4 md:px-0">
+          
+          {/* Hero & Tabs */}
+          <div className="premium-card overflow-hidden bg-white shadow-sm border border-slate-100">
+            <div className="bg-gradient-to-r from-[#5AC8C8] via-[#5AC8C8] to-[#3DB0B0] p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+              <div className="flex items-center gap-4 mb-2 relative z-10">
+                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                  <img src="./cafe.svg" alt="" className="w-12 h-12" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">
+                    Café Digital
+                  </h1>
+                  <p className="text-[#5AC8C8]/90 text-sm mt-1 font-medium">
+                    Fórum de discussão e colaboração entre clubes
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Café Digital
-              </h1>
-              <p className="text-[#5AC8C8]/90 text-sm mt-1 font-medium">
-                Fórum de discussão e colaboração entre clubes
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <nav className="flex border-b border-slate-200" role="tablist">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setSelectedTopicId(null);
-                  if (tab.id === "meu") setViewingForumClubId(null);
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold transition-all
-                                    ${
-                                      isActive
-                                        ? "text-[#5AC8C8] border-b-2 border-[#5AC8C8] bg-[#5AC8C8]/20"
-                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                                    }`}
-              >
-                <Icon
-                  className={`w-4 h-4 ${isActive ? "text-[#5AC8C8]" : "text-slate-400"}`}
-                />
-                {tab.label}
-                {tab.id === "meu" && isMentor && joinRequests.length > 0 && (
-                  <span className="ml-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                    {joinRequests.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* ─── Tab: Meu Fórum ──────────────────────────── */}
-      {activeTab === "meu" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          {isMentor && joinRequests.length > 0 && (
-            <div className="premium-card p-5 border-l-4 border-l-[#5AC8C8]/70 bg-white">
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-[#5AC8C8]" />
-                Solicitações Pendentes ({joinRequests.length})
-              </h3>
-              <div className="space-y-3">
-                {joinRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3"
+            <nav className="flex border-b border-slate-200" role="tablist">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setSelectedTopicId(null);
+                      if (tab.id === "meu") setViewingForumClubId(null);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold transition-all
+                                        ${
+                                          isActive
+                                            ? "text-[#5AC8C8] border-b-2 border-[#5AC8C8] bg-[#5AC8C8]/20"
+                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                                        }`}
                   >
-                    <div>
-                      <span className="font-semibold text-slate-700 block">
-                        {req.solicitante_nome}
+                    <Icon
+                      className={`w-4 h-4 ${isActive ? "text-[#5AC8C8]" : "text-slate-400"}`}
+                    />
+                    {tab.label}
+                    {tab.id === "meu" && isMentor && joinRequests.length > 0 && (
+                      <span className="ml-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                        {joinRequests.length}
                       </span>
-                      <span className="text-xs font-medium text-slate-500">
-                        Clube:{" "}
-                        {(clubs || []).find(
-                          (c) => c.id === req.solicitante_clube_id,
-                        )?.nome || "Desconhecido"}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleRespondRequest(req.id, true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm font-medium"
-                      >
-                        <CheckCircle className="w-4 h-4" /> Aceitar
-                      </button>
-                      <button
-                        onClick={() => handleRespondRequest(req.id, false)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm font-medium"
-                      >
-                        <XCircle className="w-4 h-4" /> Recusar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {isMentor && externalMembers.length > 0 && (
-            <div className="premium-card p-5 bg-white">
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500" />
-                Membros Externos ({externalMembers.length})
-              </h3>
-              <div className="flex flex-wrap gap-2.5">
-                {externalMembers.map((m) => (
-                  <span
-                    key={m.id}
-                    className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-sm font-medium border border-blue-100"
-                  >
-                    {m.membro_nome}
-                    <button
-                      onClick={() => handleRemoveExternal(m.membro_id)}
-                      className="text-blue-400 hover:text-red-500 transition-colors outline-none focus:ring-2 focus:ring-red-200 rounded-full"
-                      title="Remover membro externo"
-                    >
-                      <XCircle className="w-4 h-4" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <span className="text-slate-800 badge">Tópicos</span> — {currentForumClub?.nome || "Meu Clube"}
-            </h2>
-            {canParticipate && (
-              <button
-                onClick={() => setShowNewTopic(true)}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[#5AC8C8]/25"
-              >
-                <Plus className="w-4 h-4" />
-                Criar Tópico
-              </button>
-            )}
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          {showNewTopic && (
-            <form
-              onSubmit={handleCreateTopic}
-              className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25 animate-in fade-in slide-in-from-top-2"
-            >
-              <h3 className="font-bold text-slate-700 text-lg">
-                Iniciando uma nova discussão
-              </h3>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Qual o assunto do tópico?"
-                  value={newTopicTitle}
-                  onChange={(e) => setNewTopicTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm transition-all font-medium"
-                  maxLength={200}
-                  required
-                  autoFocus
-                />
-                <textarea
-                  placeholder="Adicione mais detalhes (opcional)..."
-                  value={newTopicDesc}
-                  onChange={(e) => setNewTopicDesc(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none transition-all"
-                  rows={3}
-                  maxLength={1000}
-                />
-              </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowNewTopic(false);
-                    setNewTopicTitle("");
-                    setNewTopicDesc("");
-                  }}
-                  className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !newTopicTitle.trim()}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors disabled:opacity-50"
-                >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {submitting ? "Publicando..." : "Publicar Tópico"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="space-y-3">
-            {topics.length === 0 ? (
-              <EmptyBox
-                message="Nenhum tópico criado ainda. Seja o primeiro a iniciar uma conversa!"
-                icon={MessageCircle}
-              />
-            ) : (
-              topics.map((topic) => (
-                <TopicItem
-                  key={topic.id}
-                  topic={topic}
-                  onSelect={setSelectedTopicId}
-                  isModerator={isModeratorOfCurrent}
-                  onTogglePin={handleTogglePin}
-                  onToggleLock={handleToggleLock}
-                  onDelete={handleDeleteTopic}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ─── Tab: Fóruns Aceitos ─────────────────────── */}
-      {activeTab === "aceitos" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          {!viewingForumClubId ? (
-            <>
-              <h2 className="text-xl font-bold text-slate-800">
-                Fóruns em que fui aceito
-              </h2>
-              {acceptedClubs.length === 0 ? (
-                <EmptyBox
-                  message="Você ainda não faz parte de fóruns de outros clubes."
-                  icon={Users}
-                />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {acceptedClubs.map((club) => (
-                    <button
-                      key={club.id}
-                      onClick={() => setViewingForumClubId(club.id)}
-                      className="premium-card p-5 text-left hover:shadow-lg hover:border-[#5AC8C8]/40 transition-all group bg-white focus:outline-none focus:ring-4 focus:ring-[#5AC8C8]/25"
-                    >
-                      <div className="w-10 h-10 bg-[#5AC8C8]/20 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        <Users className="w-5 h-5 text-[#5AC8C8]" />
+          {/* ─── Tab: Meu Fórum ──────────────────────────── */}
+          {activeTab === "meu" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              {isMentor && joinRequests.length > 0 && (
+                <div className="premium-card p-5 border-l-4 border-l-[#5AC8C8]/70 bg-white">
+                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-[#5AC8C8]" />
+                    Solicitações Pendentes ({joinRequests.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {joinRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-700 block">
+                            {req.solicitante_nome}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500">
+                            Clube:{" "}
+                            {(clubs || []).find(
+                              (c) => c.id === req.solicitante_clube_id,
+                            )?.nome || "Desconhecido"}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRespondRequest(req.id, true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm font-medium"
+                          >
+                            <CheckCircle className="w-4 h-4" /> Aceitar
+                          </button>
+                          <button
+                            onClick={() => handleRespondRequest(req.id, false)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm font-medium"
+                          >
+                            <XCircle className="w-4 h-4" /> Recusar
+                          </button>
+                        </div>
                       </div>
-                      <h3 className="font-bold text-slate-800 group-hover:text-[#5AC8C8] transition-colors text-lg line-clamp-1">
-                        {club.nome}
-                      </h3>
-                      <p className="text-xs font-medium text-slate-500 mt-2 flex items-center gap-1">
-                        Acessar discussões &rarr;
-                      </p>
-                    </button>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 pb-2 border-b border-slate-200">
-                <button
-                  onClick={() => {
-                    setViewingForumClubId(null);
-                    setSelectedTopicId(null);
-                  }}
-                  className="p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-[#5AC8C8]/40"
-                  aria-label="Voltar para lista de clubes"
-                >
-                  <ArrowLeft className="w-5 h-5 text-slate-600" />
-                </button>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-slate-800">
-                    Tópicos — {currentForumClub?.nome || "Fórum"}
-                  </h2>
+
+              {isMentor && externalMembers.length > 0 && (
+                <div className="premium-card p-5 bg-white">
+                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    Membros Externos ({externalMembers.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-2.5">
+                    {externalMembers.map((m) => (
+                      <span
+                        key={m.id}
+                        className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-sm font-medium border border-blue-100"
+                      >
+                        {m.membro_nome}
+                        <button
+                          onClick={() => handleRemoveExternal(m.membro_id)}
+                          className="text-blue-400 hover:text-red-500 transition-colors outline-none focus:ring-2 focus:ring-red-200 rounded-full"
+                          title="Remover membro externo"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <span className="text-slate-800 badge">Tópicos</span> — {currentForumClub?.nome || "Meu Clube"}
+                </h2>
                 {canParticipate && (
                   <button
                     onClick={() => setShowNewTopic(true)}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[#5AC8C8]/25"
                   >
-                    <Plus className="w-4 h-4" /> Novo Tópico
+                    <Plus className="w-4 h-4" />
+                    Criar Tópico
                   </button>
                 )}
               </div>
 
-              {/* Mobile Novo Topico Button */}
-              {canParticipate && (
-                <button
-                  onClick={() => setShowNewTopic(true)}
-                  className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
-                >
-                  <Plus className="w-4 h-4" /> Novo Tópico
-                </button>
-              )}
-
               {showNewTopic && (
                 <form
                   onSubmit={handleCreateTopic}
-                  className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25"
+                  className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25 animate-in fade-in slide-in-from-top-2"
                 >
-                  {/* (Mesmo form de Novo Tópico acima, renderizado dinamicamente) */}
-                  <input
-                    type="text"
-                    placeholder="Título do tópico"
-                    value={newTopicTitle}
-                    onChange={(e) => setNewTopicTitle(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium"
-                    maxLength={200}
-                    required
-                  />
-                  <textarea
-                    placeholder="Descrição (opcional)"
-                    value={newTopicDesc}
-                    onChange={(e) => setNewTopicDesc(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none"
-                    rows={3}
-                    maxLength={1000}
-                  />
-                  <div className="flex gap-3 justify-end">
+                  <h3 className="font-bold text-slate-700 text-lg">
+                    Iniciando uma nova discussão
+                  </h3>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Qual o assunto do tópico?"
+                      value={newTopicTitle}
+                      onChange={(e) => setNewTopicTitle(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm transition-all font-medium"
+                      maxLength={200}
+                      required
+                      autoFocus
+                    />
+                    <textarea
+                      placeholder="Adicione mais detalhes (opcional)..."
+                      value={newTopicDesc}
+                      onChange={(e) => setNewTopicDesc(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none transition-all"
+                      rows={3}
+                      maxLength={1000}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -880,19 +742,17 @@ export default function ForumBoard({
                         setNewTopicTitle("");
                         setNewTopicDesc("");
                       }}
-                      className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                      className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !newTopicTitle.trim()}
-                      className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] disabled:opacity-50"
+                      className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors disabled:opacity-50"
                     >
-                      {submitting && (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      )}
-                      {submitting ? "Criando..." : "Criar Tópico"}
+                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {submitting ? "Publicando..." : "Publicar Tópico"}
                     </button>
                   </div>
                 </form>
@@ -901,7 +761,7 @@ export default function ForumBoard({
               <div className="space-y-3">
                 {topics.length === 0 ? (
                   <EmptyBox
-                    message="Nenhum tópico encontrado neste fórum."
+                    message="Nenhum tópico criado ainda. Seja o primeiro a iniciar uma conversa!"
                     icon={MessageCircle}
                   />
                 ) : (
@@ -910,114 +770,259 @@ export default function ForumBoard({
                       key={topic.id}
                       topic={topic}
                       onSelect={setSelectedTopicId}
-                      isModerator={false} // Não é moderador de outros clubes
+                      isModerator={isModeratorOfCurrent}
+                      onTogglePin={handleTogglePin}
+                      onToggleLock={handleToggleLock}
+                      onDelete={handleDeleteTopic}
                     />
                   ))
                 )}
               </div>
-            </>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* ─── Tab: Explorar Fóruns ────────────────────── */}
-      {activeTab === "explorar" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">
-                Explorar Outros Clubes
-              </h2>
-              {exploreTotalCount > 0 && (
-                <p className="text-sm text-slate-500 font-medium mt-1">
-                  Descubra discussões em outros {exploreTotalCount} clubes da
-                  plataforma
+          {/* ─── Tab: Fóruns Aceitos ─────────────────────── */}
+          {activeTab === "aceitos" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              {!viewingForumClubId ? (
+                <>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    Fóruns em que fui aceito
+                  </h2>
+                  {acceptedClubs.length === 0 ? (
+                    <EmptyBox
+                      message="Você ainda não faz parte de fóruns de outros clubes."
+                      icon={Users}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {acceptedClubs.map((club) => (
+                        <button
+                          key={club.id}
+                          onClick={() => setViewingForumClubId(club.id)}
+                          className="premium-card p-5 text-left hover:shadow-lg hover:border-[#5AC8C8]/40 transition-all group bg-white focus:outline-none focus:ring-4 focus:ring-[#5AC8C8]/25"
+                        >
+                          <div className="w-10 h-10 bg-[#5AC8C8]/20 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <Users className="w-5 h-5 text-[#5AC8C8]" />
+                          </div>
+                          <h3 className="font-bold text-slate-800 group-hover:text-[#5AC8C8] transition-colors text-lg line-clamp-1">
+                            {club.nome}
+                          </h3>
+                          <p className="text-xs font-medium text-slate-500 mt-2 flex items-center gap-1">
+                            Acessar discussões &rarr;
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 pb-2 border-b border-slate-200">
+                    <button
+                      onClick={() => {
+                        setViewingForumClubId(null);
+                        setSelectedTopicId(null);
+                      }}
+                      className="p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-[#5AC8C8]/40"
+                      aria-label="Voltar para lista de clubes"
+                    >
+                      <ArrowLeft className="w-5 h-5 text-slate-600" />
+                    </button>
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-slate-800">
+                        Tópicos — {currentForumClub?.nome || "Fórum"}
+                      </h2>
+                    </div>
+                    {canParticipate && (
+                      <button
+                        onClick={() => setShowNewTopic(true)}
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" /> Novo Tópico
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Mobile Novo Topico Button */}
+                  {canParticipate && (
+                    <button
+                      onClick={() => setShowNewTopic(true)}
+                      className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" /> Novo Tópico
+                    </button>
+                  )}
+
+                  {showNewTopic && (
+                    <form
+                      onSubmit={handleCreateTopic}
+                      className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25"
+                    >
+                      {/* (Mesmo form de Novo Tópico acima, renderizado dinamicamente) */}
+                      <input
+                        type="text"
+                        placeholder="Título do tópico"
+                        value={newTopicTitle}
+                        onChange={(e) => setNewTopicTitle(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium"
+                        maxLength={200}
+                        required
+                      />
+                      <textarea
+                        placeholder="Descrição (opcional)"
+                        value={newTopicDesc}
+                        onChange={(e) => setNewTopicDesc(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none"
+                        rows={3}
+                        maxLength={1000}
+                      />
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewTopic(false);
+                            setNewTopicTitle("");
+                            setNewTopicDesc("");
+                          }}
+                          className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submitting || !newTopicTitle.trim()}
+                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] disabled:opacity-50"
+                        >
+                          {submitting && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          {submitting ? "Criando..." : "Criar Tópico"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="space-y-3">
+                    {topics.length === 0 ? (
+                      <EmptyBox
+                        message="Nenhum tópico encontrado neste fórum."
+                        icon={MessageCircle}
+                      />
+                    ) : (
+                      topics.map((topic) => (
+                        <TopicItem
+                          key={topic.id}
+                          topic={topic}
+                          onSelect={setSelectedTopicId}
+                          isModerator={false} // Não é moderador de outros clubes
+                        />
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ─── Tab: Explorar Fóruns ────────────────────── */}
+          {activeTab === "explorar" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    Explorar Outros Clubes
+                  </h2>
+                  {exploreTotalCount > 0 && (
+                    <p className="text-sm text-slate-500 font-medium mt-1">
+                      Descubra discussões em outros {exploreTotalCount} clubes da
+                      plataforma
+                    </p>
+                  )}
+                </div>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar clube..."
+                    value={searchForumInput}
+                    onChange={(e) => setSearchForumInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleForumSearch();
+                    }}
+                    className="w-full pl-10 pr-24 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium transition-all"
+                  />
+                  <button
+                    onClick={handleForumSearch}
+                    className="absolute right-10 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    aria-label="Buscar"
+                  >
+                    Buscar
+                  </button>
+                  {searchForumInput && (
+                    <button
+                      onClick={handleClearForumSearch}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                      aria-label="Limpar busca"
+                    >
+                      <XCircle className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {explorableClubs.length === 0 && !exploreFetching ? (
+                <EmptyBox
+                  message={
+                    searchForumLower
+                      ? "Nenhum clube encontrado com este nome."
+                      : "Não há novos clubes para explorar no momento."
+                  }
+                  icon={Globe}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                  {explorableClubs.map((club) => (
+                    <ClubExploreCard
+                      key={club.id}
+                      club={club}
+                      onRequestJoin={handleRequestJoin}
+                      requesting={requestingClubs.has(club.id)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Sentinela do scroll infinito */}
+              {exploreHasMore && (
+                <div
+                  ref={exploreLoadMoreRef}
+                  className="flex items-center justify-center py-8"
+                >
+                  {exploreFetching && (
+                    <div className="flex items-center gap-2 text-[#5AC8C8] font-medium text-sm bg-[#5AC8C8]/10 px-4 py-2 rounded-full">
+                      <LoaderCircle className="w-4 h-4 animate-spin" />
+                      Carregando mais clubes...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!exploreHasMore && explorableClubs.length > 0 && (
+                <p className="text-center text-sm font-medium text-slate-400 py-8">
+                  Você chegou ao fim da lista.
                 </p>
               )}
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar clube..."
-                value={searchForumInput}
-                onChange={(e) => setSearchForumInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleForumSearch();
-                }}
-                className="w-full pl-10 pr-24 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium transition-all"
-              />
-              <button
-                onClick={handleForumSearch}
-                className="absolute right-10 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                aria-label="Buscar"
-              >
-                Buscar
-              </button>
-              {searchForumInput && (
-                <button
-                  onClick={handleClearForumSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
-                  aria-label="Limpar busca"
-                >
-                  <XCircle className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            </div>
-          </div>
+          )}
 
-          {explorableClubs.length === 0 && !exploreFetching ? (
-            <EmptyBox
-              message={
-                searchForumLower
-                  ? "Nenhum clube encontrado com este nome."
-                  : "Não há novos clubes para explorar no momento."
-              }
-              icon={Globe}
+          {toast.message && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast({ message: '', type: 'error' })}
             />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {explorableClubs.map((club) => (
-                <ClubExploreCard
-                  key={club.id}
-                  club={club}
-                  onRequestJoin={handleRequestJoin}
-                  requesting={requestingClubs.has(club.id)}
-                />
-              ))}
-            </div>
           )}
-
-          {/* Sentinela do scroll infinito */}
-          {exploreHasMore && (
-            <div
-              ref={exploreLoadMoreRef}
-              className="flex items-center justify-center py-8"
-            >
-              {exploreFetching && (
-                <div className="flex items-center gap-2 text-[#5AC8C8] font-medium text-sm bg-[#5AC8C8]/10 px-4 py-2 rounded-full">
-                  <LoaderCircle className="w-4 h-4 animate-spin" />
-                  Carregando mais clubes...
-                </div>
-              )}
-            </div>
-          )}
-
-          {!exploreHasMore && explorableClubs.length > 0 && (
-            <p className="text-center text-sm font-medium text-slate-400 py-8">
-              Você chegou ao fim da lista.
-            </p>
-          )}
-        </div>
-      )}
-
-      {toast.message && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ message: '', type: 'error' })}
-        />
-      )}
         </div>
       </div>
     </>

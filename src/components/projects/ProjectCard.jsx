@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 
-import ModalPerfil from './ModalPerfil';
+import ModalPerfil from '../club/ModalPerfil';
 
 export default function ProjectCard({
     project,
@@ -13,7 +13,9 @@ export default function ProjectCard({
     onClubClick,
     onDiaryClick,
     onLikeClick,
-    onShareClick
+    onShareClick,
+    allProjects = [],
+    allUsers = []
 }) {
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(project?.likes || 195);
@@ -88,6 +90,9 @@ export default function ProjectCard({
         setIsLiked(!isLiked);
         if (onLikeClick) onLikeClick(project);
     };
+
+    const clubProjectsForModal = Array.isArray(allProjects) ? allProjects.filter(p => String(p.clube_id) === String(club?.id)) : [];
+    const clubUsersForModal = Array.isArray(allUsers) ? allUsers.filter(u => String(u.clube_id) === String(club?.id)) : [];
 
     const handleShare = () => {
         if (onShareClick) {
@@ -269,10 +274,13 @@ export default function ProjectCard({
             </div> 
 
             {/* MODAL RENDERIZADO AQUI */}
-            <ModalPerfil 
+            <ModalPerfil
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
                 usuario={selectedUser}
+                club={club}
+                clubProjects={clubProjectsForModal}
+                clubUsers={clubUsersForModal}
             />
         </article>
     );

@@ -1,22 +1,33 @@
 import React from 'react';
 import { 
-    User, School, Shield, Phone, 
-    Award, Users, TrendingUp, Link as LinkIcon, X, Mail 
+    School, Shield, Phone, 
+    Users, TrendingUp, Link as LinkIcon, X, Mail 
 } from 'lucide-react';
+import { getInitials as getInitialsFromName, getLattesLink } from '../../utils/helpers';
+import { isUserInProject } from '../../services/projectService';
 
-export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
+export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = null, clubProjects = [], clubUsers = [] }) {
     if (!isOpen || !usuario) return null;
 
-    const stats = {
-        projetos: usuario.projetosCount || 0,
-        seguidores: usuario.seguidoresCount || 0,
-        conquistas: usuario.conquistasCount || 0
-    };
+    const projetoCountByClub = Array.isArray(clubProjects) && clubProjects.length > 0
+        ? clubProjects.reduce((acc, project) => {
+            try {
+                return isUserInProject(project, usuario, clubUsers) ? acc + 1 : acc;
+            } catch (err) {
+                return acc;
+            }
+        }, 0)
+        : 0;
 
-    const getInitials = (name) => {
-        if (!name) return 'U';
-        return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-    };
+    const projetosCount = Number(usuario.projetosCount ?? usuario.projetos?.length ?? usuario.projetos_ids?.length ?? usuario.projetosIds?.length ?? projetoCountByClub ?? 0);
+    const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'Usuário Sem Nome';
+    const email = usuario.email || usuario.emailPrincipal || usuario.email_usuario || 'Sem e-mail';
+    const telefone = usuario.telefone || usuario.celular || usuario.telefone_celular || 'Não informado';
+    const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'Não informado';
+    const bio = usuario.bio || usuario.descricao || usuario.sobre || '';
+    const avatarSrc = usuario.fotoUrl || usuario.fotoBase64 || usuario.avatar || usuario.foto || '';
+    const lattesLink = getLattesLink(usuario);
+
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) onClose();
@@ -44,49 +55,72 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario }) {
                 <div className="px-6 pb-8 relative">
                     <div className="relative flex flex-col items-center -mt-16 mb-6">
                         <div className="relative w-28 h-28 rounded-full border-4 border-white bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
-                            {usuario.fotoUrl || usuario.fotoBase64 ? (
-                                <img src={usuario.fotoUrl || usuario.fotoBase64} alt={usuario.nome} className="w-full h-full object-cover" />
+                            {avatarSrc ? (
+                                <img src={avatarSrc} alt={nome} className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-3xl font-bold text-[#0B3B5F]">
-                                    {getInitials(usuario.nome)}
+                                    {getInitialsFromName(nome)}
                                 </span>
                             )}
                         </div>
 
                         <h1 className="mt-3 text-2xl font-bold text-slate-800">
-                            {usuario.nome || 'Usuário Sem Nome'}
+                            {nome}
                         </h1>
                         
                         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1">
                             <div className="flex items-center gap-1 text-slate-500 text-sm">
                                 <Mail className="w-3.5 h-3.5" />
-                                <span>{usuario.email || 'Sem e-mail'}</span>
+                                <span>{email}</span>
                             </div>
                         </div>
 
-                        {usuario.bio && (
+                        {bio && (
                             <p className="mt-3 text-slate-600 text-sm text-center max-w-md italic px-4">
-                                "{usuario.bio}"
+                                "{bio}"
                             </p>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                        <StatCard icon={TrendingUp} label="Projetos" value={stats.projetos} color="from-blue-500 to-cyan-500" />
-                        <StatCard icon={Users} label="Seguidores" value={stats.seguidores} color="from-indigo-500 to-blue-500" />
-                        <StatCard icon={Award} label="Conquistas" value={stats.conquistas} color="from-purple-500 to-pink-500" />
+                    {/* Card do Clube - destaque principal */}
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center mx-auto mb-2">
+                                <School className="w-5 h-5 text-white" />
+                            </div>
+                            <p className="text-lg font-bold text-slate-800 break-words">
+                                {clube}
+                            </p>
+                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de Ciências</p>
+                        </div>
                     </div>
 
+                    {/* Grid de informações */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <InfoCard icon={School} label="Clube / Escola" value={usuario.clube || 'Não informado'} color="text-blue-600" />
-                        <InfoCard icon={Shield} label="Perfil" value={usuario.perfil || 'Membro'} color="text-purple-600" />
-                        <InfoCard icon={Phone} label="Telefone" value={usuario.telefone || 'Não informado'} color="text-emerald-600" />
+                        <InfoCard 
+                            icon={TrendingUp} 
+                            label="Projetos" 
+                            value={projetosCount} 
+                            color="text-blue-600" 
+                        />
+                        <InfoCard 
+                            icon={Shield} 
+                            label="Perfil" 
+                            value={usuario.perfil || usuario.perfil_usuario || 'Membro'} 
+                            color="text-purple-600" 
+                        />
+                        <InfoCard 
+                            icon={Phone} 
+                            label="Telefone" 
+                            value={telefone} 
+                            color="text-emerald-600" 
+                        />
                         <InfoCard 
                             icon={LinkIcon} 
                             label="Lattes" 
-                            value={usuario.lattesLink ? 'Acessar Lattes' : 'Não informado'} 
-                            isLink={!!usuario.lattesLink}
-                            linkUrl={usuario.lattesLink}
+                            value={lattesLink ? 'Acessar Lattes' : 'Não informado'} 
+                            isLink={!!lattesLink}
+                            linkUrl={lattesLink}
                             color="text-blue-600" 
                         />
                     </div>

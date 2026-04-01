@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import {
   Microscope,
   User,
@@ -25,6 +26,31 @@ import {
   Globe,
   Chrome,
 } from "lucide-react";
+
+// Componente do Checkbox adaptado para receber props de estado
+const MorphingCheckbox = ({ checked, onChange }) => {
+  return (
+    <StyledWrapper>
+      <label className="morphing-checkbox">
+        <input type="checkbox" checked={checked} onChange={onChange} />
+        <div className="checkbox-body">
+          <div className="cube">
+            <div className="front" />
+            <div className="back" />
+            <div className="top" />
+            <div className="bottom" />
+            <div className="left" />
+            <div className="right" />
+          </div>
+          <svg viewBox="0 0 24 24" className="checkmark">
+            <path d="M4,12 L9,17 L20,6" />
+          </svg>
+          <div className="ripple" />
+        </div>
+      </label>
+    </StyledWrapper>
+  );
+};
 
 export default function AuthPage({
   authMode,
@@ -175,9 +201,8 @@ export default function AuthPage({
             </div>
 
             <div className="flex-1 relative w-full">
-              {/* Container com Flexbox e margens dinâmicas (mt) para o efeito cascata */}
               <div className="flex flex-row flex-wrap justify-center items-center gap-6 sm:gap-8 max-w-2xl mx-auto py-8">
-                {/* Card 1: Ideias Inovadoras (Sobe em telas médias+) */}
+                {/* Card 1 */}
                 <div className="animated-card card-blue sm:-mt-12">
                   <div className="inner-content flex flex-col items-center p-6">
                     <div className="p-4 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl mb-4">
@@ -196,7 +221,7 @@ export default function AuthPage({
                   </div>
                 </div>
 
-                {/* Card 2: Pesquisa (Desce em telas médias+) */}
+                {/* Card 2 */}
                 <div className="animated-card card-teal sm:mt-12">
                   <div className="inner-content flex flex-col items-center p-6">
                     <div className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl mb-4">
@@ -215,7 +240,7 @@ export default function AuthPage({
                   </div>
                 </div>
 
-                {/* Card 3: Trilha pedagógica (Leve subida em telas médias+) */}
+                {/* Card 3 */}
                 <div className="animated-card card-indigo sm:-mt-6">
                   <div className="inner-content flex flex-col items-center p-6">
                     <div className="p-4 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-2xl mb-4">
@@ -243,7 +268,7 @@ export default function AuthPage({
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Saiba Mais
+              Saiba Mais 
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Tudo que você precisa para desenvolver projetos científicos
@@ -278,10 +303,8 @@ export default function AuthPage({
                 href="#"
                 className="group relative block h-64 sm:h-80 lg:h-80"
               >
-                {/* Borda tracejada de fundo */}
                 <span className="absolute inset-0 border-2 border-dashed border-slate-300"></span>
 
-                {/* Card principal com ícone de fundo transparente */}
                 <div className="relative flex h-full w-full transform items-end border-2 border-slate-300 bg-white transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2 overflow-hidden">
                   {(typeof feature.icon === "string" && feature.icon) ? (
                     <div className="pointer-events-none absolute inset-0">
@@ -297,14 +320,12 @@ export default function AuthPage({
                     />
                   )}
 
-                  {/* Estado Padrão (some no hover) */}
                   <div className="relative z-10 px-4 pb-4 transition-opacity group-hover:absolute group-hover:opacity-0 sm:px-6 sm:pb-4 lg:px-8 lg:pb-8 w-full">
                     <h2 className="mt-4 text-lg font-bold text-gray-900 sm:text-xl">
                       {feature.title}
                     </h2>
                   </div>
 
-                  {/* Estado Hover (aparece no hover) */}
                   <div className="absolute p-4 opacity-0 transition-opacity group-hover:relative group-hover:opacity-100 sm:p-6 lg:p-8 w-full">
                     <h3 className="mt-4 text-lg font-bold text-[#004B8D] sm:text-xl">
                       {feature.title}
@@ -531,7 +552,7 @@ export default function AuthPage({
                           fill="none"
                           xmlns="http://www.w3.org/2000/svg"
                         >
-                          <g clip-path="url(#clip0_1_7)">
+                          <g clipPath="url(#clip0_1_7)">
                             <path
                               d="M18.9572 9.69769C18.9535 8.91776 18.8871 8.34892 18.7465 7.75937L9.79301 7.80273L9.81006 11.323L15.0656 11.2975C14.9639 12.1729 14.3981 13.4931 13.1309 14.3846L13.1136 14.5025L15.9551 16.6703L16.1513 16.6888C17.9446 15.0253 18.9712 12.5856 18.9572 9.69769Z"
                               fill="#4285F4"
@@ -725,9 +746,10 @@ export default function AuthPage({
                                   isMentoriaPerfil(novoPerfil) || isEstudante
                                     ? prev.matricula
                                     : "",
-                                lattes: isMentoriaPerfil(novoPerfil) || isEstudante
-                                  ? prev.lattes
-                                  : "",
+                                lattes:
+                                  isMentoriaPerfil(novoPerfil) || isEstudante
+                                    ? prev.lattes
+                                    : "",
                               }));
                             }}
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10 appearance-none"
@@ -739,6 +761,32 @@ export default function AuthPage({
                             ))}
                           </select>
                         </div>
+
+                        {/* NOVO CHECKBOX INSERIDO AQUI */}
+                        <div className="flex items-center p-3 gap-4 py-2">
+                          <MorphingCheckbox
+                            checked={registerForm.recebeIncentivo || false}
+                            onChange={(e) =>
+                              setRegisterForm((prev) => ({
+                                ...prev,
+                                recebeIncentivo: e.target.checked,
+                              }))
+                            }
+                          />
+                          <label
+                            className="text-sm font-semibold text-gray-600 cursor-pointer"
+                            onClick={() =>
+                              setRegisterForm((prev) => ({
+                                ...prev,
+                                recebeIncentivo: !prev.recebeIncentivo,
+                              }))
+                            }
+                          >
+                            Recebe incentivo do programa + ciência nas
+                            escolas?
+                          </label>
+                        </div>
+                        {/* FIM DO NOVO CHECKBOX */}
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -920,14 +968,7 @@ export default function AuthPage({
                             )}
                           </select>
                         </div>
-
-                        {/* Correção: Fechamento correto da condicional */}
-                        {isMentoriaPerfil(registerForm.perfil) && (
-                          <div className="animate-in fade-in slide-in-from-top-2">
-                            {/* Conteúdo adicional de mentoria pode entrar aqui */}
-                          </div>
-                        )}
-                      </div> {/* Correção: Fechamento da div max-h-[50vh] */}
+                      </div>
 
                       <div className="pt-4 mt-2 border-t border-gray-100">
                         <button
@@ -943,7 +984,7 @@ export default function AuthPage({
                       </div>
                     </form>
                   )}
-                </div>                
+                </div>
               </div>
             </div>
           </div>
@@ -952,3 +993,178 @@ export default function AuthPage({
     </div>
   );
 }
+
+// Estilos do Checkbox verde no final do arquivo
+const StyledWrapper = styled.div`
+  .morphing-checkbox {
+    --checkbox-size: 1.1em;
+    --checkbox-color: #088986; 
+    --checkbox-color-hover: #066f73;
+    --checkbox-shadow: rgba(16, 185, 129, 0.3);
+    --checkmark-color: white;
+    --cubic-bezier: cubic-bezier(0.16, 1, 0.3, 1);
+
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .morphing-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkbox-body {
+    position: relative;
+    width: var(--checkbox-size);
+    height: var(--checkbox-size);
+    perspective: 25em;
+  }
+
+  .cube {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s var(--cubic-bezier);
+  }
+
+  .cube div {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--checkbox-color);
+    backface-visibility: hidden;
+    border-radius: 0.3em;
+    box-shadow: 0 0.2em 0.6em var(--checkbox-shadow);
+    transform-style: preserve-3d;
+  }
+
+  .cube .front {
+    transform: translateZ(calc(var(--checkbox-size) / 2));
+  }
+  .cube .back {
+    transform: rotateY(180deg) translateZ(calc(var(--checkbox-size) / 2));
+  }
+  .cube .top {
+    transform: rotateX(90deg) translateZ(calc(var(--checkbox-size) / 2));
+  }
+  .cube .bottom {
+    transform: rotateX(-90deg) translateZ(calc(var(--checkbox-size) / 2));
+  }
+  .cube .left {
+    transform: rotateY(-90deg) translateZ(calc(var(--checkbox-size) / 2));
+  }
+  .cube .right {
+    transform: rotateY(90deg) translateZ(calc(var(--checkbox-size) / 2));
+  }
+
+  .morphing-checkbox:hover .cube div {
+    background-color: var(--checkbox-color-hover);
+  }
+
+  .morphing-checkbox input:checked + .checkbox-body .cube {
+    transform: rotateY(180deg) rotateZ(180deg);
+  }
+
+  .checkmark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 60%;
+    height: 60%;
+    fill: none;
+    stroke: var(--checkmark-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .morphing-checkbox input:checked + .checkbox-body .checkmark {
+    animation: check-animation 0.5s var(--cubic-bezier) forwards 0.3s;
+  }
+
+  @keyframes check-animation {
+    0% {
+      transform: translate(-50%, -50%) scale(0);
+      stroke-dashoffset: 24;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1);
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .morphing-checkbox input:checked + .checkbox-body .ripple {
+    animation: ripple 0.6s var(--cubic-bezier);
+  }
+
+  @keyframes ripple {
+    0% {
+      width: 0;
+      height: 0;
+      opacity: 0.5;
+    }
+    100% {
+      width: 200%;
+      height: 200%;
+      opacity: 0;
+    }
+  }
+
+  .morphing-checkbox input:focus + .checkbox-body::after {
+    content: "";
+    position: absolute;
+    top: -0.3em;
+    left: -0.3em;
+    right: -0.3em;
+    bottom: -0.3em;
+    border-radius: 0.6em;
+    border: 0.15em solid rgba(16, 185, 129, 0.4);
+    pointer-events: none;
+    opacity: 0;
+    animation: focus-animation 0.3s var(--cubic-bezier) forwards;
+  }
+
+  @keyframes focus-animation {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .morphing-checkbox:active .cube {
+    transform: scale(0.9);
+  }
+
+  .morphing-checkbox input:checked:active + .checkbox-body .cube {
+    transform: scale(0.9) rotateY(180deg) rotateZ(180deg);
+  }
+`;

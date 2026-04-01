@@ -39,7 +39,7 @@ const AGENT_PHASES = [
     {
         id: 'peticionamento',
         title: 'Peticionamento e Documentos',
-        goal: 'Auxiliar na preparação do pedido no e-Patentes 4.0 e checklist de anexos: Relatório, Reivindicações, Resumo, Desenhos.'
+        goal: 'Auxiliar na preparação do pedido no e-Patentes 4.0, checklist de anexos (Relatório, Reivindicações, Resumo, Desenhos) e assinatura do documento de veracidade com certificado ICP-Brasil compatível.'
     },
     {
         id: 'validacao',
@@ -70,7 +70,7 @@ function getBaseSystemPrompt() {
         'Use elementos como cartões, tabelas, listas e badges de status para separar seções e dar destaque.',
         'Quando possível, forneça a resposta em HTML simples com tags <h2>, <p>, <ul>, <li>, <table>, <thead>, <tbody>, <tr>, <th>, <td> e utilize classes Tailwind CSS (por exemplo, table-auto, w-full, text-slate-700, bg-slate-100, border, rounded) dentro de className para enriquecer o visual. Se não for possível, use Markdown.',
         'Evite usar a cor vermelha para não alarmar o usuário; prefira tons de verde para ações recomendadas, amarelo para cautela e cinza para informações neutras.',
-        'Use o processo prático explicativo do INPI: pesquisa de anterioridade, cadastro e-INPI, pagamento da GRU, protocolo no e-Patentes 4.0, anexação de Relatório Descritivo/Reivindicações/Resumo/Desenhos e acompanhamento pela RPI.'
+        'Use o processo prático explicativo do INPI: pesquisa de anterioridade, cadastro e-INPI, pagamento da GRU, protocolo no e-Patentes 4.0, anexação de Relatório Descritivo/Reivindicações/Resumo/Desenhos, assinatura do documento de veracidade com e-CPF ou e-CNPJ e acompanhamento pela RPI.'
     ].join(' ');
 }
 
@@ -124,6 +124,7 @@ export async function runAutonomousInpiAgent({ objective, context, selectedProje
                 '- Pagamento de GRU (código 200 para pedido nacional e 203 para exame técnico).',
                 '- Peticionamento no e-Patentes 4.0 (depósito de pedido, exigências e recursos).',
                 '- Anexação de Relatório Descritivo, Reivindicações, Resumo e Desenhos (DOCX/PDF).',
+                '- Revisão e assinatura do documento de veracidade antes da confirmação final, usando certificado ICP-Brasil compatível (e-CPF ou e-CNPJ).',
                 '- Acompanhamento via RPI e cobrança de anuidades.',
                 '',
                 'Regra obrigatória: não crie projeto novo. Trabalhe apenas com o projeto selecionado e produza somente instruções e petições vinculadas a ele.'
@@ -140,7 +141,8 @@ export async function runAutonomousInpiAgent({ objective, context, selectedProje
             `Fase atual: ${phase.title}`,
             `Meta da fase: ${phase.goal}`,
             '',
-            'Sempre ancore suas respostas na sequência prática do INPI (Pesquisa de Anterioridade, Cadastro e-INPI, GRU, e-Patentes 4.0, Documentos técnicos e Acompanhamento/RPI).',
+            'Sempre ancore suas respostas na sequência prática do INPI (Pesquisa de Anterioridade, Cadastro e-INPI, GRU, e-Patentes 4.0, Documentos técnicos, Documento de Veracidade com certificado ICP-Brasil e Acompanhamento/RPI).',
+            'Quando falar da assinatura do documento de veracidade, deixe claro que assinatura gov.br não substitui e-CPF/e-CNPJ quando o fluxo exigir certificado ICP-Brasil.',
             'Com base no objetivo e no histórico anterior, gere a resposta desta fase.',
             'Formato obrigatório:',
             '1) Ações práticas (checklist com 4-7 itens, incluindo itens do processo INPI)',
@@ -184,13 +186,13 @@ const PRESET_PROJECTS = [
         id: 'deposito-pi',
         name: 'Depósito inicial de PI',
         objective: 'Preparar as petições e o checklist para depósito inicial de Patente de Invenção (PI) no INPI.',
-        context: 'Foco em GRU 200, consistência entre Relatório, Reivindicações, Resumo e Desenhos e protocolo no e-Patentes 4.0.'
+        context: 'Foco em GRU 200, consistência entre Relatório, Reivindicações, Resumo e Desenhos, documento de veracidade com e-CPF/e-CNPJ e protocolo no e-Patentes 4.0.'
     },
     {
         id: 'deposito-mu',
         name: 'Depósito inicial de MU',
         objective: 'Preparar as petições e o checklist para depósito inicial de Modelo de Utilidade (MU) no INPI.',
-        context: 'Foco em melhoria funcional de objeto de uso prático, GRU 200 e organização dos anexos técnicos.'
+        context: 'Foco em melhoria funcional de objeto de uso prático, GRU 200, organização dos anexos técnicos e assinatura do documento de veracidade com certificado ICP-Brasil.'
     },
     {
         id: 'exigencia-formal',

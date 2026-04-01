@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { School, FolderKanban, LoaderCircle, AlertCircle, ChevronRight } from 'lucide-react';
-import EmptyState from './EmptyState';
+import EmptyState from '../shared/EmptyState';
 import ProjectCard from './ProjectCard';
-import ModalClubView from './ModalClubView'; // Importando o modal
+import ModalClubView from '../club/ModalClubView'; // Importando o modal
 
 // Componente Skeleton para loading inicial
 const ProjectCardSkeleton = () => (
@@ -275,6 +275,8 @@ export default function ProjectFeed({
                   isCompleted={isCompleted}
                   team={team}
                   investigatorNames={investigatorNames}
+                  allProjects={feedProjects}
+                  allUsers={users}
                   
                   // AQUI ALTERAMOS PARA ABRIR O MODAL
                   onClubClick={() => handleOpenClubModal(club, school)}

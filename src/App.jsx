@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 
-import AuthPage from './components/AuthPage';
-import AuthLoading from './components/AuthLoading';
-import MainShell from './components/MainShell';
-import DiaryModal from './components/DiaryModal';
-import ProjectFeed from './components/ProjectFeed';
-import DiaryBoard from './components/DiaryBoard';
-import ClubBoard from './components/ClubBoard';
-import INPI from './components/INPI';
-import ForumBoard from './components/ForumBoard';
-import TrilhaPedagogica from './components/TrilhaPedagogica';
-import MeusProjetos from './components/MeusProjetos';
+import AuthPage from './components/auth/AuthPage';
+import AuthLoading from './components/auth/AuthLoading';
+import MainShell from './components/layout/MainShell';
+import DiaryModal from './components/diary/DiaryModal';
+import ProjectFeed from './components/projects/ProjectFeed';
+import DiaryBoard from './components/diary/DiaryBoard';
+import ClubBoard from './components/club/ClubBoard';
+import INPI from './components/inpi/INPI';
+import ForumBoard from './components/forum/ForumBoard';
+import TrilhaPedagogica from './components/trilha/TrilhaPedagogica';
+import MeusProjetos from './components/projects/MeusProjetos';
 import { STAGES, PERFIS_LOGIN } from './constants/appConstants';
 import useAppController from './hooks/useAppController';
 
@@ -216,9 +216,10 @@ export default function App() {
                     />
                 )}
 
-                {currentView === 'inpi' && <INPI clubProjects={myClubProjects} />}
+                {currentView === 'inpi' && (
+                    <INPI clubProjects={myClubProjects} loggedUser={loggedUser} />
+                )}
 
-                {console.log('App currentView:', currentView)}
                 {currentView === 'forum' && (
                     <ForumBoard
                         loggedUser={loggedUser}

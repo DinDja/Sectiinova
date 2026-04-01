@@ -3,18 +3,15 @@ import {
     addDoc,
     collection,
     doc,
-    getCountFromServer,
     getDocs,
     getDoc,
     limit,
-    onSnapshot,
     orderBy,
     query,
     setDoc,
     startAfter,
     serverTimestamp,
     updateDoc,
-    where
 } from 'firebase/firestore';
 import {
     createUserWithEmailAndPassword,
@@ -297,46 +294,48 @@ export default function useAppController() {
     }, []);
 
     useEffect(() => {
-        let loadedCollections = 0;
-        const totalCollections = 4;
+        let isMounted = true;
 
-        const finishLoading = () => {
-            loadedCollections += 1;
-            if (loadedCollections >= totalCollections) {
-                setLoading(false);
+        const loadCoreCollections = async () => {
+            try {
+                setLoading(true);
+
+                // Limita diário para reduzir payload/leitura em bases muito grandes.
+                const diaryConstraints = [orderBy('createdAt', 'desc'), limit(500)];
+
+                const [loadedClubs, loadedUsers, loadedSchools, loadedDiaryEntries, loadedAllProjects] = await Promise.all([
+                    cachedDataService.getCollectionList('clubes_ciencia', [], true),
+                    cachedDataService.getCollectionList('usuarios', [], true),
+                    cachedDataService.getCollectionList('unidades_escolares', [], true),
+                    cachedDataService.getCollectionList('diario_bordo', diaryConstraints, true),
+                    cachedDataService.getCollectionList('projetos', [], true)
+                ]);
+
+                if (!isMounted) {
+                    return;
+                }
+
+                setClubs(loadedClubs || []);
+                setUsers(loadedUsers || []);
+                setSchools(loadedSchools || []);
+                setDiaryEntries(loadedDiaryEntries || []);
+                setAllProjects(loadedAllProjects || []);
+            } catch (error) {
+                console.error('Erro ao carregar dados iniciais com cache:', error);
+                if (isMounted) {
+                    setErrorMessage('Nao foi possivel carregar os dados iniciais. Verifique conexão.');
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
-        const subscribeToCollection = (collectionName, setter, options = {}) => {
-            // 🎯 USAR CACHE DISTRIBUÍDO
-            const constraints = [];
-            if (collectionName === 'diario_bordo') {
-                constraints.push(orderBy('createdAt', 'desc'));
-            }
-
-            return cachedDataService.onCollectionSnapshot(
-                collectionName,
-                constraints,
-                (data) => {
-                    setter(data);
-                    finishLoading();
-                },
-                true // useCache
-            );
-        };
-
-        const unsubscribers = [
-            subscribeToCollection('clubes_ciencia', setClubs),
-            subscribeToCollection('usuarios', setUsers),
-            subscribeToCollection('unidades_escolares', setSchools),
-            subscribeToCollection('diario_bordo', setDiaryEntries, {
-                queryBuilder: (collectionRef) => query(collectionRef, orderBy('createdAt', 'desc'))
-            }),
-            subscribeToCollection('projetos', setAllProjects)
-        ];
+        void loadCoreCollections();
 
         return () => {
-            unsubscribers.forEach((unsubscribe) => unsubscribe());
+            isMounted = false;
         };
     }, []);
 
@@ -635,13 +634,10 @@ export default function useAppController() {
             return;
         }
 
-        const projectsQuery = query(collection(db, 'projetos'), where('clube_id', '==', viewingClubId));
-        const unsubscribe = onSnapshot(projectsQuery, (snapshot) => {
-            setClubProjects(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-        });
-
-        return () => unsubscribe();
-    }, [viewingClubId]);
+        setClubProjects(
+            allProjects.filter((project) => String(project.clube_id || '') === String(viewingClubId))
+        );
+    }, [allProjects, viewingClubId]);
 
     useEffect(() => {
         if (!myClubId) {
@@ -649,20 +645,10 @@ export default function useAppController() {
             return;
         }
 
-        const projectsQuery = query(collection(db, 'projetos'), where('clube_id', '==', myClubId));
-        const unsubscribe = onSnapshot(
-            projectsQuery,
-            (snapshot) => {
-                setMyClubProjects(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-            },
-            (error) => {
-                console.error('Erro ao carregar projetos do clube do usuário:', error);
-                setMyClubProjects([]);
-            }
+        setMyClubProjects(
+            allProjects.filter((project) => String(project.clube_id || '') === String(myClubId))
         );
-
-        return () => unsubscribe();
-    }, [myClubId]);
+    }, [allProjects, myClubId]);
 
     const handleLogin = async (event) => {
         event.preventDefault();
@@ -890,6 +876,8 @@ export default function useAppController() {
             }
 
             const projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
+
+            await cachedDataService.invalidateCollection('projetos');
 
             setSelectedProjectId(projectRef.id);
             setCurrentView('clube');

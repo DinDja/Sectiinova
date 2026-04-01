@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Map, BookOpen, Layers, School, Lightbulb, Coffee, GripHorizontal } from 'lucide-react';
-import { HeightRule } from 'docx';
+import { GripHorizontal } from 'lucide-react';
+import {
+  FcGlobe,
+  FcOpenedFolder,
+  FcWorkflow,
+  FcIdea,
+  FcComments,
+  FcDepartment,
+} from 'react-icons/fc';
 
 export default function Sidebar({
   currentView,
@@ -18,12 +25,52 @@ export default function Sidebar({
   const [tempOrder, setTempOrder] = useState(null);
 
   const allNavItems = [
-    { id: 'Projetos', label: 'ColabTec', icon: Map, tooltip: 'Explorar projetos' },
-    { id: 'meusProjetos', label: 'Meus Projetos', icon: BookOpen, tooltip: 'Projetos que participo' },
-    { id: 'trilha', label: 'Trilha Pedagógica', icon: Layers, tooltip: 'Planejar trilha CT&I' },
-    { id: 'inpi', label: 'PatentesLab', icon: Lightbulb, tooltip: 'Propriedade intelectual' },
-    { id: 'forum', label: 'Café Digital', icon: Coffee, tooltip: 'Fórum de discussão' },
-    { id: 'clube', label: 'Meu Clube', icon: School, tooltip: 'Gerenciar meu clube' },
+    {
+      id: 'Projetos',
+      label: 'ColabTec',
+      icon: FcGlobe,
+      iconSrc: '/iconesSidebar/colabtec.svg',
+      tooltip: 'Explorar projetos',
+      iconClass: 'text-sky-600',
+    },
+    {
+      id: 'meusProjetos',
+      label: 'Meus Projetos',
+      icon: FcOpenedFolder,
+      tooltip: 'Projetos que participo',
+      iconClass: 'text-emerald-600',
+    },
+    {
+      id: 'trilha',
+      label: 'Trilha Pedagógica',
+      icon: FcWorkflow,
+      iconSrc: '/iconesSidebar/trilha.svg',
+      tooltip: 'Planejar trilha CT&I',
+      iconClass: 'text-violet-600',
+    },
+    {
+      id: 'inpi',
+      label: 'PatentesLab',
+      icon: FcIdea,
+      tooltip: 'Propriedade intelectual',
+      iconClass: 'text-amber-600',
+    },
+    {
+      id: 'forum',
+      label: 'Café Digital',
+      icon: FcComments,
+      iconSrc: '/iconesSidebar/CafeDigital.svg',
+      tooltip: 'Fórum de discussão',
+      iconClass: 'text-orange-600',
+    },
+    {
+      id: 'clube',
+      label: 'Meu Clube',
+      icon: FcDepartment,
+      iconSrc: '/iconesSidebar/meuclube.svg',
+      tooltip: 'Gerenciar meu clube',
+      iconClass: 'text-rose-600',
+    },
   ];
 
   // Ordenar itens: usar tempOrder durante drag, senão usar sidebarOrder salva
@@ -82,14 +129,14 @@ export default function Sidebar({
 
   return (
     <aside
-      className="w-24 h-full min-h-screen glass-surface flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
+      className="w-32 h-full min-h-screen glass-surface flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
       aria-label="Menu principal"
     >
       {/* Botão de editar ordem */}
       <button
         onClick={() => setIsEditing(!isEditing)}
         className={`
-          mb-3 p-2 rounded-lg transition-all duration-200
+          mb-3 p-3 rounded-lg transition-all duration-200
           ${isEditing
             ? 'bg-[#00B5B5]/20 text-[#0F5257] border border-[#00B5B5]'
             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
@@ -97,7 +144,7 @@ export default function Sidebar({
         `}
         title={isEditing ? 'Salvo automaticamente' : 'Reordenar itens'}
       >
-        <GripHorizontal className="w-5 h-5" strokeWidth={1.75} />
+        <GripHorizontal className="w-7 h-7" strokeWidth={1.75} />
       </button>
 
       {/* Navegação principal */}
@@ -140,7 +187,26 @@ export default function Sidebar({
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon className="w-6 h-6 mb-1.5 transition-transform group-hover:scale-105" strokeWidth={1.75} />
+              <span
+                className={`
+                  mb-1.5 inline-flex items-center justify-center rounded-lg p-3.5
+                  transition-transform group-hover:scale-110
+                  ${isActive ? 'bg-white/85 shadow-sm' : ''}
+                `}
+              >
+                {item.iconSrc ? (
+                  <img
+                    src={item.iconSrc}
+                    alt={item.label}
+                    className={`w-10 h-10 ${isActive ? 'brightness-90 saturate-75' : ''}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <Icon
+                    className={`w-10 h-10 ${isActive ? 'text-[#0F5257]' : item.iconClass}`}
+                  />
+                )}
+              </span>
               {item.id === 'clube' ? (
                 <span className="text-[11px] font-medium text-center leading-tight">Meu<br />Clube</span>
               ) : (

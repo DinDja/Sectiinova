@@ -49,6 +49,7 @@ export default function MainShell({
   };
 
   const isForumView = currentView === 'forum';
+  const isINPIView = currentView === "inpi";
 
   const containerClasses = isHighContrast
     ? "app-shell h-screen bg-black text-white flex flex-col relative"
@@ -100,7 +101,13 @@ export default function MainShell({
                   }),
             }}
           >
-            {children}
+            {isINPIView ? (
+              <div className="mx-auto w-full max-w-[84rem] px-2 py-4 md:px-4">
+                {children}
+              </div>
+            ) : (
+              children
+            )}
           </main>
         </div>
       </div>

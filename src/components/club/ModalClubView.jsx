@@ -4,9 +4,9 @@ import {
     BookOpen, Microscope, ExternalLink, Target, 
     GraduationCap, Sparkles, Zap, Building2
 } from 'lucide-react';
-import EmptyState from './EmptyState';
+import EmptyState from '../shared/EmptyState';
 import ModalPerfil from './ModalPerfil';
-import { getInitials, getLattesLink } from '../utils/helpers';
+import { getInitials, getLattesLink } from '../../utils/helpers';
 
 export default function ModalClubView({ 
     isOpen, 
@@ -54,7 +54,13 @@ export default function ModalClubView({
     };
 
     const handleOpenProfile = (user) => {
-        setSelectedUser(user);
+        const enrichedUser = {
+            ...user,
+            clube: user.clube || viewingClub?.nome || user.clube_nome || '',
+            projetosCount: user.projetosCount ?? user.projetos?.length ?? user.projetos_ids?.length ?? user.projetosIds?.length ?? 0
+        };
+
+        setSelectedUser(enrichedUser);
         setIsProfileModalOpen(true);
     };
 
@@ -140,11 +146,17 @@ export default function ModalClubView({
                                     </div>
                                 ) : (
                                     equipeDocente.map((person) => (
-                                        <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item">
+                                        <div
+                                            key={person.id}
+                                            onClick={() => handleOpenProfile(person)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenProfile(person); } }}
+                                            role="button"
+                                            tabIndex={0}
+                                            className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                        >
                                             <div className="flex items-center gap-3.5">
                                                 <div 
-                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors cursor-pointer"
-                                                    onClick={() => handleOpenProfile(person)}
+                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors"
                                                     title="Ver perfil"
                                                 >
                                                     {getInitials(person.nome)}
@@ -155,7 +167,7 @@ export default function ModalClubView({
                                                 </div>
                                             </div>
                                             {getLattesLink(person) && (
-                                                <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                                <a href={getLattesLink(person)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
                                             )}
                                         </div>
                                     ))
@@ -180,11 +192,17 @@ export default function ModalClubView({
                                     </div>
                                 ) : (
                                     viewingClubInvestigadores.map((person) => (
-                                        <div key={person.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item">
+                                        <div
+                                            key={person.id}
+                                            onClick={() => handleOpenProfile(person)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenProfile(person); } }}
+                                            role="button"
+                                            tabIndex={0}
+                                            className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#FF5722]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                        >
                                             <div className="flex items-center gap-3.5">
                                                 <div 
-                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors cursor-pointer"
-                                                    onClick={() => handleOpenProfile(person)}
+                                                    className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors"
                                                     title="Ver perfil"
                                                 >
                                                     {getInitials(person.nome)}
@@ -195,7 +213,7 @@ export default function ModalClubView({
                                                 </div>
                                             </div>
                                             {getLattesLink(person) && (
-                                                <a href={getLattesLink(person)} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 flex items-center justify-center hover:bg-[#FF5722] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
+                                                <a href={getLattesLink(person)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 flex items-center justify-center hover:bg-[#FF5722] hover:text-white transition-all shadow-sm" title="Ver Lattes"><ExternalLink className="w-4 h-4" /></a>
                                             )}
                                         </div>
                                     ))
@@ -303,6 +321,9 @@ export default function ModalClubView({
             isOpen={isProfileModalOpen} 
             onClose={() => setIsProfileModalOpen(false)} 
             usuario={selectedUser} 
+            club={viewingClub}
+            clubProjects={viewingClubProjects}
+            clubUsers={viewingClubUsers}
         />
         </>
     );

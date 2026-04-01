@@ -56,13 +56,11 @@ class CachedDataService {
     if (useCache) {
       const cached = await indexedDBService.get(collectionName, docId);
       if (cached !== null) {
-        console.log(`[Cache HIT] ${collectionName}/${docId}`);
         return cached;
       }
     }
 
     // 2. Busca no Firestore
-    console.log(`[Cache MISS] ${collectionName}/${docId} - buscando no Firestore...`);
     try {
       const snap = await getDoc(doc(db, collectionName, docId));
       if (snap.exists()) {
@@ -93,7 +91,6 @@ class CachedDataService {
     if (useCache) {
       const cached = await indexedDBService.get(collectionName, cacheKey);
       if (cached !== null) {
-        console.log(`[Cache HIT] ${collectionName}/${cacheKey}`);
         return cached;
       }
     }
