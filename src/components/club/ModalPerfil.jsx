@@ -22,7 +22,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
     const projetosCount = Number(usuario.projetosCount ?? usuario.projetos?.length ?? usuario.projetos_ids?.length ?? usuario.projetosIds?.length ?? projetoCountByClub ?? 0);
     const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'Usuário Sem Nome';
     const email = usuario.email || usuario.emailPrincipal || usuario.email_usuario || 'Sem e-mail';
-    const telefone = usuario.telefone || usuario.celular || usuario.telefone_celular || 'Não informado';
     const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'Não informado';
     const bio = usuario.bio || usuario.descricao || usuario.sobre || '';
     const avatarSrc = usuario.fotoUrl || usuario.fotoBase64 || usuario.avatar || usuario.foto || '';
@@ -108,12 +107,6 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
                             label="Perfil" 
                             value={usuario.perfil || usuario.perfil_usuario || 'Membro'} 
                             color="text-purple-600" 
-                        />
-                        <InfoCard 
-                            icon={Phone} 
-                            label="Telefone" 
-                            value={telefone} 
-                            color="text-emerald-600" 
                         />
                         <InfoCard 
                             icon={LinkIcon} 

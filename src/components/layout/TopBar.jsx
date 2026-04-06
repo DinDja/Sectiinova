@@ -99,9 +99,7 @@ export default function TopBar({ searchTerm, setSearchTerm, loggedUser, leadUser
                 {/* Logo e Contexto */}
                 <div className={`flex items-center gap-4 transition-all duration-300 ${isSearchExpanded ? 'hidden sm:flex' : 'flex'}`}>
                     <div className="relative group flex items-center justify-center">
-                        <div className="">
-                        <img src="/logo.svg" alt="SECTI" className="h-20"/>  
-                      </div>
+                     
                     </div>
                     
                     <div className="hidden md:flex flex-col justify-center">
