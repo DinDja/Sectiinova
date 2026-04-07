@@ -32,6 +32,50 @@ function createDocument(html) {
   return new DOMParser().parseFromString(String(html || ""), "text/html");
 }
 
+function normalizeNoticeText(value = "") {
+  const text = createDocument(String(value || "")).body?.textContent || value;
+  return normalizeText(text).replace(/\\+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function getRestrictedAccessNotice(payload = {}) {
+  const explicitTitle = normalizeText(payload.noticeTitle) || "Pedido localizado com acesso restrito";
+  const explicitMessage = normalizeNoticeText(payload.noticeMessage);
+
+  if (explicitMessage) {
+    return {
+      title: explicitTitle,
+      message: explicitMessage,
+    };
+  }
+
+  const pageText = normalizeNoticeText(
+    createDocument(payload.searchHtml).body?.textContent || "",
+  );
+  const comparableText = normalizeComparableText(pageText);
+
+  if (
+    !comparableText.includes("consta em nosso banco de dados") ||
+    !comparableText.includes("meus pedidos") ||
+    !comparableText.includes("login e senha")
+  ) {
+    return null;
+  }
+
+  const extractedMessage =
+    pageText.match(/AVISO\s*:?\s*(.+?)(?=Dados atualizados at[eé]|Rua Mayrink Veiga|$)/i)?.[1] ||
+    "";
+  const processNumber = normalizeText(
+    payload.restrictedProcessNumber || payload.query,
+  );
+
+  return {
+    title: explicitTitle,
+    message:
+      normalizeNoticeText(extractedMessage) ||
+      `O INPI informou que o pedido ${processNumber} consta na base, mas o detalhe depende de login e acesso em Meus pedidos.`,
+  };
+}
+
 function getSearchResultData(sourceId, searchHtml) {
   const searchDocument = createDocument(searchHtml);
   const pageText = normalizeText(searchDocument.body?.textContent || "");
@@ -462,6 +506,53 @@ function inferStatus(sourceId, grantDate, latestDispatch, explicitStatus = "") {
   };
 }
 
+function buildRestrictedProcessSummary(payload, restrictedNotice) {
+  const sourceId = payload.sourceId || payload.requestedSourceId || "patente";
+  const sourceLabel =
+    payload.sourceLabel || payload.requestedSourceLabel || "Busca INPI";
+  const processNumber = normalizeText(
+    payload.restrictedProcessNumber || payload.query,
+  );
+  const title = processNumber
+    ? `Pedido ${processNumber} localizado no INPI`
+    : "Pedido localizado no INPI";
+
+  return {
+    found: true,
+    accessRestricted: true,
+    publicDataAvailable: false,
+    requiresAuthenticatedPortalAccess: true,
+    query: payload.query,
+    requestedSourceId: payload.requestedSourceId || "automatico",
+    requestedSourceLabel: payload.requestedSourceLabel || "Busca automatica",
+    sourceId,
+    sourceLabel,
+    fetchedAt: payload.fetchedAt,
+    contentHash: payload.contentHash || "",
+    officialSearchUrl:
+      payload.officialSearchUrl || OFFICIAL_SEARCH_URLS[sourceId] || OFFICIAL_SEARCH_URL,
+    totalResults: 1,
+    summary: {
+      presentationType: `${sourceLabel} • detalhe disponivel apenas com login`,
+      processNumber,
+      title,
+      depositDate: "",
+      publicationDate: "",
+      grantDate: "-",
+      accessNote: restrictedNotice?.message || "",
+    },
+    latestDispatch: null,
+    dispatches: [],
+    petitions: [],
+    searchedSources: payload.searchedSources || [],
+    status: {
+      label: "Disponivel em Meus pedidos",
+      tone: "amber",
+    },
+    notice: restrictedNotice,
+  };
+}
+
 function buildPatentSummary(payload, searchData) {
   const detailDocument = createDocument(payload.detailHtml);
   const dispatches = getDispatchHistory(detailDocument);
@@ -603,6 +694,16 @@ function buildMarkSummary(payload, searchData) {
 }
 
 function buildProcessSummary(payload) {
+  const restrictedNotice = getRestrictedAccessNotice(payload);
+
+  if (
+    payload.accessRestricted ||
+    payload.requiresAuthenticatedPortalAccess ||
+    restrictedNotice
+  ) {
+    return buildRestrictedProcessSummary(payload, restrictedNotice);
+  }
+
   const sourceId = payload.sourceId || payload.requestedSourceId || "patente";
   const searchData = getSearchResultData(sourceId, payload.searchHtml);
 

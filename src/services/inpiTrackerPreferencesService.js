@@ -1,13 +1,16 @@
-import { doc, onSnapshot, runTransaction } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, runTransaction } from "firebase/firestore";
 
 import { db } from "../../firebase";
+import { fetchInpiProcessByNumber } from "./inpiProcessTrackingService";
 import {
   INPI_TRACKER_FIELDS,
   countMonitoredSearches,
   createSearchIdentity,
   createStoredSearchFromResult,
+  createTrackingAlert,
   normalizeStoredAlerts,
   normalizeStoredSearches,
+  prependTrackingAlerts,
   removeStoredSearch,
   upsertStoredSearch,
 } from "./inpiTrackingShared";
@@ -197,4 +200,157 @@ export async function dismissInpiTrackingAlert(userId, alertId) {
       { merge: true },
     );
   });
+}
+
+async function processManualWatchEntry(entry) {
+  const nowIso = new Date().toISOString();
+
+  try {
+    const result = await fetchInpiProcessByNumber(entry.processNumber, entry.sourceId);
+
+    if (!result?.found) {
+      return {
+        changed: false,
+        nextEntry: {
+          ...entry,
+          lastCheckedAt: nowIso,
+          lastError: "A varredura manual não encontrou o processo nesta rodada.",
+        },
+        alert: null,
+      };
+    }
+
+    const contentChanged =
+      Boolean(entry.lastKnownContentHash) &&
+      Boolean(result.contentHash) &&
+      entry.lastKnownContentHash !== result.contentHash;
+    const nextEntry = createStoredSearchFromResult(result, {
+      previousEntry: entry,
+      watchEnabled: entry.watchEnabled,
+      changed: contentChanged,
+    });
+
+    return {
+      changed: contentChanged,
+      nextEntry,
+      alert: contentChanged ? createTrackingAlert(entry, nextEntry) : null,
+    };
+  } catch (error) {
+    return {
+      changed: false,
+      nextEntry: {
+        ...entry,
+        lastCheckedAt: nowIso,
+        lastError:
+          error instanceof Error
+            ? error.message
+            : "Falha inesperada ao monitorar o processo.",
+      },
+      alert: null,
+    };
+  }
+}
+
+export async function executeManualInpiWatchForUser(userId) {
+  const normalizedUserId = String(userId || "").trim();
+
+  if (!normalizedUserId) {
+    throw new Error("Usuário não identificado para executar a varredura manual.");
+  }
+
+  const userRef = getUserRef(normalizedUserId);
+  const initialSnapshot = await getDoc(userRef);
+  const initialData = initialSnapshot.data() || {};
+  const savedSearches = normalizeStoredSearches(
+    initialData[INPI_TRACKER_FIELDS.savedSearches],
+  );
+  const monitoredSearches = savedSearches.filter((entry) => entry.watchEnabled);
+  const nowIso = new Date().toISOString();
+  const summary = {
+    scope: "user",
+    targetUserId: normalizedUserId,
+    processedUsers: monitoredSearches.length ? 1 : 0,
+    processedSearches: 0,
+    changedSearches: 0,
+    alertsCreated: 0,
+    skippedUsers: monitoredSearches.length ? 0 : 1,
+  };
+
+  if (!monitoredSearches.length) {
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(userRef);
+      const data = snapshot.data() || {};
+      const currentSavedSearches = normalizeStoredSearches(
+        data[INPI_TRACKER_FIELDS.savedSearches],
+      );
+
+      transaction.set(
+        userRef,
+        {
+          [INPI_TRACKER_FIELDS.monitoringCount]: countMonitoredSearches(currentSavedSearches),
+          [INPI_TRACKER_FIELDS.lastWatchRunAt]: nowIso,
+          [INPI_TRACKER_FIELDS.lastWatchSummary]:
+            "Varredura manual concluída: nenhuma busca monitorada ativa.",
+          [INPI_TRACKER_FIELDS.updatedAt]: nowIso,
+        },
+        { merge: true },
+      );
+    });
+
+    return summary;
+  }
+
+  const outcomes = [];
+
+  for (const monitoredEntry of monitoredSearches) {
+    summary.processedSearches += 1;
+
+    const outcome = await processManualWatchEntry(monitoredEntry);
+    outcomes.push({
+      identity: createSearchIdentity(monitoredEntry.processNumber, monitoredEntry.sourceId),
+      ...outcome,
+    });
+
+    if (outcome.changed) {
+      summary.changedSearches += 1;
+    }
+
+    if (outcome.alert) {
+      summary.alertsCreated += 1;
+    }
+  }
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(userRef);
+    const data = snapshot.data() || {};
+    const currentSavedSearches = normalizeStoredSearches(
+      data[INPI_TRACKER_FIELDS.savedSearches],
+    );
+    const currentAlerts = normalizeStoredAlerts(data[INPI_TRACKER_FIELDS.alerts]);
+    const outcomesByIdentity = new Map(
+      outcomes.map((outcome) => [outcome.identity, outcome]),
+    );
+    const nextSavedSearches = currentSavedSearches.map((entry) => {
+      const identity = createSearchIdentity(entry.processNumber, entry.sourceId);
+      return outcomesByIdentity.get(identity)?.nextEntry || entry;
+    });
+
+    transaction.set(
+      userRef,
+      {
+        [INPI_TRACKER_FIELDS.savedSearches]: nextSavedSearches,
+        [INPI_TRACKER_FIELDS.alerts]: prependTrackingAlerts(
+          currentAlerts,
+          outcomes.map((outcome) => outcome.alert).filter(Boolean),
+        ),
+        [INPI_TRACKER_FIELDS.monitoringCount]: countMonitoredSearches(nextSavedSearches),
+        [INPI_TRACKER_FIELDS.lastWatchRunAt]: nowIso,
+        [INPI_TRACKER_FIELDS.lastWatchSummary]: `Varredura manual concluída: ${summary.processedSearches} busca(s) verificadas e ${summary.alertsCreated} alerta(s) novo(s).`,
+        [INPI_TRACKER_FIELDS.updatedAt]: nowIso,
+      },
+      { merge: true },
+    );
+  });
+
+  return summary;
 }

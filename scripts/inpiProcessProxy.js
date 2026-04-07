@@ -194,6 +194,54 @@ function getRequestedSource(sourceId) {
   return INPI_SOURCES[sourceId] || null;
 }
 
+function normalizeText(value = "") {
+  return String(value || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\\+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractVisibleText(html = "") {
+  return normalizeText(
+    String(html || "")
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&#39;/g, "'"),
+  );
+}
+
+function extractRestrictedAccessNotice(searchHtml, processNumber = "") {
+  const pageText = extractVisibleText(searchHtml);
+  const comparableText = pageText
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const isRestrictedResult =
+    comparableText.includes("consta em nosso banco de dados") &&
+    comparableText.includes("meus pedidos") &&
+    comparableText.includes("login e senha");
+
+  if (!isRestrictedResult) {
+    return null;
+  }
+
+  const explicitMessage =
+    pageText.match(/AVISO:\s*(.+?)(?=Dados atualizados at[eé]|Rua Mayrink Veiga|$)/i)?.[1] ||
+    "";
+  const normalizedProcessNumber = normalizeText(processNumber);
+
+  return {
+    title: "Pedido localizado com acesso restrito",
+    message:
+      normalizeText(explicitMessage) ||
+      `O INPI informou que o pedido ${normalizedProcessNumber} consta na base, mas o detalhe depende de login e acesso em Meus pedidos.`,
+  };
+}
+
 function normalizeSearchInput(value = "") {
   return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
 }
@@ -271,6 +319,29 @@ async function fetchFromSource(number, source) {
   }
 
   const detailPath = extractDetailPath(searchResponse.body, source);
+  const restrictedNotice = !detailPath
+    ? extractRestrictedAccessNotice(searchResponse.body, trimmedNumber)
+    : null;
+
+  if (restrictedNotice) {
+    return {
+      found: true,
+      accessRestricted: true,
+      publicDataAvailable: false,
+      requiresAuthenticatedPortalAccess: true,
+      noticeTitle: restrictedNotice.title,
+      noticeMessage: restrictedNotice.message,
+      sourceId: source.id,
+      sourceLabel: source.label,
+      query: trimmedNumber,
+      fetchedAt: new Date().toISOString(),
+      officialSearchUrl: source.officialSearchUrl,
+      contentHash: createContentHash(searchResponse.body),
+      searchHtml: searchResponse.body,
+      detailHtml: "",
+      detailPath: "",
+    };
+  }
 
   if (!detailPath || hasNoResults(searchResponse.body)) {
     return {
@@ -421,3 +492,5 @@ export function createInpiProcessProxyPlugin() {
     },
   };
 }
+
+export { extractRestrictedAccessNotice };

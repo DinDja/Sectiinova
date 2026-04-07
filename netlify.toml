@@ -9,3 +9,8 @@
   from = "/api/inpi/process"
   to = "/.netlify/functions/inpi-process"
   status = 200
+
+[[redirects]]
+  from = "/api/inpi/watch"
+  to = "/.netlify/functions/inpi-watch-run"
+  status = 200

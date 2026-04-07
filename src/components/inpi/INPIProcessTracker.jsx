@@ -24,6 +24,7 @@ import {
   OFFICIAL_SEARCH_URLS,
 } from "../../services/inpiProcessTrackingService";
 import {
+  executeManualInpiWatchForUser,
   dismissInpiTrackingAlert,
   removeInpiSearch,
   saveInpiSearch,
@@ -166,6 +167,26 @@ function ResultInfoCard({ icon, label, value }) {
 }
 
 function getResultInfoCards(result) {
+  if (result?.publicDataAvailable === false) {
+    return [
+      {
+        icon: <CheckCircle2 className="w-4 h-4" />,
+        label: "Situacao",
+        value: "O pedido foi localizado no INPI, mas o detalhe ainda nao esta aberto na consulta publica.",
+      },
+      {
+        icon: <User className="w-4 h-4" />,
+        label: "Acesso necessario",
+        value: "Entre com seu login do INPI, refaca a busca e abra o resultado em Meus pedidos.",
+      },
+      {
+        icon: <Cloud className="w-4 h-4" />,
+        label: "Acompanhamento oficial",
+        value: "Enquanto o detalhe publico nao aparecer, acompanhe as publicacoes pela RPI.",
+      },
+    ];
+  }
+
   if (result?.sourceId === "marca") {
     return [
       {
@@ -284,6 +305,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
   const [trackerMessage, setTrackerMessage] = useState("");
   const [trackerError, setTrackerError] = useState("");
   const [isPersisting, setIsPersisting] = useState(false);
+  const [isRunningWatch, setIsRunningWatch] = useState(false);
   const [lastWatchRunAt, setLastWatchRunAt] = useState("");
   const [lastWatchSummary, setLastWatchSummary] = useState("");
 
@@ -434,6 +456,35 @@ export default function INPIProcessTracker({ loggedUser = null }) {
       );
     } finally {
       setIsPersisting(false);
+    }
+  };
+
+  const handleRunWatchNow = async () => {
+    if (!firestoreUserId) {
+      setTrackerError("Entre com uma conta para executar a sua varredura manual.");
+      return;
+    }
+
+    setIsRunningWatch(true);
+    setTrackerError("");
+    setTrackerMessage("");
+
+    try {
+      const summary = await executeManualInpiWatchForUser(firestoreUserId);
+      setTrackerMessage(
+        summary.processedSearches
+          ? `Varredura manual concluída: ${summary.processedSearches} busca(s) verificadas e ${summary.alertsCreated} alerta(s) novo(s).`
+          : "Varredura manual concluída, mas não havia buscas monitoradas ativas na sua conta.",
+      );
+    } catch (watchError) {
+      console.error("Erro ao executar a varredura manual do INPI:", watchError);
+      setTrackerError(
+        watchError instanceof Error
+          ? watchError.message
+          : "Falha ao executar a varredura manual do INPI.",
+      );
+    } finally {
+      setIsRunningWatch(false);
     }
   };
 
@@ -670,19 +721,33 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               </p>
             </div>
 
-            {lastWatchRunAt && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Última varredura automática
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {formatFetchedAt(lastWatchRunAt)}
-                </p>
-                {lastWatchSummary && (
-                  <p className="mt-1 text-xs text-slate-500">{lastWatchSummary}</p>
-                )}
-              </div>
-            )}
+            <div className="flex flex-wrap items-start gap-3">
+              {lastWatchRunAt && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Última varredura do monitoramento
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {formatFetchedAt(lastWatchRunAt)}
+                  </p>
+                  {lastWatchSummary && (
+                    <p className="mt-1 text-xs text-slate-500">{lastWatchSummary}</p>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRunWatchNow}
+                disabled={isRunningWatch || isPersisting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${isRunningWatch ? "animate-spin" : ""}`}
+                />
+                {isRunningWatch ? "Executando..." : "Executar minha varredura"}
+              </button>
+            </div>
           </div>
 
           {savedSearches.length ? (
@@ -803,7 +868,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
 
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
               <Cloud className="w-3.5 h-3.5" />
-              Verificação automática a cada 6 horas
+              Verificação automática a cada 30 minutos
             </div>
           </div>
 
@@ -940,6 +1005,20 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               ))}
             </div>
 
+            {result.notice?.message && (
+              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">
+                      {result.notice.title || "Acesso restrito no INPI"}
+                    </p>
+                    <p className="mt-1">{result.notice.message}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
               <Cloud className="w-4 h-4 text-sky-600" />
               {firestoreUserId ? (
@@ -973,165 +1052,169 @@ export default function INPIProcessTracker({ loggedUser = null }) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800">
-              Ultima publicacao identificada
-            </h3>
+          {result.publicDataAvailable !== false && (
+            <>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Ultima publicacao identificada
+                </h3>
 
-            {result.latestDispatch ? (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-                <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-800">
-                  {result.latestDispatch.code ? (
-                    <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
-                      Código {result.latestDispatch.code}
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
-                      Despacho textual
-                    </span>
-                  )}
-                  <span>RPI {result.latestDispatch.rpiEdition}</span>
-                  <span>•</span>
-                  <span>{result.latestDispatch.rpiDate}</span>
-                </div>
+                {result.latestDispatch ? (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-800">
+                      {result.latestDispatch.code ? (
+                        <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
+                          Código {result.latestDispatch.code}
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
+                          Despacho textual
+                        </span>
+                      )}
+                      <span>RPI {result.latestDispatch.rpiEdition}</span>
+                      <span>•</span>
+                      <span>{result.latestDispatch.rpiDate}</span>
+                    </div>
 
-                <p className="mt-4 text-sm text-emerald-950 leading-relaxed">
-                  {result.latestDispatch.description}
-                </p>
+                    <p className="mt-4 text-sm text-emerald-950 leading-relaxed">
+                      {result.latestDispatch.description}
+                    </p>
 
-                {result.latestDispatch.complement && (
-                  <div className="mt-4 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-900">
-                    <span className="font-semibold">Complemento:</span>{" "}
-                    {result.latestDispatch.complement}
+                    {result.latestDispatch.complement && (
+                      <div className="mt-4 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-900">
+                        <span className="font-semibold">Complemento:</span>{" "}
+                        {result.latestDispatch.complement}
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  <p className="mt-3 text-sm text-slate-600">
+                    Nao foi possivel extrair a publicacao mais recente desta
+                    consulta.
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-slate-600">
-                Nao foi possivel extrair a publicacao mais recente desta
-                consulta.
-              </p>
-            )}
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800">
-              Historico recente de publicacoes
-            </h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Ultimos eventos publicos identificados na base do INPI para esse
-              pedido.
-            </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Historico recente de publicacoes
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Ultimos eventos publicos identificados na base do INPI para esse
+                  pedido.
+                </p>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead>
-                  <tr>
-                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      RPI
-                    </th>
-                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Data
-                    </th>
-                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Despacho
-                    </th>
-                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Complemento
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.dispatches.map((dispatch) => (
-                    <tr
-                      key={`${dispatch.rpiEdition}-${dispatch.code}-${dispatch.rpiDate}`}
-                    >
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                        {dispatch.rpiEdition}
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                        {dispatch.rpiDate}
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                        <div className="font-semibold text-slate-900">
-                          {dispatch.code || "-"}
-                        </div>
-                        <div className="mt-1 leading-relaxed">
-                          {dispatch.description}
-                        </div>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700 leading-relaxed">
-                        {dispatch.complement || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {!!result.petitions?.length && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-800">
-                Petições registradas
-              </h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Eventos protocolados identificados no detalhe publico do
-                processo.
-              </p>
-
-              <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full border-separate border-spacing-0">
-                  <thead>
-                    <tr>
-                      <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Status
-                      </th>
-                      <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Protocolo
-                      </th>
-                      <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Data
-                      </th>
-                      <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Servico
-                      </th>
-                      <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Cliente
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.petitions.map((petition) => (
-                      <tr
-                        key={`${petition.protocol}-${petition.serviceCode}-${petition.date}`}
-                      >
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                          {petition.paymentStatus || "-"}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                          {petition.protocol}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                          {petition.date}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                          <div className="font-semibold text-slate-900">
-                            {petition.serviceCode}
-                          </div>
-                          <div className="mt-1 leading-relaxed">
-                            {petition.serviceDescription || "-"}
-                          </div>
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                          {petition.client || "-"}
-                        </td>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full border-separate border-spacing-0">
+                    <thead>
+                      <tr>
+                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          RPI
+                        </th>
+                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Data
+                        </th>
+                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Despacho
+                        </th>
+                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Complemento
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {result.dispatches.map((dispatch) => (
+                        <tr
+                          key={`${dispatch.rpiEdition}-${dispatch.code}-${dispatch.rpiDate}`}
+                        >
+                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            {dispatch.rpiEdition}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            {dispatch.rpiDate}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            <div className="font-semibold text-slate-900">
+                              {dispatch.code || "-"}
+                            </div>
+                            <div className="mt-1 leading-relaxed">
+                              {dispatch.description}
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                            {dispatch.complement || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {!!result.petitions?.length && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800">
+                    Petições registradas
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Eventos protocolados identificados no detalhe publico do
+                    processo.
+                  </p>
+
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-0">
+                      <thead>
+                        <tr>
+                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Status
+                          </th>
+                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Protocolo
+                          </th>
+                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Data
+                          </th>
+                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Servico
+                          </th>
+                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Cliente
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.petitions.map((petition) => (
+                          <tr
+                            key={`${petition.protocol}-${petition.serviceCode}-${petition.date}`}
+                          >
+                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                              {petition.paymentStatus || "-"}
+                            </td>
+                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                              {petition.protocol}
+                            </td>
+                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                              {petition.date}
+                            </td>
+                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                              <div className="font-semibold text-slate-900">
+                                {petition.serviceCode}
+                              </div>
+                              <div className="mt-1 leading-relaxed">
+                                {petition.serviceDescription || "-"}
+                              </div>
+                            </td>
+                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                              {petition.client || "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

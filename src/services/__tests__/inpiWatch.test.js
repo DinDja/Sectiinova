@@ -75,20 +75,27 @@ describe('inpi-watch handler', () => {
     delete process.env.INPI_WATCH_RUN_TOKEN;
   });
 
-  it('bloqueia a execução manual quando o token está incorreto', async () => {
-    process.env.INPI_WATCH_RUN_TOKEN = 'segredo-correto';
-
-    const response = await handler({
-      httpMethod: 'POST',
-      headers: { 'x-inpi-watch-token': 'segredo-incorreto' },
-      queryStringParameters: {},
+  it('executa a rotina agendada mesmo sem contexto HTTP manual', async () => {
+    const userDoc = createUserDoc({
+      [INPI_TRACKER_FIELDS.savedSearches]: [],
+      [INPI_TRACKER_FIELDS.alerts]: [],
+      [INPI_TRACKER_FIELDS.monitoringCount]: 0,
     });
 
-    expect(response.statusCode).toBe(403);
+    mocks.getFirestore.mockReturnValue(createFirestoreMock([userDoc]));
+
+    const response = await handler();
+
+    expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
-      error: 'Token inválido para executar o monitoramento manual.',
+      scope: 'all',
+      targetUserId: '',
+      processedUsers: 0,
+      processedSearches: 0,
+      changedSearches: 0,
+      alertsCreated: 0,
+      skippedUsers: 1,
     });
-    expect(mocks.getFirestore).not.toHaveBeenCalled();
   });
 
   it('gera alerta quando detecta mudança em uma busca monitorada', async () => {
@@ -138,6 +145,8 @@ describe('inpi-watch handler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
+      scope: 'all',
+      targetUserId: '',
       processedUsers: 1,
       processedSearches: 1,
       changedSearches: 1,
@@ -217,6 +226,8 @@ describe('inpi-watch handler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
+      scope: 'all',
+      targetUserId: '',
       processedUsers: 1,
       processedSearches: 1,
       changedSearches: 0,
