@@ -296,7 +296,7 @@ export default function ForumThread({ topic, clubeId, loggedUser, users = [], ca
     }, [editingText, editingMessage, loggedUser?.id, loadInitial]);
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-6rem)] bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-xl">
+        <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-6rem)] bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-xl">
             <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 flex items-center gap-4 z-20">
                 <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar para tópicos">
                     <ArrowLeft className="w-5 h-5 text-slate-600" />

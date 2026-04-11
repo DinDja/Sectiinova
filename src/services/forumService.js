@@ -17,7 +17,7 @@ import {
     where,
     increment,
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { auth, db } from '../../firebase';
 
 // --- Regras da Comunidade (baseado no anexo) ---
 
@@ -105,131 +105,17 @@ const FORUM_TOPIC_CATEGORIES = [
     'debate',
 ];
 
+const FORUM_MODERATION_ENDPOINT = '/api/forum/moderate';
+const FORUM_MODERATION_ALERTS_ENDPOINT = '/api/forum/alerts';
+const FORUM_BLOCK_REVIEW_CONTENT = true;
+
 // --- Moderacao automatica ---
-
-const FORBIDDEN_WORDS = [
-    'aidetica','aidetico','aleijada','aleijado','ana','analfabeta','analfabeto','anao',
-    'anus','apenada','apenado','arrombado','babaca','baba-ovo','babaovo','bacura','bagos',
-    'baianada','baitola','barbaro','barbeiro','barraco','beata','bebado','bebedo','bebum',
-    'besta','bicha','bisca','bixa','boazuda','bocal','boceta','boco','boiola','bokete','bolagato',
-    'bolcat','boquete','bosseta','bosta','bostana','branquelo','brecha','brexa','brioco',
-    'bronha','buca','buceta','bugre','bunda','bunduda','burra','burro','busseta','caceta',
-    'cacete','cachorra','cachorro','cadela','caga','cagado','cagao','cagona','caipira',
-    'canalha','canceroso','caralho','casseta','cassete','ceguinho','checheca','chereca',
-    'chibumba','chibumbo','chifruda','chifrudo','chochota','chota','chupada','chupado',
-    'ciganos','clitoris','cocaina','coco','comunista','corna',
-    'cornagem','cornao','cornisse','corno','cornuda','cornudo','corrupta','corrupto','coxo',
-    'cretina','cretino','criolo','crioulo','cruz-credo','cu','culhao','curalho',
-    'cuzao','cuzuda','cuzudo','debil','debiloide','deficiente',
-    'defunto','demonio','denegrir','denigrir','detento','difunto','doida','doido',
-    'egua','elemento','encostado','esclerosado','escrota','escroto','esporrada',
-    'esporrado','esporro','estupida','estupidez','estupido','facista',
-    'fanatico','fascista','fedida','fedido','fedor','fedorenta','feia','feio',
-    'feiosa','feioso','feioza','feiozo','felacao','fenda','foda','fodao',
-    'fode','fodi','fodida','fodido','fornica','fornicao','fudecao','fudendo','fudida',
-    'fudido','furada','furado','furao','furnica','furnicar','furo','furona','gai','gaiata',
-    'gaiato','gay','gilete','goianada','gonorrea','gonorreia','gosmenta',
-    'gosmento','grelinho','grelo','gringo','homo-sexual','homosexual','homosexualismo',
-    'homossexual','homossexualismo','idiota','idiotice','imbecil','inculto','iscrota',
-    'iscroto','japa','judiar','ladra','ladrao','ladroeira','ladrona','lalau',
-    'lazarento','leprosa','leproso','lesbica','louco','macaca','macaco','machona',
-    'macumbeiro','malandro','maluco','maneta','marginal','masturba','meleca','meliante',
-    'merda','mija','mijada','mijado','mijo','minorias','mocrea','mocreia','mocreia',
-    'moleca','moleque','mondronga','mondrongo','mongol','mongoloide',
-    'mulata','mulato','naba','nadega','nazista','negro','nhaca','nojeira',
-    'nojenta','nojento','nojo','olhota','otaria','otario','paca',
-    'palhaco','paspalha','paspalhao','paspalho','pau','peao','peia','peido',
-    'pemba','penis','pentelha','pentelho','perereca','perneta','peru','pica',
-    'picao','pilantra','pinel','pintao','pinto','pintudo','piranha','piroca',
-    'piroco','piru','pivete','porra','prega','prequito','preso','priquito','prostibulo',
-    'prostituta','prostituto','punheta','punhetao','pus','pustula','puta',
-    'puto','puxa-saco','puxasaco','rabao','rabo','rabuda','rabudao',
-    'rabudo','rabudona','racha','rachada','rachadao','rachadinha','rachadinho','rachado',
-    'ramela','remela','retardada','retardado','ridicula','roceiro','rola','rolinha',
-    'rosca','sacana','safada','safado','sapatao','sifilis','siririca',
-    'tarada','tarado','testuda','tesuda','tesudo','tezao','tezuda','tezudo','traveco',
-    'trocha','trolha','troucha','trouxa','troxa','tuberculoso','tupiniquim','turco',
-    'vaca','vadia','vagabunda','vagabundo','vagal','vagina','veada','veadao','veado',
-    'viada','viadagem','viadao','viado','viado','xana','xaninha','xavasca',
-    'xerereca','xexeca','xibiu','xibumba','xiita','xochota','xota','xoxota',
-    'a coisa ficou preta','a coisa ta preta','cabeca chata','cabelo duro','cabelo pixaim',
-    'cabelo ruim','criado mudo','debil mental','de menor','esta russo',
-    'farinha do mesmo saco','feito nas coxas','humor negro','inveja branca','lista negra',
-    'maria vai com as outras','meia tigela','mercado negro','mulher da vida',
-    'mulher de vida facil','nao sou tuas negas','pessoas especiais',
-    'portador de necessidades especiais','preto de alma branca',
-    'prostituicao infantil','surdo-mudo'
-].map((w) => w.toLowerCase());
-
-const HARD_SPAM_PATTERNS = [
-    /(.)\1{7,}/i,
-    /(https?:\/\/|www\.)\S+/gi,
-    /(pix|telegram|whatsapp|cupom|desconto|inscreva-se|link na bio|patrocinado)/i,
-];
 
 function normalizeText(value) {
     return String(value || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
-}
-
-function escapeRegExp(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function containsForbiddenWord(text) {
-    const normalized = normalizeText(text);
-    for (const word of FORBIDDEN_WORDS) {
-        const escaped = escapeRegExp(word);
-        const regex = new RegExp(`(^|[^\\p{L}\\p{N}_-])${escaped}([^\\p{L}\\p{N}_-]|$)`, 'u');
-        if (regex.test(normalized)) {
-            return word;
-        }
-    }
-    return null;
-}
-
-function detectSpamReasons(text) {
-    const content = String(text || '').trim();
-    if (!content) return [];
-
-    const reasons = [];
-    const normalized = normalizeText(content);
-
-    const links = content.match(/(https?:\/\/|www\.)\S+/gi) || [];
-    if (links.length >= 3) {
-        reasons.push('muitos links na mesma mensagem');
-    }
-
-    if (/(.)\1{7,}/i.test(content)) {
-        reasons.push('repeticao excessiva de caracteres');
-    }
-
-    const tokens = normalized.split(/\s+/).filter(Boolean);
-    const tokenCount = {};
-    for (const t of tokens) {
-        tokenCount[t] = (tokenCount[t] || 0) + 1;
-        if (tokenCount[t] >= 7 && t.length > 2) {
-            reasons.push('repeticao excessiva de palavras');
-            break;
-        }
-    }
-
-    const caps = content.replace(/[^A-Z]/g, '').length;
-    const letters = content.replace(/[^A-Za-z]/g, '').length;
-    if (letters > 24 && caps / letters > 0.8) {
-        reasons.push('texto majoritariamente em caixa alta');
-    }
-
-    for (const pattern of HARD_SPAM_PATTERNS) {
-        if (pattern.test(content)) {
-            reasons.push('sinal de spam ou autopromocao');
-            break;
-        }
-    }
-
-    return [...new Set(reasons)];
 }
 
 function ensureClearTitle(title) {
@@ -282,17 +168,86 @@ async function registerAuditLog({ clubeId, topicId = '', messageId = '', actorId
     }
 }
 
-export async function validateCommunityText(...texts) {
-    for (const text of texts) {
-        const forbidden = containsForbiddenWord(text);
-        if (forbidden) {
-            throw new Error(`Mensagem bloqueada por conter linguagem inadequada (termo: "${forbidden}").`);
+function buildSmartModerationMessage(payload = {}) {
+    const decision = String(payload?.decision || '').trim().toLowerCase();
+    const reason = String(payload?.reason || '').trim();
+
+    if (decision === 'review') {
+        return reason
+            ? `Conteudo retido para revisao de seguranca: ${reason}`
+            : 'Conteudo retido para revisao de seguranca pela moderacao inteligente.';
+    }
+
+    return reason
+        ? `Conteudo bloqueado pela moderacao inteligente: ${reason}`
+        : 'Conteudo bloqueado pela moderacao inteligente.';
+}
+
+export async function runSmartModeration({
+    text,
+    clubeId,
+    actor,
+    source = 'message',
+    topicId = '',
+    topicTitle = '',
+}) {
+    const sanitizedText = String(text || '').trim();
+    if (!sanitizedText) return null;
+    if (!clubeId || !actor?.id) {
+        throw new Error('Dados incompletos para moderacao inteligente.');
+    }
+
+    try {
+        const response = await fetch(FORUM_MODERATION_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: sanitizedText,
+                clubeId: String(clubeId),
+                actor: {
+                    id: String(actor.id || ''),
+                    nome: String(actor.nome || ''),
+                    perfil: String(actor.perfil || ''),
+                    email: String(actor.email || ''),
+                },
+                source: String(source || 'message').slice(0, 40),
+                topicId: String(topicId || '').slice(0, 120),
+                topicTitle: String(topicTitle || '').slice(0, 200),
+            }),
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const apiError = String(payload?.error || '').trim();
+
+            throw new Error(apiError || 'Moderacao inteligente indisponivel no momento. Tente novamente em instantes.');
         }
 
-        const spamReasons = detectSpamReasons(text);
-        if (spamReasons.length > 0) {
-            throw new Error(`Mensagem bloqueada por violar regra de comunidade: ${spamReasons.join(', ')}.`);
+        const result = await response.json().catch(() => null);
+        if (!result || typeof result !== 'object') {
+            throw new Error('Resposta invalida da moderacao inteligente.');
         }
+
+        const decision = String(result?.decision || '').trim().toLowerCase();
+        if (!['allow', 'review', 'block'].includes(decision)) {
+            throw new Error('Resposta invalida da moderacao inteligente.');
+        }
+        const shouldBlock = decision === 'block' || (decision === 'review' && FORUM_BLOCK_REVIEW_CONTENT);
+
+        if (shouldBlock) {
+            throw new Error(buildSmartModerationMessage(result));
+        }
+
+        return result;
+    } catch (error) {
+        if (error instanceof Error && /moderacao inteligente|revisao de seguranca|conteudo bloqueado/i.test(error.message)) {
+            throw error;
+        }
+
+        console.error('Falha ao consultar API de moderacao inteligente.', error);
+        throw new Error('Nao foi possivel validar o conteudo com a moderacao inteligente. Tente novamente em instantes.');
     }
 }
 
@@ -401,7 +356,13 @@ export async function createTopic({ clubeId, titulo, descricao, autor, categoria
     if (!clubeId || !titulo?.trim() || !autor?.id) return null;
 
     ensureClearTitle(titulo);
-    await validateCommunityText(titulo, descricao);
+    await runSmartModeration({
+        text: [titulo, descricao].filter(Boolean).join('\n\n'),
+        clubeId,
+        actor: autor,
+        source: 'topic',
+        topicTitle: titulo,
+    });
 
     const normalizedCategory = String(categoria || 'geral').trim().toLowerCase();
     const safeCategory = FORUM_TOPIC_CATEGORIES.includes(normalizedCategory)
@@ -641,30 +602,32 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
             throw new Error('Este topico esta bloqueado para novas mensagens.');
         }
 
-        // Validações opcionais de moderação - se falharem, continuamos mesmo assim
-        try {
-            const moderationState = await getUserModerationState(clubeId, autor.id);
-            if (moderationState?.status === 'banned') {
-                throw new Error('Sua conta foi banida deste forum.');
-            }
-
-            if (moderationState?.status === 'suspended') {
-                const suspendedUntil = toDateSafe(moderationState.suspended_until);
-                const when = suspendedUntil ? suspendedUntil.toLocaleString('pt-BR') : 'periodo indefinido';
-                throw new Error(`Sua conta esta suspensa para este forum ate ${when}.`);
-            }
-
-            const muteState = await getMuteStateForTopicUser(topicId, autor.id);
-            if (muteState?.muted_until) {
-                const muteUntil = toDateSafe(muteState.muted_until);
-                const when = muteUntil ? muteUntil.toLocaleString('pt-BR') : 'periodo indefinido';
-                throw new Error(`Voce esta silenciado neste topico ate ${when}.`);
-            }
-        } catch (modError) {
-            console.warn('Aviso de moderacao (continuando mesmo assim):', modError.message);
+        const moderationState = await getUserModerationState(clubeId, autor.id);
+        if (moderationState?.status === 'banned') {
+            throw new Error('Sua conta foi banida deste forum.');
         }
 
-        await validateCommunityText(conteudo);
+        if (moderationState?.status === 'suspended') {
+            const suspendedUntil = toDateSafe(moderationState.suspended_until);
+            const when = suspendedUntil ? suspendedUntil.toLocaleString('pt-BR') : 'periodo indefinido';
+            throw new Error(`Sua conta esta suspensa para este forum ate ${when}.`);
+        }
+
+        const muteState = await getMuteStateForTopicUser(topicId, autor.id);
+        if (muteState?.muted_until) {
+            const muteUntil = toDateSafe(muteState.muted_until);
+            const when = muteUntil ? muteUntil.toLocaleString('pt-BR') : 'periodo indefinido';
+            throw new Error(`Voce esta silenciado neste topico ate ${when}.`);
+        }
+
+        await runSmartModeration({
+            text: conteudo,
+            clubeId,
+            actor: autor,
+            source: 'message',
+            topicId,
+            topicTitle: topicData.titulo || '',
+        });
 
         const messageData = {
             topico_id: topicId,
@@ -700,8 +663,6 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
 export async function editMessage(messageId, newContent, editor = {}) {
     if (!messageId || !String(newContent || '').trim()) return;
 
-    await validateCommunityText(newContent);
-
     const msgRef = doc(db, 'forum_mensagens', messageId);
     const msgSnap = await getDoc(msgRef);
     if (!msgSnap.exists()) {
@@ -709,6 +670,19 @@ export async function editMessage(messageId, newContent, editor = {}) {
     }
 
     const msgData = msgSnap.data();
+    await runSmartModeration({
+        text: newContent,
+        clubeId: msgData.clube_id,
+        actor: {
+            id: editor.id || msgData.autor_id,
+            nome: editor.nome || msgData.autor_nome || '',
+            perfil: editor.perfil || '',
+            email: editor.email || '',
+        },
+        source: 'message_edit',
+        topicId: msgData.topico_id,
+    });
+
     await updateDoc(msgRef, {
         conteudo: String(newContent).trim(),
         edited: true,
@@ -1097,6 +1071,106 @@ export async function removeExternalMember(memberId, clubeId, moderatorId = '') 
         actorId: moderatorId,
         targetUserId: memberId,
         action: 'externalMember.remove',
+    });
+}
+
+// --- Alertas de moderacao para mentores ---
+
+async function fetchModerationAlertsViaApi({ clubeId, recipientId, unreadOnly = true }) {
+    const params = new URLSearchParams();
+    params.set('clubeId', String(clubeId || '').trim());
+    params.set('recipientId', String(recipientId || '').trim());
+    params.set('unreadOnly', unreadOnly ? 'true' : 'false');
+    params.set('limit', '50');
+
+    let token = '';
+    try {
+        token = await auth?.currentUser?.getIdToken?.();
+    } catch {
+        token = '';
+    }
+
+    const response = await fetch(`${FORUM_MODERATION_ALERTS_ENDPOINT}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message = String(payload?.error || '').trim();
+        throw new Error(message || 'Falha ao carregar alertas de moderacao.');
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    const docs = Array.isArray(payload?.alerts) ? payload.alerts : [];
+
+    docs.sort((a, b) => {
+        const ta = Number(a?.createdAtMs || 0);
+        const tb = Number(b?.createdAtMs || 0);
+        return tb - ta;
+    });
+
+    return docs;
+}
+
+export function subscribeToModerationAlerts({ clubeId, recipientId, callback, unreadOnly = true }) {
+    if (!clubeId || !recipientId) {
+        callback([]);
+        return () => {};
+    }
+
+    let isActive = true;
+    let timerId = null;
+
+    const runPull = async () => {
+        try {
+            const alerts = await fetchModerationAlertsViaApi({
+                clubeId,
+                recipientId,
+                unreadOnly,
+            });
+
+            if (isActive) {
+                callback(alerts);
+            }
+        } catch (error) {
+            console.error('Erro ao buscar alertas de moderação via API:', error);
+            if (isActive) {
+                callback([]);
+            }
+        }
+    };
+
+    runPull();
+    timerId = setInterval(runPull, 10000);
+
+    return () => {
+        isActive = false;
+        if (timerId) {
+            clearInterval(timerId);
+        }
+    };
+}
+
+export async function markModerationAlertAsRead(alertId, readerId = '') {
+    if (!alertId) return;
+
+    const alertRef = doc(db, 'forum_moderation_alerts', String(alertId));
+    const alertSnap = await getDoc(alertRef);
+    if (!alertSnap.exists()) return;
+
+    const data = alertSnap.data();
+    if (readerId && data?.recipient_id && String(data.recipient_id) !== String(readerId)) {
+        throw new Error('Voce nao pode alterar este alerta.');
+    }
+
+    await updateDoc(alertRef, {
+        status: 'read',
+        read_by: String(readerId || ''),
+        readAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
     });
 }
 

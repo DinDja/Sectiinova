@@ -1,0 +1,157 @@
+import { getAdminAuth, getAdminDb } from "./firebaseAdminShared.js";
+
+function json(statusCode, payload) {
+  return {
+    statusCode,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    body: JSON.stringify(payload),
+  };
+}
+
+function parseBoolean(value, defaultValue = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return defaultValue;
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
+function toMillisSafe(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") {
+    return value.toMillis();
+  }
+  if (typeof value._seconds === "number") {
+    return value._seconds * 1000;
+  }
+
+  const date = new Date(value);
+  const ms = date.getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function serializeAlert(docSnap) {
+  const data = docSnap.data() || {};
+
+  return {
+    id: docSnap.id,
+    clube_id: String(data.clube_id || ""),
+    recipient_id: String(data.recipient_id || ""),
+    recipient_nome: String(data.recipient_nome || ""),
+    actor_id: String(data.actor_id || ""),
+    actor_nome: String(data.actor_nome || ""),
+    actor_perfil: String(data.actor_perfil || ""),
+    source: String(data.source || ""),
+    topic_id: String(data.topic_id || ""),
+    topic_title: String(data.topic_title || ""),
+    decision: String(data.decision || ""),
+    risk_score: Number(data.risk_score || 0),
+    reason: String(data.reason || ""),
+    excerpt: String(data.excerpt || ""),
+    status: String(data.status || "unread"),
+    categories: Array.isArray(data.categories) ? data.categories : [],
+    read_by: String(data.read_by || ""),
+    createdAtMs: toMillisSafe(data.createdAt),
+    updatedAtMs: toMillisSafe(data.updatedAt),
+    readAtMs: toMillisSafe(data.readAt),
+  };
+}
+
+function getBearerToken(event) {
+  const headerValue =
+    event?.headers?.authorization || event?.headers?.Authorization || "";
+  const raw = String(headerValue || "").trim();
+  if (!raw) return "";
+
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ? String(match[1]).trim() : "";
+}
+
+async function resolveCallerUid(event) {
+  const token = getBearerToken(event);
+  if (!token) {
+    throw new Error("auth-missing");
+  }
+
+  try {
+    const decoded = await getAdminAuth().verifyIdToken(token);
+    const uid = String(decoded?.uid || "").trim();
+    if (!uid) {
+      throw new Error("auth-invalid");
+    }
+    return uid;
+  } catch {
+    throw new Error("auth-invalid");
+  }
+}
+
+export async function handler(event) {
+  if (event.httpMethod !== "GET") {
+    return json(405, {
+      error: "Metodo nao suportado. Use GET.",
+    });
+  }
+
+  let callerUid = "";
+  try {
+    callerUid = await resolveCallerUid(event);
+  } catch (error) {
+    if (error instanceof Error && error.message === "auth-missing") {
+      return json(401, {
+        error: "Token de autenticacao ausente. Envie Authorization: Bearer <token>.",
+      });
+    }
+
+    return json(401, {
+      error: "Token de autenticacao invalido.",
+    });
+  }
+
+  const params = event.queryStringParameters || {};
+  const clubeId = String(params.clubeId || "").trim();
+  const requestedRecipientId = String(params.recipientId || "").trim();
+  const unreadOnly = parseBoolean(params.unreadOnly, false);
+  const pageLimit = Math.max(1, Math.min(100, Number(params.limit) || 30));
+
+  if (requestedRecipientId && requestedRecipientId !== callerUid) {
+    return json(403, {
+      error: "Voce nao pode acessar alertas de outro usuario.",
+    });
+  }
+
+  try {
+    const db = getAdminDb();
+
+    let alertsQuery = db
+      .collection("forum_moderation_alerts")
+      .where("recipient_id", "==", callerUid);
+
+    if (clubeId) {
+      alertsQuery = alertsQuery.where("clube_id", "==", clubeId);
+    }
+
+    if (unreadOnly) {
+      alertsQuery = alertsQuery.where("status", "==", "unread");
+    }
+
+    const snap = await alertsQuery.get();
+    const alerts = snap.docs
+      .map((docSnap) => serializeAlert(docSnap))
+      .sort((a, b) => b.createdAtMs - a.createdAtMs)
+      .slice(0, pageLimit);
+
+    return json(200, {
+      recipientId: callerUid,
+      alerts,
+      count: alerts.length,
+    });
+  } catch (error) {
+    return json(500, {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha inesperada ao listar alertas de moderacao.",
+    });
+  }
+}

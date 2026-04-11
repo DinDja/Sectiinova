@@ -2,9 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createInpiProcessProxyPlugin } from './scripts/inpiProcessProxy'
 import { createInpiWatchProxyPlugin } from './scripts/inpiWatchProxy'
+import { createForumModerationProxyPlugin } from './scripts/forumModerationProxy'
 
 export default defineConfig({
-  plugins: [react(), createInpiProcessProxyPlugin(), createInpiWatchProxyPlugin()],
+  plugins: [
+    react(),
+    createInpiProcessProxyPlugin(),
+    createInpiWatchProxyPlugin(),
+    createForumModerationProxyPlugin(),
+  ],
   server: {
     host: '0.0.0.0',
     port: 5173,

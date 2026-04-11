@@ -141,6 +141,13 @@ export default function ProjectCard({
                                 </>
                             )}
                         </div>
+                        {(club?.nome || school?.nome) && (
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
+                                {club?.nome && <span>{club.nome}</span>}
+                                {club?.nome && school?.nome && <span className="w-1 h-1 bg-gray-300 rounded-full inline-block" />}
+                                {school?.nome && <span>{school.nome}</span>}
+                            </div>
+                        )}
                     </div>
                 </div>
                 
@@ -185,6 +192,11 @@ export default function ProjectCard({
                 <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
                     {descricao}
                 </p>
+                {project?.area_tematica && (
+                    <span className="inline-flex items-center mt-2 text-xs font-semibold uppercase tracking-wider text-[#5AC8C8]">
+                        {project.area_tematica}
+                    </span>
+                )}
 
                 {/* Equipe do Projeto */}
                 {teamMembers.length > 0 && (

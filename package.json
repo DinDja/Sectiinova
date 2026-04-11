@@ -10,6 +10,8 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "jsdom": "^29.0.1",
@@ -23,7 +25,7 @@
     "docx": "^9.6.1",
     "file-saver": "^2.0.5",
     "firebase": "^12.11.0",
-    "firebase-admin": "^13.7.0",
+    "firebase-admin": "^13.8.0",
     "framer-motion": "^12.38.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
@@ -32,5 +34,13 @@
     "react-dom": "^19.2.4",
     "react-icons": "^5.6.0",
     "styled-components": "^6.1.0"
+  },
+  "overrides": {
+    "@google-cloud/firestore": "8.3.0",
+    "google-gax": "5.0.6",
+    "retry-request": "8.0.2",
+    "teeny-request": "10.1.2",
+    "http-proxy-agent": "9.0.0",
+    "@tootallnate/once": "3.0.1"
   }
 }

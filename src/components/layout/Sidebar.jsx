@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GripHorizontal } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { GripHorizontal, Check, Settings2 } from 'lucide-react';
 import {
   FcGlobe,
   FcOpenedFolder,
@@ -20,7 +20,8 @@ export default function Sidebar({
   setSidebarOrder,
   saveSidebarOrder,
 }) {
-  const [draggedItem, setDraggedItem] = useState(null);
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [dragOverItemIndex, setDragOverItemIndex] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [tempOrder, setTempOrder] = useState(null);
 
@@ -73,164 +74,215 @@ export default function Sidebar({
     },
   ];
 
-  // Ordenar itens: usar tempOrder durante drag, senão usar sidebarOrder salva
   const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'inpi', 'forum', 'clube'];
-  const displayOrder = tempOrder || (sidebarOrder && sidebarOrder.length > 0 ? sidebarOrder : defaultOrder);
+  const displayOrder = tempOrder || (sidebarOrder?.length > 0 ? sidebarOrder : defaultOrder);
+  
   const navItems = displayOrder
     .map(id => allNavItems.find(item => item.id === id))
     .filter(Boolean);
 
-  const handleMyClubClick = () => {
+  const handleMyClubClick = useCallback(() => {
     setCurrentView('clube');
     const targetClubId = String(loggedUser?.clube_id || myClubId || '').trim();
     if (targetClubId) setViewingClubId(targetClubId);
-  };
+  }, [setCurrentView, loggedUser, myClubId, setViewingClubId]);
 
+  // --- Handlers de Drag & Drop Refinados ---
   const handleDragStart = (e, index) => {
-    if (!isEditing) return;
-    setDraggedItem(index);
-    // Inicializar tempOrder com a ordem atual se ainda não existe
-    if (!tempOrder) {
-      setTempOrder([...displayOrder]);
+    if (!isEditing) {
+      e.preventDefault();
+      return;
     }
+    setDraggedItemIndex(index);
+    if (!tempOrder) setTempOrder([...displayOrder]);
+    
+    // Configura a imagem fantasma nativa para algo transparente (para usarmos nosso próprio estilo)
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e, index) => {
-    if (!isEditing || draggedItem === null) return;
     e.preventDefault();
+    if (!isEditing || draggedItemIndex === null) return;
     
-    if (draggedItem === index) return;
+    if (dragOverItemIndex !== index) {
+      setDragOverItemIndex(index);
+    }
+
+    if (draggedItemIndex === index) return;
 
     const workingOrder = tempOrder || displayOrder;
     const newOrder = [...workingOrder];
-    const draggedItemId = newOrder[draggedItem];
+    const draggedItemId = newOrder[draggedItemIndex];
     
-    newOrder.splice(draggedItem, 1);
+    newOrder.splice(draggedItemIndex, 1);
     newOrder.splice(index, 0, draggedItemId);
     
-    setDraggedItem(index);
+    setDraggedItemIndex(index);
     setTempOrder(newOrder);
   };
 
   const handleDragEnd = async () => {
-    setDraggedItem(null);
+    setDraggedItemIndex(null);
+    setDragOverItemIndex(null);
     
-    // Salvar a ordem final
     if (tempOrder) {
       setSidebarOrder(tempOrder);
       if (saveSidebarOrder) {
         await saveSidebarOrder(tempOrder);
       }
     }
-    
+    setIsEditing(false); // Sai do modo de edição ao finalizar
     setTempOrder(null);
+  };
+
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+    if (isEditing && tempOrder) {
+        setTempOrder(null); // Cancela alterações se apenas clicar para sair
+    }
   };
 
   return (
     <aside
-      className="w-32 h-full min-h-screen glass-surface flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
+      className="w-28 sm:w-32 h-full min-h-screen bg-white/80 backdrop-blur-xl border-r border-slate-200/80 flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)]"
       aria-label="Menu principal"
     >
-      {/* Botão de editar ordem */}
-      <button
-        onClick={() => setIsEditing(!isEditing)}
-        className={`
-          mb-3 p-3 rounded-lg transition-all duration-200
-          ${isEditing
-            ? 'bg-[#00B5B5]/20 text-[#0F5257] border border-[#00B5B5]'
-            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
-          }
-        `}
-        title={isEditing ? 'Salvo automaticamente' : 'Reordenar itens'}
-      >
-        <GripHorizontal className="w-7 h-7" strokeWidth={1.75} />
-      </button>
+      {/* Botão de Modo de Edição Premium */}
+      <div className="w-full px-4 mb-6 flex justify-center">
+        <button
+          onClick={toggleEditMode}
+          className={`
+            group flex items-center justify-center p-2.5 rounded-2xl transition-all duration-300
+            ${isEditing
+              ? 'bg-[#00B5B5]/10 text-[#00B5B5] shadow-inner ring-1 ring-[#00B5B5]/30'
+              : 'bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200/60 hover:border-slate-300 shadow-sm'
+            }
+          `}
+          title={isEditing ? 'Concluir organização' : 'Organizar menu'}
+          aria-pressed={isEditing}
+        >
+          {isEditing ? (
+            <Check className="w-5 h-5 animate-in zoom-in duration-200" strokeWidth={2.5} />
+          ) : (
+            <Settings2 className="w-5 h-5 transition-transform group-hover:rotate-45 duration-300" strokeWidth={2} />
+          )}
+        </button>
+      </div>
 
       {/* Navegação principal */}
-      <nav className="flex flex-col w-full px-3 space-y-1" aria-label="Navegação">
+      <nav className="flex flex-col w-full px-3 space-y-1.5 flex-1" aria-label="Navegação">
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
+          const isBeingDragged = draggedItemIndex === index;
+          const isDragTarget = dragOverItemIndex === index && draggedItemIndex !== index;
           
           const handleClick = () => {
             if (!isEditing) {
-              console.log('Sidebar click:', item.id);
-              if (item.id === 'clube') {
-                handleMyClubClick();
-              } else {
-                setCurrentView(item.id);
-              }
+              if (item.id === 'clube') handleMyClubClick();
+              else setCurrentView(item.id);
             }
           };
 
           return (
-            <button
+            <div
               key={item.id}
               draggable={isEditing}
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              onClick={handleClick}
-              className={`
-                relative flex flex-col items-center py-3 px-2 w-full rounded-xl
-                transition-all duration-200 group
-                focus:outline-none focus:ring-2 focus:ring-[#00B5B5] focus:ring-offset-1
-                ${isEditing ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
-                ${draggedItem === index ? 'opacity-50' : 'opacity-100'}
-                ${isActive
-                  ? 'bg-gradient-to-br from-[#00B5B5]/12 to-[#00B5B5]/5 text-[#0F5257] shadow-md border border-[#00B5B5]/15'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 border border-transparent'
-                }
-              `}
-              title={item.tooltip}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
+              className="relative w-full transition-all duration-300 ease-out"
+              style={{
+                zIndex: isBeingDragged ? 50 : 1,
+              }}
             >
-              <span
+              <button
+                onClick={handleClick}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
+                disabled={isEditing}
                 className={`
-                  mb-1.5 inline-flex items-center justify-center rounded-lg p-3.5
-                  transition-transform group-hover:scale-110
-                  ${isActive ? 'bg-white/85 shadow-sm' : ''}
+                  relative flex flex-col items-center py-3.5 px-2 w-full rounded-2xl
+                  transition-all duration-300 group
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00B5B5] focus-visible:ring-offset-2
+                  ${isEditing ? 'cursor-grab active:cursor-grabbing hover:bg-slate-50' : 'cursor-pointer'}
+                  ${isBeingDragged 
+                    ? 'opacity-60 scale-105 shadow-xl bg-white border border-[#00B5B5]/30 rotate-2' 
+                    : isDragTarget 
+                        ? 'translate-y-2' 
+                        : 'opacity-100 scale-100'
+                  }
+                  ${!isEditing && isActive
+                    ? 'bg-gradient-to-b from-slate-50 to-slate-100/80 shadow-sm border border-slate-200/60'
+                    : !isEditing ? 'hover:bg-slate-50 border border-transparent hover:border-slate-100' : ''
+                  }
                 `}
+                title={item.tooltip}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
               >
-                {item.iconSrc ? (
-                  <img
-                    src={item.iconSrc}
-                    alt={item.label}
-                    className={`w-10 h-10 ${isActive ? 'brightness-90 saturate-75' : ''}`}
-                    loading="lazy"
-                  />
-                ) : (
-                  <Icon
-                    className={`w-10 h-10 ${isActive ? 'text-[#0F5257]' : item.iconClass}`}
-                  />
+                {/* Indicador Ativo Lateral Moderno */}
+                {!isEditing && isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-[#00B5B5] rounded-r-full shadow-[2px_0_8px_rgba(0,181,181,0.4)]" />
                 )}
-              </span>
-              {item.id === 'clube' ? (
-                <span className="text-[11px] font-medium text-center leading-tight">Meu<br />Clube</span>
-              ) : (
-                <span className="text-[11px] font-medium text-center leading-tight">{item.label}</span>
-              )}
-              {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#00B5B5] rounded-r-full" />
-              )}
-            </button>
+
+                {/* Ícone de Arrastar (Apenas no modo edição) */}
+                {isEditing && (
+                    <div className="absolute top-2 right-2 text-slate-300 opacity-50 group-hover:opacity-100 group-hover:text-slate-400 transition-opacity">
+                        <GripHorizontal className="w-4 h-4" />
+                    </div>
+                )}
+
+                <span
+                  className={`
+                    mb-2 inline-flex items-center justify-center rounded-xl p-2.5
+                    transition-all duration-300 ease-out
+                    ${!isEditing && isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:-translate-y-1'}
+                  `}
+                >
+                  {item.iconSrc ? (
+                    <img
+                      src={item.iconSrc}
+                      alt=""
+                      aria-hidden="true"
+                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'drop-shadow-md brightness-95' : 'opacity-80 group-hover:opacity-100'}`}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Icon
+                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'text-[#0F5257] drop-shadow-md' : `${item.iconClass} opacity-80 group-hover:opacity-100`}`}
+                    />
+                  )}
+                </span>
+                
+                <span 
+                    className={`
+                        text-[10px] sm:text-[11px] font-semibold text-center leading-tight transition-colors duration-200
+                        ${!isEditing && isActive ? 'text-[#0F5257]' : 'text-slate-500 group-hover:text-slate-800'}
+                    `}
+                >
+                    {item.id === 'clube' ? (
+                        <>Meu<br />Clube</>
+                    ) : (
+                        item.label
+                    )}
+                </span>
+              </button>
+            </div>
           );
         })}
 
-        {/* Divisor */}
-        <div className="my-3 border-t border-slate-200/70 w-12 mx-auto" />
+        <div className="my-4 border-t border-slate-200/60 w-12 mx-auto rounded-full" />
       </nav>
 
-      {/* Perfil do usuário (apenas se logado) */}
-
-      {/* Logo SECTI no final da sidebar */}
-      <div className="mt-auto w-full px-2 pb-4 flex justify-center">
+      {/* Logo SECTI */}
+      <div className="mt-auto w-full px-4 pb-2 pt-4 flex justify-center shrink-0">
         <img
           src="/images/Secti_Vertical.png"
-          alt="SECTI"
-          className="h-20 object-contain opacity-90 hover:opacity-100 transition-opacity duration-300"
+          alt="Logomarca da SECTI"
+          className="h-16 sm:h-20 object-contain  transition-all duration-500"
           loading="lazy"
         />
       </div>

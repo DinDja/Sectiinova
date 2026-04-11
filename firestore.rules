@@ -208,6 +208,25 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ─── Fórum: Alertas de Moderação para Mentores ─────
+    match /forum_moderation_alerts/{alertId} {
+      allow read: if isSignedIn()
+        && (
+          request.auth.uid == resource.data.recipient_id
+          || (isMentor() && isMyClub(resource.data.clube_id))
+        );
+
+      allow update: if isSignedIn()
+        && (
+          request.auth.uid == resource.data.recipient_id
+          || (isMentor() && isMyClub(resource.data.clube_id))
+        )
+        && request.resource.data.recipient_id == resource.data.recipient_id
+        && request.resource.data.clube_id == resource.data.clube_id;
+
+      allow create, delete: if false;
+    }
+
     match /{document=**} {
       allow read: if false;
       allow write: if false;

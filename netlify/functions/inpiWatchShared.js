@@ -1,5 +1,4 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getAdminDb } from "./firebaseAdminShared.js";
 
 import { fetchInpiProcessFlow } from "../../scripts/inpiProcessProxy.js";
 import {
@@ -20,53 +19,6 @@ export function json(statusCode, payload) {
     },
     body: JSON.stringify(payload),
   };
-}
-
-function getServiceAccount() {
-  const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const rawBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-
-  if (rawJson) {
-    const parsed = JSON.parse(rawJson);
-    if (parsed.private_key) {
-      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
-    }
-    return parsed;
-  }
-
-  if (rawBase64) {
-    const parsed = JSON.parse(Buffer.from(rawBase64, "base64").toString("utf8"));
-    if (parsed.private_key) {
-      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
-    }
-    return parsed;
-  }
-
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Configure FIREBASE_SERVICE_ACCOUNT_JSON, FIREBASE_SERVICE_ACCOUNT_BASE64 ou as variáveis FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL e FIREBASE_ADMIN_PRIVATE_KEY na Netlify.",
-    );
-  }
-
-  return {
-    project_id: projectId,
-    client_email: clientEmail,
-    private_key: privateKey.replace(/\\n/g, "\n"),
-  };
-}
-
-function getAdminDb() {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(getServiceAccount()),
-    });
-  }
-
-  return getFirestore();
 }
 
 async function processSavedSearch(entry) {

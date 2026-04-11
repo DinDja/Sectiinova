@@ -58,16 +58,12 @@ describe('inpi-watch-run handler', () => {
     vi.setSystemTime(new Date('2026-04-01T10:00:00.000Z'));
     vi.clearAllMocks();
 
-    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = JSON.stringify({
-      project_id: 'projeto-teste',
-      client_email: 'watcher@projeto-teste.iam.gserviceaccount.com',
-      private_key: '-----BEGIN PRIVATE KEY-----\\nabc123\\n-----END PRIVATE KEY-----\\n',
-    });
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'projeto-teste';
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'watcher@projeto-teste.iam.gserviceaccount.com';
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nabc123\\n-----END PRIVATE KEY-----\\n';
 
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     delete process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-    delete process.env.FIREBASE_ADMIN_PROJECT_ID;
-    delete process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    delete process.env.FIREBASE_ADMIN_PRIVATE_KEY;
     delete process.env.INPI_WATCH_RUN_TOKEN;
 
     mocks.getApps.mockReturnValue([]);
@@ -76,6 +72,10 @@ describe('inpi-watch-run handler', () => {
   afterEach(() => {
     vi.useRealTimers();
     delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    delete process.env.FIREBASE_ADMIN_PROJECT_ID;
+    delete process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    delete process.env.FIREBASE_ADMIN_PRIVATE_KEY;
     delete process.env.INPI_WATCH_RUN_TOKEN;
   });
 

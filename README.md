@@ -71,10 +71,12 @@
 - A function `netlify/functions/inpi-watch.js` roda a cada 6 horas e também pode ser executada manualmente.
 
 ### Variáveis de ambiente da Netlify
-- `FIREBASE_SERVICE_ACCOUNT_JSON`: recomendado. JSON completo da service account do Firebase Admin.
-- `FIREBASE_SERVICE_ACCOUNT_BASE64`: alternativa ao JSON puro, em Base64.
-- `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`: alternativa ao JSON completo.
+- `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`: obrigatórias para notificações do fórum e monitoramento/alertas do INPI (sem dependência de JSON/Base64).
 - `INPI_WATCH_RUN_TOKEN`: opcional. Se definido, protege a execução manual da function `inpi-watch`.
+- Moderação do fórum (`/api/forum/moderate`) usa Perspective + OpenRouter em conjunto.
+- As chaves estão embutidas em `netlify/functions/forum-moderate.js` nas constantes `PERSPECTIVE_API_KEY_HARDCODED` e `OPENROUTER_API_KEY_HARDCODED`.
+- `PERSPECTIVE_REVIEW_THRESHOLD`: opcional. Limiar (0-1) para reter conteúdo em revisão. Padrão: `0.35`.
+- `PERSPECTIVE_BLOCK_THRESHOLD`: opcional. Limiar (0-1) para bloquear conteúdo automaticamente. Padrão: `0.78`.
 
 ## Próximos passos sugeridos
 - Adicionar validação de campos avançada no registro de projeto

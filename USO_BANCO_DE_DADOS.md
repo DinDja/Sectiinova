@@ -165,7 +165,7 @@ O projeto agora inclui o arquivo `firestore.rules` com a seguinte política:
 
 ### Coleções do Fórum (Café Digital)
 
-O módulo de fórum adiciona 4 coleções:
+O módulo de fórum adiciona 5 coleções:
 
 - **`forum_topicos`** — Tópicos de discussão vinculados a um clube
   - Campos: `clube_id`, `titulo`, `descricao`, `autor_id`, `autor_nome`, `createdAt`, `lastActivityAt`, `mensagens_count`, `pinned`, `locked`
@@ -185,6 +185,11 @@ O módulo de fórum adiciona 4 coleções:
 - **`forum_membros_externos`** — Registro de membros aceitos em fóruns de outros clubes
   - Campos: `clube_id`, `membro_id`, `membro_nome`, `aceito_por`, `createdAt`
   - Criação/Exclusão: mentor do clube
+
+- **`forum_moderation_alerts`** — Alertas automáticos para orientadores/coorientadores quando aluno envia conteúdo bloqueado/suspeito
+  - Campos: `clube_id`, `recipient_id`, `actor_id`, `actor_nome`, `decision`, `risk_score`, `reason`, `categories`, `excerpt`, `status`, `createdAt`
+  - Criação: Netlify Function `forum-moderate` (Firebase Admin)
+  - Leitura/baixa: apenas destinatário do alerta
 
 ### Premissa de autenticação
 

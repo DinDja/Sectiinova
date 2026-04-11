@@ -92,7 +92,8 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                         <div className="mt-3 flex flex-wrap items-center gap-3">
                             <span className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-sm font-semibold text-white">
                                 <Microscope className="w-4 h-4 text-[#FF5722]" />
-                                Força Investigadora: {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
+                                Força Investigadora:
+                                <strong className="font-black">{investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}</strong>
                             </span>
                             <span className="text-xs font-bold text-white/80 bg-[#00B5B5]/20 px-2 py-1 rounded-full">
                                 {investigatorRatio}% da equipe
@@ -150,33 +151,51 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                                 <p className="text-sm">Sem mentores registrados.</p>
                             </div>
                         ) : (
-                            [...viewingClubOrientadores, ...viewingClubCoorientadores].map((person) => (
+                            [...viewingClubOrientadores, ...viewingClubCoorientadores].map((person) => {
+                                const summary = getLattesSummary(person);
+                                const areas = getLattesAreas(person);
+                                return (
                                 <div 
                                     key={person.id} 
                                     onClick={(e) => handleUserClick(e, person)}
-                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item cursor-pointer"
                                 >
-                                    <div className="flex items-center gap-3.5">
-                                        <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Orientador' : 'Coorientador'}</p>
+                                    <div className="flex items-center justify-between gap-3.5">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Orientador' : 'Coorientador'}</p>
+                                            </div>
                                         </div>
+                                        {getLattesLink(person) && (
+                                            <a 
+                                                href={getLattesLink(person)} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                onClick={(e) => e.stopPropagation()} 
+                                                className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" 
+                                                title="Ver Lattes"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                            </a>
+                                        )}
                                     </div>
-                                    {getLattesLink(person) && (
-                                        <a 
-                                            href={getLattesLink(person)} 
-                                            target="_blank" 
-                                            rel="noreferrer" 
-                                            onClick={(e) => e.stopPropagation()} 
-                                            className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" 
-                                            title="Ver Lattes"
-                                        >
-                                            <ExternalLink className="w-4 h-4" />
-                                        </a>
+                                    {summary && (
+                                        <p className="mt-3 text-sm text-slate-600 leading-relaxed line-clamp-2">{summary}</p>
+                                    )}
+                                    {areas.length > 0 && (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {areas.map((area) => (
+                                                <span key={area} className="rounded-full bg-[#E0F7F7] text-[#008A8A] px-2 py-1 text-[10px] font-semibold">
+                                                    {area}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>

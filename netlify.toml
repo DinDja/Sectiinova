@@ -14,3 +14,13 @@
   from = "/api/inpi/watch"
   to = "/.netlify/functions/inpi-watch-run"
   status = 200
+
+[[redirects]]
+  from = "/api/forum/moderate"
+  to = "/.netlify/functions/forum-moderate"
+  status = 200
+
+[[redirects]]
+  from = "/api/forum/alerts"
+  to = "/.netlify/functions/forum-alerts"
+  status = 200

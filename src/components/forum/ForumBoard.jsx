@@ -23,6 +23,7 @@ import {
   Globe,
   LoaderCircle,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import Toast from "./Toast";
 import {
@@ -39,9 +40,12 @@ import {
   getForumsWhereAccepted,
   fetchClubsPage,
   getClubsTotalCount,
+  subscribeToModerationAlerts,
+  markModerationAlertAsRead,
 } from "../../services/forumService";
 import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
+import { auth } from "../../../firebase";
 
 // ─── Constantes e Helpers ─────────────────────────────────────────
 const TABS = [
@@ -204,6 +208,7 @@ export default function ForumBoard({
   const [joinRequests, setJoinRequests] = useState([]);
   const [externalMembers, setExternalMembers] = useState([]);
   const [acceptedForums, setAcceptedForums] = useState([]);
+  const [moderationAlerts, setModerationAlerts] = useState([]);
 
   const [viewingForumClubId, setViewingForumClubId] = useState(null);
   const [selectedTopicId, setSelectedTopicId] = useState(null);
@@ -252,6 +257,22 @@ export default function ForumBoard({
     return perfil === "orientador" || perfil === "coorientador";
   }, [loggedUser]);
 
+  const unreadModerationAlerts = useMemo(
+    () =>
+      moderationAlerts.filter(
+        (alert) => String(alert?.status || "unread").toLowerCase() === "unread",
+      ),
+    [moderationAlerts],
+  );
+
+  const alertRecipientId = useMemo(
+    () =>
+      String(
+        auth?.currentUser?.uid || loggedUser?.uid || loggedUser?.id || "",
+      ).trim(),
+    [loggedUser?.uid, loggedUser?.id],
+  );
+
   const currentForumClubId =
     activeTab === "meu" ? myClubId : viewingForumClubId;
 
@@ -265,6 +286,20 @@ export default function ForumBoard({
     if (!myClubId || !isMentor) return;
     return subscribeToJoinRequests(myClubId, setJoinRequests);
   }, [myClubId, isMentor]);
+
+  useEffect(() => {
+    if (!myClubId || !isMentor || !alertRecipientId) {
+      setModerationAlerts([]);
+      return;
+    }
+
+    return subscribeToModerationAlerts({
+      clubeId: myClubId,
+      recipientId: alertRecipientId,
+      callback: setModerationAlerts,
+      unreadOnly: false,
+    });
+  }, [myClubId, isMentor, alertRecipientId]);
 
   useEffect(() => {
     if (!myClubId) return;
@@ -452,6 +487,22 @@ export default function ForumBoard({
     [loggedUser],
   );
 
+  const handleMarkAlertAsRead = useCallback(
+    async (alertId) => {
+      if (!alertRecipientId) return;
+
+      try {
+        await markModerationAlertAsRead(alertId, alertRecipientId);
+      } catch (error) {
+        setToast({
+          message: error?.message || "Erro ao atualizar alerta de moderação.",
+          type: "error",
+        });
+      }
+    },
+    [alertRecipientId],
+  );
+
   const handleRemoveExternal = useCallback(
     async (memberId) => {
       if (!myClubId) return;
@@ -608,16 +659,98 @@ export default function ForumBoard({
                       className={`w-4 h-4 ${isActive ? "text-[#5AC8C8]" : "text-slate-400"}`}
                     />
                     {tab.label}
-                    {tab.id === "meu" && isMentor && joinRequests.length > 0 && (
-                      <span className="ml-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                        {joinRequests.length}
-                      </span>
+                    {tab.id === "meu" && isMentor && (
+                      <>
+                        {unreadModerationAlerts.length > 0 && (
+                          <span className="ml-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-sm">
+                            {unreadModerationAlerts.length}
+                          </span>
+                        )}
+                        {joinRequests.length > 0 && (
+                          <span className="ml-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-sm">
+                            {joinRequests.length}
+                          </span>
+                        )}
+                      </>
                     )}
                   </button>
                 );
               })}
             </nav>
           </div>
+
+          {isMentor && moderationAlerts.length > 0 && (
+            <div className="premium-card p-5 border border-amber-200 bg-gradient-to-r from-amber-50 to-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-amber-600" />
+                  Central de Irregularidades do Fórum
+                </h3>
+                <div className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full w-fit">
+                  {unreadModerationAlerts.length} não lido(s)
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-4">
+                Orientadores e coorientadores recebem em tempo real os alertas de conteúdo irregular no fórum.
+              </p>
+
+              <div className="space-y-3">
+                {moderationAlerts.slice(0, 6).map((alert) => {
+                  const isUnread =
+                    String(alert?.status || "unread").toLowerCase() === "unread";
+
+                  return (
+                    <div
+                      key={alert.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-100 rounded-xl p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-slate-700">
+                            {alert.actor_nome || "Aluno"}
+                          </p>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isUnread ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                            {isUnread ? "NÃO LIDO" : "LIDO"}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-600 line-clamp-2">
+                          {alert.reason ||
+                            "Conteúdo sinalizado pela moderação inteligente."}
+                        </p>
+
+                        {alert.excerpt && (
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2 italic">
+                            Trecho: "{alert.excerpt}"
+                          </p>
+                        )}
+                      </div>
+
+                      {isUnread ? (
+                        <button
+                          onClick={() => handleMarkAlertAsRead(alert.id)}
+                          className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold"
+                        >
+                          Marcar como lido
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">
+                          Já visualizado
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {moderationAlerts.length > 6 && (
+                <p className="text-xs text-slate-500 mt-3">
+                  Mostrando os 6 alertas mais recentes.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* ─── Tab: Meu Fórum ──────────────────────────── */}
           {activeTab === "meu" && (
@@ -704,6 +837,14 @@ export default function ForumBoard({
                     Criar Tópico
                   </button>
                 )}
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-slate-700">
+                <img src="/Lobo.svg" alt="Agente Guia" className="w-8 h-8 shrink-0" />
+                <div className="leading-snug">
+                  <p className="font-semibold text-slate-900">AGENTE GUIÁ está protegendo o chat.</p>
+                  <p className="text-slate-600">Suas mensagens são monitoradas para manter o ambiente seguro e respeitoso.</p>
+                </div>
               </div>
 
               {showNewTopic && (

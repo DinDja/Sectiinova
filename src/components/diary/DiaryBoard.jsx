@@ -70,6 +70,12 @@ const MentorBadge = ({ person, getLattesLink }) => {
                             </div>
                         </div>
                     )}
+
+                    {updatedAt && (
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            Última atualização no Lattes: {updatedAt}
+                        </div>
+                    )}
                 </div>
             )}
         </article>
@@ -139,7 +145,7 @@ const DiaryEntryCard = ({ entry }) => (
 );
 
 
-export default function DiaryBoard({ selectedProject, selectedClub, selectedSchool, selectedTeam, derivedDiaryEntries = [], canEditDiary, setIsModalOpen, getInvestigatorDisplayNames, getLattesLink }) {
+export default function DiaryBoard({ selectedProject, selectedClub, selectedSchool, selectedTeam, derivedDiaryEntries = [], canEditDiary, setIsModalOpen, getInvestigatorDisplayNames = () => [], getLattesLink = () => '' }) {
     
     const uniqueMentors = useMemo(() => {
         if (!selectedTeam) return [];
@@ -158,8 +164,8 @@ export default function DiaryBoard({ selectedProject, selectedClub, selectedScho
                 <div className="relative z-10 text-center">
                     <EmptyState 
                         icon={LayoutDashboard} 
-                        title="Diário de Bordo Indisponível" 
-                        description="Selecione um projeto no Radar para acessar suas documentações, descobertas e próximos passos." 
+                        title="Nenhum projeto selecionado"
+                        description="Diário de Bordo Indisponível. Selecione um projeto no Radar para acessar suas documentações, descobertas e próximos passos." 
                     />
                 </div>
             </div>
