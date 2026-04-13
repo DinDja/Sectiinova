@@ -150,5 +150,9 @@ describe('inpi-watch-run handler', () => {
     });
     expect(mocks.fetchInpiProcessFlow).toHaveBeenCalledWith('PI0101161-8', 'patente');
     expect(userDoc.set).toHaveBeenCalledTimes(1);
+    const [payload] = userDoc.set.mock.calls[0];
+    expect(payload[INPI_TRACKER_FIELDS.savedSearches][0].lastManualSyncAt).toBe(
+      '2026-03-30T12:00:00.000Z',
+    );
   });
 });

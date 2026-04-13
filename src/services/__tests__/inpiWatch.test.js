@@ -160,7 +160,7 @@ describe('inpi-watch handler', () => {
     expect(options).toEqual({ merge: true });
     expect(payload[INPI_TRACKER_FIELDS.monitoringCount]).toBe(1);
     expect(payload[INPI_TRACKER_FIELDS.lastWatchSummary]).toBe(
-      'Verificação concluída: 1 alerta(s) novo(s).',
+      'Verificação concluída: 1 alerta(s) novo(s): PI0101161-8 (Patentes).',
     );
     expect(payload[INPI_TRACKER_FIELDS.savedSearches]).toHaveLength(1);
     expect(payload[INPI_TRACKER_FIELDS.savedSearches][0]).toMatchObject({
@@ -170,6 +170,9 @@ describe('inpi-watch handler', () => {
       lastKnownContentHash: 'hash-novo',
       lastError: '',
     });
+    expect(payload[INPI_TRACKER_FIELDS.savedSearches][0].lastManualSyncAt).toBe(
+      '2026-03-30T12:00:00.000Z',
+    );
     expect(payload[INPI_TRACKER_FIELDS.alerts]).toHaveLength(1);
     expect(payload[INPI_TRACKER_FIELDS.alerts][0]).toMatchObject({
       processNumber: 'PI0101161-8',
@@ -237,6 +240,9 @@ describe('inpi-watch handler', () => {
 
     const [payload] = userDoc.set.mock.calls[0];
     expect(payload[INPI_TRACKER_FIELDS.alerts]).toEqual([]);
+    expect(payload[INPI_TRACKER_FIELDS.lastWatchSummary]).toBe(
+      'Verificação concluída: nenhum alerta novo.',
+    );
     expect(payload[INPI_TRACKER_FIELDS.savedSearches][0]).toMatchObject({
       processNumber: '904155196',
       sourceId: 'marca',

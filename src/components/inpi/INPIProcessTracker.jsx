@@ -793,7 +793,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                         {entry.processNumber}
                       </p>
                       <p className="mt-2 text-xs text-slate-500">
-                        Última sincronização manual: {formatFetchedAt(entry.updatedAt || entry.fetchedAt)}
+                        Última sincronização manual: {formatFetchedAt(entry.lastManualSyncAt || entry.updatedAt || entry.fetchedAt)}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         Última checagem automática: {formatFetchedAt(entry.lastCheckedAt || entry.updatedAt || entry.fetchedAt)}

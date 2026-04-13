@@ -139,6 +139,9 @@ describe("executeManualInpiWatchForUser", () => {
       lastKnownContentHash: "hash-novo",
       lastError: "",
     });
+    expect(payload[INPI_TRACKER_FIELDS.savedSearches][0].lastManualSyncAt).toBe(
+      "2026-04-07T20:00:00.000Z",
+    );
     expect(payload[INPI_TRACKER_FIELDS.alerts]).toHaveLength(1);
   });
 });

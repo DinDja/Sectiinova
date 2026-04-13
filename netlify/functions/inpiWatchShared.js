@@ -21,6 +21,41 @@ export function json(statusCode, payload) {
   };
 }
 
+function buildWatchSummary(nextAlerts = []) {
+  const total = Array.isArray(nextAlerts) ? nextAlerts.length : 0;
+
+  if (!total) {
+    return "Verificação concluída: nenhum alerta novo.";
+  }
+
+  const listedLabels = nextAlerts
+    .slice(0, 3)
+    .map((alert) => {
+      const processNumber = String(alert?.processNumber || "").trim();
+      const sourceLabel = String(alert?.sourceLabel || "").trim();
+
+      if (processNumber && sourceLabel) {
+        return `${processNumber} (${sourceLabel})`;
+      }
+
+      if (processNumber) {
+        return processNumber;
+      }
+
+      return sourceLabel || "";
+    })
+    .filter(Boolean);
+
+  if (!listedLabels.length) {
+    return `Verificação concluída: ${total} alerta(s) novo(s).`;
+  }
+
+  const remaining = total - listedLabels.length;
+  const remainingSuffix = remaining > 0 ? ` +${remaining} outro(s).` : ".";
+
+  return `Verificação concluída: ${total} alerta(s) novo(s): ${listedLabels.join("; ")}${remainingSuffix}`;
+}
+
 async function processSavedSearch(entry) {
   const nowIso = new Date().toISOString();
 
@@ -56,6 +91,7 @@ async function processSavedSearch(entry) {
         previousEntry: entry,
         watchEnabled: entry.watchEnabled,
         changed: contentChanged,
+        manualSync: false,
       },
     );
 
@@ -197,7 +233,7 @@ export async function runWatchJob(options = {}) {
         ),
         [INPI_TRACKER_FIELDS.monitoringCount]: countMonitoredSearches(nextSavedSearches),
         [INPI_TRACKER_FIELDS.lastWatchRunAt]: new Date().toISOString(),
-        [INPI_TRACKER_FIELDS.lastWatchSummary]: `Verificação concluída: ${nextAlerts.length} alerta(s) novo(s).`,
+        [INPI_TRACKER_FIELDS.lastWatchSummary]: buildWatchSummary(nextAlerts),
       },
       { merge: true },
     );

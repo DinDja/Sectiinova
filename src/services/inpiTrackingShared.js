@@ -39,6 +39,8 @@ export function normalizeStoredSearches(entries) {
       officialSearchUrl: normalizeText(entry.officialSearchUrl),
       fetchedAt: normalizeText(entry.fetchedAt),
       updatedAt: normalizeText(entry.updatedAt),
+      lastManualSyncAt:
+        normalizeText(entry.lastManualSyncAt) || normalizeText(entry.updatedAt),
       watchEnabled: Boolean(entry.watchEnabled),
       lastKnownContentHash: normalizeText(entry.lastKnownContentHash),
       lastKnownSnapshotKey: normalizeText(entry.lastKnownSnapshotKey),
@@ -102,6 +104,10 @@ export function createStoredSearchFromResult(result, options = {}) {
   const nowIso = normalizeText(options.nowIso) || new Date().toISOString();
   const latestDispatch = result?.latestDispatch || {};
   const previousEntry = options.previousEntry || null;
+  const isManualSync = options.manualSync !== false;
+  const previousManualSyncAt =
+    normalizeText(previousEntry?.lastManualSyncAt) ||
+    normalizeText(previousEntry?.updatedAt);
   const processNumber =
     normalizeText(result?.summary?.processNumber) || normalizeText(result?.query);
   const sourceId = normalizeText(result?.sourceId) || "automatico";
@@ -122,6 +128,7 @@ export function createStoredSearchFromResult(result, options = {}) {
       normalizeText(result?.officialSearchUrl) || previousEntry?.officialSearchUrl,
     fetchedAt: normalizeText(result?.fetchedAt) || previousEntry?.fetchedAt || nowIso,
     updatedAt: nowIso,
+    lastManualSyncAt: isManualSync ? nowIso : previousManualSyncAt,
     watchEnabled:
       typeof options.watchEnabled === "boolean"
         ? options.watchEnabled

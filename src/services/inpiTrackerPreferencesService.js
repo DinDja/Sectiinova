@@ -76,6 +76,7 @@ export async function saveInpiSearch(userId, result, options = {}) {
       ) || null;
     const nextEntry = createStoredSearchFromResult(result, {
       previousEntry,
+      manualSync: true,
       watchEnabled:
         typeof options.watchEnabled === "boolean"
           ? options.watchEnabled
@@ -228,6 +229,7 @@ async function processManualWatchEntry(entry) {
       previousEntry: entry,
       watchEnabled: entry.watchEnabled,
       changed: contentChanged,
+      manualSync: true,
     });
 
     return {
