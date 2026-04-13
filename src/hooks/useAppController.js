@@ -26,6 +26,7 @@ import {
 
 import { db, auth } from '../../firebase';
 import dadosUnidades from '../../DadosUnidades.json';
+import dadosUnidadesMunicipais from '../../DadosUnidadesMunicipaisBA_8_9.json';
 import { getLattesLink, composeMentoriaLabel } from '../utils/helpers';
 import { STAGES, PROJECTS_PAGE_SIZE } from '../constants/appConstants';
 import { buildProjectEntries, getProjectTeam, getInvestigatorDisplayNames, normalizePerfil } from '../services/projectService';
@@ -73,6 +74,7 @@ export default function useAppController() {
         senha: '',
         confirmarSenha: '',
         perfil: 'estudante',
+        rede_administrativa: 'estadual',
         escola_id: '',
         escola_nome: '',
         matricula: '',
@@ -222,22 +224,36 @@ export default function useAppController() {
         return clubs.find((club) => String(club.id) === String(myClubId)) || null;
     }, [myClubId, clubs]);
 
-    const schoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
-    const allSchoolUnits = useMemo(() => flattenSchoolGroups(schoolGroups), [schoolGroups]);
+    const estadualSchoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
+    const municipalSchoolGroups = useMemo(
+        () => buildMunicipalSchoolGroups(dadosUnidadesMunicipais),
+        []
+    );
+    const selectedSchoolGroups = useMemo(() => {
+        if (registerForm.rede_administrativa === 'municipal') {
+            return municipalSchoolGroups;
+        }
+
+        return estadualSchoolGroups;
+    }, [registerForm.rede_administrativa, municipalSchoolGroups, estadualSchoolGroups]);
+    const allSchoolUnits = useMemo(
+        () => flattenSchoolGroups(selectedSchoolGroups),
+        [selectedSchoolGroups]
+    );
 
     const filteredSchoolGroups = useMemo(() => {
         const term = schoolSearchTerm.trim().toLowerCase();
         if (!term) {
-            return schoolGroups;
+            return selectedSchoolGroups;
         }
 
-        return schoolGroups
+        return selectedSchoolGroups
             .map((group) => ({
                 ...group,
                 units: (group.units || []).filter((unit) => unit.nome.toLowerCase().includes(term))
             }))
             .filter((group) => (group.units || []).length > 0);
-    }, [schoolGroups, schoolSearchTerm]);
+    }, [selectedSchoolGroups, schoolSearchTerm]);
 
     // 🚀 Inicializar cache IndexedDB automaticamente
     useEffect(() => {
@@ -707,8 +723,11 @@ export default function useAppController() {
                 nome: registerForm.nome.trim(),
                 email: registerForm.email.trim(),
                 perfil: registerForm.perfil,
+                rede_administrativa: registerForm.rede_administrativa === 'municipal' ? 'municipal' : 'estadual',
                 escola_id: escolaUnit.escola_id,
                 escola_nome: escolaUnit.nome,
+                escola_municipio: String(escolaUnit.municipio || '').trim(),
+                escola_uf: String(escolaUnit.uf || 'BA').trim() || 'BA',
                 clube_id: matchingClub?.id || '',
                 createdAt: serverTimestamp()
             };
@@ -772,8 +791,11 @@ export default function useAppController() {
                     nome: fullName || fallbackName,
                     email: userEmail,
                     perfil: 'estudante',
+                    rede_administrativa: '',
                     escola_id: '',
                     escola_nome: '',
+                    escola_municipio: '',
+                    escola_uf: '',
                     clube_id: '',
                     auth_provider: normalizedProvider === 'google' ? 'google' : 'microsoft',
                     createdAt: serverTimestamp()
@@ -914,6 +936,10 @@ export default function useAppController() {
                 fotoBase64: profileData.fotoBase64 || loggedUser.fotoBase64 || loggedUser.fotoUrl || ''
             };
 
+            if (profileData.lattesData && typeof profileData.lattesData === 'object') {
+                updates.lattes_data = profileData.lattesData;
+            }
+
             await updateDoc(userRef, updates);
             const updatedUser = { ...loggedUser, ...updates };
             setLoggedUser(updatedUser);
@@ -1047,6 +1073,62 @@ function buildSchoolGroups(dataset) {
         .filter((group) => group.units.length > 0);
 }
 
+function buildMunicipalSchoolGroups(dataset) {
+    const schools = Array.isArray(dataset?.escolas) ? dataset.escolas : [];
+    const groupsByMunicipio = new Map();
+
+    for (const school of schools) {
+        const escolaId = String(school?.escola_id || school?.cod_inep || '').trim();
+        const nome = String(school?.nome || '').trim();
+        const municipio = String(school?.municipio || '').trim();
+        const uf = String(school?.uf || 'BA').trim() || 'BA';
+
+        if (!escolaId || !nome) {
+            continue;
+        }
+
+        const groupKeyBase = municipio || 'Municipio nao informado';
+        const groupKey = `municipal-${normalizeGroupKey(groupKeyBase)}`;
+
+        if (!groupsByMunicipio.has(groupKey)) {
+            groupsByMunicipio.set(groupKey, {
+                key: groupKey,
+                label: municipio || 'Municipio nao informado',
+                units: []
+            });
+        }
+
+        const group = groupsByMunicipio.get(groupKey);
+        if (!group.units.find((item) => item.escola_id === escolaId)) {
+            group.units.push({
+                escola_id: escolaId,
+                nome,
+                cod_inep: String(school?.cod_inep || escolaId).trim(),
+                tipo_unidade: 'MUNICIPAL',
+                municipio,
+                uf
+            });
+        }
+    }
+
+    return [...groupsByMunicipio.values()]
+        .map((group) => ({
+            ...group,
+            units: group.units.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+}
+
+function normalizeGroupKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
 function flattenSchoolGroups(groups) {
     return (groups || []).flatMap((group) => group.units || []);
 }
@@ -1090,3 +1172,4 @@ function getAuthErrorMessage(code, fallbackMessage = '') {
 
     return 'Ocorreu um erro. Tente novamente.';
 }
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import Select from "react-select";
 import {
   Microscope,
   User,
@@ -52,6 +53,100 @@ const MorphingCheckbox = ({ checked, onChange }) => {
   );
 };
 
+const selectStyles = ({ hasError = false } = {}) => ({
+  control: (base, state) => ({
+    ...base,
+    minHeight: 44,
+    borderRadius: 12,
+    borderColor: hasError
+      ? "#dc2626"
+      : state.isFocused
+        ? "#00B5B5"
+        : "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    boxShadow: state.isFocused
+      ? "0 0 0 4px rgba(0, 181, 181, 0.14)"
+      : "none",
+    transition: "all 120ms ease",
+    "&:hover": {
+      borderColor: hasError ? "#dc2626" : "#14b8a6",
+    },
+  }),
+  valueContainer: (base) => ({
+    ...base,
+    padding: "2px 10px",
+  }),
+  placeholder: (base) => ({
+    ...base,
+    color: "#64748b",
+    fontSize: 14,
+  }),
+  singleValue: (base) => ({
+    ...base,
+    color: "#0f172a",
+    fontSize: 14,
+  }),
+  input: (base) => ({
+    ...base,
+    color: "#0f172a",
+    fontSize: 14,
+  }),
+  dropdownIndicator: (base, state) => ({
+    ...base,
+    color: state.isFocused ? "#00B5B5" : "#94a3b8",
+    "&:hover": {
+      color: "#00B5B5",
+    },
+  }),
+  clearIndicator: (base) => ({
+    ...base,
+    color: "#94a3b8",
+    "&:hover": {
+      color: "#334155",
+    },
+  }),
+  indicatorSeparator: () => ({
+    display: "none",
+  }),
+  menu: (base) => ({
+    ...base,
+    borderRadius: 12,
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 14px 36px rgba(15, 23, 42, 0.16)",
+    overflow: "hidden",
+  }),
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 9999,
+  }),
+  groupHeading: (base) => ({
+    ...base,
+    color: "#0f172a",
+    fontWeight: 700,
+    fontSize: 11,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    paddingTop: 10,
+  }),
+  option: (base, state) => ({
+    ...base,
+    fontSize: 14,
+    padding: "10px 12px",
+    backgroundColor: state.isSelected
+      ? "#00B5B5"
+      : state.isFocused
+        ? "#f0fdfa"
+        : "#ffffff",
+    color: state.isSelected ? "#ffffff" : "#0f172a",
+    cursor: "pointer",
+  }),
+  noOptionsMessage: (base) => ({
+    ...base,
+    color: "#64748b",
+    fontSize: 13,
+  }),
+});
+
 export default function AuthPage({
   authMode,
   setAuthMode,
@@ -79,6 +174,46 @@ export default function AuthPage({
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
+
+  const menuPortalTarget =
+    typeof document !== "undefined" ? document.body : null;
+  const perfilOptions = PERFIS_LOGIN.map((perfilItem) => ({
+    value: perfilItem.value,
+    label: perfilItem.label,
+  }));
+  const selectedPerfilOption =
+    perfilOptions.find((option) => option.value === registerForm.perfil) ||
+    null;
+  const redeOptions = [
+    { value: "estadual", label: "Estadual" },
+    { value: "municipal", label: "Municipal" },
+  ];
+  const selectedRedeOption =
+    redeOptions.find(
+      (option) =>
+        option.value === (registerForm.rede_administrativa || "estadual"),
+    ) || redeOptions[0];
+  const schoolOptions = filteredSchoolGroups.map((group) => ({
+    label: group.label,
+    options: (group.units || []).map((unit) => ({
+      value: unit.escola_id,
+      label: unit.nome,
+      unit,
+    })),
+  }));
+  const selectedSchoolUnit = allSchoolUnits.find(
+    (unit) => unit.escola_id === registerForm.escola_id,
+  );
+  const selectedSchoolOption = selectedSchoolUnit
+    ? {
+        value: selectedSchoolUnit.escola_id,
+        label: selectedSchoolUnit.nome,
+        unit: selectedSchoolUnit,
+      }
+    : null;
+  const hasSchoolError = String(authError || "")
+    .toLowerCase()
+    .includes("unidade escolar");
 
   const openAuthModal = (mode) => {
     setAuthMode(mode);
@@ -730,10 +865,10 @@ export default function AuthPage({
                           <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">
                             Perfil *
                           </label>
-                          <select
-                            value={registerForm.perfil}
-                            onChange={(e) => {
-                              const novoPerfil = e.target.value || "";
+                          <Select
+                            value={selectedPerfilOption}
+                            onChange={(option) => {
+                              const novoPerfil = option?.value || "";
                               const isEstudante =
                                 novoPerfil
                                   .toLowerCase()
@@ -752,14 +887,12 @@ export default function AuthPage({
                                     : "",
                               }));
                             }}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10 appearance-none"
-                          >
-                            {PERFIS_LOGIN.map((p) => (
-                              <option key={p.value} value={p.value}>
-                                {p.label}
-                              </option>
-                            ))}
-                          </select>
+                            options={perfilOptions}
+                            isSearchable={false}
+                            menuPortalTarget={menuPortalTarget}
+                            menuPosition="fixed"
+                            styles={selectStyles()}
+                          />
                         </div>
 
                         {/* NOVO CHECKBOX INSERIDO AQUI */}
@@ -916,57 +1049,82 @@ export default function AuthPage({
                             <School className="w-3.5 h-3.5" />
                             Vínculo Escolar
                           </label>
-                          <input
-                            type="text"
-                            value={schoolSearchTerm}
-                            onChange={(e) =>
-                              setSchoolSearchTerm(e.target.value)
-                            }
-                            className="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm outline-none mb-3 transition-all focus:border-[#00B5B5] focus:ring-2 focus:ring-[#00B5B5]/20"
-                            placeholder="🔍 Buscar escola pelo nome..."
-                          />
-                          <select
-                            value={registerForm.escola_id}
-                            onChange={(e) => {
-                              const selected = allSchoolUnits.find(
-                                (u) => u.escola_id === e.target.value,
-                              );
+                          <div className="mb-3">
+                            <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500 tracking-wide">
+                              Rede administrativa *
+                            </label>
+                            <Select
+                              value={selectedRedeOption}
+                              onChange={(option) => {
+                                const novaRede =
+                                  option?.value === "municipal"
+                                    ? "municipal"
+                                    : "estadual";
+                                setRegisterForm((prev) => ({
+                                  ...prev,
+                                  rede_administrativa: novaRede,
+                                  escola_id: "",
+                                  escola_nome: "",
+                                }));
+                                setSchoolSearchTerm("");
+                              }}
+                              options={redeOptions}
+                              isSearchable={false}
+                              menuPortalTarget={menuPortalTarget}
+                              menuPosition="fixed"
+                              styles={selectStyles()}
+                            />
+                          </div>
+                          <Select
+                            value={selectedSchoolOption}
+                            onChange={(option) => {
+                              const selectedUnit = option?.unit || null;
                               setRegisterForm((prev) => ({
                                 ...prev,
-                                escola_id: e.target.value,
-                                escola_nome: selected?.nome || "",
+                                escola_id: selectedUnit?.escola_id || "",
+                                escola_nome: selectedUnit?.nome || "",
                               }));
+                              setSchoolSearchTerm("");
                             }}
-                            className="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm outline-none transition-all focus:border-[#00B5B5] focus:ring-2 focus:ring-[#00B5B5]/20"
-                            required
-                          >
-                            <option value="">
-                              Selecione a unidade escolar *
-                            </option>
-                            {filteredSchoolGroups.length === 0 ? (
-                              <option value="" disabled>
-                                Nenhuma escola encontrada
-                              </option>
-                            ) : (
-                              filteredSchoolGroups.map((group) => (
-                                <optgroup
-                                  key={group.key}
-                                  label={group.label}
-                                  className="font-semibold text-gray-700"
-                                >
-                                  {group.units.map((unit) => (
-                                    <option
-                                      key={`${group.key}-${unit.escola_id}`}
-                                      value={unit.escola_id}
-                                      className="font-normal"
-                                    >
-                                      {unit.nome}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              ))
+                            onInputChange={(value, actionMeta) => {
+                              if (actionMeta.action === "input-change") {
+                                setSchoolSearchTerm(value);
+                              }
+                              if (
+                                actionMeta.action === "menu-close" &&
+                                !registerForm.escola_id
+                              ) {
+                                setSchoolSearchTerm("");
+                              }
+                            }}
+                            inputValue={schoolSearchTerm}
+                            options={schoolOptions}
+                            isSearchable
+                            isClearable
+                            isDisabled={isSubmitting}
+                            placeholder={
+                              registerForm.rede_administrativa === "municipal"
+                                ? "Buscar escola municipal pelo nome..."
+                                : "Buscar escola estadual pelo nome..."
+                            }
+                            noOptionsMessage={() => "Nenhuma escola encontrada"}
+                            menuPortalTarget={menuPortalTarget}
+                            menuPosition="fixed"
+                            styles={selectStyles({ hasError: hasSchoolError })}
+                            formatGroupLabel={(group) => (
+                              <div className="flex items-center justify-between">
+                                <span>{group.label}</span>
+                                <span className="text-[11px] font-medium text-slate-500">
+                                  {group.options.length}
+                                </span>
+                              </div>
                             )}
-                          </select>
+                          />
+                          <p className="mt-2 text-[11px] text-slate-500">
+                            {registerForm.rede_administrativa === "municipal"
+                              ? "Selecione a unidade escolar municipal."
+                              : "Selecione a unidade escolar estadual."}
+                          </p>
                         </div>
                       </div>
 

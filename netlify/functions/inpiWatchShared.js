@@ -100,9 +100,25 @@ async function getUserDocsToProcess(db, targetUserId = "") {
   return userDoc ? [userDoc] : [];
 }
 
+function resolveRuntimeBudgetMs(targetUserId = "") {
+  if (targetUserId) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const configuredValue = Number(process.env.INPI_WATCH_MAX_RUNTIME_MS || "");
+
+  if (Number.isFinite(configuredValue) && configuredValue > 0) {
+    return configuredValue;
+  }
+
+  return 25000;
+}
+
 export async function runWatchJob(options = {}) {
   const targetUserId = String(options.targetUserId || "").trim();
   const db = getAdminDb();
+  const runStartedAtMs = Date.now();
+  const runtimeBudgetMs = resolveRuntimeBudgetMs(targetUserId);
   const summary = {
     scope: targetUserId ? "user" : "all",
     targetUserId,
@@ -112,6 +128,8 @@ export async function runWatchJob(options = {}) {
     alertsCreated: 0,
     skippedUsers: 0,
   };
+  let interrupted = false;
+  let inspectedUserDocs = 0;
 
   const userDocs = await getUserDocsToProcess(db, targetUserId);
 
@@ -121,6 +139,12 @@ export async function runWatchJob(options = {}) {
   }
 
   for (const userDoc of userDocs) {
+    if (Date.now() - runStartedAtMs >= runtimeBudgetMs) {
+      interrupted = true;
+      break;
+    }
+
+    inspectedUserDocs += 1;
     const data = userDoc.data() || {};
     const savedSearches = normalizeStoredSearches(data[INPI_TRACKER_FIELDS.savedSearches]);
     const monitoredSearches = savedSearches.filter((entry) => entry.watchEnabled);
@@ -136,6 +160,11 @@ export async function runWatchJob(options = {}) {
     const nextSavedSearches = [...savedSearches];
 
     for (const monitoredEntry of monitoredSearches) {
+      if (Date.now() - runStartedAtMs >= runtimeBudgetMs) {
+        interrupted = true;
+        break;
+      }
+
       summary.processedSearches += 1;
       const outcome = await processSavedSearch(monitoredEntry);
       const index = nextSavedSearches.findIndex(
@@ -172,6 +201,17 @@ export async function runWatchJob(options = {}) {
       },
       { merge: true },
     );
+
+    if (interrupted) {
+      break;
+    }
+  }
+
+  if (interrupted) {
+    summary.interrupted = true;
+    summary.interruptedReason =
+      "Execução interrompida para respeitar o limite de tempo do agendamento.";
+    summary.remainingUsers = Math.max(userDocs.length - inspectedUserDocs, 0);
   }
 
   return summary;

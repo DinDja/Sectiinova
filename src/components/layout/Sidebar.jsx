@@ -58,7 +58,7 @@ export default function Sidebar({
     },
     {
       id: 'forum',
-      label: 'Café Digital',
+      label: 'POP Digital',
       icon: FcComments,
       iconSrc: '/iconesSidebar/CafeDigital.svg',
       tooltip: 'Fórum de discussão',

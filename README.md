@@ -73,6 +73,11 @@
 ### Variáveis de ambiente da Netlify
 - `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`: obrigatórias para notificações do fórum e monitoramento/alertas do INPI (sem dependência de JSON/Base64).
 - `INPI_WATCH_RUN_TOKEN`: opcional. Se definido, protege a execução manual da function `inpi-watch`.
+- `TEACHER_MATRICULA_PORTAL_URL`: opcional. URL única para sobrescrever o portal padrão de matrícula, com placeholder `{matricula}` e, se necessário, `{cpf}`. Sem placeholder, a function monta query string automaticamente (`?matricula=` e `&cpf=` quando informado).
+- `TEACHER_MATRICULA_PORTAL_URLS`: opcional. Lista (separada por vírgula, ponto e vírgula ou quebra de linha) de múltiplos portais de matrícula para fallback.
+- Se nenhuma variável for definida, a function usa fallback automático para o endpoint oficial público de consulta (`gsuite-email/email/consulta`) com tentativa em `idTipoConta=2` e `idTipoConta=1`.
+- O endpoint `/api/teacher/verify` valida docentes consultando apenas portais externos (Lattes + matrícula), sem leitura de projetos para essa validação.
+- No cadastro de orientador/coorientador, o CPF é usado somente para consulta nos portais oficiais de validação e não é salvo no perfil do usuário.
 - Moderação do fórum (`/api/forum/moderate`) usa Perspective + OpenRouter em conjunto.
 - As chaves estão embutidas em `netlify/functions/forum-moderate.js` nas constantes `PERSPECTIVE_API_KEY_HARDCODED` e `OPENROUTER_API_KEY_HARDCODED`.
 - `PERSPECTIVE_REVIEW_THRESHOLD`: opcional. Limiar (0-1) para reter conteúdo em revisão. Padrão: `0.35`.

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>Governo do Estado da Bahia - Transparência Bahia</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+
+  <link rel="stylesheet" media="all" href="/public/stylesheets/libs/bootstrap.min.css">
+  <link rel="stylesheet" media="screen" href="/public/stylesheets/libs/toastr.css">
+  <link rel="stylesheet" media="all" href="/public/stylesheets/libs/angular-tooltips.min.css">
+  <link rel="stylesheet" media="all" href="/public/stylesheets/main.css">
+  <link rel="stylesheet" media="print" href="/public/stylesheets/print.css">
+
+  <link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
+
+  <script src="/public/javascripts/libs/bowser.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/jquery.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/bootstrap.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-locale_pt-br.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-resource.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-animate.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-ui-router.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/toastr.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/ui-utils.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-tooltips.min.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/libs/angular-prodeb-components.js" type="text/javascript"
+    charset="UTF-8"></script>
+
+  <script src="/public/javascripts/app.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/routes.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/filters/filters.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/filters/servidor-filters.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/services/servidor.service.js" type="text/javascript" charset="UTF-8"></script>
+  <script src="/public/javascripts/services/recaptcha.service.js" type="text/javascript" charset="UTF-8"></script>
+
+  <script src="/public/javascripts/controllers/servidores-lista.controller.js" type="text/javascript"
+    charset="UTF-8"></script>
+  <script src="/public/javascripts/controllers/servidores-exportacao.controller.js" type="text/javascript"
+    charset="UTF-8"></script>
+  <script src="/public/javascripts/controllers/servidor-detalhes.controller.js" type="text/javascript"
+    charset="UTF-8"></script>
+  <script src="/public/javascripts/controllers/servidor-remuneracao.controller.js" type="text/javascript"
+    charset="UTF-8"></script>
+</head>
+
+<body ng-app="app" ng-controller="ServidoresListaController as slCtrl">
+  <div id="navegadores-suportados" class="panel panel-danger hide">
+    <div class="panel-heading">Navegador não suportado</div>
+    <div class="panel-body">
+      <p>Por favor instale um dos navegadores compatíveis abaixo: </p>
+    </div>
+    <ul class="list-group">
+      <li class="list-group-item">Chrome versão 28 ou maior</li>
+      <li class="list-group-item">Internet Explorer versão 11 ou maior</li>
+      <li class="list-group-item">FireFox versão 31 ou maior</li>
+    </ul>
+  </div>
+
+  <div id="main">
+    <spinner></spinner>
+
+    <nav id="main-nav" class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-menu"
+            aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+
+          <a ui-sref="servidores" class="navbar-left">
+            <img src="/public/images/banner_atual.png" class="img-responsive-header" />
+          </a>
+          <h3 class="navbar-center">Transparência Bahia</h3>
+        </div>
+        <div id="main-menu" class="navbar-collapse collapse">
+          <!-- Ajustei o margin-top para posicionar os links -->
+          <ul class="nav navbar-nav navbar-right hidden-print">
+            <!--  <li><a href="#servidores/exportacao/">Baixar Dados</a></li>  -->
+
+            <li><a target="_blank" href="https://www.ba.gov.br/ouvidoria/" style="padding-left: 16px;">Ouvidoria</a>
+            </li>
+            <li> <a href="" ng-click="slCtrl.popUpRequisitosHardwareSoftware();"
+                style="padding-right: 15px; padding-left: 31px;">Requisitos</a></li>
+            <li> <a href="" ng-click="slCtrl.popUpDetalhesValores();"
+                style="margin-right: 30px;  padding-left: 24px;">Informações</a> </li>
+            <li> <a target="_blank" href="/public/documentos/Legislacao.pdf"
+                style="margin-right: 30px;padding-left: 2px;">Legislação</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    
+
+<div class="container" ui-view>
+</div>
+
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,400 @@
+<div class="jumbotron">
+  <h1>Servidores Públicos, Empregados Públicos e Militares do Estado da Bahia</h1>
+  <!-- <p class="small text-justify">As informações disponíveis nesta consulta referem-se aos Servidores Públicos, Empregados Públicos e Militares, ativos, inativos e pensionistas do Poder Executivo do Estado da Bahia. Não estão incluídos na consulta dados de servidores dos poderes Judiciário e Legislativo. Estão excluídos, também, os descontos pessoais, as despesas com plano de saúde e os valores com pensão alimentícia.</p> -->
+  <p class="small text-justify">
+    As informações disponíveis nesta consulta referem-se aos Servidores Públicos Civis, Empregados Públicos e Militares, ativos, inativos e pensionistas do Poder Executivo do Estado da Bahia. Estão incluídos na consulta dados de inativos e pensionistas dos Poderes Legislativo, Assembleia Legislativa, Defensoria Pública e dos Tribunais de Contas do Estado e Municípios,
+ além de pensionistas do Poder Judiciário e do Ministério Público, que estão sob a gestão da SUPREV.
+
+Estão excluídos, os inativos vinculados ao Poder Judiciário e Ministério Público e descontos de caráter pessoal (planos de saúde, pensões alimentícias, decisões judiciais, etc.). Para realizar a pesquisa desejada, utilize as opções abaixo.  <p>
+  
+
+  <form class="form-horizontal">
+    <!--div class="form-group form-group-sm">
+      <label for="cpf" class="col-sm-1 control-label">CPF: </label>
+      <div class="col-sm-2">
+        <input type="text" class="form-control" id="cpf" ng-model="slCtrl.filtros.cpf" ui-mask="999.999.999-99" ng-keypress="slCtrl.filtros.nome = ''">
+      </div>
+    </div-->
+    <div class="row">
+      <div class="col-lg-6">
+
+        <!-- <div class="form-group form-group-sm">
+          <label for="nome" class="col-sm-5 control-label">Nome: </label>
+          <div class="col-sm-6">
+            <input type="text" class="form-control" id="nome" ng-model="slCtrl.filtros.nome" ng-keypress="slCtrl.filtros.cpf = ''">
+          </div>
+        </div> -->
+
+        <div class="form-group form-group-sm">
+          <label for="ano" class="col-md-5 control-label">Ano de Referência </label>
+          <div class="col-md-6">
+            <select class="form-control"
+                    ng-model="slCtrl.filtros.anoEscolhido"
+                    ng-options="ano for ano in slCtrl.anos | orderBy track by ano"
+                    ng-change="slCtrl.carregarMeses()"></select>
+          </div>
+        </div>
+        <!-- ng-click="slCtrl.disableAll(slCtrl.chkSemVinculo,1)" -->
+
+        <!-- ng-disabled="slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas" -->
+        <!-- ng-click="slCtrl.carregaFiltros(semVinculo)" -->
+        <div style="padding-left:100px;padding-top: 40px;">
+          <div class="form-check">
+            <input type="checkbox" value="false" class="form-check-input" ng-click="slCtrl.habilitaCheck($event, semVinculo); slCtrl.carregaFiltros(1)" ng-model="slCtrl.chkSemVinculo" id="semVinculo" >
+            <label class="form-check-label" for="semVinculo">Sem Vinculo (Em Comissão)</label>
+          </div>
+          <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas" ng-model="slCtrl.chkSemVinculoCedido" -->
+          <!-- ng-click="slCtrl.carregaFiltros(semVinculoCedido)" -->
+          <div class="form-check">
+            <input type="checkbox" value="false" class="form-check-input" ng-click="slCtrl.habilitaCheck($event, semVinculoCedido); slCtrl.carregaFiltros(2)" ng-model="slCtrl.chkSemVinculoCedido" id="semVinculoCedido" >
+            <label class="form-check-label" for="semVinculoCedido">Sem Vinculo (Cedido)</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas" -->
+            <!-- ng-change="slCtrl.habilitaCheck(cargoEfetivo)" -->
+            <input type="checkbox" value="false" class="form-check-input" ng-model="slCtrl.chkCargoEfetivo" ng-click="slCtrl.habilitaCheck($event, cargoEfetivo); slCtrl.carregaFiltros(3)" id="cargoEfetivo" >
+            <label class="form-check-label" for="cargoEfetivo">Cargo Efetivo</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas" -->
+            <!-- ng-change="slCtrl.habilitaCheck(empregoPublico)" -->
+            <input type="checkbox" value="false" class="form-check-input" ng-model="slCtrl.chkEmpregoPublico" ng-click="slCtrl.habilitaCheck($event, empregoPublico); slCtrl.carregaFiltros(4)" id="empregoPublico">
+            <label class="form-check-label" for="empregoPublico">Emprego Público</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas"  -->
+            <!-- ng-change="slCtrl.habilitaCheck(funcaoReda)" -->
+            <input type="checkbox" value="false" class="form-check-input"  ng-model="slCtrl.chkFuncaoReda" ng-click="slCtrl.habilitaCheck($event, funcaoReda); slCtrl.carregaFiltros(5)" id="funcaoReda">
+            <label class="form-check-label" for="funcaoReda">Função Reda</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkInativos || slCtrl.chkPensionistas" -->
+            <!-- ng-change="slCtrl.habilitaCheck(estagiariosResidentes)"  -->
+            <input type="checkbox" value="false" class="form-check-input"  ng-model="slCtrl.chkEstagiariosResidentes" ng-click="slCtrl.habilitaCheck($event, estagiariosResidentes); slCtrl.carregaFiltros(6)" id="estagiariosResidentes">
+            <label class="form-check-label" for="estagiariosResidentes">Estagiários/Residentes</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkPensionistas" -->
+            <input type="checkbox" value="false" class="form-check-input"  ng-model="slCtrl.chkInativos" ng-click="slCtrl.habilitaCheck($event, inativos); slCtrl.carregaFiltros(7)" id="inativos">
+            <label class="form-check-label" for="inativos">Inativos</label>
+          </div>
+          <div class="form-check">
+            <!-- ng-disabled="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos" -->
+            <input type="checkbox" value="false" class="form-check-input" ng-model="slCtrl.chkPensionistas" ng-click="slCtrl.habilitaCheck($event, pensionistas); slCtrl.carregaFiltros(8)" id="pensionistas">
+            <label class="form-check-label" for="pensionistas">Pensionistas</label>
+          </div>
+      </div>
+
+   
+
+    </div>
+    
+    <div class="col-lg-6">
+
+      <div class="form-group form-group-sm" style="padding: 0 0 30px 0;">
+        <label for="mes" class="col-md-4 control-label" >Mês de Referência: </label>
+        <div class="col-md-6">
+          <select class="form-control"
+                  ng-model="slCtrl.filtros.mesEscolhido"
+                  ng-options="mes | mesExtenso for mes in slCtrl.meses | orderBy track by mes"></select>
+        </div>
+      </div>
+
+      <div ng-show="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas">
+        <div ng-if="!slCtrl.chkSemVinculo && !slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido" class="form-group form-group-sm">
+          <label for="cargo" class="col-md-4 control-label">Cargo: </label>
+          <div class="col-md-6">          
+            <select class="form-control"
+                    ng-model="slCtrl.filtros.cargoEscolhido"
+                    ng-options="cargo for cargo in slCtrl.cargos | orderBy track by cargo"
+                    ng-change="slCtrl.carregarCargoComissao(slCtrl.filtros.cargoEscolhido)"   >
+            <option value="" ng-if="!slCtrl.dadosCarregadosCargos" disabled selected>Carregando informações...</option> 
+            </select>
+          </div>
+        </div>
+	
+
+
+<div ng-if="!slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes" class="form-group form-group-sm">
+    <label for="cargoComissao" class="col-md-4 control-label">Cargo em Comissão: </label>
+    <div class="col-md-6">
+        <select id="cargoComissaoSelect" class="form-control"
+                ng-model="slCtrl.filtros.cargoComissaoEscolhido"
+                ng-options="cargoComissao for cargoComissao in slCtrl.cargosComissao | orderBy track by cargoComissao"
+                ng-disabled="(slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico) && (!slCtrl.filtros.cargoEscolhido)">
+            <option value="" ng-if="!slCtrl.dadosCarregados" disabled selected>Carregando informações...</option>
+        </select>
+    </div>
+</div>
+
+
+
+        <div ng-if="slCtrl.chkSemVinculoCedido || slCtrl.chkPensionistas" class="form-group form-group-sm">
+          <label for="categoriaFuncional" class="col-md-4 control-label">Categoria Funcional: </label>
+          <div class="col-md-6">
+            <select class="form-control"
+                    ng-model="slCtrl.filtros.categoriaFuncionalEscolhido"
+                    ng-options="categoriaFuncional for categoriaFuncional in slCtrl.categoriasFuncionais | orderBy track by categoriaFuncional">
+              <option value="" ng-if="!slCtrl.dadosCarregadosCategoriasFuncionais" disabled selected>Carregando informações..</option>    
+                                           
+             </select>
+           
+          </div>
+        </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="row" style="padding: 30px 0 30px 0;" ng-show="slCtrl.chkSemVinculo || slCtrl.chkSemVinculoCedido || slCtrl.chkCargoEfetivo || slCtrl.chkEmpregoPublico || slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes || slCtrl.chkInativos || slCtrl.chkPensionistas">
+    <div class="col-lg-6">
+      <div class="form-group form-group-sm">
+        <label for="orgaoLotacao" class="col-md-5 control-label">Orgão de Lotação Atual: </label>
+        <div class="col-md-5">
+          <select class="form-control"
+                  ng-model="slCtrl.filtros.orgaoLotacaoEscolhido"
+                  ng-options="orgaoLotacao for orgaoLotacao in slCtrl.orgaosLotacao | orderBy track by orgaoLotacao"
+                  ></select>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="form-group form-group-sm">
+        <label for="orgaoExercicio" class="col-md-5 control-label">Orgão de Exercício Atual: </label>
+        <div class="col-md-5">
+          <select class="form-control"
+                  ng-model="slCtrl.filtros.orgaoExercicioEscolhido"
+                  ng-options="orgaoExercicio for orgaoExercicio in slCtrl.orgaosExercicio | orderBy track by orgaoExercicio"
+                  ></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div class="form-group form-group-sm">
+      <div class="g-recaptcha col-sm-offset-1 col-sm-11" data-sitekey="6LfLtb4UAAAAALNO5xIEcbCORfFTgsp5zdsw8kqK" id="recaptcha" ></div>
+    </div>
+   
+    <div class="form-group form-group-sm">
+      <div class="col-sm-offset-1 col-sm-11">
+        <button type="button" class="btn btn-primary btn-sm" ng-click="slCtrl.buscar(1)">Buscar</button>
+      </div>
+    </div>
+    <div class="form-group form-group-sm" style="margin-top: 50px;text-align: center;font-size: 12px;">
+      Transparência Bahia<br>Versão: 3.6.8.1
+    </div>
+  </form>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</div>
+
+<table class="table table-striped table-bordered" ng-show="slCtrl.servidores.length > 0">
+  <thead>
+    <tr>
+    
+      <th  rowspan="2" style="vertical-align: middle;text-align: center;padding-left: 90px;padding-right: 90px;">Nome</th>
+      <th rowspan="2" style="vertical-align: middle;text-align: center">Matricula</th>
+      <th rowspan="2" style="vertical-align: middle;text-align: center; padding-left: 50px;padding-right: 50px;">CPF</th>
+  <!--  <th>Identificador</th>-->
+      <th rowspan="2" style="vertical-align: middle;" ng-if="!slCtrl.chkSemVinculo && !slCtrl.chkSemVinculoCedido && !slCtrl.chkPensionistas
+      && !slCtrl.chkFuncaoReda && !slCtrl.chkEstagiariosResidentes">
+        Cargo Efetivo
+      </th>
+    <!--   <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="!slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes"> --> 
+     <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="  !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes">
+        Cargo 
+      </th> 
+      <!--    <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="slCtrl.chkPensionistas || slCtrl.chkSemVinculoCedido"> -->
+       <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="slCtrl.chkSemVinculoCedido">
+        Categoria Funcional
+      </th> 
+      <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="slCtrl.chkFuncaoReda || slCtrl.chkEstagiariosResidentes">
+        Cargo
+      </th>  
+     <!--    <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if="!slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes"   >   -->
+       <th rowspan="2" style="vertical-align: middle;text-align: center" ng-if=" !slCtrl.chkPensionistas && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes"   > 
+         Cargo Comissionado
+       </th>  
+      
+     <th colspan="2" style="text-align: center;">Remuneração Bruta</th>  
+ 	 <th colspan="3" style="text-align: center;">Remuneração Temporária</th> 
+	<!--   <th rowspan="2" style="vertical-align: middle;color:red;padding-left: 46px;padding-right: 46px;ptext-align: center"> Demais Descontos Excluídos os Descontos Pessoais</th>-->
+	 <th colspan="2" style="text-align: center;color:red;">Descontos Legais</th> 
+	<th rowspan="2" style="vertical-align: middle;color:red;padding-left: 14px;padding-right: 14px;text-align: center">
+     <div class="th-two-words">Demais Descontos</div>
+     <div class="th-two-words">Excluídos os</div>
+     <div class="th-two-words">Descontos Pessoais</div>
+    </th>
+	 
+	
+	  	 
+	 
+	 
+     <th  style="text-align: center" >Remuneração Liquida</th>    
+
+     <th rowspan="2" style="vertical-align: middle;text-align: center"> Valores Indenizatorios</th> 
+   <!--      <th>Órgão de Lotação Atual</th>
+      <th>Órgão de Exercício Atual</th
+      <th>MesAno</th>  -->
+  <!--     <th>Remuneração Bruta
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+        data-toggle="tooltip" 
+        data-placement="left" 
+        title="Remuneração Bruta é composta pela soma de todas 
+as parcelas remuneratórias fixas pagas ao 
+servidor – correspondentes ao cargo efetivo, função,
+cargo em comissão, posto, graduação ou emprego público – e das 
+eventuais diferenças de rubricas de tais parcelas não 
+pagas anteriormente ao servidor ou empregado público.">
+        </span>
+      </th> --> 
+
+     
+    <!--    <th>Parcelas Remuneratórias Eventuais</th> 
+      <th>Estorno Teto</th>
+      <th>Demais Descontos</th> 
+      
+      <th>Remuneração Liquida
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"        
+        data-toggle="tooltip" 
+        data-placement="left" 
+        title="Remuneração Líquida é a Remuneração Bruta, limitada ao Teto Constitucional, 
+acrescida das parcelas variáveis que não integram a remuneração fixa – tais como
+13º salário, férias, gratificações variáveis, decisões judiciais, dentre outras – e 
+inclusive das eventuais diferenças de rubricas de tais parcelas não pagas anteriormente 
+ao servidor ou empregado público; abatidas os Descontos Legais, desconsiderando-se 
+eventuais descontos facultativos ou decorrentes de decisões judiciais ou, ainda, 
+valores referentes a Parcelas Indenizatórias.">
+        </span>
+      </th>
+
+      <th>Verbas Indenizatórias
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+        data-toggle="tooltip" 
+        data-placement="top" 
+        title="Verbas Indenizatórias são compostas por vantagens que não estão incluídas 
+na Remuneração Líquida e não se incorporam à remuneração, para qualquer
+efeito, a exemplo de auxílio alimentação, auxílio transporte e outros.">
+        </span>
+      </th>
+      <th>Adiantamento Férias</th>
+      <th>Adiantamento 13º</th>
+      <th>Indenização Sefaz</th>
+      <th>Descontos Legais </th> -->
+    </tr>  
+    <tr>
+    
+      <th style="text-align: center">Valor Bruto</th>	 
+	  <th style="color:red;text-align: center">Estorno Teto</th>
+	  <th >Férias</th>
+      <th style="text-align: center" >13º Salário</th>   
+      <th  style="text-align: center" >Outras</th>  
+      <th style="width: 80px;color:red;padding-left: 38px;padding-right: 38px;"text-align:center">IRRF</th>
+      <th style="width: 80px;color:red;padding-left: 14px;padding-right: 14px;text-align:center;">Previdência Oficial</th>
+      <th  style="text-align: center">Valor Liquido </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="remuneracao in slCtrl.servidores track by remuneracao.id">
+      <td style="width: 250px; ">  {{remuneracao.servidor.nome}}</td>
+      <td>{{remuneracao.servidor.matricula}}</td>
+      <td  class="cpfServidor" style="width: 200px;">{{remuneracao.servidor.cpf}}</td>
+      
+ <!--     <td>{{remuneracao.identificadorRemuneracao}}</td>   -->
+    <!--     <td ng-if="!slCtrl.chkSemVinculo && !slCtrl.chkSemVinculoCedido && !slCtrl.chkPensionistas"> -->
+       <td style="text-align:center;" ng-if="(!slCtrl.chkSemVinculo  || (remuneracao.servidor.lotacao.cargo === 'GOVERNADOR' || remuneracao.servidor.lotacao.cargo === 'VICE GOVERNADOR')) && !slCtrl.chkSemVinculoCedido ">
+        {{remuneracao.servidor.lotacao.cargo}}
+      </td>  
+ <!--     <td ng-if="!slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes">  -->
+  <td ng-if="!slCtrl.chkPensionistas &&  !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes && !(remuneracao.servidor.lotacao.cargo === 'GOVERNADOR' || remuneracao.servidor.lotacao.cargo === 'VICE GOVERNADOR')"> 
+         {{remuneracao.servidor.funcao.cargo}} 
+<!--    {{remuneracao.servidor.funcao.cargo}} - {{remuneracao.simbolo}}-->    
+      </td>
+  <!--      <td ng-if="!slCtrl.chkPensionistas && !slCtrl.chkSemVinculoCedido && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes"> -->
+      <td ng-if="!slCtrl.chkPensionistas && !slCtrl.chkFuncaoReda && !slCtrl.chkInativos && !slCtrl.chkEstagiariosResidentes">
+      
+         {{remuneracao.simbolo}}
+      </td>
+      <!-- <td ng-else-if="">
+        {{remuneracao.servidor.funcao.cargo}} - {{remuneracao.simbolo}}
+      </td> -->
+     <!--  <td ng-if="slCtrl.chkPensionistas || slCtrl.chkSemVinculoCedido">
+        {{remuneracao.servidor.categoriaFuncional}}
+      </td>
+      <td>{{remuneracao.servidor.lotacao.orgao}}</td>
+      <td>{{remuneracao.servidor.funcao.orgao}}</td>
+      <td>{{remuneracao.mes}}/{{remuneracao.ano}}</td>  -->
+      <td ng-class="remuneracao.bruto < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.bruto | decimal}}</td>
+      <td  style="text-align: center" ng-class="remuneracao.estornoTeto < 0 ? 'valorNegativo' : 'valorNegativo'">
+          {{remuneracao.estornoTeto | decimal}}</td>
+      
+      <td  style="text-align: center" ng-class="remuneracao.ferias < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.ferias | decimal}}</td>
+       <td  style="text-align: center" ng-class="remuneracao.gratificacaoNatalina < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.gratificacaoNatalina | decimal}}</td>
+      <td  style="text-align: center" ng-class="remuneracao.eventuais < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.eventuais | decimal}}</td>
+     <td  style="text-align: center"  ng-class="remuneracao.irrf < 0 ? 'valorNegativo' : 'valorNegativo'">
+        {{remuneracao.irrf | decimal}}</td>
+     <td  style="text-align: center" ng-class="remuneracao.pss < 0 ? 'valorNegativo' : 'valorNegativo'">
+        {{remuneracao.pss + remuneracao.spsm | decimal}}</td>    
+      <td  style="text-align: center" ng-class="remuneracao.adiantamentoFerias + remuneracao.adiantamentoGratificacaoNatalina+remuneracao.indenizacaoSefaz+ remuneracao.demaisDescontos < 0 ? 'valorNegativo' : 'valorNegativo'">
+        {{remuneracao.adiantamentoFerias + remuneracao.adiantamentoGratificacaoNatalina+remuneracao.indenizacaoSefaz+ remuneracao.demaisDescontos | decimal}}</td>    
+        
+    <td  style="text-align: center" ng-class="remuneracao.liquido < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.liquido | decimal}}</td> 
+    <td  style="text-align: center" ng-class="remuneracao.verbasIndenizatorias < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.verbasIndenizatorias | decimal}}</td>  
+            
+     <!--   <td ng-class="remuneracao.estornoTeto < 0 ? 'valorNegativo' : 'valorPositivo'">
+          {{remuneracao.estornoTeto | decimal}}</td> -->
+    <!--    <td ng-class="remuneracao.demaisDescontos < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.demaisDescontos | decimal}}</td> 
+      <td ng-class="remuneracao.liquido < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.liquido | decimal}}</td>
+      <td ng-class="remuneracao.verbasIndenizatorias < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.verbasIndenizatorias | decimal}}</td>
+      <td ng-class="remuneracao.adiantamentoFerias < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.adiantamentoFerias | decimal}}</td>
+      <td ng-class="remuneracao.adiantamentoGratificacaoNatalina < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.adiantamentoGratificacaoNatalina | decimal}}</td>
+      <td ng-class="remuneracao.indenizacaoSefaz < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{remuneracao.indenizacaoSefaz | decimal}}</td>
+      <td ng-class="remuneracao.irrf--remuneracao.pss--remuneracao.spsm < 0 ? 'valorNegativo' : 'valorPositivo'">
+        {{ remuneracao.irrf--remuneracao.pss--remuneracao.spsm | decimal}}</td> -->
+    </tr>
+  </tbody>
+</table>
+
+
+<div class="alert alert-info" role="alert" ng-show="slCtrl.servidores.length === 0">Não foi encontrado nenhum registro</div>
+      
+      
+<!-- #184705   Inibir (ocultar) Bot?o : Exportar Excel , para caso no futuro se precisar da exportacao reativar ( ocultar em producao e mostrar em homologa) -->
+<!--#214502  Disponibilizar o bot?o de Exportar para Excel em produ??o, igual ao ambiente de homologa??o. -->
+<div ng-controller="AppController" class="form-group form-group-sm">
+    <div class="col-sm-offset-1 col-sm-11">
+        <button type="button" class="btn btn-primary btn-sm" ng-click="slCtrl.baixar(1)" ng-show="ambiente === 'homologacao' || ambiente === 'producao'  ">Exportar Excel</button>
+    </div>
+</div>
+
+    <br><br><br><br>
+    
+    
+<paginacao paginador="slCtrl.paginador"></paginacao>
+
+
+<div class="jumbotron" ng-show="slCtrl.servidores.length > 0"  >
+  <p class="small text-justify" style="text-align: center">
+      
+       <a href="" ng-click="slCtrl.popUpDetalhesValores();">"Clique aqui para descrição da composição de cada tipo de parcela."</a>
+  </p>
+  </div>
+
+<div class="jumbotron" ng-show="slCtrl.servidores.length > 0">
+  <p class="small text-justify">
+    Os Descontos Legais agregam descontos que incluem IRRF 
+    (LEI FEDERAL N. 7.713, de 22/12/1988), INSS (LEI FEDERAL N. 8.212, DE 24/07/1991), 
+    FUNPREV (LEI ESTADUAL N. 7.249, DE 07/01/1998 ), 
+    BAPREV (LEI ESTADUAL N. 10.955, DE 21/12/2007) e FPSM (LEI ESTADUAL N. 14.265, DE 22/05/2020)
+  </p>
+</div>

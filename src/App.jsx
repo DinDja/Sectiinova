@@ -37,6 +37,10 @@ export default function App() {
         setLoginForm,
         registerForm,
         setRegisterForm,
+        registerTeacherLookup,
+        handleRegisterLookupByMatricula,
+        handleRegisterLookupByLattes,
+        resetRegisterTeacherLookup,
         schoolSearchTerm,
         setSchoolSearchTerm,
         filteredSchoolGroups,
@@ -115,6 +119,10 @@ export default function App() {
                 setLoginForm={setLoginForm}
                 registerForm={registerForm}
                 setRegisterForm={setRegisterForm}
+                registerTeacherLookup={registerTeacherLookup}
+                handleRegisterLookupByMatricula={handleRegisterLookupByMatricula}
+                handleRegisterLookupByLattes={handleRegisterLookupByLattes}
+                resetRegisterTeacherLookup={resetRegisterTeacherLookup}
                 schoolSearchTerm={schoolSearchTerm}
                 setSchoolSearchTerm={setSchoolSearchTerm}
                 filteredSchoolGroups={filteredSchoolGroups}

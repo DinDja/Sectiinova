@@ -56,9 +56,35 @@ const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   );
 };
 
+const TRILHA_LEVELS = [
+  {
+    id: "ensino_medio",
+    label: "Ensino Médio",
+    subtitle: "Itinerários formativos de aprofundamento em CT&I",
+    file: "/trilha.json",
+    legal:
+      "RESOLUÇÃO CNE/CEB Nº 4, DE 12 DE MAIO DE 2025 — Parâmetros Nacionais para IFA's no Ensino Médio.",
+    headingAccent: "CT&I",
+    headingDescription:
+      "Siga os passos e revele o caminho do conhecimento científico e tecnológico.",
+  },
+  {
+    id: "anos_finais_8_9",
+    label: "Ensino Fundamental (8º/9º)",
+    subtitle: "Anos finais com foco em investigação, autoria e inovação",
+    file: "/trilha_anos_finais_8_9.json",
+    legal:
+      "BNCC — Competências e práticas integradas para os Anos Finais do Ensino Fundamental (8º e 9º ano).",
+    headingAccent: "CT&I 8º/9º",
+    headingDescription:
+      "Explore trilhas investigativas adaptadas aos Anos Finais, com linguagem acessível e protagonismo estudantil.",
+  },
+];
+
 export default function TrilhaPedagogica() {
   const [loading, setLoading] = useState(true);
-  const [areas, setAreas] = useState([]);
+  const [trilhasByLevel, setTrilhasByLevel] = useState({});
+  const [selectedLevelId, setSelectedLevelId] = useState(TRILHA_LEVELS[0].id);
 
   const [selectedAreaId, setSelectedAreaId] = useState(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState(null);
@@ -74,9 +100,20 @@ export default function TrilhaPedagogica() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/trilha.json");
-        const json = await res.json();
-        setAreas(json || []);
+        const loadedLevels = await Promise.all(
+          TRILHA_LEVELS.map(async (level) => {
+            try {
+              const res = await fetch(level.file);
+              const json = await res.json();
+              return [level.id, json || []];
+            } catch (levelErr) {
+              console.error(`Erro ao carregar ${level.file}`, levelErr);
+              return [level.id, []];
+            }
+          }),
+        );
+
+        setTrilhasByLevel(Object.fromEntries(loadedLevels));
       } catch (err) {
         console.error("Erro ao carregar trilha", err);
       } finally {
@@ -86,12 +123,19 @@ export default function TrilhaPedagogica() {
     loadData();
   }, []);
 
+  const areas = trilhasByLevel[selectedLevelId] || [];
+  const selectedLevel = TRILHA_LEVELS.find((lvl) => lvl.id === selectedLevelId);
+
   const selectedArea = areas.find(
     (a) => (a.id || areas.indexOf(a)) === selectedAreaId,
   );
   const objectives = selectedArea?.objetivos || [];
   const selectedObjective = objectives.find(
     (o) => (o.id || objectives.indexOf(o)) === selectedObjectiveId,
+  );
+  const totalObjectives = areas.reduce(
+    (sum, area) => sum + (area.objetivos?.length || 0),
+    0,
   );
 
   const filteredProjects = (selectedObjective?.projetos || []).filter(
@@ -118,6 +162,17 @@ export default function TrilhaPedagogica() {
         block: "start",
       });
     }, 150);
+  };
+
+  const handleSelectLevel = (levelId) => {
+    if (selectedLevelId === levelId) return;
+    setSelectedLevelId(levelId);
+    setSelectedAreaId(null);
+    setSelectedObjectiveId(null);
+    setExpandedProjectId(null);
+    setSelectedProjectAction({});
+    setFilterText("");
+    setOpenResourcesIndex(null);
   };
 
   const handleSelectObjective = (objId) => {
@@ -227,6 +282,42 @@ export default function TrilhaPedagogica() {
     );
   };
 
+  const renderEncounterDetails = (encontros) => {
+    if (!encontros || !encontros.length) return null;
+    return (
+      <div className="space-y-3">
+        {encontros.map((enc, i) => (
+          <article
+            key={`${enc.numero || i}-${enc.titulo || `enc-${i}`}`}
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+              {enc.numero ? `Encontro ${enc.numero}` : `Encontro ${i + 1}`}
+            </p>
+            <h6 className="text-sm font-bold text-slate-800 mt-1">
+              {enc.titulo || `Etapa ${i + 1}`}
+            </h6>
+            {enc.foco ? (
+              <p className="text-xs text-slate-600 mt-2">
+                <span className="font-semibold">Foco:</span> {enc.foco}
+              </p>
+            ) : null}
+
+            {enc.descricao_linhas?.length > 0 ? (
+              <ul className="list-disc list-inside mt-2 text-xs text-slate-600 space-y-1">
+                {enc.descricao_linhas.map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+              </ul>
+            ) : enc.descricao ? (
+              <p className="text-xs text-slate-600 mt-2">{enc.descricao}</p>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    );
+  };
+
   if (loading)
     return (
       <div className="min-h-screen bg-[#FAFBFF] flex items-center justify-center">
@@ -267,7 +358,7 @@ export default function TrilhaPedagogica() {
             <header className="text-center space-y-4">
               <div className="mx-auto max-w-3xl">
                 <p className="inline-block bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-4 py-2 rounded-lg text-sm md:text-base font-extrabold leading-tight">
-                  RESOLUÇÃO CNE/CEB Nº 4, DE 12 DE MAIO DE 2025 — Institui os Parâmetros Nacionais para a Oferta dos Itinerários Formativos de Aprofundamento IFA´s no Ensino Médio.
+                  {selectedLevel?.legal}
                 </p>
               </div>
               <div className="flex items-center justify-center gap-3">
@@ -275,13 +366,12 @@ export default function TrilhaPedagogica() {
                 <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
                   Sua Jornada Em
                   <span className="ms-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                    CT&I
+                    {selectedLevel?.headingAccent || "CT&I"}
                   </span>
                 </h1>
               </div>
               <p className="text-slate-600 text-lg max-w-xl mx-auto font-medium">
-                Siga os passos e revele o caminho do conhecimento científico e
-                tecnológico.
+                {selectedLevel?.headingDescription}
               </p>
               <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
                 Estas são apenas sugestões de atividades e recursos. O(a)
@@ -289,6 +379,51 @@ export default function TrilhaPedagogica() {
                 conforme a realidade da turma.
               </p>
             </header>
+          </ScrollReveal>
+
+          <ScrollReveal delay={100}>
+            <section className="relative z-30">
+              <div className="rounded-3xl p-[1px] bg-gradient-to-r from-cyan-400/70 via-blue-500/60 to-indigo-500/70 shadow-xl">
+                <div className="rounded-3xl bg-white/90 backdrop-blur-md p-4 md:p-5 border border-white/60">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="text-sm md:text-base font-extrabold text-slate-700 uppercase tracking-wide">
+                      Selecione a etapa de ensino
+                    </h2>
+                    <span className="text-[11px] md:text-xs text-slate-500 font-semibold">
+                      {areas.length} áreas • {totalObjectives} objetivos
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {TRILHA_LEVELS.map((level) => {
+                      const active = level.id === selectedLevelId;
+                      return (
+                        <button
+                          key={level.id}
+                          onClick={() => handleSelectLevel(level.id)}
+                          className={`text-left rounded-2xl px-4 py-4 border transition-all duration-300 ${
+                            active
+                              ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-transparent shadow-[0_10px_30px_-10px_rgba(37,99,235,0.7)] -translate-y-0.5"
+                              : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/40"
+                          }`}
+                        >
+                          <p className="text-base font-black tracking-tight">
+                            {level.label}
+                          </p>
+                          <p
+                            className={`text-xs mt-1 leading-relaxed ${
+                              active ? "text-blue-100" : "text-slate-500"
+                            }`}
+                          >
+                            {level.subtitle}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
           </ScrollReveal>
 
           {/* PARTE 1: ÁREAS */}
@@ -462,11 +597,16 @@ export default function TrilhaPedagogica() {
                             >
                             <div className="p-6 md:p-8">
                               <div className="flex items-center justify-between mb-3">
-                                <span
-                                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${theme.bg} ${theme.accent}`}
-                                >
-                                  {q.foco || q.focus || "Geral"}
-                                </span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${theme.bg} ${theme.accent}`}
+                                  >
+                                    {q.foco || q.focus || "Geral"}
+                                  </span>
+                                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                    {selectedLevel?.label}
+                                  </span>
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-bold text-slate-300">#{String(index + 1).padStart(2, "0")}</span>
                                   <button
@@ -793,6 +933,17 @@ export default function TrilhaPedagogica() {
                                                   .adaptacoes,
                                               )}
                                             </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {projeto.encontros?.length > 0 && (
+                                        <div className="mt-6 pt-5 border-t border-slate-200/80">
+                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                                            Encontros da sequência por competência
+                                          </p>
+                                          {renderEncounterDetails(
+                                            projeto.encontros,
                                           )}
                                         </div>
                                       )}

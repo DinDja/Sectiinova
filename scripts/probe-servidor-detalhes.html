@@ -1,0 +1,153 @@
+<nav class="navbar navbar-default navbar-page hidden-print">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#detalhes-nav" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+
+      <h4 class="navbar-text navbar-left" style="color: #000; font-weight: bold;">Situação Funcional Atual do Servidor</h4>
+    </div>
+    <div id="detalhes-nav" class="collapse navbar-collapse">
+      <ul class="nav navbar-nav navbar-right hidden-print">
+        <li><a href="#servidores">Voltar para Busca</a></li>
+        <li><a href="#servidores/remuneracao/{{sdCtrl.servidor.id}}">Remuneração</a></li>
+        <li><a href="" ng-click="sdCtrl.print();">Imprimir</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="servidor-detalhes" id="printable">
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <strong>Dados do Servidor</strong>
+          <span class="pull-right">Última Atualização: {{sdCtrl.servidor.dataUltimaAtualizacao}}</span>
+        </div>
+        <div class="panel-body">
+          <div class="col-xs-4">
+            <dl class="dl-horizontal">
+              <dt>Nome: </dt>
+              <dd>{{sdCtrl.servidor.nome}}</dd>            
+            </dl>
+          </div>
+          <div class="col-xs-3">
+            <dl class="dl-horizontal">
+              <!--dt>CPF: </dt>
+              <dd>{{sdCtrl.servidor.cpf}}</dd-->
+              <dt>Carga Horária Semanal: </dt> 
+              <dd>&nbsp;{{sdCtrl.servidor.cargaHoraria}}</dd>
+            </dl>
+          </div>
+          <div class="col-xs-5">
+            <dl class="dl-horizontal">
+              <!--dt>Matrícula: </dt>
+              <dd>  {{sdCtrl.servidor.matricula}}</dd-->
+              <dt>Categoria Funcional: </dt>
+              <dd>&nbsp;{{sdCtrl.servidor.categoriaFuncional}}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6">
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Cargo Efetivo / Emprego: {{sdCtrl.servidor.lotacao.cargo}}</strong></div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-xs-5">
+              <!--dl class="dl-horizontal">
+                <dt>Nível: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.nivel}}</dd>
+                <dt>Classe: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.classe}}</dd>
+                <dt>Referência: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.referencia}}</dd>
+              </dl-->
+            </div>
+            <div class="col-xs-7">
+              <!--dl class="dl-horizontal">
+                <dt>Padrão: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.padrao}}</dd>
+                <dt>Grau: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.grau}}</dd>
+                <dt>Data Admissão: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.lotacao.dataAdmissao}}</dd>
+              </dl-->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-6">
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Função/Cargo em Comissão: {{sdCtrl.servidor.funcao.cargo}}</strong></div> 
+        <div class="panel-body">
+          <div class="row">
+            <!--div class="col-xs-7">
+              <dl class="dl-horizontal">
+                <dt>Data Admissão: </dt>
+                <dd>&nbsp;{{sdCtrl.servidor.funcao.dataAdmissao}}</dd>
+                <dt>&nbsp;</dt>
+                <dd>&nbsp;</dd>
+                <dt>&nbsp;</dt>
+                <dd>&nbsp;</dd>
+              </dl>
+            </div-->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6">
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Local de Lotação</strong></div>
+        <div class="panel-body">
+          <dl class="dl-horizontal local-lotacao">
+            <!--dt>Município: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.lotacao.municipio}}</dd-->
+            <dt>Órgão/Entidade: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.lotacao.orgao}}</dd>
+            <!--dt>Unidade: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.lotacao.unidade}}</dd>
+            <dt>Local de Trabalho 1: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.lotacao.primeiroLocalTrabalho}}</dd>
+            <dt ng-show="sdCtrl.servidor.lotacao.segundoLocalTrabalho">Local de Trabalho 2: </dt>
+            <dd ng-show="sdCtrl.servidor.lotacao.segundoLocalTrabalho">{{sdCtrl.servidor.lotacao.segundoLocalTrabalho}}</dd>
+            <dt>Situação Funcional: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.lotacao.situacaoFuncional}}</dd-->
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-6">
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Local de Exercício</strong></div>
+        <div class="panel-body">
+          <dl class="dl-horizontal local-exercicio">
+            <!--dt>Município: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.funcao.municipio}}</dd-->
+            <dt>Órgão/Entidade: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.funcao.orgao}}</dd>
+            <!--dt>Unidade: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.funcao.unidade}}</dd>
+            <dt>Local de Trabalho 1: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.funcao.primeiroLocalTrabalho}}</dd>
+            <dt ng-show="sdCtrl.servidor.funcao.segundoLocalTrabalho">Local de Trabalho 2: </dt>
+            <dd ng-show="sdCtrl.servidor.funcao.segundoLocalTrabalho">{{sdCtrl.servidor.funcao.segundoLocalTrabalho}}</dd>
+            <dt>Situação Funcional: </dt>
+            <dd>&nbsp;{{sdCtrl.servidor.funcao.situacaoFuncional}}</dd-->
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

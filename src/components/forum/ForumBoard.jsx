@@ -713,7 +713,7 @@ export default function ForumBoard({
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">
-                    Café Digital
+                    POP Digital
                   </h1>
                   <p className="text-[#5AC8C8]/90 text-sm mt-1 font-medium">
                     Fórum de discussão e colaboração entre clubes
