@@ -1174,6 +1174,36 @@ export async function markModerationAlertAsRead(alertId, readerId = '') {
     });
 }
 
+export async function deleteModerationAlert(alertId) {
+    if (!alertId) {
+        throw new Error('Alerta invalido.');
+    }
+
+    let token = '';
+    try {
+        token = await auth?.currentUser?.getIdToken?.();
+    } catch {
+        token = '';
+    }
+
+    const response = await fetch(FORUM_MODERATION_ALERTS_ENDPOINT, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ alertId: String(alertId) }),
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message = String(payload?.error || '').trim();
+        throw new Error(message || 'Falha ao excluir alerta de moderacao.');
+    }
+
+    return await response.json();
+}
+
 // --- Listagem de foruns paginados ---
 
 export async function fetchClubsPage(pageSize, cursor = null, searchTerm = '') {

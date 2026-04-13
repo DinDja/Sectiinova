@@ -42,6 +42,7 @@ import {
   getClubsTotalCount,
   subscribeToModerationAlerts,
   markModerationAlertAsRead,
+  deleteModerationAlert,
 } from "../../services/forumService";
 import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
@@ -53,6 +54,8 @@ const TABS = [
   { id: "aceitos", label: "Fóruns Aceitos", icon: Users },
   { id: "explorar", label: "Explorar", icon: Globe },
 ];
+
+const MODERATION_ALERTS_PAGE_SIZE = 6;
 
 const formatSafeDate = (dateObj) => {
   if (!dateObj) return "";
@@ -209,6 +212,8 @@ export default function ForumBoard({
   const [externalMembers, setExternalMembers] = useState([]);
   const [acceptedForums, setAcceptedForums] = useState([]);
   const [moderationAlerts, setModerationAlerts] = useState([]);
+  const [moderationAlertsPage, setModerationAlertsPage] = useState(0);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
 
   const [viewingForumClubId, setViewingForumClubId] = useState(null);
   const [selectedTopicId, setSelectedTopicId] = useState(null);
@@ -275,6 +280,22 @@ export default function ForumBoard({
 
   const currentForumClubId =
     activeTab === "meu" ? myClubId : viewingForumClubId;
+
+  const moderationAlertsPageCount = Math.max(
+    1,
+    Math.ceil(moderationAlerts.length / MODERATION_ALERTS_PAGE_SIZE),
+  );
+
+  const pagedModerationAlerts = moderationAlerts.slice(
+    moderationAlertsPage * MODERATION_ALERTS_PAGE_SIZE,
+    (moderationAlertsPage + 1) * MODERATION_ALERTS_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (moderationAlertsPage > 0 && moderationAlertsPage >= moderationAlertsPageCount) {
+      setModerationAlertsPage(moderationAlertsPageCount - 1);
+    }
+  }, [moderationAlertsPage, moderationAlertsPageCount]);
 
   // ─── Subscriptions ──────────────────────────────────────
   useEffect(() => {
@@ -493,6 +514,13 @@ export default function ForumBoard({
 
       try {
         await markModerationAlertAsRead(alertId, alertRecipientId);
+        setModerationAlerts((prev) =>
+          prev.map((alert) =>
+            alert.id === alertId
+              ? { ...alert, status: "read", read_by: alertRecipientId }
+              : alert,
+          ),
+        );
       } catch (error) {
         setToast({
           message: error?.message || "Erro ao atualizar alerta de moderação.",
@@ -501,6 +529,66 @@ export default function ForumBoard({
       }
     },
     [alertRecipientId],
+  );
+
+  const handleMarkAllAsRead = useCallback(async () => {
+    if (!alertRecipientId || markingAllRead) return;
+
+    const unreadAlerts = moderationAlerts.filter(
+      (alert) => String(alert?.status || "unread").toLowerCase() === "unread",
+    );
+    if (!unreadAlerts.length) return;
+
+    setMarkingAllRead(true);
+    try {
+      await Promise.all(
+        unreadAlerts.map((alert) =>
+          markModerationAlertAsRead(alert.id, alertRecipientId),
+        ),
+      );
+      setModerationAlerts((prev) =>
+        prev.map((alert) =>
+          String(alert?.status || "").toLowerCase() === "unread"
+            ? { ...alert, status: "read", read_by: alertRecipientId }
+            : alert,
+        ),
+      );
+      setToast({ message: "Todos os alertas foram marcados como lidos.", type: "success" });
+    } catch (error) {
+      setToast({
+        message: error?.message || "Falha ao marcar todos os alertas como lidos.",
+        type: "error",
+      });
+    } finally {
+      setMarkingAllRead(false);
+    }
+  }, [alertRecipientId, markingAllRead, moderationAlerts]);
+
+  const handleDeleteModerationAlert = useCallback(
+    (alertId) => {
+      if (!alertId) return;
+
+      setConfirmModal({
+        open: true,
+        title: "Excluir alerta de moderação",
+        description: "Tem certeza que deseja excluir este alerta da central de irregularidades?",
+        onConfirm: async () => {
+          try {
+            await deleteModerationAlert(alertId);
+            setModerationAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
+            setToast({ message: "Alerta excluído.", type: "success" });
+          } catch (error) {
+            setToast({
+              message: error?.message || "Falha ao excluir alerta.",
+              type: "error",
+            });
+          } finally {
+            setConfirmModal((prev) => ({ ...prev, open: false }));
+          }
+        },
+      });
+    },
+    [],
   );
 
   const handleRemoveExternal = useCallback(
@@ -686,8 +774,19 @@ export default function ForumBoard({
                   <ShieldAlert className="w-5 h-5 text-amber-600" />
                   Central de Irregularidades do Fórum
                 </h3>
-                <div className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full w-fit">
-                  {unreadModerationAlerts.length} não lido(s)
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full w-fit">
+                    {unreadModerationAlerts.length} não lido(s)
+                  </div>
+                  {unreadModerationAlerts.length > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      disabled={markingAllRead}
+                      className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {markingAllRead ? "Marcando..." : "Marcar todos como lido"}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -696,14 +795,14 @@ export default function ForumBoard({
               </p>
 
               <div className="space-y-3">
-                {moderationAlerts.slice(0, 6).map((alert) => {
+                {pagedModerationAlerts.map((alert) => {
                   const isUnread =
                     String(alert?.status || "unread").toLowerCase() === "unread";
 
                   return (
                     <div
                       key={alert.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-100 rounded-xl p-3"
+                      className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 bg-white border border-amber-100 rounded-xl p-3"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -727,27 +826,55 @@ export default function ForumBoard({
                         )}
                       </div>
 
-                      {isUnread ? (
+                      <div className="flex flex-col sm:items-end gap-2">
+                        {isUnread ? (
+                          <button
+                            onClick={() => handleMarkAlertAsRead(alert.id)}
+                            className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold"
+                          >
+                            Marcar como lido
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-medium">
+                            Já visualizado
+                          </span>
+                        )}
                         <button
-                          onClick={() => handleMarkAlertAsRead(alert.id)}
-                          className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold"
+                          onClick={() => handleDeleteModerationAlert(alert.id)}
+                          className="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-700 transition-colors text-xs font-semibold"
                         >
-                          Marcar como lido
+                          Excluir alerta
                         </button>
-                      ) : (
-                        <span className="text-xs text-slate-400 font-medium">
-                          Já visualizado
-                        </span>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              {moderationAlerts.length > 6 && (
-                <p className="text-xs text-slate-500 mt-3">
-                  Mostrando os 6 alertas mais recentes.
-                </p>
+              {moderationAlertsPageCount > 1 && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                  <div className="text-xs text-slate-500">
+                    Página {moderationAlertsPage + 1} de {moderationAlertsPageCount}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setModerationAlertsPage((prev) => Math.max(0, prev - 1))}
+                      disabled={moderationAlertsPage === 0}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() =>
+                        setModerationAlertsPage((prev) => Math.min(moderationAlertsPageCount - 1, prev + 1))
+                      }
+                      disabled={moderationAlertsPage === moderationAlertsPageCount - 1}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

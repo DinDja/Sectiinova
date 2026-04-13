@@ -58,6 +58,10 @@ function serializeAlert(docSnap) {
   };
 }
 
+function normalizeProfile(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function getBearerToken(event) {
   const headerValue =
     event?.headers?.authorization || event?.headers?.Authorization || "";
@@ -87,10 +91,16 @@ async function resolveCallerUid(event) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== "GET") {
-    return json(405, {
-      error: "Metodo nao suportado. Use GET.",
-    });
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, DELETE, OPTIONS",
+      },
+      body: "",
+    };
   }
 
   let callerUid = "";
@@ -105,6 +115,78 @@ export async function handler(event) {
 
     return json(401, {
       error: "Token de autenticacao invalido.",
+    });
+  }
+
+  const db = getAdminDb();
+
+  if (event.httpMethod === "DELETE") {
+    let body = {};
+    try {
+      body = JSON.parse(event.body || "{}") || {};
+    } catch {
+      return json(400, {
+        error: "Corpo invalido. Envie JSON com alertId.",
+      });
+    }
+
+    const alertId = String(body.alertId || "").trim();
+    if (!alertId) {
+      return json(400, {
+        error: "alertId obrigatorio.",
+      });
+    }
+
+    try {
+      const alertRef = db.collection("forum_moderation_alerts").doc(alertId);
+      const alertSnap = await alertRef.get();
+      if (!alertSnap.exists) {
+        return json(404, {
+          error: "Alerta nao encontrado.",
+        });
+      }
+
+      const alertData = alertSnap.data() || {};
+      const recipientId = String(alertData.recipient_id || "").trim();
+      const clubId = String(alertData.clube_id || "").trim();
+
+      let allowed = callerUid === recipientId;
+      if (!allowed) {
+        const userSnap = await db.collection("usuarios").doc(callerUid).get();
+        if (userSnap.exists) {
+          const userData = userSnap.data() || {};
+          const perfil = normalizeProfile(userData.perfil);
+          const userClubId = String(userData.clube_id || "").trim();
+          allowed =
+            (perfil === "orientador" || perfil === "coorientador") &&
+            userClubId &&
+            userClubId === clubId;
+        }
+      }
+
+      if (!allowed) {
+        return json(403, {
+          error: "Voce nao tem permissao para excluir este alerta.",
+        });
+      }
+
+      await alertRef.delete();
+      return json(200, {
+        deletedId: alertId,
+      });
+    } catch (error) {
+      return json(500, {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha inesperada ao excluir alerta.",
+      });
+    }
+  }
+
+  if (event.httpMethod !== "GET") {
+    return json(405, {
+      error: "Metodo nao suportado. Use GET ou DELETE.",
     });
   }
 
