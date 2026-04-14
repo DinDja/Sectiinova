@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ProjectCard from './ProjectCard';
 
 export default function MeusProjetos({
@@ -12,18 +12,12 @@ export default function MeusProjetos({
   getInvestigatorDisplayNames = () => [],
   ...props
 }) {
-  const [showAll, setShowAll] = useState(false);
-
   const projetos = (clubProjects && clubProjects.length > 0) ? clubProjects : feedProjects;
 
-  // Considera projetos do clube ou feed geral
-  console.log('MeusProjetos - clubeProjects count', (clubProjects || []).length, 'feedProjects count', (feedProjects || []).length, 'loggedUser', loggedUser);
-  if (projetos && projetos.length > 0) {
-    console.log('MeusProjetos first project keys', Object.keys(projetos[0]), 'project sample', projetos[0]);
-  }
-
   const meusProjetos = (projetos || []).filter((proj) => {
-    const userId = String(loggedUser?.id || loggedUser?.uid || '');
+    const userId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+    if (!userId) return false;
+
     // Equipe pode ser array de ids ou objetos
     const equipeIds = Array.isArray(proj.equipe)
       ? proj.equipe.map(e => (typeof e === 'object' ? String(e.id || e.uid || e) : String(e)))
@@ -33,7 +27,9 @@ export default function MeusProjetos({
     const membroIds = [].concat(
       proj.membros_ids || [],
       proj.investigadores_ids || [],
+      proj.coorientador_ids || [],
       proj.coorientadores_ids || [],
+      proj.orientador_ids || [],
       proj.orientadores_ids || []
     ).filter(Boolean).map((v) => String(v));
 
@@ -71,6 +67,8 @@ export default function MeusProjetos({
                 club={clubs.find((c) => String(c.id) === String(project.clube_id))}
                 team={team}
                 investigatorNames={investigatorNames}
+                onDiaryClick={() => props.onDiaryClick?.(project)}
+                onClubClick={() => props.onClubClick?.(project)}
                 {...props}
               />
             );

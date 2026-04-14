@@ -9,6 +9,7 @@ export default function MainShell({
   loggedUser,
   myClubId,
   myClub,
+  viewingClub,
   setViewingClubId,
   searchTerm,
   setSearchTerm,
@@ -80,6 +81,7 @@ export default function MainShell({
             leadUser={leadUser}
             selectedClub={selectedClub}
             myClub={myClub}
+            viewingClub={viewingClub}
             handleLogout={handleLogout}
             onSaveProfile={onSaveProfile}
             currentView={currentView}

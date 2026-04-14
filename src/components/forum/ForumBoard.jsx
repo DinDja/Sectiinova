@@ -6,6 +6,7 @@ import React, {
   useState,
   memo,
 } from "react";
+import Select from "react-select";
 import {
   Coffee,
   MessageCircle,
@@ -39,11 +40,11 @@ import {
   removeExternalMember,
   getForumsWhereAccepted,
   fetchClubsPage,
-  getClubsTotalCount,
   subscribeToModerationAlerts,
   markModerationAlertAsRead,
   deleteModerationAlert,
 } from "../../services/forumService";
+import { getUserClubIds, getUserSchoolIds } from "../../services/projectService";
 import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
 import { auth } from "../../../firebase";
@@ -57,6 +58,11 @@ const TABS = [
 
 const MODERATION_ALERTS_PAGE_SIZE = 6;
 
+const normalizeId = (value) => String(value || "").trim();
+
+const normalizeUniqueIds = (values) =>
+  [...new Set((values || []).map((value) => normalizeId(value)).filter(Boolean))];
+
 const formatSafeDate = (dateObj) => {
   if (!dateObj) return "";
   const date =
@@ -67,6 +73,47 @@ const formatSafeDate = (dateObj) => {
     month: "short",
     year: "numeric",
   });
+};
+
+const forumClubSelectStyles = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: 42,
+    borderRadius: 12,
+    borderColor: state.isFocused ? "#5AC8C8" : "#e2e8f0",
+    boxShadow: state.isFocused
+      ? "0 0 0 4px rgba(90, 200, 200, 0.16)"
+      : "none",
+    backgroundColor: "#ffffff",
+    "&:hover": {
+      borderColor: "#5AC8C8",
+    },
+  }),
+  valueContainer: (base) => ({
+    ...base,
+    padding: "2px 10px",
+  }),
+  indicatorSeparator: () => ({
+    display: "none",
+  }),
+  menu: (base) => ({
+    ...base,
+    borderRadius: 12,
+    border: "1px solid #e2e8f0",
+    overflow: "hidden",
+    boxShadow: "0 14px 36px rgba(15, 23, 42, 0.16)",
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isSelected
+      ? "#ecfeff"
+      : state.isFocused
+        ? "#f8fafc"
+        : "#ffffff",
+    color: "#0f172a",
+    padding: "10px 12px",
+    cursor: "pointer",
+  }),
 };
 
 // ─── Sub-Componentes Memorizados ──────────────────────────────────
@@ -202,7 +249,9 @@ ClubExploreCard.displayName = "ClubExploreCard";
 export default function ForumBoard({
   loggedUser,
   myClubId,
+  myClubIds = [],
   myClub,
+  mentorManagedClubs = [],
   clubs,
   users,
 }) {
@@ -216,6 +265,7 @@ export default function ForumBoard({
   const [markingAllRead, setMarkingAllRead] = useState(false);
 
   const [viewingForumClubId, setViewingForumClubId] = useState(null);
+  const [selectedMyForumClubId, setSelectedMyForumClubId] = useState(() => normalizeId(myClubId));
   const [selectedTopicId, setSelectedTopicId] = useState(null);
 
   const [showNewTopic, setShowNewTopic] = useState(false);
@@ -278,8 +328,109 @@ export default function ForumBoard({
     [loggedUser?.uid, loggedUser?.id],
   );
 
+  const forumUserId = useMemo(
+    () => normalizeId(loggedUser?.id || auth?.currentUser?.uid || loggedUser?.uid),
+    [loggedUser?.id, loggedUser?.uid],
+  );
+
+  const profileClubIds = useMemo(
+    () => normalizeUniqueIds([normalizeId(myClubId), ...getUserClubIds(loggedUser)]),
+    [myClubId, loggedUser],
+  );
+
+  const normalizedMyClubIds = useMemo(
+    () => normalizeUniqueIds(myClubIds),
+    [myClubIds],
+  );
+
+  const allUserClubIds = useMemo(
+    () => normalizeUniqueIds([...normalizedMyClubIds, ...profileClubIds]),
+    [normalizedMyClubIds, profileClubIds],
+  );
+
+  const allUserClubIdSet = useMemo(
+    () => new Set(allUserClubIds),
+    [allUserClubIds],
+  );
+
+  const userSchoolIds = useMemo(
+    () => normalizeUniqueIds(getUserSchoolIds(loggedUser)),
+    [loggedUser],
+  );
+
+  const hasAnyUserClub = allUserClubIds.length > 0;
+  const restrictExploreToOwnSchool = !hasAnyUserClub && userSchoolIds.length > 0;
+
+  const acceptedClubIds = useMemo(
+    () => normalizeUniqueIds(acceptedForums.map((af) => af?.clube_id)),
+    [acceptedForums],
+  );
+
+  const acceptedClubIdSet = useMemo(
+    () => new Set(acceptedClubIds),
+    [acceptedClubIds],
+  );
+
+  const mentorManagedClubIds = useMemo(
+    () => normalizeUniqueIds((mentorManagedClubs || []).map((club) => club?.id)),
+    [mentorManagedClubs],
+  );
+
+  const mentorManagedClubIdSet = useMemo(
+    () => new Set(mentorManagedClubIds),
+    [mentorManagedClubIds],
+  );
+
+  const myForumClubIds = useMemo(() => {
+    if (isMentor) {
+      return normalizeUniqueIds([...mentorManagedClubIds, ...allUserClubIds]);
+    }
+    return normalizeUniqueIds([...allUserClubIds, ...acceptedClubIds]);
+  }, [isMentor, mentorManagedClubIds, allUserClubIds, acceptedClubIds]);
+
+  const myForumClubIdSet = useMemo(
+    () => new Set(myForumClubIds),
+    [myForumClubIds],
+  );
+
+  const acceptedOrMemberClubIds = useMemo(() => {
+    return normalizeUniqueIds([...acceptedClubIds, ...allUserClubIds]);
+  }, [acceptedClubIds, allUserClubIds]);
+
+  const acceptedOrMemberClubIdSet = useMemo(
+    () => new Set(acceptedOrMemberClubIds),
+    [acceptedOrMemberClubIds],
+  );
+
+  const canExploreClub = useCallback(
+    (club) => {
+      const clubId = normalizeId(club?.id);
+      if (!clubId) return false;
+      if (allUserClubIdSet.has(clubId)) return false;
+      if (acceptedClubIdSet.has(clubId)) return false;
+
+      if (!restrictExploreToOwnSchool) {
+        return true;
+      }
+
+      const clubSchoolId = normalizeId(club?.escola_id);
+      return clubSchoolId ? userSchoolIds.includes(clubSchoolId) : false;
+    },
+    [allUserClubIdSet, acceptedClubIdSet, restrictExploreToOwnSchool, userSchoolIds],
+  );
+
+  const matchesExploreSearch = useCallback(
+    (club) => {
+      if (!searchForumLower) return true;
+      const nome = String(club?.nome || "").toLowerCase();
+      const escola = String(club?.escola_nome || club?.escola_id || "").toLowerCase();
+      return nome.includes(searchForumLower) || escola.includes(searchForumLower);
+    },
+    [searchForumLower],
+  );
+
   const currentForumClubId =
-    activeTab === "meu" ? myClubId : viewingForumClubId;
+    activeTab === "meu" ? selectedMyForumClubId : viewingForumClubId;
 
   const moderationAlertsPageCount = Math.max(
     1,
@@ -297,40 +448,72 @@ export default function ForumBoard({
     }
   }, [moderationAlertsPage, moderationAlertsPageCount]);
 
+  useEffect(() => {
+    const normalizedSelectedClubId = normalizeId(selectedMyForumClubId);
+    if (normalizedSelectedClubId && myForumClubIdSet.has(normalizedSelectedClubId)) {
+      return;
+    }
+
+    const preferredClubId = normalizeId(myClubId);
+    if (preferredClubId && myForumClubIdSet.has(preferredClubId)) {
+      setSelectedMyForumClubId(preferredClubId);
+      return;
+    }
+
+    setSelectedMyForumClubId(myForumClubIds[0] || "");
+  }, [selectedMyForumClubId, myForumClubIdSet, myForumClubIds, myClubId]);
+
+  useEffect(() => {
+    if (!viewingForumClubId) return;
+    if (acceptedOrMemberClubIdSet.has(normalizeId(viewingForumClubId))) return;
+    setViewingForumClubId(null);
+    setSelectedTopicId(null);
+  }, [viewingForumClubId, acceptedOrMemberClubIdSet]);
+
   // ─── Subscriptions ──────────────────────────────────────
   useEffect(() => {
-    if (!currentForumClubId) return;
+    if (!currentForumClubId) {
+      setTopics([]);
+      setSelectedTopicId(null);
+      return;
+    }
     return subscribeToTopics(currentForumClubId, setTopics);
   }, [currentForumClubId]);
 
   useEffect(() => {
-    if (!myClubId || !isMentor) return;
-    return subscribeToJoinRequests(myClubId, setJoinRequests);
-  }, [myClubId, isMentor]);
+    if (!selectedMyForumClubId || !isMentor) {
+      setJoinRequests([]);
+      return;
+    }
+    return subscribeToJoinRequests(selectedMyForumClubId, setJoinRequests);
+  }, [selectedMyForumClubId, isMentor]);
 
   useEffect(() => {
-    if (!myClubId || !isMentor || !alertRecipientId) {
+    if (!selectedMyForumClubId || !isMentor || !alertRecipientId) {
       setModerationAlerts([]);
       return;
     }
 
     return subscribeToModerationAlerts({
-      clubeId: myClubId,
+      clubeId: selectedMyForumClubId,
       recipientId: alertRecipientId,
       callback: setModerationAlerts,
       unreadOnly: false,
     });
-  }, [myClubId, isMentor, alertRecipientId]);
+  }, [selectedMyForumClubId, isMentor, alertRecipientId]);
 
   useEffect(() => {
-    if (!myClubId) return;
-    return subscribeToExternalMembers(myClubId, setExternalMembers);
-  }, [myClubId]);
+    if (!selectedMyForumClubId || !isMentor) {
+      setExternalMembers([]);
+      return;
+    }
+    return subscribeToExternalMembers(selectedMyForumClubId, setExternalMembers);
+  }, [selectedMyForumClubId, isMentor]);
 
   useEffect(() => {
-    if (!loggedUser?.id) return;
-    return getForumsWhereAccepted(loggedUser.id, setAcceptedForums);
-  }, [loggedUser?.id]);
+    if (!forumUserId) return;
+    return getForumsWhereAccepted(forumUserId, setAcceptedForums);
+  }, [forumUserId]);
 
   // ─── Fetch explore page ─────────────────────────────────
   const fetchExplorePage = useCallback(async (reset = false) => {
@@ -371,20 +554,11 @@ export default function ForumBoard({
     if (activeTab !== "explorar") return;
     fetchExplorePage(true);
 
-    if (searchForumLower) {
-      const filtered = (clubs || []).filter((c) => {
-        const nome = String(c.nome || "").toLowerCase();
-        const escola = String(c.escola_nome || c.escola_id || "").toLowerCase();
-        return nome.includes(searchForumLower) || escola.includes(searchForumLower);
-      });
-      setExploreTotalCount(filtered.length);
-      return;
-    }
-
-    getClubsTotalCount()
-      .then((count) => setExploreTotalCount(count || 0))
-      .catch(() => {});
-  }, [activeTab, fetchExplorePage, searchForumLower, clubs]);
+    const filteredCount = (clubs || []).filter(
+      (club) => canExploreClub(club) && matchesExploreSearch(club),
+    ).length;
+    setExploreTotalCount(filteredCount);
+  }, [activeTab, fetchExplorePage, clubs, canExploreClub, matchesExploreSearch]);
 
   useEffect(() => {
     if (!exploreLoadMoreNode || activeTab !== "explorar") return;
@@ -403,35 +577,59 @@ export default function ForumBoard({
   }, [exploreLoadMoreNode, activeTab, fetchExplorePage]);
 
   // ─── Derived State ────────────────────────────────────────
-  const acceptedClubIds = useMemo(
-    () => acceptedForums.map((af) => af.clube_id),
-    [acceptedForums],
+  const myForumClubs = useMemo(
+    () =>
+      (clubs || [])
+        .filter((club) => myForumClubIdSet.has(normalizeId(club?.id)))
+        .sort((a, b) =>
+          String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR"),
+        ),
+    [clubs, myForumClubIdSet],
+  );
+
+  const myForumSelectOptions = useMemo(
+    () =>
+      myForumClubs.map((club) => ({
+        value: normalizeId(club?.id),
+        label: String(club?.nome || "Clube"),
+        logoUrl: String(club?.logo_url || club?.logo || "").trim(),
+      })),
+    [myForumClubs],
+  );
+
+  const selectedMyForumSelectOption = useMemo(
+    () =>
+      myForumSelectOptions.find(
+        (option) => option.value === normalizeId(selectedMyForumClubId),
+      ) || null,
+    [myForumSelectOptions, selectedMyForumClubId],
   );
 
   const acceptedClubs = useMemo(
-    () => (clubs || []).filter((c) => acceptedClubIds.includes(c.id)),
-    [clubs, acceptedClubIds],
+    () =>
+      (clubs || [])
+        .filter((club) => acceptedOrMemberClubIdSet.has(normalizeId(club?.id)))
+        .sort((a, b) =>
+          String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR"),
+        ),
+    [clubs, acceptedOrMemberClubIdSet],
   );
 
   const explorableClubs = useMemo(() => {
-    const baseExclude = (c) => c.id !== myClubId && !acceptedClubIds.includes(c.id);
-
-    // Com busca: filtra do array completo `clubs` (todos em memória)
     if (searchForumLower) {
-      return (clubs || []).filter((c) => {
-        if (!baseExclude(c)) return false;
-        const nome = String(c.nome || "").toLowerCase();
-        const escola = String(c.escola_nome || c.escola_id || "").toLowerCase();
-        return nome.includes(searchForumLower) || escola.includes(searchForumLower);
-      });
+      return (clubs || []).filter(
+        (club) => canExploreClub(club) && matchesExploreSearch(club),
+      );
     }
 
-    // Sem busca: usa paginação normal
-    return exploreClubs.filter(baseExclude);
-  }, [exploreClubs, clubs, myClubId, acceptedClubIds, searchForumLower]);
+    return exploreClubs.filter(canExploreClub);
+  }, [exploreClubs, clubs, canExploreClub, matchesExploreSearch, searchForumLower]);
 
   const currentForumClub = useMemo(
-    () => (clubs || []).find((c) => c.id === currentForumClubId) || myClub,
+    () =>
+      (clubs || []).find(
+        (club) => normalizeId(club?.id) === normalizeId(currentForumClubId),
+      ) || myClub,
     [clubs, currentForumClubId, myClub],
   );
 
@@ -440,16 +638,22 @@ export default function ForumBoard({
     [topics, selectedTopicId],
   );
 
+  const exploreScopeLabel = restrictExploreToOwnSchool
+    ? "da sua unidade escolar"
+    : "da plataforma";
+
   const canParticipate = useMemo(() => {
     if (!loggedUser || !currentForumClubId) return false;
-    if (String(loggedUser.clube_id) === String(currentForumClubId)) return true;
-    return acceptedClubIds.includes(currentForumClubId);
-  }, [loggedUser, currentForumClubId, acceptedClubIds]);
+    const normalizedCurrentForumClubId = normalizeId(currentForumClubId);
+    if (allUserClubIdSet.has(normalizedCurrentForumClubId)) return true;
+    if (mentorManagedClubIdSet.has(normalizedCurrentForumClubId)) return true;
+    return acceptedClubIdSet.has(normalizedCurrentForumClubId);
+  }, [loggedUser, currentForumClubId, allUserClubIdSet, mentorManagedClubIdSet, acceptedClubIdSet]);
 
   const isModeratorOfCurrent = useMemo(
     () =>
-      isMentor && String(loggedUser?.clube_id) === String(currentForumClubId),
-    [isMentor, loggedUser, currentForumClubId],
+      isMentor && mentorManagedClubIdSet.has(normalizeId(currentForumClubId)),
+    [isMentor, currentForumClubId, mentorManagedClubIdSet],
   );
 
   // ─── Handlers Otimizados (useCallback) ─────────────────────
@@ -593,18 +797,18 @@ export default function ForumBoard({
 
   const handleRemoveExternal = useCallback(
     async (memberId) => {
-      if (!myClubId) return;
+      if (!selectedMyForumClubId) return;
       setConfirmModal({
         open: true,
         title: "Remover membro externo",
         description: "Tem certeza que deseja remover este membro externo?",
         onConfirm: async () => {
-          await removeExternalMember(memberId, myClubId);
+          await removeExternalMember(memberId, selectedMyForumClubId);
           setConfirmModal((prev) => ({ ...prev, open: false }));
         },
       });
     },
-    [myClubId],
+    [selectedMyForumClubId],
   );
 
   // Handlers do TopicItem
@@ -882,6 +1086,17 @@ export default function ForumBoard({
           {/* ─── Tab: Meu Fórum ──────────────────────────── */}
           {activeTab === "meu" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              {!selectedMyForumClubId ? (
+                <EmptyBox
+                  message={
+                    isMentor
+                      ? "Voce ainda nao possui foruns administrados para visualizar."
+                      : "Voce ainda nao participa de nenhum forum."
+                  }
+                  icon={Coffee}
+                />
+              ) : (
+                <>
               {isMentor && joinRequests.length > 0 && (
                 <div className="premium-card p-5 border-l-4 border-l-[#5AC8C8]/70 bg-white">
                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -955,6 +1170,44 @@ export default function ForumBoard({
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <span className="text-slate-800 badge">Tópicos</span> — {currentForumClub?.nome || "Meu Clube"}
                 </h2>
+                {myForumClubs.length > 1 && (
+                  <div className="min-w-[260px]">
+                    <Select
+                      inputId="forum-club-select"
+                      classNamePrefix="forum-club-select"
+                      styles={forumClubSelectStyles}
+                      value={selectedMyForumSelectOption}
+                      options={myForumSelectOptions}
+                      isSearchable={myForumSelectOptions.length > 6}
+                      onChange={(option) => {
+                        const nextClubId = normalizeId(option?.value);
+                        setSelectedMyForumClubId(nextClubId);
+                        setSelectedTopicId(null);
+                        setShowNewTopic(false);
+                      }}
+                      formatOptionLabel={(option) => (
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                            {option.logoUrl ? (
+                              <img
+                                src={option.logoUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-slate-500">
+                                {String(option.label || "C").trim().charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-slate-800 truncate">
+                            {option.label}
+                          </span>
+                        </div>
+                      )}
+                    />
+                  </div>
+                )}
                 {canParticipate && (
                   <button
                     onClick={() => setShowNewTopic(true)}
@@ -1046,6 +1299,8 @@ export default function ForumBoard({
                   ))
                 )}
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1055,11 +1310,11 @@ export default function ForumBoard({
               {!viewingForumClubId ? (
                 <>
                   <h2 className="text-xl font-bold text-slate-800">
-                    Fóruns em que fui aceito
+                    Fóruns disponíveis para você
                   </h2>
                   {acceptedClubs.length === 0 ? (
                     <EmptyBox
-                      message="Você ainda não faz parte de fóruns de outros clubes."
+                      message="Você ainda não tem acesso a fóruns além do seu clube principal."
                       icon={Users}
                     />
                   ) : (
@@ -1204,7 +1459,8 @@ export default function ForumBoard({
                   {exploreTotalCount > 0 && (
                     <p className="text-sm text-slate-500 font-medium mt-1">
                       Descubra discussões em outros {exploreTotalCount} clubes da
-                      plataforma
+                      {" "}
+                      {exploreScopeLabel}
                     </p>
                   )}
                 </div>
@@ -1244,7 +1500,9 @@ export default function ForumBoard({
                   message={
                     searchForumLower
                       ? "Nenhum clube encontrado com este nome."
-                      : "Não há novos clubes para explorar no momento."
+                      : restrictExploreToOwnSchool
+                        ? "Não há novos clubes da sua unidade escolar para explorar no momento."
+                        : "Não há novos clubes para explorar no momento."
                   }
                   icon={Globe}
                 />
@@ -1296,3 +1554,4 @@ export default function ForumBoard({
     </>
   );
 }
+

@@ -8,6 +8,12 @@
  * @param {number} options.maxSizeKB - Tamanho máximo em KB (padrão: 200)
  * @returns {Promise<string>} - Base64 da imagem comprimida
  */
+const getDataUrlByteSize = (dataUrl) => {
+    const base64Part = String(dataUrl || '').split(',')[1] || '';
+    const padding = base64Part.endsWith('==') ? 2 : base64Part.endsWith('=') ? 1 : 0;
+    return Math.ceil((base64Part.length * 3) / 4) - padding;
+};
+
 export async function compressImageToBase64(file, options = {}) {
     const {
         maxWidth = 800,
@@ -16,10 +22,25 @@ export async function compressImageToBase64(file, options = {}) {
         maxSizeKB = 200,
     } = options;
 
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+    const readSource = () => new Promise((resolve, reject) => {
+        if (typeof file === 'string' && file.startsWith('data:image/')) {
+            resolve(file);
+            return;
+        }
 
-        reader.onload = (e) => {
+        if (!(file instanceof Blob)) {
+            reject(new Error('Arquivo inválido para compressão de imagem'));
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Falha ao ler arquivo de imagem'));
+        reader.readAsDataURL(file);
+    });
+
+    return new Promise((resolve, reject) => {
+        readSource().then((dataUrl) => {
             const img = new Image();
 
             img.onload = () => {
@@ -50,15 +71,27 @@ export async function compressImageToBase64(file, options = {}) {
                 let currentQuality = quality;
                 let base64;
                 let iterations = 0;
+                let resizeAttempts = 0;
                 const maxIterations = 10;
+                const maxResizeAttempts = 5;
 
                 const tryCompress = () => {
                     base64 = canvas.toDataURL('image/jpeg', currentQuality);
-                    const sizeKB = (base64.length / 1024).toFixed(2);
+                    const sizeKB = getDataUrlByteSize(base64) / 1024;
 
                     if (sizeKB > maxSizeKB && currentQuality > 0.1 && iterations < maxIterations) {
-                        currentQuality -= 0.1;
-                        iterations++;
+                        currentQuality = Math.max(0.1, currentQuality - 0.1);
+                        iterations += 1;
+                        tryCompress();
+                    } else if (sizeKB > maxSizeKB && resizeAttempts < maxResizeAttempts && width > 200 && height > 200) {
+                        width = Math.max(200, Math.round(width * 0.8));
+                        height = Math.max(200, Math.round(height * 0.8));
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        currentQuality = quality;
+                        iterations = 0;
+                        resizeAttempts += 1;
                         tryCompress();
                     } else {
                         resolve(base64);
@@ -72,14 +105,8 @@ export async function compressImageToBase64(file, options = {}) {
                 reject(new Error('Falha ao carregar imagem para compressão'));
             };
 
-            img.src = e.target.result;
-        };
-
-        reader.onerror = () => {
-            reject(new Error('Falha ao ler arquivo de imagem'));
-        };
-
-        reader.readAsDataURL(file);
+            img.src = dataUrl;
+        }).catch(reject);
     });
 }
 
@@ -114,9 +141,9 @@ export function validateImageFile(file, maxSizeMB = 5) {
  * @returns {string} - Tamanho formatado (ex: "150 KB")
  */
 export function getBase64Size(base64) {
-    const sizeBytes = (base64.length / 1024).toFixed(2);
-    if (sizeBytes > 1024) {
-        return `${(sizeBytes / 1024).toFixed(2)} MB`;
+    const sizeBytes = getDataUrlByteSize(String(base64 || ''));
+    if (sizeBytes > 1024 * 1024) {
+        return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
     }
-    return `${sizeBytes} KB`;
+    return `${(sizeBytes / 1024).toFixed(2)} KB`;
 }

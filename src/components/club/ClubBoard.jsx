@@ -1,16 +1,158 @@
-import React, { useState } from 'react';
-import { User, School, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, ArrowRight, Target, GraduationCap, FileText, PlusCircle, Sparkles, Zap, Building2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
-import ModalPerfil from './ModalPerfil'; // Importação do Modal adicionada
-import { getInitials, getLattesAreas, getLattesEducation, getLattesLink, getLattesSummary, compressImageFiles } from '../../utils/helpers';
+import CreateClubForm from './CreateClubForm';
+import EditClubForm from './EditClubForm';
+import ModalPerfil from './ModalPerfil'; 
+import { getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 
-export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubProjects, viewingClubUsers, viewingClubOrientadores, viewingClubCoorientadores, viewingClubInvestigadores, viewingClubDiaryCount, setSelectedClubId, setSelectedProjectId, setCurrentView, handleCreateProject }) {
+export default function ClubBoard({
+    viewingClub,
+    viewingClubSchool,
+    viewingClubProjects,
+    viewingClubUsers,
+    viewingClubOrientadores,
+    viewingClubCoorientadores,
+    viewingClubInvestigadores,
+    viewingClubDiaryCount,
+    hasNoClubMembership = false,
+    schoolClubDiscoveryList = [],
+    latestMyClubJoinRequestByClubId = new Map(),
+    requestingClubIds = new Set(),
+    handleRequestClubEntry = async () => {},
+    clubJoinRequests = [],
+    reviewingClubRequestIds = new Set(),
+    handleRespondClubEntryRequest = async () => {},
+    mentorManagedClubs = [],
+    setViewingClubId = () => {},
+    setSelectedClubId,
+    setSelectedProjectId,
+    setCurrentView,
+    handleCreateProject,
+    loggedUser,
+    schools,
+    users,
+    handleCreateClub,
+    creatingClub,
+    handleUpdateClub,
+    updatingClub
+}) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isCreateClubOpen, setIsCreateClubOpen] = useState(false);
+    const [isEditClubOpen, setIsEditClubOpen] = useState(false);
     
     // Estados do Modal
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [membershipRequestFeedback, setMembershipRequestFeedback] = useState({ type: '', message: '' });
+    const isMentor = ['orientador', 'coorientador'].includes(String(loggedUser?.perfil || '').trim().toLowerCase());
+    const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+    const mentorIds = new Set([
+        String(viewingClub?.mentor_id || '').trim(),
+        ...(viewingClub?.orientador_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.coorientador_ids || []).map((id) => String(id || '').trim())
+    ].filter(Boolean));
+    const canManageClub = isMentor && loggedUserId && mentorIds.has(loggedUserId);
+    const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
+    const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
+    const shouldShowSchoolClubDiscovery = !isMentor && hasNoClubMembership;
+    const managedClubs = useMemo(
+        () => (mentorManagedClubs || []).filter((club) => String(club?.id || '').trim()),
+        [mentorManagedClubs]
+    );
+    const canSwitchManagedClubs = isMentor && managedClubs.length > 1;
+
+    const usersById = useMemo(() => {
+        const map = new Map();
+        (users || []).forEach((person) => {
+            const personId = String(person?.id || '').trim();
+            if (!personId) return;
+            map.set(personId, person);
+        });
+        return map;
+    }, [users]);
+
+    const formatRequestDate = (dateValue) => {
+        if (!dateValue) return '';
+
+        const date = typeof dateValue?.toDate === 'function'
+            ? dateValue.toDate()
+            : new Date(dateValue);
+
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    const resolveMentorNames = (club) => {
+        const clubMentorIds = [
+            String(club?.mentor_id || '').trim(),
+            ...(club?.orientador_ids || []).map((id) => String(id || '').trim()),
+            ...(club?.coorientador_ids || []).map((id) => String(id || '').trim())
+        ].filter(Boolean);
+
+        const mentorNames = [...new Set(clubMentorIds)]
+            .map((id) => String(usersById.get(id)?.nome || '').trim())
+            .filter(Boolean);
+
+        return mentorNames.length > 0 ? mentorNames.join(', ') : 'Mentor nao informado';
+    };
+
+    const getLatestMembershipRequest = (clubId) => {
+        if (latestMyClubJoinRequestByClubId instanceof Map) {
+            return latestMyClubJoinRequestByClubId.get(String(clubId || '').trim()) || null;
+        }
+        return null;
+    };
+
+    const handleStudentJoinRequest = async (clubId) => {
+        if (!clubId) return;
+
+        setMembershipRequestFeedback({ type: '', message: '' });
+
+        try {
+            await handleRequestClubEntry(clubId);
+            setMembershipRequestFeedback({ type: 'success', message: 'Solicitacao enviada para o mentor.' });
+        } catch (error) {
+            const message = String(error?.message || '').trim() || 'Falha ao enviar solicitacao.';
+            setMembershipRequestFeedback({ type: 'error', message });
+        }
+    };
+
+    const handleMentorDecision = async (requestId, accept) => {
+        if (!requestId) return;
+
+        setMembershipRequestFeedback({ type: '', message: '' });
+
+        try {
+            await handleRespondClubEntryRequest(requestId, accept);
+            setMembershipRequestFeedback({
+                type: 'success',
+                message: accept ? 'Clubista aprovado e vinculado ao clube.' : 'Solicitacao recusada com sucesso.'
+            });
+        } catch (error) {
+            const message = String(error?.message || '').trim() || 'Falha ao processar solicitacao.';
+            setMembershipRequestFeedback({ type: 'error', message });
+        }
+    };
+
+    const handleSelectManagedClub = (clubId) => {
+        const normalizedClubId = String(clubId || '').trim();
+        if (!normalizedClubId) return;
+
+        setViewingClubId(normalizedClubId);
+        setSelectedClubId(normalizedClubId);
+        setCurrentView('clube');
+        setIsCreateOpen(false);
+        setIsEditClubOpen(false);
+    };
 
     // Função de clique para abrir o Modal
     const handleUserClick = (e, user) => {
@@ -28,17 +170,139 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
     };
 
     if (!viewingClub) {
+        if (shouldShowSchoolClubDiscovery) {
+            return (
+                <div className="space-y-6 p-6 md:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                    <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8">
+                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Clubes da sua unidade escolar</h2>
+                        <p className="text-slate-600 mt-2">
+                            Selecione um clube para solicitar entrada. O mentor responsavel podera aceitar ou recusar.
+                        </p>
+                    </div>
+
+                    {membershipRequestFeedback.message && (
+                        <div
+                            className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+                                membershipRequestFeedback.type === 'error'
+                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                        >
+                            {membershipRequestFeedback.message}
+                        </div>
+                    )}
+
+                    {schoolClubDiscoveryList.length === 0 ? (
+                        <div className="bg-white border border-slate-100 rounded-3xl p-10 text-center">
+                            <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <p className="text-slate-600">Nenhum clube disponivel para a sua unidade escolar no momento.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {schoolClubDiscoveryList.map((club) => {
+                                const clubId = String(club?.id || '').trim();
+                                const latestRequest = getLatestMembershipRequest(clubId);
+                                const requestStatus = String(latestRequest?.status || '').trim().toLowerCase();
+                                const isPending = requestStatus === 'pendente';
+                                const isRejected = requestStatus === 'recusada';
+                                const isAccepted = requestStatus === 'aceita';
+                                const isRequesting = requestingClubIds instanceof Set && requestingClubIds.has(clubId);
+
+                                const statusConfig = isPending
+                                    ? {
+                                        icon: Clock3,
+                                        label: 'Solicitacao pendente',
+                                        classes: 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }
+                                    : isRejected
+                                        ? {
+                                            icon: XCircle,
+                                            label: 'Solicitacao recusada',
+                                            classes: 'bg-red-50 text-red-700 border-red-200'
+                                        }
+                                        : isAccepted
+                                            ? {
+                                                icon: CheckCircle2,
+                                                label: 'Solicitacao aceita',
+                                                classes: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            }
+                                            : null;
+
+                                const StatusIcon = statusConfig?.icon || null;
+
+                                return (
+                                    <div key={clubId} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                                        <h3 className="text-xl font-black text-slate-900">{club?.nome || 'Clube sem nome'}</h3>
+                                        <p className="text-sm text-slate-600 mt-1">
+                                            Unidade: {club?.escola_nome || club?.escola_id || 'Nao informada'}
+                                        </p>
+                                        <p className="text-sm text-slate-500 mt-2">
+                                            Mentor: {resolveMentorNames(club)}
+                                        </p>
+
+                                        {statusConfig && (
+                                            <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${statusConfig.classes}`}>
+                                                {StatusIcon && <StatusIcon className="w-4 h-4" />}
+                                                {statusConfig.label}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStudentJoinRequest(clubId)}
+                                            disabled={isPending || isAccepted || isRequesting}
+                                            className="mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-bold bg-[#00B5B5] text-white hover:bg-[#009e9e] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            {isRequesting
+                                                ? 'Enviando solicitacao...'
+                                                : isPending
+                                                    ? 'Aguardando resposta do mentor'
+                                                    : isAccepted
+                                                        ? 'Solicitacao aceita'
+                                                        : isRejected
+                                                            ? 'Solicitar novamente'
+                                                            : 'Solicitar entrada'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         return (
             <div className="min-h-[60vh] flex items-center justify-center p-10 bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden shadow-inner">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[100px] pointer-events-none"></div>
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FF5722]/5 rounded-full blur-[100px] pointer-events-none"></div>
-                
+
                 <div className="relative z-10 bg-white/50 backdrop-blur-xl p-12 rounded-[2rem] border border-white/80 shadow-lg text-center">
                     <Building2 className="w-16 h-16 text-[#00B5B5] mx-auto mb-6 opacity-80" />
                     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Selecione um Ecossistema</h2>
-                    <p className="text-slate-600 max-w-md mx-auto">Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.</p>
+                    <p className="text-slate-600 max-w-md mx-auto">Navegue pelo Feed de Inovacao e clique no icone da escola em um projeto para revelar o universo de colaboracao do clube.</p>
+                    {isMentor && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateClubOpen(true)}
+                            className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm hover:scale-[1.02] transition-transform shadow-lg shadow-[#00B5B5]/30"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Criar Clube na Unidade Escolar
+                        </button>
+                    )}
                 </div>
-            </div> 
+
+                <CreateClubForm
+                    isOpen={isCreateClubOpen}
+                    onClose={() => setIsCreateClubOpen(false)}
+                    loggedUser={loggedUser}
+                    schools={schools}
+                    users={users}
+                    isSubmitting={creatingClub}
+                    onSubmit={handleCreateClub}
+                />
+            </div>
         );
     }
 
@@ -46,65 +310,92 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
     const memberCount = viewingClubUsers.length;
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
 
-    const AvatarStack = ({ people, max = 5, color = "cyan" }) => {
-        const displayPeople = people.slice(0, max);
-        const remaining = people.length - max;
-        
-        const colorClasses = color === "cyan" 
-            ? "bg-[#00B5B5] text-white border-white" 
-            : "bg-[#FF5722] text-white border-white";
-
-        return (
-            <div className="flex -space-x-3 isolate">
-                {displayPeople.map((p, i) => (
-                    <div key={p.id} onClick={(e) => handleUserClick(e, p)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ring-2 ring-white shadow-md z-[${max - i}] ${colorClasses} hover:-translate-y-2 transition-transform duration-300 cursor-pointer`} title={p.nome}>
-                        {getInitials(p.nome)}
-                    </div>
-                ))}
-                {remaining > 0 && (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-600 ring-2 ring-white shadow-md z-0">
-                        +{remaining}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
         <div className="space-y-8 mx-auto pb-20  font-sans bg-slate-50 p-3 md:p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-slate-800 relative overflow-hidden">
             
             <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 group min-h-[320px] flex flex-col justify-end p-8 md:p-12 shadow-sm">
-                
-                <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/15 transition-colors duration-700 pointer-events-none"></div>
-                <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/5 rounded-full blur-[60px] pointer-events-none"></div>
-                
-                <div className="absolute inset-0  mix-blend-multiply pointer-events-none" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
+                <div className="absolute inset-0 pointer-events-none">
+                    {clubBannerUrl ? (
+                        <img
+                            src={clubBannerUrl}
+                            alt={`Banner do clube ${viewingClub.nome}`}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <>
+                            <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/20 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/30 transition-colors duration-700" />
+                            <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/20 rounded-full blur-[60px]" />
+                            <div className="absolute inset-0 mix-blend-multiply" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
+                        </>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-900/25 to-slate-950/75" />
+                </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-end">
-                    <div className="max-w-3xl flex-1">
-                        <h1 className="text-5xl md:text-6xl text-white tracking-tighter from-slate-950 via-slate-800 to-slate-700 mb-4 leading-tight">
-                            {viewingClub.nome}
-                        </h1>
-                        
-                        <p className="text-white font-medium text-lg flex items-center gap-2.5">
-                            <MapIcon className="w-5 h-5 text-[#00B5B5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
-                        </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                            <span className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-sm font-semibold text-white">
-                                <Microscope className="w-4 h-4 text-[#FF5722]" />
-                                Força Investigadora:
-                                <strong className="font-black">{investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}</strong>
-                            </span>
-                            <span className="text-xs font-bold text-white/80 bg-[#00B5B5]/20 px-2 py-1 rounded-full">
-                                {investigatorRatio}% da equipe
-                            </span>
+                    <div className="max-w-3xl flex-1 flex items-end gap-5">
+                        <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl border-4 border-white/95 shadow-2xl bg-white/90 backdrop-blur-sm overflow-hidden flex items-center justify-center shrink-0">
+                            {clubLogoUrl ? (
+                                <img
+                                    src={clubLogoUrl}
+                                    alt={`Logo do clube ${viewingClub.nome}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <span className="text-2xl md:text-3xl font-black text-slate-700">
+                                    {getInitials(viewingClub.nome)}
+                                </span>
+                            )}
+                        </div>
+
+                        <div>
+                            <h1 className="text-4xl md:text-6xl text-white tracking-tighter mb-4 leading-tight drop-shadow-lg">
+                                {viewingClub.nome}
+                            </h1>
+
+                            <p className="text-white font-medium text-base md:text-lg flex items-center gap-2.5 drop-shadow">
+                                <MapIcon className="w-5 h-5 text-[#7FF5F5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                                <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-white border border-white/20">
+                                    <Microscope className="w-4 h-4 text-[#FFD1BF]" />
+                                    Clubistas:
+                                    <strong className="font-black">{investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}</strong>
+                                </span>
+                                <span className="text-xs font-bold text-white bg-[#00B5B5]/35 backdrop-blur-sm px-2 py-1 rounded-full border border-[#7FF5F5]/30">
+                                    {investigatorRatio}% da equipe
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#00B5B5]/30 shrink-0">
-                        <Zap className={`w-5 h-5 transition-transform ${isCreateOpen ? 'rotate-45 text-amber-200' : 'text-white'}`} />
-                        {isCreateOpen ? 'Cancelar Criação' : 'Iniciar Novo Projeto'}
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
+                        {canManageClub && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditClubOpen(true)}
+                                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-sm transition-all border border-white/30"
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Editar Clube
+                            </button>
+                        )}
+
+                        {isMentor && (
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateClubOpen(true)}
+                                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-bold text-sm transition-all border border-white/30"
+                            >
+                                <PlusCircle className="w-4 h-4" />
+                                Criar Clube
+                            </button>
+                        )}
+
+                        <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#00B5B5]/30">
+                            <Zap className={`w-5 h-5 transition-transform ${isCreateOpen ? 'rotate-45 text-amber-200' : 'text-white'}`} />
+                            {isCreateOpen ? 'Cancelar Criação' : 'Iniciar Novo Projeto'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -113,6 +404,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                     isOpen={isCreateOpen}
                     onClose={() => setIsCreateOpen(false)}
                     viewingClub={viewingClub}
+                    users={users}
                     viewingClubOrientadores={viewingClubOrientadores}
                     viewingClubCoorientadores={viewingClubCoorientadores}
                     viewingClubInvestigadores={viewingClubInvestigadores}
@@ -121,6 +413,118 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
 
                     }}
                 />
+            )}
+
+            {membershipRequestFeedback.message && (
+                <div
+                    className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+                        membershipRequestFeedback.type === 'error'
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}
+                >
+                    {membershipRequestFeedback.message}
+                </div>
+            )}
+
+            {canSwitchManagedClubs && (
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <h3 className="text-lg font-bold text-slate-900">Clubes que voce administra</h3>
+                        <span className="inline-flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black px-3 py-1">
+                            {managedClubs.length}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        {managedClubs.map((club) => {
+                            const clubId = String(club?.id || '').trim();
+                            const isActive = String(viewingClub?.id || '').trim() === clubId;
+                            const clubLogo = String(club?.logo_url || club?.logo || '').trim();
+
+                            return (
+                                <button
+                                    key={clubId}
+                                    type="button"
+                                    onClick={() => handleSelectManagedClub(clubId)}
+                                    className={`inline-flex items-center gap-2 rounded-full px-3 py-2 border text-sm font-bold transition-colors ${
+                                        isActive
+                                            ? 'bg-[#E0F7F7] text-[#007777] border-[#00B5B5]/40'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:border-[#00B5B5]/40 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <span className="w-7 h-7 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center shrink-0">
+                                        {clubLogo ? (
+                                            <img src={clubLogo} alt={`Logo do clube ${club?.nome || ''}`} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-[10px] font-black text-slate-600">{getInitials(club?.nome || '')}</span>
+                                        )}
+                                    </span>
+                                    <span>{club?.nome || 'Clube'}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {canManageClub && (
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-7 shadow-sm">
+                    <div className="flex items-center justify-between gap-4 mb-5">
+                        <h3 className="text-xl font-bold text-slate-900">Solicitacoes de entrada de clubistas</h3>
+                        <span className="inline-flex items-center justify-center rounded-full bg-[#E0F7F7] text-[#007777] text-xs font-black px-3 py-1">
+                            {clubJoinRequests.length}
+                        </span>
+                    </div>
+
+                    {clubJoinRequests.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                            Nenhuma solicitacao pendente neste clube.
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {clubJoinRequests.map((request) => {
+                                const requestId = String(request?.id || '').trim();
+                                const requesterName = String(request?.solicitante_nome || 'Estudante').trim();
+                                const requesterEmail = String(request?.solicitante_email || '').trim();
+                                const requestDate = formatRequestDate(request?.createdAt);
+                                const isReviewing = reviewingClubRequestIds instanceof Set
+                                    && reviewingClubRequestIds.has(requestId);
+
+                                return (
+                                    <div key={requestId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                            <div>
+                                                <p className="font-bold text-slate-900">{requesterName}</p>
+                                                {requesterEmail && <p className="text-sm text-slate-600">{requesterEmail}</p>}
+                                                {requestDate && <p className="text-xs text-slate-500 mt-1">Solicitado em {requestDate}</p>}
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMentorDecision(requestId, false)}
+                                                    disabled={isReviewing}
+                                                    className="rounded-xl px-4 py-2 text-sm font-bold border border-red-200 text-red-700 bg-white hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                >
+                                                    Recusar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMentorDecision(requestId, true)}
+                                                    disabled={isReviewing}
+                                                    className="rounded-xl px-4 py-2 text-sm font-bold text-white bg-[#00B5B5] hover:bg-[#009e9e] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                >
+                                                    {isReviewing ? 'Processando...' : 'Aceitar'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
@@ -142,7 +546,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                 </div>
 
                 <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
-                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Equipe Docente</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Mentores</h3>
                     
                     <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
                         {[...viewingClubOrientadores, ...viewingClubCoorientadores].length === 0 ? (
@@ -163,9 +567,9 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                                     <div className="flex items-center justify-between gap-3.5">
                                         <div className="flex items-center gap-3.5">
                                             <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
-                                            <div>
+                                                <div>
                                                 <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
-                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Orientador' : 'Coorientador'}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Mentor' : 'Co-Mentor'}</p>
                                             </div>
                                         </div>
                                         {getLattesLink(person) && (
@@ -203,7 +607,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                 <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-[#FF5722]/5 rounded-full blur-2xl pointer-events-none"></div>
                     
-                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><Microscope className="w-6 h-6 text-[#FF5722]" /> Força Investigadora</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><Microscope className="w-6 h-6 text-[#FF5722]" /> Clubistas</h3>
                     <span className="absolute top-7 right-7 z-10 px-4 py-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 text-xs font-black shadow-inner">{viewingClubInvestigadores.length}</span>
 
                     <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
@@ -223,7 +627,7 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                                         <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#FF5722] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
                                         <div>
                                             <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#FF5722] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Investigador</p>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Clubista</p>
                                         </div>
                                     </div>
                                     {getLattesLink(person) && (
@@ -333,6 +737,27 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
                 </div>
             </div>
 
+            <CreateClubForm
+                isOpen={isCreateClubOpen}
+                onClose={() => setIsCreateClubOpen(false)}
+                loggedUser={loggedUser}
+                schools={schools}
+                users={users}
+                isSubmitting={creatingClub}
+                onSubmit={handleCreateClub}
+            />
+
+            <EditClubForm
+                isOpen={isEditClubOpen}
+                onClose={() => setIsEditClubOpen(false)}
+                viewingClub={viewingClub}
+                loggedUser={loggedUser}
+                schools={schools}
+                users={users}
+                isSubmitting={updatingClub}
+                onSubmit={handleUpdateClub}
+            />
+
             {/* Modal de Perfil renderizado no final do componente */}
             <ModalPerfil
                 isOpen={isProfileModalOpen}
@@ -345,3 +770,6 @@ export default function ClubBoard({ viewingClub, viewingClubSchool, viewingClubP
         </div>
     );
 }
+
+
+

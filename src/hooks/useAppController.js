@@ -5,14 +5,19 @@ import {
     doc,
     getDocs,
     getDoc,
+    onSnapshot,
     limit,
     orderBy,
     query,
     setDoc,
     startAfter,
     serverTimestamp,
+    where,
+    writeBatch,
     updateDoc,
+    deleteField,
 } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import {
     createUserWithEmailAndPassword,
     deleteUser,
@@ -24,14 +29,38 @@ import {
     signOut
 } from 'firebase/auth';
 
-import { db, auth } from '../../firebase';
+import { db, auth, storage } from '../../firebase';
 import dadosUnidades from '../../DadosUnidades.json';
 import dadosUnidadesMunicipais from '../../DadosUnidadesMunicipaisBA_8_9.json';
 import { getLattesLink, composeMentoriaLabel } from '../utils/helpers';
-import { STAGES, PROJECTS_PAGE_SIZE } from '../constants/appConstants';
-import { buildProjectEntries, getProjectTeam, getInvestigatorDisplayNames, normalizePerfil } from '../services/projectService';
+import { compressImageToBase64 } from '../utils/imageCompression';
+import { STAGES, PROJECTS_PAGE_SIZE, CLUB_REQUIRED_DOCUMENTS } from '../constants/appConstants';
+import {
+    buildProjectEntries,
+    getProjectTeam,
+    getInvestigatorDisplayNames,
+    getPrimaryUserClubId,
+    getUserClubIds,
+    getUserSchoolIds,
+    normalizeIdList,
+    normalizePerfil,
+    withLegacyUserMembership
+} from '../services/projectService';
 import cachedDataService from '../services/cachedDataService';
 import indexedDBService from '../services/indexedDBService';
+
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
+const isLocalhostEnvironment = () => {
+    if (typeof window === 'undefined') return false;
+    return LOCAL_HOSTNAMES.has(String(window.location?.hostname || '').toLowerCase());
+};
+
+const getDataUrlByteSize = (dataUrl) => {
+    const base64 = String(dataUrl || '').split(',')[1] || '';
+    const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+    return Math.ceil((base64.length * 3) / 4) - padding;
+};
 
 export default function useAppController() {
     const [currentView, setCurrentView] = useState('Projetos');
@@ -56,6 +85,12 @@ export default function useAppController() {
     const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savingEntry, setSavingEntry] = useState(false);
+    const [creatingClub, setCreatingClub] = useState(false);
+    const [updatingClub, setUpdatingClub] = useState(false);
+    const [clubJoinRequests, setClubJoinRequests] = useState([]);
+    const [myClubJoinRequests, setMyClubJoinRequests] = useState([]);
+    const [requestingClubIds, setRequestingClubIds] = useState(new Set());
+    const [reviewingClubRequestIds, setReviewingClubRequestIds] = useState(new Set());
     const [errorMessage, setErrorMessage] = useState('');
     const [viewingClubId, setViewingClubId] = useState('');
     const [clubProjects, setClubProjects] = useState([]);
@@ -150,6 +185,55 @@ export default function useAppController() {
         return false;
     };
 
+    const normalizeUserEntity = useCallback((userData, forcedId = '') => {
+        const base = { ...(userData || {}) };
+        if (forcedId && !base.id) {
+            base.id = forcedId;
+        }
+
+        if (!base.id && base.uid) {
+            base.id = String(base.uid);
+        }
+
+        return withLegacyUserMembership(base);
+    }, []);
+
+    const normalizeSchoolEntity = useCallback((schoolData, forcedId = '') => {
+        const base = { ...(schoolData || {}) };
+        const resolvedId = String(
+            base.escola_id
+            || base.id
+            || base.cod_inep
+            || forcedId
+            || ''
+        ).trim();
+
+        const resolvedName = String(base.nome || base.escola_nome || '').trim();
+        if (!resolvedId || !resolvedName) {
+            return null;
+        }
+
+        return {
+            ...base,
+            id: resolvedId,
+            escola_id: resolvedId,
+            nome: resolvedName
+        };
+    }, []);
+
+    const normalizeSchoolName = useCallback((value) => String(value || '').trim().toLowerCase(), []);
+
+    const getTimestampMillis = useCallback((value) => {
+        if (!value) return 0;
+        if (typeof value?.toMillis === 'function') {
+            return value.toMillis();
+        }
+
+        const date = new Date(value);
+        const millis = date.getTime();
+        return Number.isFinite(millis) ? millis : 0;
+    }, []);
+
     const normalizedSearchTerm = useMemo(() => normalizeText(searchTerm), [searchTerm]);
     const deferredSearchTerm = useDeferredValue(normalizedSearchTerm);
 
@@ -172,11 +256,39 @@ export default function useAppController() {
     }, [clubs]);
 
     const schoolsById = useMemo(() => {
-        return new Map(schools.map((school) => [String(school.id), school]));
+        const map = new Map();
+        schools.forEach((school) => {
+            const schoolId = String(school?.id || '').trim();
+            const escolaId = String(school?.escola_id || '').trim();
+
+            if (schoolId) {
+                map.set(schoolId, school);
+            }
+
+            if (escolaId) {
+                map.set(escolaId, school);
+            }
+        });
+        return map;
     }, [schools]);
 
+    const projectsCatalog = useMemo(() => {
+        const projectsById = new Map();
+
+        [...allProjects, ...projects].forEach((project) => {
+            const projectId = String(project?.id || '').trim();
+            if (!projectId) {
+                return;
+            }
+
+            projectsById.set(projectId, { ...project, id: projectId });
+        });
+
+        return [...projectsById.values()];
+    }, [allProjects, projects]);
+
     const searchableProjects = useMemo(() => {
-        return allProjects.map((project) => {
+        return projectsCatalog.map((project) => {
             const club = clubsById.get(String(project.clube_id || ''));
             const schoolId = String(project.escola_id || club?.escola_id || '');
             const school = schoolsById.get(schoolId);
@@ -202,27 +314,171 @@ export default function useAppController() {
                 searchText: normalizeText(rawSearchText)
             };
         });
-    }, [allProjects, clubsById, schoolsById]);
+    }, [projectsCatalog, clubsById, schoolsById]);
 
-    const myClubId = useMemo(() => {
-        if (!loggedUser || clubs.length === 0) return '';
+    const loggedUserId = String(loggedUser?.id || authUser?.uid || '').trim();
 
-        if (loggedUser.clube_id) {
-            return String(loggedUser.clube_id);
+    const myClubIds = useMemo(() => {
+        if (!loggedUser) return [];
+
+        const knownClubIds = new Set(
+            clubs
+                .map((club) => String(club?.id || '').trim())
+                .filter(Boolean)
+        );
+
+        const fallbackProfileClubIds = normalizeIdList([
+            getPrimaryUserClubId(loggedUser),
+            ...getUserClubIds(loggedUser)
+        ]);
+
+        if (!loggedUserId) {
+            if (knownClubIds.size === 0) {
+                return fallbackProfileClubIds;
+            }
+
+            return fallbackProfileClubIds.filter((clubId) => knownClubIds.has(clubId));
         }
 
-        if (loggedUser.escola_id) {
-            const club = clubs.find((item) => String(item.escola_id || '') === String(loggedUser.escola_id));
-            return club?.id ? String(club.id) : '';
+        const membershipClubIds = !loggedUserId
+            ? []
+            : clubs
+                .filter((club) => {
+                    const clubMemberIds = normalizeIdList([
+                        ...(club?.membros_ids || []),
+                        ...(club?.clubistas_ids || []),
+                        ...(club?.orientador_ids || []),
+                        ...(club?.coorientador_ids || []),
+                        club?.mentor_id
+                    ]);
+
+                    return clubMemberIds.includes(loggedUserId);
+                })
+                .map((club) => String(club?.id || '').trim())
+                .filter(Boolean);
+
+        const validatedProfileClubIds = fallbackProfileClubIds.filter((clubId) => {
+            const club = clubs.find((item) => String(item?.id || '').trim() === String(clubId));
+            if (!club) {
+                return false;
+            }
+
+            const clubMemberIds = normalizeIdList([
+                ...(club?.membros_ids || []),
+                ...(club?.clubistas_ids || []),
+                ...(club?.orientador_ids || []),
+                ...(club?.coorientador_ids || []),
+                club?.mentor_id
+            ]);
+
+            // Fallback legado: se o clube não tiver listas de membros preenchidas,
+            // ainda aceitamos o vínculo vindo do perfil do usuário.
+            if (clubMemberIds.length === 0) {
+                return true;
+            }
+
+            return clubMemberIds.includes(loggedUserId);
+        });
+
+        const mergedClubIds = normalizeIdList([...membershipClubIds, ...validatedProfileClubIds]);
+
+        if (knownClubIds.size === 0) {
+            return mergedClubIds;
         }
 
-        return '';
-    }, [loggedUser, clubs]);
+        return mergedClubIds.filter((clubId) => knownClubIds.has(clubId));
+    }, [loggedUser, loggedUserId, clubs]);
+
+    const myClubId = useMemo(() => myClubIds[0] || '', [myClubIds]);
 
     const myClub = useMemo(() => {
         if (!myClubId) return null;
         return clubs.find((club) => String(club.id) === String(myClubId)) || null;
     }, [myClubId, clubs]);
+
+    const mentorManagedClubs = useMemo(() => {
+        const perfil = normalizePerfil(loggedUser?.perfil);
+        if (!['orientador', 'coorientador'].includes(perfil) || !loggedUserId) {
+            return [];
+        }
+
+        const loggedUserClubIds = new Set(
+            normalizeIdList(getUserClubIds(loggedUser))
+        );
+
+        return clubs
+            .filter((club) => {
+                const clubId = String(club?.id || '').trim();
+                if (!clubId) return false;
+
+                const mentorIds = normalizeIdList([
+                    club?.mentor_id,
+                    ...(club?.orientador_ids || []),
+                    ...(club?.coorientador_ids || [])
+                ]);
+
+                return mentorIds.includes(loggedUserId) || loggedUserClubIds.has(clubId);
+            })
+            .sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+    }, [clubs, loggedUser, loggedUserId]);
+
+    const canManageViewingClub = useMemo(() => {
+        if (!loggedUserId || !viewingClubId) return false;
+
+        const perfil = normalizePerfil(loggedUser?.perfil);
+        if (!['orientador', 'coorientador'].includes(perfil)) {
+            return false;
+        }
+
+        const viewedClub = clubs.find((club) => String(club?.id || '').trim() === String(viewingClubId || '').trim());
+        if (!viewedClub) {
+            return false;
+        }
+
+        const mentorIds = new Set(
+            normalizeIdList([
+                viewedClub?.mentor_id,
+                ...(viewedClub?.orientador_ids || []),
+                ...(viewedClub?.coorientador_ids || [])
+            ])
+        );
+
+        return mentorIds.has(loggedUserId);
+    }, [loggedUserId, viewingClubId, loggedUser, clubs]);
+
+    const userSchoolIds = useMemo(() => {
+        return normalizeIdList(getUserSchoolIds(loggedUser));
+    }, [loggedUser]);
+
+    const schoolClubDiscoveryList = useMemo(() => {
+        if (!loggedUser || myClubIds.length > 0 || userSchoolIds.length === 0) {
+            return [];
+        }
+
+        const userSchoolSet = new Set(userSchoolIds);
+        return clubs
+            .filter((club) => userSchoolSet.has(String(club?.escola_id || '').trim()))
+            .sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+    }, [loggedUser, myClubIds, userSchoolIds, clubs]);
+
+    const latestMyClubJoinRequestByClubId = useMemo(() => {
+        const byClubId = new Map();
+
+        const sorted = [...myClubJoinRequests].sort(
+            (a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt)
+        );
+
+        sorted.forEach((request) => {
+            const clubId = String(request?.clube_id || '').trim();
+            if (!clubId || byClubId.has(clubId)) {
+                return;
+            }
+
+            byClubId.set(clubId, request);
+        });
+
+        return byClubId;
+    }, [myClubJoinRequests, getTimestampMillis]);
 
     const estadualSchoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
     const municipalSchoolGroups = useMemo(
@@ -239,6 +495,10 @@ export default function useAppController() {
     const allSchoolUnits = useMemo(
         () => flattenSchoolGroups(selectedSchoolGroups),
         [selectedSchoolGroups]
+    );
+    const fallbackSchoolUnits = useMemo(
+        () => flattenSchoolGroups([...estadualSchoolGroups, ...municipalSchoolGroups]),
+        [estadualSchoolGroups, municipalSchoolGroups]
     );
 
     const filteredSchoolGroups = useMemo(() => {
@@ -319,8 +579,19 @@ export default function useAppController() {
                 // Limita diário para reduzir payload/leitura em bases muito grandes.
                 const diaryConstraints = [orderBy('createdAt', 'desc'), limit(500)];
 
+                const loadedClubsPromise = cachedDataService
+                    .getCollectionList('clubes', [], true)
+                    .then((clubsList) => {
+                        if (Array.isArray(clubsList) && clubsList.length > 0) {
+                            return clubsList;
+                        }
+
+                        return cachedDataService.getCollectionList('clubes_ciencia', [], true);
+                    })
+                    .catch(() => cachedDataService.getCollectionList('clubes_ciencia', [], true));
+
                 const [loadedClubs, loadedUsers, loadedSchools, loadedDiaryEntries, loadedAllProjects] = await Promise.all([
-                    cachedDataService.getCollectionList('clubes_ciencia', [], true),
+                    loadedClubsPromise,
                     cachedDataService.getCollectionList('usuarios', [], true),
                     cachedDataService.getCollectionList('unidades_escolares', [], true),
                     cachedDataService.getCollectionList('diario_bordo', diaryConstraints, true),
@@ -331,9 +602,24 @@ export default function useAppController() {
                     return;
                 }
 
-                setClubs(loadedClubs || []);
-                setUsers(loadedUsers || []);
-                setSchools(loadedSchools || []);
+                const normalizedSchools = (loadedSchools || [])
+                    .map((school) => normalizeSchoolEntity(school, school?.id))
+                    .filter(Boolean);
+
+                const schoolsSource = normalizedSchools.length > 0
+                    ? normalizedSchools
+                    : fallbackSchoolUnits
+                        .map((school) => normalizeSchoolEntity(school, school?.escola_id))
+                        .filter(Boolean);
+
+                const schoolsByUniqueId = new Map();
+                schoolsSource.forEach((school) => {
+                    schoolsByUniqueId.set(String(school.id), school);
+                });
+
+                setClubs((loadedClubs || []).map((club) => ({ ...club, id: String(club.id || '').trim() })));
+                setUsers((loadedUsers || []).map((user) => normalizeUserEntity(user, user?.id)));
+                setSchools([...schoolsByUniqueId.values()]);
                 setDiaryEntries(loadedDiaryEntries || []);
                 setAllProjects(loadedAllProjects || []);
             } catch (error) {
@@ -353,7 +639,7 @@ export default function useAppController() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [normalizeUserEntity, normalizeSchoolEntity, fallbackSchoolUnits]);
 
     useEffect(() => {
         void fetchProjectsPage(true);
@@ -439,6 +725,16 @@ export default function useAppController() {
             .filter(Boolean);
     };
 
+    const sanitizeStorageFileName = (fileName) => {
+        const baseName = String(fileName || 'documento')
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .replace(/[^a-zA-Z0-9._-]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        return (baseName || 'documento').slice(0, 120);
+    };
+
     const scopedProjects = deferredSearchTerm ? filteredSearchProjects : projects;
 
     const feedProjects = useMemo(() => {
@@ -459,9 +755,14 @@ export default function useAppController() {
         });
     }, [scopedProjects, deferredSearchTerm]);
 
-    const selectedClub = clubs.find((club) => String(club.id) === String(selectedClubId)) ?? null;
-    const selectedProject = allProjects.find((project) => project.id === selectedProjectId) ?? null;
-    const selectedSchool = schools.find((school) => school.id === selectedClub?.escola_id) ?? null;
+    const selectedProject = projectsCatalog.find((project) => String(project.id) === String(selectedProjectId)) ?? null;
+    const selectedClub =
+        clubs.find((club) => String(club.id) === String(selectedClubId))
+        ?? clubs.find((club) => String(club.id) === String(selectedProject?.clube_id || ''))
+        ?? null;
+    const selectedSchool = schools.find(
+        (school) => String(school?.id || school?.escola_id || '').trim() === String(selectedClub?.escola_id || '').trim()
+    ) ?? null;
     const selectedTeam = selectedProject
         ? getProjectTeam(selectedProject, users, selectedClubId)
         : { orientadores: [], coorientadores: [], investigadores: [] };
@@ -500,12 +801,46 @@ export default function useAppController() {
     const canEditDiary = Boolean(selectedProject && isUserProjectMember);
 
     const viewingClub = clubs.find((item) => item.id === viewingClubId) ?? null;
-    const viewingClubSchool = schools.find((item) => item.id === viewingClub?.escola_id) ?? null;
+    const viewingClubSchool = schools.find(
+        (item) => String(item?.id || item?.escola_id || '').trim() === String(viewingClub?.escola_id || '').trim()
+    ) ?? null;
     const viewingClubProjects = viewingClubId ? clubProjects : [];
-    const viewingClubUsers = users.filter((user) => String(user.clube_id) === String(viewingClubId));
+    const normalizedViewingClubId = String(viewingClubId || '').trim();
+    const viewingClubMemberIds = normalizeIdList([
+        ...(viewingClub?.membros_ids || []),
+        ...(viewingClub?.clubistas_ids || []),
+        ...(viewingClub?.orientador_ids || []),
+        ...(viewingClub?.coorientador_ids || []),
+        viewingClub?.mentor_id
+    ]);
+    const viewingClubClubistaIds = normalizeIdList(viewingClub?.clubistas_ids || []);
+
+    const viewingClubUsers = users.filter((user) => {
+        const userId = String(user?.id || '').trim();
+        if (!userId) return false;
+
+        const isInClubDocMembership = viewingClubMemberIds.includes(userId);
+        const isInUserProfileMembership = normalizedViewingClubId
+            ? getUserClubIds(user).includes(normalizedViewingClubId)
+            : false;
+
+        return isInClubDocMembership || isInUserProfileMembership;
+    });
     const viewingClubOrientadores = viewingClubUsers.filter((user) => normalizePerfil(user.perfil) === 'orientador');
     const viewingClubCoorientadores = viewingClubUsers.filter((user) => normalizePerfil(user.perfil) === 'coorientador');
-    const viewingClubInvestigadores = viewingClubUsers.filter((user) => ['estudante', 'investigador', 'aluno'].includes(normalizePerfil(user.perfil)));
+    const viewingClubInvestigadores = viewingClubUsers.filter((user) => {
+        const perfil = normalizePerfil(user?.perfil);
+        if (['orientador', 'coorientador'].includes(perfil)) {
+            return false;
+        }
+
+        if (['estudante', 'investigador', 'aluno', 'clubista'].includes(perfil)) {
+            return true;
+        }
+
+        const userId = String(user?.id || '').trim();
+        return userId ? viewingClubClubistaIds.includes(userId) : false;
+    });
     const viewingClubDiaryCount = diaryEntries.filter((entry) => entry.clube_id === viewingClubId).length;
 
     const submitDiaryEntry = async (event) => {
@@ -587,7 +922,7 @@ export default function useAppController() {
                     if (snap.exists()) {
                         setAuthUser(user);
                         const userData = snap.data();
-                        setLoggedUser({ id: snap.id, ...userData });
+                        setLoggedUser(normalizeUserEntity(userData, snap.id));
                         
                         // Carregar ordem do sidebar se existir
                         if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
@@ -614,35 +949,92 @@ export default function useAppController() {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [normalizeUserEntity]);
+
+    useEffect(() => {
+        if (!loggedUserId) {
+            setMyClubJoinRequests([]);
+            return () => {};
+        }
+
+        const requestsQuery = query(
+            collection(db, 'clube_solicitacoes'),
+            where('solicitante_id', '==', loggedUserId)
+        );
+
+        return onSnapshot(
+            requestsQuery,
+            (snapshot) => {
+                const requests = snapshot.docs
+                    .map((item) => ({ id: item.id, ...item.data() }))
+                    .sort((a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt));
+
+                setMyClubJoinRequests(requests);
+            },
+            (error) => {
+                console.error('Erro ao carregar solicitacoes de entrada do usuario:', error);
+                setMyClubJoinRequests([]);
+            }
+        );
+    }, [loggedUserId, getTimestampMillis]);
+
+    useEffect(() => {
+        if (!viewingClubId || !canManageViewingClub) {
+            setClubJoinRequests([]);
+            return () => {};
+        }
+
+        const requestsQuery = query(
+            collection(db, 'clube_solicitacoes'),
+            where('clube_id', '==', String(viewingClubId).trim())
+        );
+
+        return onSnapshot(
+            requestsQuery,
+            (snapshot) => {
+                const requests = snapshot.docs
+                    .map((item) => ({ id: item.id, ...item.data() }))
+                    .filter((item) => String(item?.status || '').trim().toLowerCase() === 'pendente')
+                    .sort((a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt));
+
+                setClubJoinRequests(requests);
+            },
+            (error) => {
+                console.error('Erro ao carregar solicitacoes pendentes do clube:', error);
+                setClubJoinRequests([]);
+            }
+        );
+    }, [viewingClubId, canManageViewingClub, getTimestampMillis]);
 
     useEffect(() => {
         if (!authUser || !loggedUser || clubs.length === 0) {
             return;
         }
 
-        const clubFromUserId = loggedUser.clube_id
-            ? clubs.find((club) => String(club.id) === String(loggedUser.clube_id))
-            : null;
-
-        const clubFromSchool = loggedUser.escola_id
-            ? clubs.find((club) => String(club.escola_id || '') === String(loggedUser.escola_id))
-            : null;
-
-        const clubToUse = clubFromUserId || clubFromSchool;
-
-        if (clubToUse?.id) {
-            setSelectedClubId((currentId) => currentId || clubToUse.id);
-            setViewingClubId((currentId) => currentId || clubToUse.id);
-
-            if (!loggedUser.clube_id) {
-                const userRef = doc(db, 'usuarios', loggedUser.id);
-                updateDoc(userRef, { clube_id: clubToUse.id }).catch((error) => {
-                    console.error('Falha ao atualizar clube_id do usuário:', error);
-                });
-            }
+        if (myClubIds.length === 0) {
+            return;
         }
-    }, [clubs, authUser, loggedUser]);
+
+        const fallbackClubId = myClubIds[0];
+
+        setSelectedClubId((currentId) => {
+            const normalizedCurrentId = String(currentId || '').trim();
+            if (normalizedCurrentId && myClubIds.includes(normalizedCurrentId)) {
+                return normalizedCurrentId;
+            }
+
+            return fallbackClubId;
+        });
+
+        setViewingClubId((currentId) => {
+            const normalizedCurrentId = String(currentId || '').trim();
+            if (normalizedCurrentId && myClubIds.includes(normalizedCurrentId)) {
+                return normalizedCurrentId;
+            }
+
+            return fallbackClubId;
+        });
+    }, [clubs, authUser, loggedUser, myClubIds]);
 
     useEffect(() => {
         if (!viewingClubId) {
@@ -651,9 +1043,9 @@ export default function useAppController() {
         }
 
         setClubProjects(
-            allProjects.filter((project) => String(project.clube_id || '') === String(viewingClubId))
+            projectsCatalog.filter((project) => String(project.clube_id || '') === String(viewingClubId))
         );
-    }, [allProjects, viewingClubId]);
+    }, [projectsCatalog, viewingClubId]);
 
     useEffect(() => {
         if (!myClubId) {
@@ -662,9 +1054,9 @@ export default function useAppController() {
         }
 
         setMyClubProjects(
-            allProjects.filter((project) => String(project.clube_id || '') === String(myClubId))
+            projectsCatalog.filter((project) => String(project.clube_id || '') === String(myClubId))
         );
-    }, [allProjects, myClubId]);
+    }, [projectsCatalog, myClubId]);
 
     const handleLogin = async (event) => {
         event.preventDefault();
@@ -717,18 +1109,20 @@ export default function useAppController() {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, registerForm.email.trim(), registerForm.senha);
 
-            const matchingClub = clubs.find((club) => String(club.escola_id) === String(escolaUnit.escola_id));
+            const resolvedEscolasIds = normalizeIdList([escolaUnit.escola_id]);
             const profileData = {
                 uid: userCredential.user.uid,
                 nome: registerForm.nome.trim(),
                 email: registerForm.email.trim(),
                 perfil: registerForm.perfil,
                 rede_administrativa: registerForm.rede_administrativa === 'municipal' ? 'municipal' : 'estadual',
+                escolas_ids: resolvedEscolasIds,
+                clubes_ids: [],
                 escola_id: escolaUnit.escola_id,
                 escola_nome: escolaUnit.nome,
                 escola_municipio: String(escolaUnit.municipio || '').trim(),
                 escola_uf: String(escolaUnit.uf || 'BA').trim() || 'BA',
-                clube_id: matchingClub?.id || '',
+                clube_id: '',
                 createdAt: serverTimestamp()
             };
 
@@ -754,7 +1148,7 @@ export default function useAppController() {
             const snap = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
             isRegisteringRef.current = false;
             setAuthUser(userCredential.user);
-            setLoggedUser({ id: snap.id, ...snap.data() });
+            setLoggedUser(normalizeUserEntity(snap.data(), snap.id));
         } catch (error) {
             isRegisteringRef.current = false;
             console.error('Erro no cadastro (Auth/Firestore):', error);
@@ -792,6 +1186,8 @@ export default function useAppController() {
                     email: userEmail,
                     perfil: 'estudante',
                     rede_administrativa: '',
+                    escolas_ids: [],
+                    clubes_ids: [],
                     escola_id: '',
                     escola_nome: '',
                     escola_municipio: '',
@@ -806,7 +1202,7 @@ export default function useAppController() {
 
             const refreshedUserSnap = await getDoc(userRef);
             setAuthUser(user);
-            setLoggedUser({ id: refreshedUserSnap.id, ...refreshedUserSnap.data() });
+            setLoggedUser(normalizeUserEntity(refreshedUserSnap.data(), refreshedUserSnap.id));
         } catch (error) {
             console.error(`Erro no login social (${providerName}):`, error);
             setAuthError(getAuthErrorMessage(error.code, error.message || String(error)));
@@ -870,14 +1266,68 @@ export default function useAppController() {
                 createdAt: serverTimestamp()
             };
 
-            const normalizedCoorientadores = [...new Set((coorientador_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-            const normalizedInvestigadores = [...new Set((investigadores_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            const clubSchoolId = String(viewingClub?.escola_id || '').trim();
+            const clubSchoolName = normalizeSchoolName(viewingClub?.escola_nome);
+            const isSameSchoolUser = (person) => {
+                if (!clubSchoolId && !clubSchoolName) return true;
+
+                const personSchoolIds = getUserSchoolIds(person);
+                const hasSchoolId = clubSchoolId ? personSchoolIds.includes(clubSchoolId) : false;
+                const hasSchoolName = clubSchoolName
+                    ? normalizeSchoolName(person?.escola_nome) === clubSchoolName
+                    : false;
+
+                return hasSchoolId || hasSchoolName;
+            };
+
+            const schoolMentorIds = users
+                .filter((person) => person && isMentoriaPerfil(person?.perfil) && isSameSchoolUser(person))
+                .map((person) => String(person?.id || '').trim())
+                .filter(Boolean);
+
+            const schoolInvestigadorIds = users
+                .filter((person) => person && ['estudante', 'investigador', 'aluno'].includes(normalizePerfil(person?.perfil)) && isSameSchoolUser(person))
+                .map((person) => String(person?.id || '').trim())
+                .filter(Boolean);
+
+            const allowedMentorIds = new Set([
+                creatorId,
+                ...[...viewingClubOrientadores, ...viewingClubCoorientadores]
+                    .map((person) => String(person?.id || '').trim())
+                    .filter(Boolean),
+                ...schoolMentorIds
+            ]);
+            const allowedInvestigadorIds = new Set([
+                ...viewingClubInvestigadores
+                    .map((person) => String(person?.id || '').trim())
+                    .filter(Boolean),
+                ...schoolInvestigadorIds
+            ]);
+
+            const requestedCoorientadores = [...new Set((coorientador_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            const requestedInvestigadores = [...new Set((investigadores_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+
+            const invalidCoorientadores = requestedCoorientadores.filter((id) => !allowedMentorIds.has(id));
+            const invalidInvestigadores = requestedInvestigadores.filter((id) => !allowedInvestigadorIds.has(id));
+
+            if (invalidCoorientadores.length > 0) {
+                throw new Error('Um ou mais co-mentores selecionados não pertencem ao clube. Atualize a tela e tente novamente.');
+            }
+
+            if (invalidInvestigadores.length > 0) {
+                throw new Error('Um ou mais clubistas selecionados não pertencem ao clube. Atualize a tela e tente novamente.');
+            }
+
+            const normalizedCoorientadores = requestedCoorientadores.filter((id) => id !== creatorId);
+            const normalizedInvestigadores = requestedInvestigadores.filter((id) => id !== creatorId);
             const normalizedOrientadores = [...new Set([creatorId])];
 
             newProjectData.orientador_ids = normalizedOrientadores;
+            newProjectData.orientadores_ids = normalizedOrientadores;
 
             if (normalizedCoorientadores.length > 0) {
                 newProjectData.coorientador_ids = normalizedCoorientadores;
+                newProjectData.coorientadores_ids = normalizedCoorientadores;
             }
 
             if (normalizedInvestigadores.length > 0) {
@@ -899,11 +1349,62 @@ export default function useAppController() {
 
             const projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
 
+            const successfulInvestigadorLinks = [];
+            if (normalizedInvestigadores.length > 0) {
+                const investigatorLinkResults = await Promise.allSettled(
+                    normalizedInvestigadores.map(async (investigatorId) => {
+                        const existingInvestigator = users.find((person) => String(person?.id || '').trim() === investigatorId) || null;
+                        const existingClubesIds = getUserClubIds(existingInvestigator || {});
+                        const currentPrimaryClubId = String(existingInvestigator?.clube_id || '').trim();
+                        const updatedClubesIds = normalizeIdList([viewingClub.id, currentPrimaryClubId, ...existingClubesIds]);
+                        const nextPrimaryClubId = updatedClubesIds.includes(currentPrimaryClubId)
+                            ? currentPrimaryClubId
+                            : viewingClub.id;
+
+                        const investigatorUpdates = {
+                            clube_id: nextPrimaryClubId,
+                            clubes_ids: updatedClubesIds
+                        };
+
+                        await updateDoc(doc(db, 'usuarios', investigatorId), investigatorUpdates);
+                        return { investigatorId, updates: investigatorUpdates };
+                    })
+                );
+
+                investigatorLinkResults.forEach((result) => {
+                    if (result.status === 'fulfilled') {
+                        successfulInvestigadorLinks.push(result.value);
+                        return;
+                    }
+
+                    console.warn('Não foi possível vincular clubista ao clube durante criação do projeto:', result.reason);
+                });
+            }
+
             await cachedDataService.invalidateCollection('projetos');
+
+            if (successfulInvestigadorLinks.length > 0) {
+                const investigatorUpdatesById = new Map(
+                    successfulInvestigadorLinks.map((item) => [String(item.investigatorId || '').trim(), item.updates])
+                );
+
+                setUsers((previousUsers) => previousUsers.map((person) => {
+                    const personId = String(person?.id || '').trim();
+                    const updates = investigatorUpdatesById.get(personId);
+                    if (!updates) return person;
+                    return normalizeUserEntity({ ...person, ...updates }, personId);
+                }));
+            }
 
             setSelectedProjectId(projectRef.id);
             setCurrentView('clube');
-            setErrorMessage('Projeto cadastrado com sucesso.');
+
+            const missingInvestigatorLinksCount = normalizedInvestigadores.length - successfulInvestigadorLinks.length;
+            if (missingInvestigatorLinksCount > 0) {
+                setErrorMessage(`Projeto cadastrado, mas ${missingInvestigatorLinksCount} clubista(s) não foram vinculados ao clube automaticamente.`);
+            } else {
+                setErrorMessage('Projeto cadastrado com sucesso.');
+            }
 
             // Forçar atualização local imediata se necessário
             setClubProjects((prev) => [{ id: projectRef.id, ...newProjectData }, ...prev]);
@@ -912,10 +1413,926 @@ export default function useAppController() {
             return projectRef.id;
         } catch (error) {
             console.error('Erro ao criar projeto:', error);
-            setErrorMessage('Falha ao criar projeto. Tente novamente.');
-            throw error;
+            const fallbackMessage = 'Falha ao criar projeto. Tente novamente.';
+            const resolvedMessage = String(error?.message || '').trim() || fallbackMessage;
+            setErrorMessage(resolvedMessage);
+            throw new Error(resolvedMessage);
         } finally {
             setIsFetchingProjects(false);
+        }
+    };
+
+    const handleCreateClub = async ({
+        nome,
+        descricao = '',
+        escola_id,
+        escola_nome = '',
+        periodicidade = 'Quinzenal',
+        clubistas_ids = [],
+        documentos = {}
+    }) => {
+        const isLocalhost = isLocalhostEnvironment();
+        const mentorId = String(loggedUser?.id || authUser?.uid || '').trim();
+        if (!mentorId) {
+            throw new Error('Usuario nao autenticado.');
+        }
+
+        if (!isMentoriaPerfil(loggedUser?.perfil)) {
+            throw new Error('Apenas mentor ou co-mentor pode criar clube.');
+        }
+
+        const clubName = String(nome || '').trim();
+        const schoolId = String(escola_id || '').trim();
+        const schoolName = String(
+            escola_nome
+            || schools.find((item) => String(item.escola_id || item.id || '').trim() === schoolId)?.nome
+            || ''
+        ).trim();
+        const normalizedSchoolName = normalizeSchoolName(schoolName);
+        const periodicidadeNormalizada = String(periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+
+        if (!clubName) {
+            throw new Error('Informe o nome do clube.');
+        }
+
+        if (!schoolId) {
+            throw new Error('Selecione a unidade escolar.');
+        }
+
+        const mentorSchoolIds = getUserSchoolIds(loggedUser);
+        if (mentorSchoolIds.length > 0 && !mentorSchoolIds.includes(schoolId)) {
+            throw new Error('Voce so pode criar clube em unidade vinculada ao seu perfil.');
+        }
+
+        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => id !== mentorId);
+        if (!isLocalhost && selectedClubistasIds.length < 10) {
+            throw new Error('O clube precisa de no minimo 10 clubistas.');
+        }
+
+        const allowedProfiles = new Set(['estudante', 'investigador', 'aluno']);
+        const clubistasById = new Map(
+            users
+                .map((person) => ({
+                    ...(person || {}),
+                    id: String(person?.id || '').trim()
+                }))
+                .filter((person) => person.id && allowedProfiles.has(normalizePerfil(person?.perfil)))
+                .map((person) => [person.id, person])
+        );
+
+        const unresolvedClubistasIds = selectedClubistasIds.filter((id) => !clubistasById.has(id));
+
+        if (unresolvedClubistasIds.length > 0) {
+            const resolvedClubistas = await Promise.all(
+                unresolvedClubistasIds.map(async (id) => {
+                    try {
+                        const clubistaRef = doc(db, 'usuarios', id);
+                        const clubistaSnap = await getDoc(clubistaRef);
+
+                        if (!clubistaSnap.exists()) {
+                            return null;
+                        }
+
+                        return { id: clubistaSnap.id, ...clubistaSnap.data() };
+                    } catch (clubistaError) {
+                        console.warn('Falha ao validar clubista selecionado:', id, clubistaError);
+                        return null;
+                    }
+                })
+            );
+
+            resolvedClubistas
+                .filter((person) => person && allowedProfiles.has(normalizePerfil(person?.perfil)))
+                .forEach((person) => {
+                    const resolvedId = String(person.id || '').trim();
+                    if (!resolvedId) return;
+                    clubistasById.set(resolvedId, person);
+                });
+        }
+
+        const invalidClubistas = selectedClubistasIds.filter((id) => {
+            const selectedUser = clubistasById.get(id);
+            if (!selectedUser) return true;
+            const selectedUserSchoolIds = getUserSchoolIds(selectedUser);
+            const hasSchoolIdMatch = selectedUserSchoolIds.includes(schoolId);
+            const hasSchoolNameMatch = normalizedSchoolName
+                && normalizeSchoolName(selectedUser?.escola_nome) === normalizedSchoolName;
+
+            return !hasSchoolIdMatch && !hasSchoolNameMatch;
+        });
+
+        if (!isLocalhost && invalidClubistas.length > 0) {
+            throw new Error('Todos os clubistas devem ser estudantes da unidade escolar selecionada.');
+        }
+
+        if (!isLocalhost) {
+            const missingDocuments = CLUB_REQUIRED_DOCUMENTS.filter((item) => !(documentos?.[item.key] instanceof File));
+            if (missingDocuments.length > 0) {
+                throw new Error(`Documentos obrigatorios pendentes: ${missingDocuments.map((item) => item.label).join(', ')}.`);
+            }
+        }
+
+        try {
+            setCreatingClub(true);
+            setErrorMessage('');
+
+            const clubRef = doc(collection(db, 'clubes'));
+            const nowIso = new Date().toISOString();
+            const uploadedDocuments = {};
+            const persistedClubistasIds = [...selectedClubistasIds];
+
+            if (isLocalhost && persistedClubistasIds.length < 10) {
+                let paddingIndex = 1;
+                const existingIds = new Set(persistedClubistasIds);
+
+                while (persistedClubistasIds.length < 10) {
+                    const mockId = `local-dev-${clubRef.id}-clubista-${paddingIndex}`;
+                    paddingIndex += 1;
+
+                    if (mockId === mentorId || existingIds.has(mockId)) {
+                        continue;
+                    }
+
+                    existingIds.add(mockId);
+                    persistedClubistasIds.push(mockId);
+                }
+            }
+
+            for (const requiredDocument of CLUB_REQUIRED_DOCUMENTS) {
+                const file = documentos?.[requiredDocument.key];
+
+                if (isLocalhost) {
+                    uploadedDocuments[requiredDocument.key] = {
+                        key: requiredDocument.key,
+                        label: requiredDocument.label,
+                        nome_arquivo: sanitizeStorageFileName(file?.name || `${requiredDocument.key}.local`),
+                        caminho_storage: '',
+                        url: '',
+                        content_type: String(file?.type || 'application/octet-stream'),
+                        tamanho_bytes: Number(file?.size || 0),
+                        uploaded_at: nowIso,
+                        local_dev_mock: true
+                    };
+                    continue;
+                }
+
+                const safeFileName = sanitizeStorageFileName(file?.name);
+                const filePath = `clubes/${clubRef.id}/documentos/${requiredDocument.key}/${Date.now()}_${safeFileName}`;
+                const fileRef = storageRef(storage, filePath);
+                const uploaded = await uploadBytes(fileRef, file, {
+                    contentType: file?.type || 'application/octet-stream'
+                });
+                const fileUrl = await getDownloadURL(uploaded.ref);
+
+                uploadedDocuments[requiredDocument.key] = {
+                    key: requiredDocument.key,
+                    label: requiredDocument.label,
+                    nome_arquivo: safeFileName,
+                    caminho_storage: filePath,
+                    url: fileUrl,
+                    content_type: String(file?.type || ''),
+                    tamanho_bytes: Number(file?.size || 0),
+                    uploaded_at: nowIso
+                };
+            }
+
+            const mentorClubIds = normalizeIdList([clubRef.id, ...(loggedUser?.clubes_ids || []), loggedUser?.clube_id]);
+            const mentorSchoolIdsUpdated = normalizeIdList([schoolId, ...(loggedUser?.escolas_ids || []), loggedUser?.escola_id]);
+            const mentorName = String(loggedUser?.nome || '').trim();
+            const mentorEmail = String(loggedUser?.email || '').trim();
+
+            const clubData = {
+                id: clubRef.id,
+                nome: clubName,
+                descricao: String(descricao || '').trim(),
+                escola_id: schoolId,
+                escola_nome: schoolName,
+                periodicidade: periodicidadeNormalizada,
+                mentor_id: mentorId,
+                mentor_nome: mentorName,
+                mentor_email: mentorEmail,
+                orientador_ids: [mentorId],
+                coorientador_ids: [],
+                clubistas_ids: persistedClubistasIds,
+                membros_ids: normalizeIdList([mentorId, ...persistedClubistasIds]),
+                documentos: uploadedDocuments,
+                status: 'ativo',
+                createdBy: mentorId,
+                createdAt: serverTimestamp()
+            };
+
+            await setDoc(clubRef, clubData);
+
+            const mentorRef = doc(db, 'usuarios', mentorId);
+            await updateDoc(mentorRef, {
+                clube_id: clubRef.id,
+                clubes_ids: mentorClubIds,
+                escola_id: mentorSchoolIdsUpdated[0] || schoolId,
+                escolas_ids: mentorSchoolIdsUpdated
+            });
+
+            const selectedRealClubistasIds = selectedClubistasIds.filter((id) => Boolean(String(id || '').trim()));
+            const successfulClubistaUpdates = [];
+
+            if (selectedRealClubistasIds.length > 0) {
+                const clubistaUpdateResults = await Promise.allSettled(
+                    selectedRealClubistasIds.map(async (clubistaId) => {
+                        const existingClubistaData = clubistasById.get(clubistaId) || null;
+                        const currentPrimaryClubId = String(existingClubistaData?.clube_id || '').trim();
+                        const existingClubesIds = getUserClubIds(existingClubistaData || {});
+                        const updatedClubesIds = normalizeIdList([clubRef.id, currentPrimaryClubId, ...existingClubesIds]);
+                        const nextPrimaryClubId = updatedClubesIds.includes(currentPrimaryClubId)
+                            ? currentPrimaryClubId
+                            : clubRef.id;
+
+                        const clubistaUpdates = {
+                            clube_id: nextPrimaryClubId,
+                            clubes_ids: updatedClubesIds
+                        };
+
+                        await updateDoc(doc(db, 'usuarios', clubistaId), clubistaUpdates);
+                        return { clubistaId, updates: clubistaUpdates };
+                    })
+                );
+
+                clubistaUpdateResults.forEach((result) => {
+                    if (result.status === 'fulfilled') {
+                        successfulClubistaUpdates.push(result.value);
+                        return;
+                    }
+
+                    console.warn('Nao foi possivel vincular clubista ao clube:', result.reason);
+                });
+            }
+
+            await Promise.all([
+                cachedDataService.invalidateCollection('clubes'),
+                cachedDataService.invalidateCollection('usuarios')
+            ]);
+
+            setClubs((previous) => {
+                const withoutCreated = previous.filter((item) => String(item.id || '') !== clubRef.id);
+                return [{ ...clubData, id: clubRef.id, createdAt: nowIso }, ...withoutCreated];
+            });
+
+            const userUpdates = {
+                clube_id: clubRef.id,
+                clubes_ids: mentorClubIds,
+                escola_id: mentorSchoolIdsUpdated[0] || schoolId,
+                escolas_ids: mentorSchoolIdsUpdated
+            };
+
+            setLoggedUser((previous) => {
+                if (!previous) return previous;
+                return normalizeUserEntity({ ...previous, ...userUpdates }, mentorId);
+            });
+
+            setUsers((previousUsers) => previousUsers.map((person) => {
+                if (String(person?.id || '') !== mentorId) {
+                    return person;
+                }
+
+                return normalizeUserEntity({ ...person, ...userUpdates }, mentorId);
+            }));
+
+            if (successfulClubistaUpdates.length > 0) {
+                const clubistaUpdatesById = new Map(
+                    successfulClubistaUpdates.map((item) => [String(item.clubistaId || '').trim(), item.updates])
+                );
+
+                setUsers((previousUsers) => {
+                    const updatedUsers = previousUsers.map((person) => {
+                        const personId = String(person?.id || '').trim();
+                        const updates = clubistaUpdatesById.get(personId);
+                        if (!updates) return person;
+                        return normalizeUserEntity({ ...person, ...updates }, personId);
+                    });
+
+                    clubistaUpdatesById.forEach((updates, clubistaId) => {
+                        if (!updatedUsers.some((person) => String(person?.id || '').trim() === clubistaId)) {
+                            const baseClubista = clubistasById.get(clubistaId) || { id: clubistaId };
+                            updatedUsers.push(normalizeUserEntity({ ...baseClubista, ...updates }, clubistaId));
+                        }
+                    });
+
+                    return updatedUsers;
+                });
+            }
+
+            setSelectedClubId(clubRef.id);
+            setViewingClubId(clubRef.id);
+            setCurrentView('clube');
+
+            const missingClubistaUpdatesCount = selectedRealClubistasIds.length - successfulClubistaUpdates.length;
+            if (missingClubistaUpdatesCount > 0) {
+                setErrorMessage(`Clube criado, mas ${missingClubistaUpdatesCount} clubista(s) nao foram vinculados automaticamente.`);
+            } else {
+                setErrorMessage('Clube criado com sucesso.');
+            }
+
+            return clubRef.id;
+        } catch (error) {
+            console.error('Erro ao criar clube:', error);
+            const fallbackMessage = 'Falha ao criar clube. Verifique os dados e tente novamente.';
+            const resolvedMessage = String(error?.message || '').trim() || fallbackMessage;
+            setErrorMessage(resolvedMessage);
+            throw new Error(resolvedMessage);
+        } finally {
+            setCreatingClub(false);
+        }
+    };
+
+    const handleUpdateClub = async ({
+        clube_id,
+        nome,
+        descricao = '',
+        periodicidade = 'Quinzenal',
+        clubistas_ids = [],
+        banner_file = null,
+        logo_file = null
+    }) => {
+        const isLocalhost = isLocalhostEnvironment();
+        const mentorId = String(loggedUser?.id || authUser?.uid || '').trim();
+        const clubId = String(clube_id || '').trim();
+
+        if (!mentorId) {
+            throw new Error('Usuario nao autenticado.');
+        }
+
+        if (!clubId) {
+            throw new Error('Clube nao informado.');
+        }
+
+        if (!isMentoriaPerfil(loggedUser?.perfil)) {
+            throw new Error('Apenas mentor ou co-mentor pode editar clube.');
+        }
+
+        let currentClub = clubs.find((club) => String(club?.id || '').trim() === clubId) || null;
+        if (!currentClub) {
+            const clubSnap = await getDoc(doc(db, 'clubes', clubId));
+            if (!clubSnap.exists()) {
+                throw new Error('Clube nao encontrado.');
+            }
+            currentClub = { id: clubSnap.id, ...clubSnap.data() };
+        }
+
+        const mentorIds = normalizeIdList([
+            currentClub?.mentor_id,
+            ...(currentClub?.orientador_ids || []),
+            ...(currentClub?.coorientador_ids || [])
+        ]);
+
+        if (!mentorIds.includes(mentorId)) {
+            throw new Error('Voce nao possui permissao para editar este clube.');
+        }
+
+        const clubName = String(nome || '').trim();
+        if (!clubName) {
+            throw new Error('Informe o nome do clube.');
+        }
+
+        const schoolId = String(currentClub?.escola_id || '').trim();
+        const normalizedSchoolName = normalizeSchoolName(currentClub?.escola_nome);
+        const periodicidadeNormalizada = String(periodicidade || currentClub?.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+
+        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => !mentorIds.includes(id));
+        if (!isLocalhost && selectedClubistasIds.length < 10) {
+            throw new Error('O clube precisa de no minimo 10 clubistas.');
+        }
+
+        const allowedProfiles = new Set(['estudante', 'investigador', 'aluno']);
+        const usersById = new Map(
+            users
+                .map((person) => ({
+                    ...(person || {}),
+                    id: String(person?.id || '').trim()
+                }))
+                .filter((person) => person.id)
+                .map((person) => [person.id, person])
+        );
+
+        const selectedClubistasById = new Map(
+            [...usersById.values()]
+                .filter((person) => allowedProfiles.has(normalizePerfil(person?.perfil)))
+                .map((person) => [person.id, person])
+        );
+
+        const unresolvedSelectedIds = selectedClubistasIds.filter((id) => !selectedClubistasById.has(id));
+        if (unresolvedSelectedIds.length > 0) {
+            const resolvedClubistas = await Promise.all(
+                unresolvedSelectedIds.map(async (id) => {
+                    try {
+                        const userSnap = await getDoc(doc(db, 'usuarios', id));
+                        if (!userSnap.exists()) {
+                            return null;
+                        }
+
+                        return { id: userSnap.id, ...userSnap.data() };
+                    } catch (resolveError) {
+                        console.warn('Falha ao carregar clubista para edicao:', id, resolveError);
+                        return null;
+                    }
+                })
+            );
+
+            resolvedClubistas
+                .filter((person) => person && allowedProfiles.has(normalizePerfil(person?.perfil)))
+                .forEach((person) => {
+                    const personId = String(person?.id || '').trim();
+                    if (!personId) return;
+                    selectedClubistasById.set(personId, person);
+                    usersById.set(personId, person);
+                });
+        }
+
+        const invalidClubistas = selectedClubistasIds.filter((id) => {
+            const selectedUser = selectedClubistasById.get(id);
+            if (!selectedUser) return true;
+
+            const selectedUserSchoolIds = getUserSchoolIds(selectedUser);
+            const hasSchoolIdMatch = schoolId && selectedUserSchoolIds.includes(schoolId);
+            const hasSchoolNameMatch = normalizedSchoolName
+                && normalizeSchoolName(selectedUser?.escola_nome) === normalizedSchoolName;
+
+            return !hasSchoolIdMatch && !hasSchoolNameMatch;
+        });
+
+        if (!isLocalhost && invalidClubistas.length > 0) {
+            throw new Error('Todos os clubistas devem ser estudantes da unidade escolar do clube.');
+        }
+
+        const currentClubistasIds = normalizeIdList(currentClub?.clubistas_ids || []);
+        const addedClubistasIds = selectedClubistasIds.filter((id) => !currentClubistasIds.includes(id));
+        const removedClubistasIds = currentClubistasIds.filter((id) => !selectedClubistasIds.includes(id));
+
+        const isFileLike = (value) => typeof File !== 'undefined' && value instanceof File;
+        const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+            if (!isFileLike(file)) {
+                resolve('');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ''));
+            reader.onerror = () => reject(new Error('Nao foi possivel processar a imagem selecionada.'));
+            reader.readAsDataURL(file);
+        });
+
+        try {
+            setUpdatingClub(true);
+            setErrorMessage('');
+
+            const currentClubBanner = String(currentClub?.banner || '').trim();
+            const currentClubLogo = String(currentClub?.logo || '').trim();
+
+            let bannerDataUrl = '';
+            if (banner_file) {
+                bannerDataUrl = await compressImageToBase64(banner_file, {
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    quality: 0.65,
+                    maxSizeKB: 520
+                });
+            } else if (currentClubBanner && !currentClub?.banner_url) {
+                bannerDataUrl = await compressImageToBase64(currentClubBanner, {
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    quality: 0.65,
+                    maxSizeKB: 520
+                });
+            }
+
+            if (bannerDataUrl) {
+                let bannerSizeBytes = getDataUrlByteSize(bannerDataUrl);
+                if (bannerSizeBytes > 650 * 1024) {
+                    bannerDataUrl = await compressImageToBase64(bannerDataUrl, {
+                        maxWidth: 700,
+                        maxHeight: 700,
+                        quality: 0.55,
+                        maxSizeKB: 460
+                    });
+                    bannerSizeBytes = getDataUrlByteSize(bannerDataUrl);
+                }
+
+                if (bannerSizeBytes > 720 * 1024) {
+                    bannerDataUrl = await compressImageToBase64(bannerDataUrl, {
+                        maxWidth: 640,
+                        maxHeight: 640,
+                        quality: 0.5,
+                        maxSizeKB: 420
+                    });
+                    bannerSizeBytes = getDataUrlByteSize(bannerDataUrl);
+                }
+
+                if (bannerSizeBytes > 780 * 1024) {
+                    throw new Error('A imagem do banner continua muito grande após compressão. Use uma imagem menor ou de menor resolução.');
+                }
+            }
+
+            let logoDataUrl = '';
+            if (logo_file) {
+                logoDataUrl = await compressImageToBase64(logo_file, {
+                    maxWidth: 600,
+                    maxHeight: 600,
+                    quality: 0.7,
+                    maxSizeKB: 360
+                });
+            } else if (currentClubLogo && !currentClub?.logo_url) {
+                logoDataUrl = await compressImageToBase64(currentClubLogo, {
+                    maxWidth: 600,
+                    maxHeight: 600,
+                    quality: 0.7,
+                    maxSizeKB: 360
+                });
+            }
+
+            const nowIso = new Date().toISOString();
+            const clubUpdates = {
+                nome: clubName,
+                descricao: String(descricao || '').trim(),
+                periodicidade: periodicidadeNormalizada,
+                clubistas_ids: selectedClubistasIds,
+                membros_ids: normalizeIdList([...mentorIds, ...selectedClubistasIds]),
+                updatedBy: mentorId,
+                updatedAt: serverTimestamp()
+            };
+
+            const localClubUpdates = {
+                ...clubUpdates,
+                updatedAt: nowIso
+            };
+
+            if (currentClub?.banner) {
+                clubUpdates.banner = deleteField();
+            }
+
+            if (bannerDataUrl) {
+                const bannerContentType = bannerDataUrl.startsWith('data:image/jpeg')
+                    ? 'image/jpeg'
+                    : String(banner_file?.type || '');
+                const bannerSizeBytes = getDataUrlByteSize(bannerDataUrl);
+
+                clubUpdates.banner_url = bannerDataUrl;
+                clubUpdates.banner_storage_path = '';
+                clubUpdates.banner_nome_arquivo = String(banner_file?.name || '').trim();
+                clubUpdates.banner_content_type = bannerContentType;
+                clubUpdates.banner_tamanho_bytes = bannerSizeBytes;
+
+                localClubUpdates.banner_url = bannerDataUrl;
+                localClubUpdates.banner = bannerDataUrl;
+                localClubUpdates.banner_storage_path = '';
+                localClubUpdates.banner_nome_arquivo = String(banner_file?.name || '').trim();
+                localClubUpdates.banner_content_type = bannerContentType;
+                localClubUpdates.banner_tamanho_bytes = bannerSizeBytes;
+            }
+
+            if (currentClub?.logo) {
+                clubUpdates.logo = deleteField();
+            }
+
+            if (logoDataUrl) {
+                const logoContentType = logoDataUrl.startsWith('data:image/jpeg')
+                    ? 'image/jpeg'
+                    : String(logo_file?.type || '');
+                const logoSizeBytes = getDataUrlByteSize(logoDataUrl);
+
+                clubUpdates.logo_url = logoDataUrl;
+                clubUpdates.logo = deleteField();
+                clubUpdates.logo_storage_path = '';
+                clubUpdates.logo_nome_arquivo = String(logo_file?.name || '').trim();
+                clubUpdates.logo_content_type = logoContentType;
+                clubUpdates.logo_tamanho_bytes = logoSizeBytes;
+
+                localClubUpdates.logo_url = logoDataUrl;
+                localClubUpdates.logo = logoDataUrl;
+                localClubUpdates.logo_storage_path = '';
+                localClubUpdates.logo_nome_arquivo = String(logo_file?.name || '').trim();
+                localClubUpdates.logo_content_type = logoContentType;
+                localClubUpdates.logo_tamanho_bytes = logoSizeBytes;
+            }
+
+            await updateDoc(doc(db, 'clubes', clubId), clubUpdates);
+
+            const changedClubistaIds = normalizeIdList([...addedClubistasIds, ...removedClubistasIds]);
+            const unresolvedChangedUserIds = changedClubistaIds.filter((id) => !usersById.has(id));
+
+            if (unresolvedChangedUserIds.length > 0) {
+                const resolvedUsers = await Promise.all(
+                    unresolvedChangedUserIds.map(async (id) => {
+                        try {
+                            const userSnap = await getDoc(doc(db, 'usuarios', id));
+                            if (!userSnap.exists()) {
+                                return null;
+                            }
+
+                            return { id: userSnap.id, ...userSnap.data() };
+                        } catch (resolveError) {
+                            console.warn('Falha ao carregar usuario para atualizar clube:', id, resolveError);
+                            return null;
+                        }
+                    })
+                );
+
+                resolvedUsers
+                    .filter(Boolean)
+                    .forEach((person) => {
+                        const personId = String(person?.id || '').trim();
+                        if (!personId) return;
+                        usersById.set(personId, person);
+                    });
+            }
+
+            const addedSet = new Set(addedClubistasIds);
+
+            const membershipUpdateResults = await Promise.allSettled(
+                changedClubistaIds.map(async (clubistaId) => {
+                    const existingData = usersById.get(clubistaId);
+                    if (!existingData) {
+                        return null;
+                    }
+
+                    const currentPrimaryClubId = String(existingData?.clube_id || '').trim();
+                    const currentClubIds = getUserClubIds(existingData);
+                    const nextClubIds = addedSet.has(clubistaId)
+                        ? normalizeIdList([clubId, ...currentClubIds])
+                        : currentClubIds.filter((item) => item !== clubId);
+
+                    const nextPrimaryClubId = nextClubIds.includes(currentPrimaryClubId)
+                        ? currentPrimaryClubId
+                        : (nextClubIds[0] || '');
+
+                    const updates = {
+                        clube_id: nextPrimaryClubId,
+                        clubes_ids: nextClubIds
+                    };
+
+                    await updateDoc(doc(db, 'usuarios', clubistaId), updates);
+                    return {
+                        clubistaId,
+                        updates
+                    };
+                })
+            );
+
+            const successfulMembershipUpdates = [];
+            membershipUpdateResults.forEach((result) => {
+                if (result.status === 'fulfilled' && result.value) {
+                    successfulMembershipUpdates.push(result.value);
+                    return;
+                }
+
+                if (result.status === 'rejected') {
+                    console.warn('Nao foi possivel sincronizar membro do clube:', result.reason);
+                }
+            });
+
+            await Promise.all([
+                cachedDataService.invalidateCollection('clubes'),
+                cachedDataService.invalidateCollection('usuarios')
+            ]);
+
+            setClubs((previousClubs) => previousClubs.map((club) => {
+                if (String(club?.id || '').trim() !== clubId) {
+                    return club;
+                }
+
+                return {
+                    ...club,
+                    ...localClubUpdates
+                };
+            }));
+
+            if (successfulMembershipUpdates.length > 0) {
+                const updatesByUserId = new Map(
+                    successfulMembershipUpdates.map((item) => [String(item.clubistaId || '').trim(), item.updates])
+                );
+
+                setUsers((previousUsers) => {
+                    const patchedUsers = previousUsers.map((person) => {
+                        const personId = String(person?.id || '').trim();
+                        const updates = updatesByUserId.get(personId);
+                        if (!updates) return person;
+                        return normalizeUserEntity({ ...person, ...updates }, personId);
+                    });
+
+                    updatesByUserId.forEach((updates, clubistaId) => {
+                        if (patchedUsers.some((person) => String(person?.id || '').trim() === clubistaId)) {
+                            return;
+                        }
+
+                        const baseUser = usersById.get(clubistaId) || { id: clubistaId };
+                        patchedUsers.push(normalizeUserEntity({ ...baseUser, ...updates }, clubistaId));
+                    });
+
+                    return patchedUsers;
+                });
+            }
+
+            setSelectedClubId(clubId);
+            setViewingClubId(clubId);
+            setCurrentView('clube');
+
+            const membershipFailures = changedClubistaIds.length - successfulMembershipUpdates.length;
+            if (membershipFailures > 0) {
+                setErrorMessage(`Clube atualizado, mas ${membershipFailures} membro(s) nao tiveram o perfil sincronizado.`);
+            } else {
+                setErrorMessage('Clube atualizado com sucesso.');
+            }
+
+            return clubId;
+        } catch (error) {
+            console.error('Erro ao atualizar clube:', error);
+            const fallbackMessage = 'Falha ao atualizar clube. Verifique os dados e tente novamente.';
+            const resolvedMessage = String(error?.message || '').trim() || fallbackMessage;
+            setErrorMessage(resolvedMessage);
+            throw new Error(resolvedMessage);
+        } finally {
+            setUpdatingClub(false);
+        }
+    };
+
+    const handleRequestClubEntry = async (clubId) => {
+        if (!loggedUser || !loggedUserId) {
+            throw new Error('Usuario nao autenticado.');
+        }
+
+        const normalizedClubId = String(clubId || '').trim();
+        if (!normalizedClubId) {
+            throw new Error('Selecione um clube valido.');
+        }
+
+        if (myClubIds.length > 0) {
+            throw new Error('Voce ja possui clube vinculado no perfil.');
+        }
+
+        const targetClub = clubs.find((club) => String(club?.id || '').trim() === normalizedClubId);
+        if (!targetClub) {
+            throw new Error('Clube nao encontrado.');
+        }
+
+        const clubSchoolId = String(targetClub?.escola_id || '').trim();
+        if (!clubSchoolId || !userSchoolIds.includes(clubSchoolId)) {
+            throw new Error('Voce so pode solicitar entrada em clubes da sua unidade escolar.');
+        }
+
+        const latestRequest = latestMyClubJoinRequestByClubId.get(normalizedClubId);
+        const latestStatus = String(latestRequest?.status || '').trim().toLowerCase();
+        if (latestStatus === 'pendente') {
+            throw new Error('Ja existe uma solicitacao pendente para este clube.');
+        }
+
+        setRequestingClubIds((previous) => new Set(previous).add(normalizedClubId));
+
+        try {
+            await addDoc(collection(db, 'clube_solicitacoes'), {
+                clube_id: normalizedClubId,
+                escola_id: clubSchoolId,
+                escola_nome: String(targetClub?.escola_nome || '').trim(),
+                solicitante_id: loggedUserId,
+                solicitante_nome: String(loggedUser?.nome || '').trim() || 'Estudante',
+                solicitante_email: String(loggedUser?.email || '').trim().toLowerCase(),
+                status: 'pendente',
+                createdAt: serverTimestamp()
+            });
+
+            setErrorMessage('Solicitacao enviada ao mentor do clube.');
+        } catch (error) {
+            console.error('Erro ao solicitar entrada no clube:', error);
+            const message = String(error?.message || '').trim() || 'Falha ao enviar solicitacao.';
+            setErrorMessage(message);
+            throw new Error(message);
+        } finally {
+            setRequestingClubIds((previous) => {
+                const next = new Set(previous);
+                next.delete(normalizedClubId);
+                return next;
+            });
+        }
+    };
+
+    const handleRespondClubEntryRequest = async (requestId, accept) => {
+        const normalizedRequestId = String(requestId || '').trim();
+        if (!normalizedRequestId) {
+            throw new Error('Solicitacao invalida.');
+        }
+
+        if (!loggedUser || !loggedUserId || !canManageViewingClub || !viewingClub) {
+            throw new Error('Voce nao tem permissao para moderar solicitacoes deste clube.');
+        }
+
+        setReviewingClubRequestIds((previous) => new Set(previous).add(normalizedRequestId));
+
+        try {
+            const requestRef = doc(db, 'clube_solicitacoes', normalizedRequestId);
+            const requestSnap = await getDoc(requestRef);
+
+            if (!requestSnap.exists()) {
+                throw new Error('Solicitacao nao encontrada.');
+            }
+
+            const requestData = requestSnap.data() || {};
+            const requestClubId = String(requestData?.clube_id || '').trim();
+            const requesterId = String(requestData?.solicitante_id || '').trim();
+            const requestStatus = String(requestData?.status || '').trim().toLowerCase();
+            const viewingClubIdNormalized = String(viewingClub?.id || '').trim();
+
+            if (!requestClubId || requestClubId !== viewingClubIdNormalized) {
+                throw new Error('Esta solicitacao nao pertence ao clube selecionado.');
+            }
+
+            if (!requesterId) {
+                throw new Error('Solicitante invalido.');
+            }
+
+            if (requestStatus !== 'pendente') {
+                throw new Error('Esta solicitacao ja foi processada.');
+            }
+
+            if (!accept) {
+                await updateDoc(requestRef, {
+                    status: 'recusada',
+                    respondido_por: loggedUserId,
+                    respondido_nome: String(loggedUser?.nome || '').trim() || 'Mentor',
+                    respondido_em: serverTimestamp()
+                });
+
+                setErrorMessage('Solicitacao recusada.');
+                return;
+            }
+
+            const [userSnap, clubSnap] = await Promise.all([
+                getDoc(doc(db, 'usuarios', requesterId)),
+                getDoc(doc(db, 'clubes', requestClubId))
+            ]);
+
+            if (!userSnap.exists()) {
+                throw new Error('Usuario solicitante nao encontrado.');
+            }
+
+            if (!clubSnap.exists()) {
+                throw new Error('Clube nao encontrado.');
+            }
+
+            const userData = userSnap.data() || {};
+            const clubData = clubSnap.data() || {};
+            const currentClubIds = normalizeIdList(getUserClubIds(userData));
+            const nextClubIds = normalizeIdList([requestClubId, ...currentClubIds]);
+            const currentPrimaryClubId = String(userData?.clube_id || '').trim();
+            const nextPrimaryClubId = currentPrimaryClubId || requestClubId;
+
+            const batch = writeBatch(db);
+            batch.update(doc(db, 'clubes', requestClubId), {
+                clubistas_ids: normalizeIdList([...(clubData?.clubistas_ids || []), requesterId]),
+                membros_ids: normalizeIdList([...(clubData?.membros_ids || []), requesterId])
+            });
+            batch.update(doc(db, 'usuarios', requesterId), {
+                clube_id: nextPrimaryClubId,
+                clubes_ids: nextClubIds
+            });
+            batch.update(requestRef, {
+                status: 'aceita',
+                respondido_por: loggedUserId,
+                respondido_nome: String(loggedUser?.nome || '').trim() || 'Mentor',
+                respondido_em: serverTimestamp()
+            });
+            await batch.commit();
+
+            await Promise.all([
+                cachedDataService.invalidateCollection('clubes'),
+                cachedDataService.invalidateCollection('usuarios')
+            ]);
+
+            setClubs((previousClubs) => previousClubs.map((club) => {
+                if (String(club?.id || '').trim() !== requestClubId) return club;
+                return {
+                    ...club,
+                    clubistas_ids: normalizeIdList([...(club?.clubistas_ids || []), requesterId]),
+                    membros_ids: normalizeIdList([...(club?.membros_ids || []), requesterId])
+                };
+            }));
+
+            setUsers((previousUsers) => previousUsers.map((person) => {
+                const personId = String(person?.id || '').trim();
+                if (personId !== requesterId) return person;
+                return normalizeUserEntity({
+                    ...person,
+                    clube_id: nextPrimaryClubId,
+                    clubes_ids: nextClubIds
+                }, personId);
+            }));
+
+            setErrorMessage('Solicitacao aceita e clubista vinculado ao clube.');
+        } catch (error) {
+            console.error('Erro ao processar solicitacao de entrada no clube:', error);
+            const message = String(error?.message || '').trim() || 'Falha ao processar solicitacao.';
+            setErrorMessage(message);
+            throw new Error(message);
+        } finally {
+            setReviewingClubRequestIds((previous) => {
+                const next = new Set(previous);
+                next.delete(normalizedRequestId);
+                return next;
+            });
         }
     };
 
@@ -942,7 +2359,7 @@ export default function useAppController() {
 
             await updateDoc(userRef, updates);
             const updatedUser = { ...loggedUser, ...updates };
-            setLoggedUser(updatedUser);
+            setLoggedUser(normalizeUserEntity(updatedUser, loggedUser.id));
             setErrorMessage('Perfil salvo com sucesso.');
         } catch (error) {
             console.error('Erro ao salvar perfil:', error);
@@ -976,6 +2393,7 @@ export default function useAppController() {
         isModalOpen,
         setIsModalOpen,
         myClubId,
+        myClubIds,
         setViewingClubId,
         searchTerm,
         setSearchTerm,
@@ -1015,7 +2433,19 @@ export default function useAppController() {
         viewingClubInvestigadores,
         viewingClubDiaryCount,
         myClub,
+        mentorManagedClubs,
+        schoolClubDiscoveryList,
+        latestMyClubJoinRequestByClubId,
+        requestingClubIds,
+        handleRequestClubEntry,
+        clubJoinRequests,
+        reviewingClubRequestIds,
+        handleRespondClubEntryRequest,
         handleCreateProject,
+        handleCreateClub,
+        handleUpdateClub,
+        creatingClub,
+        updatingClub,
         newEntry,
         setNewEntry,
         handleAddEntry,

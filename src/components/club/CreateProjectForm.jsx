@@ -1,10 +1,11 @@
-import React, { useState, Fragment } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Search, ChevronDown, CheckCircle, UploadCloud } from 'lucide-react';
 
 export default function CreateProjectModal({
   isOpen,
   onClose,
   viewingClub,
+  users = [],
   viewingClubOrientadores = [],
   viewingClubCoorientadores = [],
   viewingClubInvestigadores = [],
@@ -29,6 +30,95 @@ export default function CreateProjectModal({
 
   const [searchCoorientador, setSearchCoorientador] = useState('');
   const [searchInvestigador, setSearchInvestigador] = useState('');
+
+  const getPersonInitials = (name) => {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    return parts.map((part) => part[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const normalizeText = (value) => String(value || '').trim().toLowerCase();
+  const selectedSchoolId = String(viewingClub?.escola_id || '').trim();
+  const selectedSchoolName = normalizeText(viewingClub?.escola_nome);
+
+  const isSameSchoolUser = (person) => {
+    if (!selectedSchoolId && !selectedSchoolName) return true;
+
+    const schoolIds = [
+      ...(Array.isArray(person?.escolas_ids) ? person.escolas_ids : []),
+      person?.escola_id
+    ]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+
+    const hasSchoolId = selectedSchoolId ? schoolIds.includes(selectedSchoolId) : false;
+    const hasSchoolName = selectedSchoolName
+      ? normalizeText(person?.escola_nome) === selectedSchoolName
+      : false;
+
+    return hasSchoolId || hasSchoolName;
+  };
+
+  const mentorCandidates = useMemo(() => {
+    const byId = new Map();
+
+    const schoolMentors = (users || []).filter((person) => {
+      const perfil = normalizeText(person?.perfil);
+      return ['orientador', 'coorientador'].includes(perfil) && isSameSchoolUser(person);
+    });
+
+    [...viewingClubCoorientadores, ...viewingClubOrientadores, ...schoolMentors].forEach((person) => {
+      const personId = String(person?.id || person?.uid || '').trim();
+      if (!personId) return;
+      byId.set(personId, { ...person, id: personId });
+    });
+
+    return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+  }, [viewingClubCoorientadores, viewingClubOrientadores, users, selectedSchoolId, selectedSchoolName]);
+
+  const filteredMentorCandidates = useMemo(() => {
+    const term = String(searchCoorientador || '').trim().toLowerCase();
+    return mentorCandidates.filter((person) => {
+      if (!term) return true;
+
+      const searchBase = [person?.nome, person?.email, person?.matricula]
+        .map((value) => String(value || '').toLowerCase())
+        .join(' ');
+
+      return searchBase.includes(term);
+    });
+  }, [mentorCandidates, searchCoorientador]);
+
+  const investigadorCandidates = useMemo(() => {
+    const byId = new Map();
+
+    const schoolStudents = (users || []).filter((person) => {
+      const perfil = normalizeText(person?.perfil);
+      return ['estudante', 'investigador', 'aluno'].includes(perfil) && isSameSchoolUser(person);
+    });
+
+    [...(viewingClubInvestigadores || []), ...schoolStudents].forEach((person) => {
+      const personId = String(person?.id || person?.uid || '').trim();
+      if (!personId) return;
+      byId.set(personId, { ...person, id: personId });
+    });
+
+    return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+  }, [viewingClubInvestigadores, users, selectedSchoolId, selectedSchoolName]);
+
+  const filteredInvestigadorCandidates = useMemo(() => {
+    const term = String(searchInvestigador || '').trim().toLowerCase();
+    return (investigadorCandidates || []).filter((person) => {
+      if (!person) return false;
+
+      if (!term) return true;
+      const searchBase = [person?.nome, person?.email, person?.matricula]
+        .map((value) => String(value || '').toLowerCase())
+        .join(' ');
+
+      return searchBase.includes(term);
+    });
+  }, [investigadorCandidates, searchInvestigador]);
 
   const compressImageFiles = async (files) => {
     const toDataUrl = (file) => new Promise((resolve, reject) => {
@@ -306,51 +396,29 @@ export default function CreateProjectModal({
                   <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
                 <div className="space-y-1 max-h-48 overflow-auto pr-1">
-                  <h4 className="text-xs font-semibold text-slate-600 mb-1">PROFESSORES COORIENTADORES</h4>
-                  
-                  <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                     <input
-                        type="checkbox"
-                        checked={projectForm.coorientador_ids.includes("ana_souza_id")}
-                        onChange={() => toggleMemberSelection('coorientador_ids', 'ana_souza_id')}
-                        className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                     />
-                     <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-700 font-bold text-xs">AS</div>
-                     <span className="text-sm text-slate-800 font-medium">Ana Souza</span>
-                  </label>
-                   <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                     <input
-                        type="checkbox"
-                        checked={projectForm.coorientador_ids.includes("carlos_lima_id")}
-                        onChange={() => toggleMemberSelection('coorientador_ids', 'carlos_lima_id')}
-                        className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                     />
-                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">CL</div>
-                     <span className="text-sm text-slate-800 font-medium">Carlos Lima</span>
-                  </label>
+                  <h4 className="text-xs font-semibold text-slate-600 mb-1">PROFESSORES CO-MENTORES</h4>
 
-                  {[...new Map(
-                    [...viewingClubCoorientadores, ...viewingClubOrientadores]
-                      .map((person) => [String(person.id), person])
-                  ).values()].map((person) => {
-                    if (['ana_souza_id', 'carlos_lima_id'].includes(String(person.id))) return null;
+                  {filteredMentorCandidates.length === 0 ? (
+                    <p className="text-xs text-slate-500 px-2 py-3">Nenhum co-mentor elegível encontrado para este clube.</p>
+                  ) : (
+                    filteredMentorCandidates.map((person) => {
+                      const checked = projectForm.coorientador_ids.includes(String(person.id));
+                      const initials = getPersonInitials(person?.nome);
 
-                    const checked = projectForm.coorientador_ids.includes(String(person.id));
-                    const initials = person.nome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-                    return (
-                      <label key={person.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleMemberSelection('coorientador_ids', person.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                        />
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
-                        <span className="text-sm text-slate-800 font-medium">{person.nome}</span>
-                      </label>
-                    );
-                  })}
+                      return (
+                        <label key={person.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMemberSelection('coorientador_ids', person.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
+                          />
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
+                          <span className="text-sm text-slate-800 font-medium">{person.nome || 'Mentor sem nome'}</span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
@@ -366,48 +434,30 @@ export default function CreateProjectModal({
                   <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
                  <div className="space-y-1 max-h-48 overflow-auto pr-1">
-                  <h4 className="text-xs font-semibold text-slate-600 mb-1">ALUNOS INVESTIGADORES</h4>
-                  
-                   <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                     <input
-                        type="checkbox"
-                        checked={projectForm.investigadores_ids.includes("bruno_silva_id")}
-                        onChange={() => toggleMemberSelection('investigadores_ids', 'bruno_silva_id')}
-                        className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                     />
-                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs">BS</div>
-                     <span className="text-sm text-slate-800 font-medium">Bruno Silva</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                     <input
-                        type="checkbox"
-                        checked={projectForm.investigadores_ids.includes("marina_dias_id")}
-                        onChange={() => toggleMemberSelection('investigadores_ids', 'marina_dias_id')}
-                        className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                     />
-                     <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-xs">MD</div>
-                     <span className="text-sm text-slate-800 font-medium">Marina Dias</span>
-                  </label>
+                  <h4 className="text-xs font-semibold text-slate-600 mb-1">ALUNOS CLUBISTAS</h4>
 
-                  {viewingClubInvestigadores.map((person) => {
-                     if (['bruno_silva_id', 'marina_dias_id'].includes(String(person.id))) return null;
+                  {filteredInvestigadorCandidates.length === 0 ? (
+                    <p className="text-xs text-slate-500 px-2 py-3">Nenhum clubista elegível encontrado para este clube.</p>
+                  ) : (
+                    filteredInvestigadorCandidates.map((person) => {
+                      const personId = String(person?.id || '').trim();
+                      const checked = projectForm.investigadores_ids.includes(personId);
+                      const initials = getPersonInitials(person?.nome);
 
-                    const checked = projectForm.investigadores_ids.includes(String(person.id));
-                    const initials = person.nome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-                    return (
-                      <label key={person.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleMemberSelection('investigadores_ids', person.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
-                        />
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
-                        <span className="text-sm text-slate-800 font-medium">{person.nome}</span>
-                      </label>
-                    );
-                  })}
+                      return (
+                        <label key={personId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMemberSelection('investigadores_ids', personId)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
+                          />
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
+                          <span className="text-sm text-slate-800 font-medium">{person?.nome || 'Clubista sem nome'}</span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 

@@ -1,5 +1,5 @@
-/**
- * Cached Data Service - Wrapper smart sobre Firestore com cache distribuído
+﻿/**
+ * Cached Data Service - Wrapper smart sobre Firestore com cache distribuido
  * Reduz leituras massivas usando IndexedDB como primeira camada
  */
 
@@ -9,22 +9,20 @@ import {
   getDoc,
   doc,
   query,
-  where,
-  orderBy,
-  limit,
   onSnapshot,
-  getCountFromServer
+  getCountFromServer,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import indexedDBService from './indexedDBService';
 
 const DEFAULT_TTL_MINUTES = 30; // Cache expira em 30 minutos
 const COLLECTIONS_TTL = {
-  clubes_ciencia: 60, // 1 hora
+  clubes: 60, // 1 hora
+  clubes_ciencia: 60, // legado
   usuarios: 45,
   unidades_escolares: 120, // 2 horas
-  diario_bordo: 15, // 15 minutos (dados mais dinâmicos)
-  projetos: 30
+  diario_bordo: 15, // 15 minutos (dados mais dinamicos)
+  projetos: 30,
 };
 
 class CachedDataService {
@@ -38,11 +36,18 @@ class CachedDataService {
     this.initialized = true;
   }
 
+  normalizeCollectionName(collectionName) {
+    const normalized = String(collectionName || '').trim();
+    if (!normalized) return normalized;
+    return normalized;
+  }
+
   /**
-   * Obtém TTL apropriado para uma coleção
+   * Obtem TTL apropriado para uma colecao
    */
   getTTL(collectionName) {
-    return COLLECTIONS_TTL[collectionName] || DEFAULT_TTL_MINUTES;
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+    return COLLECTIONS_TTL[normalizedCollectionName] || DEFAULT_TTL_MINUTES;
   }
 
   /**
@@ -52,9 +57,11 @@ class CachedDataService {
   async getDocument(collectionName, docId, useCache = true) {
     if (!this.initialized) await this.init();
 
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+
     // 1. Tenta cache se habilitado
     if (useCache) {
-      const cached = await indexedDBService.get(collectionName, docId);
+      const cached = await indexedDBService.get(normalizedCollectionName, docId);
       if (cached !== null) {
         return cached;
       }
@@ -62,43 +69,45 @@ class CachedDataService {
 
     // 2. Busca no Firestore
     try {
-      const snap = await getDoc(doc(db, collectionName, docId));
+      const snap = await getDoc(doc(db, normalizedCollectionName, docId));
       if (snap.exists()) {
         const data = { id: snap.id, ...snap.data() };
         // 3. Cacheia resultado
-        const ttl = this.getTTL(collectionName);
-        await indexedDBService.set(collectionName, docId, data, ttl);
+        const ttl = this.getTTL(normalizedCollectionName);
+        await indexedDBService.set(normalizedCollectionName, docId, data, ttl);
         return data;
       }
       return null;
     } catch (error) {
-      console.error(`Erro ao buscar ${collectionName}/${docId}:`, error);
+      console.error(`Erro ao buscar ${normalizedCollectionName}/${docId}:`, error);
       throw error;
     }
   }
 
   /**
-   * Recupera lista de documentos com cache por coleção
-   * Cacheia toda a coleção ou lista filtrada
+   * Recupera lista de documentos com cache por colecao
+   * Cacheia toda a colecao ou lista filtrada
    */
   async getCollectionList(collectionName, constraints = [], useCache = true) {
     if (!this.initialized) await this.init();
 
-    // Gera key de cache (lista é identificada junto com constraints)
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+
+    // Gera key de cache (lista e identificada junto com constraints)
     const cacheKey = constraints.length > 0 ? `list:${JSON.stringify(constraints)}` : 'list';
 
     // 1. Tenta cache
     if (useCache) {
-      const cached = await indexedDBService.get(collectionName, cacheKey);
+      const cached = await indexedDBService.get(normalizedCollectionName, cacheKey);
       if (cached !== null) {
         return cached;
       }
     }
 
     // 2. Busca no Firestore
-    console.log(`[Cache MISS] ${collectionName}/${cacheKey} - buscando no Firestore...`);
+    console.log(`[Cache MISS] ${normalizedCollectionName}/${cacheKey} - buscando no Firestore...`);
     try {
-      const collectionRef = collection(db, collectionName);
+      const collectionRef = collection(db, normalizedCollectionName);
       const q = constraints.length > 0
         ? query(collectionRef, ...constraints)
         : collectionRef;
@@ -107,42 +116,43 @@ class CachedDataService {
       const data = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 
       // 3. Cacheia resultado
-      const ttl = this.getTTL(collectionName);
-      await indexedDBService.set(collectionName, cacheKey, data, ttl);
+      const ttl = this.getTTL(normalizedCollectionName);
+      await indexedDBService.set(normalizedCollectionName, cacheKey, data, ttl);
 
       return data;
     } catch (error) {
-      console.error(`Erro ao buscar coleção ${collectionName}:`, error);
+      console.error(`Erro ao buscar colecao ${normalizedCollectionName}:`, error);
       throw error;
     }
   }
 
   /**
-   * Recupera subcoleção de um documento
-   * Útil para diários por projeto, etc.
+   * Recupera subcolecao de um documento
+   * Util para diarios por projeto, etc.
    */
   async getSubcollection(parentCollection, parentId, subCollection, constraints = [], useCache = true) {
     if (!this.initialized) await this.init();
 
+    const normalizedParentCollection = this.normalizeCollectionName(parentCollection);
     const cacheKey = `${parentId}:${subCollection}:${JSON.stringify(constraints)}`;
 
     // 1. Tenta cache
     if (useCache) {
-      const cached = await indexedDBService.get(parentCollection, cacheKey);
+      const cached = await indexedDBService.get(normalizedParentCollection, cacheKey);
       if (cached !== null) {
-        console.log(`[Cache HIT] ${parentCollection}/${cacheKey}`);
+        console.log(`[Cache HIT] ${normalizedParentCollection}/${cacheKey}`);
         return cached;
       }
     }
 
     // 2. Busca no Firestore
-    console.log(`[Cache MISS] ${parentCollection}/${cacheKey} - buscando no Firestore...`);
+    console.log(`[Cache MISS] ${normalizedParentCollection}/${cacheKey} - buscando no Firestore...`);
     try {
       const subcollectionRef = collection(
         db,
-        parentCollection,
+        normalizedParentCollection,
         parentId,
-        subCollection
+        subCollection,
       );
 
       const q = constraints.length > 0
@@ -153,12 +163,12 @@ class CachedDataService {
       const data = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 
       // 3. Cacheia resultado
-      const ttl = this.getTTL(parentCollection);
-      await indexedDBService.set(parentCollection, cacheKey, data, ttl);
+      const ttl = this.getTTL(normalizedParentCollection);
+      await indexedDBService.set(normalizedParentCollection, cacheKey, data, ttl);
 
       return data;
     } catch (error) {
-      console.error(`Erro ao buscar subcoleção ${parentCollection}/${parentId}/${subCollection}:`, error);
+      console.error(`Erro ao buscar subcolecao ${normalizedParentCollection}/${parentId}/${subCollection}:`, error);
       throw error;
     }
   }
@@ -172,10 +182,12 @@ class CachedDataService {
       this.init().catch((err) => console.error('Erro ao inicializar cache:', err));
     }
 
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+
     let unsubscribe;
 
     try {
-      const collectionRef = collection(db, collectionName);
+      const collectionRef = collection(db, normalizedCollectionName);
       const q = constraints.length > 0
         ? query(collectionRef, ...constraints)
         : collectionRef;
@@ -186,93 +198,96 @@ class CachedDataService {
           const data = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 
           // Cacheia dados em tempo real
-          const ttl = this.getTTL(collectionName);
+          const ttl = this.getTTL(normalizedCollectionName);
           const cacheKey = constraints.length > 0 ? `list:${JSON.stringify(constraints)}` : 'list';
-          await indexedDBService.set(collectionName, cacheKey, data, ttl).catch((err) =>
-            console.warn('Erro ao cachear snapshot:', err)
+          await indexedDBService.set(normalizedCollectionName, cacheKey, data, ttl).catch((err) =>
+            console.warn('Erro ao cachear snapshot:', err),
           );
 
           callback(data);
         },
         async (error) => {
-          console.error(`Erro no listener ${collectionName}:`, error);
+          console.error(`Erro no listener ${normalizedCollectionName}:`, error);
 
           // Fallback: tenta servir dados do cache
           if (useCache) {
-            console.warn(`Fallback para cache - ${collectionName}`);
+            console.warn(`Fallback para cache - ${normalizedCollectionName}`);
             const cacheKey = constraints.length > 0
               ? `list:${JSON.stringify(constraints)}`
               : 'list';
-            const cached = await indexedDBService.get(collectionName, cacheKey)
+            const cached = await indexedDBService.get(normalizedCollectionName, cacheKey)
               .catch(() => null);
 
             if (cached) {
               callback(cached);
             }
           }
-        }
+        },
       );
     } catch (error) {
-      console.error(`Erro ao criar listener ${collectionName}:`, error);
+      console.error(`Erro ao criar listener ${normalizedCollectionName}:`, error);
     }
 
-    // Retorna função para desinscrever
+    // Retorna funcao para desinscrever
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }
 
   /**
-   * Conta documentos em uma coleção com cache
+   * Conta documentos em uma colecao com cache
    */
   async getCountFromCollection(collectionName, useCache = true) {
     if (!this.initialized) await this.init();
 
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
     const cacheKey = 'count';
 
     // 1. Tenta cache
     if (useCache) {
-      const cached = await indexedDBService.get(collectionName, cacheKey);
+      const cached = await indexedDBService.get(normalizedCollectionName, cacheKey);
       if (cached !== null) {
-        console.log(`[Cache HIT] ${collectionName}/count`);
+        console.log(`[Cache HIT] ${normalizedCollectionName}/count`);
         return cached;
       }
     }
 
     // 2. Busca no Firestore
-    console.log(`[Cache MISS] ${collectionName}/count - buscando no Firestore...`);
+    console.log(`[Cache MISS] ${normalizedCollectionName}/count - buscando no Firestore...`);
     try {
-      const countSnapshot = await getCountFromServer(collection(db, collectionName));
+      const countSnapshot = await getCountFromServer(collection(db, normalizedCollectionName));
       const count = countSnapshot.data().count;
 
       // 3. Cacheia resultado
-      await indexedDBService.set(collectionName, cacheKey, count, 60); // TTL: 1 hora
+      await indexedDBService.set(normalizedCollectionName, cacheKey, count, 60); // TTL: 1 hora
 
       return count;
     } catch (error) {
-      console.error(`Erro ao contar documentos em ${collectionName}:`, error);
+      console.error(`Erro ao contar documentos em ${normalizedCollectionName}:`, error);
       throw error;
     }
   }
 
   /**
-   * Invalida cache de uma coleção (chamar após mutations)
+   * Invalida cache de uma colecao (chamar apos mutations)
    */
   async invalidateCollection(collectionName) {
-    await indexedDBService.clearCollection(collectionName);
-    console.log(`[Cache INVALIDATED] ${collectionName}`);
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+    await indexedDBService.clearCollection(normalizedCollectionName);
+    console.log(`[Cache INVALIDATED] ${normalizedCollectionName}`);
   }
 
   /**
-   * Invalida um documento específico no cache
+   * Invalida um documento especifico no cache
    */
   async invalidateDocument(collectionName, docId) {
-    await indexedDBService.delete(collectionName, docId);
-    console.log(`[Cache INVALIDATED] ${collectionName}/${docId}`);
+    const normalizedCollectionName = this.normalizeCollectionName(collectionName);
+    await indexedDBService.delete(normalizedCollectionName, docId);
+    console.log(`[Cache INVALIDATED] ${normalizedCollectionName}/${docId}`);
   }
 
   /**
-   * Retorna estatísticas de cache para debug
+   * Retorna estatisticas de cache para debug
    */
   async getStats() {
     return await indexedDBService.getStats();

@@ -35,9 +35,12 @@ function createForumModerationMiddleware() {
       return;
     }
 
-    if (isAlertsRoute && request.method !== "GET") {
+    if (
+      isAlertsRoute &&
+      !["GET", "DELETE", "OPTIONS"].includes(request.method)
+    ) {
       sendJson(response, 405, {
-        error: "Metodo nao suportado. Use GET.",
+        error: "Metodo nao suportado. Use GET, DELETE ou OPTIONS.",
       });
       return;
     }
@@ -50,7 +53,8 @@ function createForumModerationMiddleware() {
         queryStringParameters[key] = value;
       });
 
-      const rawBody = isModerationRoute ? await readRawBody(request) : "";
+      const rawBody =
+        isModerationRoute || request.method === "DELETE" ? await readRawBody(request) : "";
 
       const result = isModerationRoute
         ? await runForumModerationHandler({
@@ -60,10 +64,10 @@ function createForumModerationMiddleware() {
             isBase64Encoded: false,
           })
         : await runForumAlertsHandler({
-            httpMethod: "GET",
+            httpMethod: request.method === "DELETE" ? "DELETE" : "GET",
             headers: request.headers || {},
             queryStringParameters,
-            body: "",
+            body: rawBody,
             isBase64Encoded: false,
           });
 

@@ -62,6 +62,19 @@ function normalizeProfile(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function getUserClubIds(userData) {
+  const fromArray = Array.isArray(userData?.clubes_ids)
+    ? userData.clubes_ids.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+
+  if (fromArray.length > 0) {
+    return [...new Set(fromArray)];
+  }
+
+  const legacy = String(userData?.clube_id || "").trim();
+  return legacy ? [legacy] : [];
+}
+
 function getBearerToken(event) {
   const headerValue =
     event?.headers?.authorization || event?.headers?.Authorization || "";
@@ -156,11 +169,10 @@ export async function handler(event) {
         if (userSnap.exists) {
           const userData = userSnap.data() || {};
           const perfil = normalizeProfile(userData.perfil);
-          const userClubId = String(userData.clube_id || "").trim();
+          const userClubIds = getUserClubIds(userData);
           allowed =
             (perfil === "orientador" || perfil === "coorientador") &&
-            userClubId &&
-            userClubId === clubId;
+            userClubIds.includes(clubId);
         }
       }
 

@@ -1,4 +1,4 @@
-import React, { startTransition, useState, useRef, useEffect } from 'react';
+﻿import React, { startTransition, useState, useRef, useEffect } from 'react';
 import { Search, LogOut, X, Bell, ChevronDown, User, Home, BookOpen, Menu, Sparkles } from 'lucide-react';
 import MeuPerfil from './MeuPerfil';
 
@@ -19,6 +19,7 @@ export default function TopBar({
     leadUser, 
     selectedClub, 
     myClub, 
+    viewingClub,
     handleLogout, 
     onSaveProfile, 
     currentView, 
@@ -97,10 +98,17 @@ export default function TopBar({
     const userName = loggedUser?.nome || leadUser?.nome || 'Usuário';
     const userEmail = loggedUser?.email || leadUser?.email || 'usuario@email.com';
     const userAvatar = loggedUser?.fotoBase64 || loggedUser?.fotoUrl || loggedUser?.avatar || leadUser?.avatar || null;
-    const contextName = myClub?.nome || selectedClub?.nome || 'COLÉGIO ESTADUAL JORGE AMADO';
+    const contextClub = selectedClub || viewingClub || myClub || null;
+    const contextClubLogoUrl = String(contextClub?.logo_url || contextClub?.logo || '').trim();
+    const contextName =
+        selectedClub?.nome
+        || viewingClub?.nome
+        || myClub?.nome
+        || String(loggedUser?.escola_nome || '').trim()
+        || 'UNIDADE ESCOLAR NÃƒO VINCULADA';
 
     const contextParts = contextName.split(' ');
-    const isCollege = contextName.toUpperCase().includes('COLÉGIO ESTADUAL');
+    const isCollege = contextName.toUpperCase().includes('COLÃ‰GIO ESTADUAL');
     let contextLine1 = '';
     let contextLine2 = contextName;
 
@@ -127,6 +135,21 @@ export default function TopBar({
                     
                     {/* Logo e Contexto */}
                     <div className={`flex items-center gap-4 transition-all duration-300 ${isSearchExpanded ? 'hidden sm:flex' : 'flex'}`}>
+                        {contextClub && (
+                            <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden shrink-0">
+                                {contextClubLogoUrl ? (
+                                    <img
+                                        src={contextClubLogoUrl}
+                                        alt={`Logo do clube ${contextClub?.nome || ''}`}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="text-xs font-black text-slate-700">
+                                        {getInitials(contextClub?.nome || contextName)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                         <div className="hidden md:flex flex-col justify-center">
                             <div className="flex flex-col leading-tight mt-0.5">
                                 <span className="text-sm font-black text-slate-900 line-clamp-1 tracking-tight">
@@ -142,7 +165,7 @@ export default function TopBar({
                         <div className="hidden md:block h-8 w-px bg-slate-200 mx-2"></div>
                     </div>
 
-                    {/* Barra de Pesquisa (Agora usando <form> para submissão nativa) */}
+                    {/* Barra de Pesquisa (Agora usando <form> para submissÃ£o nativa) */}
                     <div className={`flex-1 max-w-2xl mx-4 transition-all duration-300 ${isSearchExpanded ? 'w-full' : ''}`}>
                         <form onSubmit={handleSearchSubmit} className="relative group flex items-center">
                             <Search className={`absolute left-5 w-4.5 h-4.5 transition-colors duration-200 ${isSearchDisabled ? 'text-slate-300' : 'text-slate-400 group-focus-within:text-[#00B5B5]'}`} />
@@ -150,7 +173,7 @@ export default function TopBar({
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                placeholder={isSearchDisabled ? "Busca disponível no feed de Projetos" : "Pesquisar projetos, clubes, pesquisadores..."}
+                                placeholder={isSearchDisabled ? "Busca disponÃ­vel no feed de Projetos" : "Pesquisar projetos, clubes, pesquisadores..."}
                                 className={`w-full py-3.5 pl-12 pr-32 text-sm rounded-full outline-none transition-all duration-300 border
                                     ${isSearchDisabled 
                                         ? 'bg-slate-100 text-slate-400 border-slate-200 opacity-70 cursor-not-allowed' 
@@ -161,7 +184,7 @@ export default function TopBar({
                                 onChange={(e) => setSearchInputValue(e.target.value)}
                                 aria-label="Campo de busca"
                                 disabled={isSearchDisabled}
-                                title={isSearchDisabled ? 'A busca só está disponível no Feed de Projetos.' : ''}
+                                title={isSearchDisabled ? 'A busca sÃ³ estÃ¡ disponÃ­vel no Feed de Projetos.' : ''}
                             />
                             
                             <div className="absolute right-2 flex items-center gap-1">
@@ -193,9 +216,9 @@ export default function TopBar({
                         </form>
                     </div>
 
-                    {/* Ações e Perfil */}
+                    {/* AÃ§Ãµes e Perfil */}
                     <div className="flex items-center gap-3 shrink-0">
-                        {/* Botão Busca Mobile */}
+                        {/* BotÃ£o Busca Mobile */}
                         <button
                             onClick={() => setIsSearchExpanded(!isSearchExpanded)}
                             className="sm:hidden p-2.5 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors bg-white border border-slate-200 shadow-sm active:scale-95"
@@ -204,7 +227,7 @@ export default function TopBar({
                             {isSearchExpanded ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
                         </button>
 
-                        {/* Menu do Usuário */}
+                        {/* Menu do UsuÃ¡rio */}
                         <div className="relative" ref={userMenuRef}>
                             <button
                                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -275,7 +298,7 @@ export default function TopBar({
                                             role="menuitem"
                                         >
                                             <LogOut className="w-4 h-4" />
-                                            Encerrar Sessão
+                                            Encerrar SessÃ£o
                                         </button>
                                     </div>
                                 </div>
@@ -300,7 +323,7 @@ export default function TopBar({
                     className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200" 
                     role="dialog" 
                     aria-modal="true"
-                    aria-label="Perfil do Usuário"
+                    aria-label="Perfil do UsuÃ¡rio"
                 >
                     <div className="relative w-full max-w-xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
                         <button
@@ -324,3 +347,5 @@ export default function TopBar({
         </> 
     );
 }
+
+

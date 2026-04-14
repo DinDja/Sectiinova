@@ -55,12 +55,14 @@ export default function App() {
         isModalOpen,
         setIsModalOpen,
         myClubId,
+        myClubIds,
         setViewingClubId,
         searchTerm,
         setSearchTerm,
         leadUser,
         selectedClub,
         myClub,
+        mentorManagedClubs,
         handleLogout,
         errorMessage,
         loading,
@@ -93,7 +95,18 @@ export default function App() {
         viewingClubCoorientadores,
         viewingClubInvestigadores,
         viewingClubDiaryCount,
+        schoolClubDiscoveryList,
+        latestMyClubJoinRequestByClubId,
+        requestingClubIds,
+        handleRequestClubEntry,
+        clubJoinRequests,
+        reviewingClubRequestIds,
+        handleRespondClubEntryRequest,
         handleCreateProject,
+        handleCreateClub,
+        handleUpdateClub,
+        creatingClub,
+        updatingClub,
         handleSaveProfile,
         newEntry,
         setNewEntry,
@@ -146,6 +159,7 @@ export default function App() {
             loggedUser={loggedUser}
             myClubId={myClubId}
             myClub={myClub}
+            viewingClub={viewingClub}
             setViewingClubId={setViewingClubId}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -217,10 +231,27 @@ export default function App() {
                         viewingClubCoorientadores={viewingClubCoorientadores}
                         viewingClubInvestigadores={viewingClubInvestigadores}
                         viewingClubDiaryCount={viewingClubDiaryCount}
+                        hasNoClubMembership={myClubIds.length === 0}
+                        schoolClubDiscoveryList={schoolClubDiscoveryList}
+                        latestMyClubJoinRequestByClubId={latestMyClubJoinRequestByClubId}
+                        requestingClubIds={requestingClubIds}
+                        handleRequestClubEntry={handleRequestClubEntry}
+                        clubJoinRequests={clubJoinRequests}
+                        reviewingClubRequestIds={reviewingClubRequestIds}
+                        handleRespondClubEntryRequest={handleRespondClubEntryRequest}
+                        mentorManagedClubs={mentorManagedClubs}
+                        setViewingClubId={setViewingClubId}
                         setSelectedClubId={setSelectedClubId}
                         setSelectedProjectId={setSelectedProjectId}
                         setCurrentView={setCurrentView}
                         handleCreateProject={handleCreateProject}
+                        loggedUser={loggedUser}
+                        schools={schools}
+                        users={users}
+                        handleCreateClub={handleCreateClub}
+                        creatingClub={creatingClub}
+                        handleUpdateClub={handleUpdateClub}
+                        updatingClub={updatingClub}
                     />
                 )}
 
@@ -232,7 +263,9 @@ export default function App() {
                     <ForumBoard
                         loggedUser={loggedUser}
                         myClubId={myClubId}
+                        myClubIds={myClubIds}
                         myClub={myClub}
+                        mentorManagedClubs={mentorManagedClubs}
                         clubs={clubs}
                         users={users}
                     />
@@ -250,6 +283,24 @@ export default function App() {
                         diaryEntries={diaryEntries}
                         getProjectTeam={getProjectTeam}
                         getInvestigatorDisplayNames={getInvestigatorDisplayNames}
+                        onDiaryClick={(project) => {
+                            const resolvedClubId = String(project?.clube_id || '').trim();
+                            if (resolvedClubId) {
+                                setSelectedClubId(resolvedClubId);
+                                setViewingClubId(resolvedClubId);
+                            }
+
+                            setSelectedProjectId(String(project?.id || ''));
+                            setCurrentView('diario');
+                        }}
+                        onClubClick={(project) => {
+                            const resolvedClubId = String(project?.clube_id || '').trim();
+                            if (!resolvedClubId) return;
+
+                            setSelectedClubId(resolvedClubId);
+                            setViewingClubId(resolvedClubId);
+                            setCurrentView('clube');
+                        }}
                     />
                 )}
             </div>

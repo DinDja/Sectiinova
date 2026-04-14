@@ -495,16 +495,30 @@ async function notifyMentors({
   }
 
   const db = getAdminDb();
-  const usersSnapshot = await db
-    .collection("usuarios")
-    .where("clube_id", "==", String(clubeId))
-    .get();
+  const [arrayMembershipSnap, legacyMembershipSnap] = await Promise.all([
+    db
+      .collection("usuarios")
+      .where("clubes_ids", "array-contains", String(clubeId))
+      .get(),
+    db
+      .collection("usuarios")
+      .where("clube_id", "==", String(clubeId))
+      .get(),
+  ]);
 
-  if (usersSnapshot.empty) {
+  const usersById = new Map();
+  for (const docSnap of arrayMembershipSnap.docs) {
+    usersById.set(docSnap.id, docSnap);
+  }
+  for (const docSnap of legacyMembershipSnap.docs) {
+    usersById.set(docSnap.id, docSnap);
+  }
+
+  if (usersById.size === 0) {
     return 0;
   }
 
-  const mentorDocs = usersSnapshot.docs.filter((mentorDoc) => {
+  const mentorDocs = Array.from(usersById.values()).filter((mentorDoc) => {
     const mentorData = mentorDoc.data() || {};
     const perfil = normalizeProfile(mentorData.perfil);
     return perfil === "orientador" || perfil === "coorientador";

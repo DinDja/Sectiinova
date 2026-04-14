@@ -18,6 +18,7 @@ import {
     increment,
 } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
+import { getPrimaryUserClubId } from './projectService';
 
 // --- Regras da Comunidade (baseado no anexo) ---
 
@@ -93,6 +94,21 @@ function getForumConfigRef(clubeId) {
 
 function externalMemberDocId(clubeId, userId) {
     return `${clubeId}__${userId}`;
+}
+
+async function fetchClubsSnapshotWithFallback(constraints = []) {
+    try {
+        const primaryQuery = query(collection(db, 'clubes'), ...constraints);
+        const primarySnap = await getDocs(primaryQuery);
+        if (!primarySnap.empty) {
+            return primarySnap;
+        }
+    } catch (error) {
+        console.warn('Falha ao consultar coleção clubes. Tentando coleção legada clubes_ciencia.', error);
+    }
+
+    const legacyQuery = query(collection(db, 'clubes_ciencia'), ...constraints);
+    return await getDocs(legacyQuery);
 }
 
 const FORUM_TOPIC_CATEGORIES = [
@@ -974,7 +990,7 @@ export async function requestJoinForum({ clubeId, solicitante }) {
         clube_id: clubeId,
         solicitante_id: solicitante.id,
         solicitante_nome: solicitante.nome || 'Anonimo',
-        solicitante_clube_id: solicitante.clube_id || '',
+        solicitante_clube_id: getPrimaryUserClubId(solicitante),
         status: 'pendente',
         createdAt: serverTimestamp(),
     });
@@ -1226,8 +1242,7 @@ export async function fetchClubsPage(pageSize, cursor = null, searchTerm = '') {
 
     constraints.push(limit(pageSize));
 
-    const q = query(collection(db, 'clubes_ciencia'), ...constraints);
-    const snap = await getDocs(q);
+    const snap = await fetchClubsSnapshotWithFallback(constraints);
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
     const hasMore = snap.docs.length === pageSize;
@@ -1241,17 +1256,32 @@ export async function getClubsTotalCount(searchTerm = '') {
     if (term) {
         const start = term;
         const end = `${term}\uf8ff`;
-        const q = query(
+        const primaryQuery = query(
+            collection(db, 'clubes'),
+            where('nome', '>=', start),
+            where('nome', '<=', end),
+        );
+        const primarySnap = await getCountFromServer(primaryQuery);
+        if (primarySnap.data().count > 0) {
+            return primarySnap.data().count;
+        }
+
+        const legacyQuery = query(
             collection(db, 'clubes_ciencia'),
             where('nome', '>=', start),
             where('nome', '<=', end),
         );
-        const snap = await getCountFromServer(q);
-        return snap.data().count;
+        const legacySnap = await getCountFromServer(legacyQuery);
+        return legacySnap.data().count;
     }
 
-    const snap = await getCountFromServer(collection(db, 'clubes_ciencia'));
-    return snap.data().count;
+    const primarySnap = await getCountFromServer(collection(db, 'clubes'));
+    if (primarySnap.data().count > 0) {
+        return primarySnap.data().count;
+    }
+
+    const legacySnap = await getCountFromServer(collection(db, 'clubes_ciencia'));
+    return legacySnap.data().count;
 }
 
 // --- Estatisticas e auditoria ---

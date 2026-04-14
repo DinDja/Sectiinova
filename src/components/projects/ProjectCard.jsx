@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 
 import ModalPerfil from '../club/ModalPerfil';
+import { getUserClubIds } from '../../services/projectService';
 
 export default function ProjectCard({
     project,
@@ -92,7 +93,9 @@ export default function ProjectCard({
     };
 
     const clubProjectsForModal = Array.isArray(allProjects) ? allProjects.filter(p => String(p.clube_id) === String(club?.id)) : [];
-    const clubUsersForModal = Array.isArray(allUsers) ? allUsers.filter(u => String(u.clube_id) === String(club?.id)) : [];
+    const clubUsersForModal = Array.isArray(allUsers)
+        ? allUsers.filter((u) => getUserClubIds(u).includes(String(club?.id)))
+        : [];
 
     const handleShare = () => {
         if (onShareClick) {

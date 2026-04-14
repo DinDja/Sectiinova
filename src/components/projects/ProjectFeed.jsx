@@ -3,6 +3,7 @@ import { School, FolderKanban, LoaderCircle, AlertCircle, ChevronRight } from 'l
 import EmptyState from '../shared/EmptyState';
 import ProjectCard from './ProjectCard';
 import ModalClubView from '../club/ModalClubView'; // Importando o modal
+import { getUserClubIds } from '../../services/projectService';
 
 // Componente Skeleton para loading inicial
 const ProjectCardSkeleton = () => (
@@ -125,7 +126,7 @@ export default function ProjectFeed({
 
     // Filtra os dados globais para pegar apenas os que pertencem a este clube
     const clubProjects = feedProjects.filter(p => String(p.clube_id) === String(club.id));
-    const clubUsers = users.filter(u => String(u.clube_id) === String(club.id));
+    const clubUsers = users.filter((u) => getUserClubIds(u).includes(String(club.id)));
     
     console.log('Club:', club);
     console.log('Club Users by clube_id:', clubUsers);
@@ -282,7 +283,11 @@ export default function ProjectFeed({
                   onClubClick={() => handleOpenClubModal(club, school)}
                   
                   onDiaryClick={() => {
-                    setSelectedClubId(club?.id || '');
+                    const resolvedClubId = String(club?.id || project?.clube_id || '').trim();
+                    if (resolvedClubId) {
+                      setSelectedClubId(resolvedClubId);
+                      setViewingClubId(resolvedClubId);
+                    }
                     setSelectedProjectId(project.id);
                     setCurrentView('diario');
                   }}

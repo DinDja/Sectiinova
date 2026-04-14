@@ -83,4 +83,51 @@ describe("fetchInpiProcessFlow", () => {
     expect(result.noticeMessage).toContain("Meus pedidos");
     expect(result.contentHash).toBeTruthy();
   });
+
+  it("mantem hash estavel no acesso restrito quando so muda o rodape de atualizacao", async () => {
+    const restrictedHtmlV1 = `
+      <html>
+        <body>
+          AVISO: Nº Pedido: '512026002335-1' consta em nosso banco de dados.
+          Por favor, acesse regularmente a Revista da Propriedade Industrial (RPI),
+          a fim de acompanhar as publicações relativas ao pedido em questão.
+          2º Entre com seu login e senha.
+          4º Clique em Meus pedidos.
+          Dados atualizados até 31/03/2026
+        </body>
+      </html>
+    `;
+
+    const restrictedHtmlV2 = `
+      <html>
+        <body>
+          AVISO: Nº Pedido: '512026002335-1' consta em nosso banco de dados.
+          Por favor, acesse regularmente a Revista da Propriedade Industrial (RPI),
+          a fim de acompanhar as publicações relativas ao pedido em questão.
+          2º Entre com seu login e senha.
+          4º Clique em Meus pedidos.
+          Dados atualizados até 01/04/2026
+        </body>
+      </html>
+    `;
+
+    mockHttpsSequence([
+      { body: "<html>login ok</html>" },
+      { body: restrictedHtmlV1 },
+    ]);
+    const firstResult = await fetchInpiProcessFlow("512026002335-1", "programa");
+
+    vi.restoreAllMocks();
+    mockHttpsSequence([
+      { body: "<html>login ok</html>" },
+      { body: restrictedHtmlV2 },
+    ]);
+    const secondResult = await fetchInpiProcessFlow("512026002335-1", "programa");
+
+    expect(firstResult.found).toBe(true);
+    expect(secondResult.found).toBe(true);
+    expect(firstResult.accessRestricted).toBe(true);
+    expect(secondResult.accessRestricted).toBe(true);
+    expect(firstResult.contentHash).toBe(secondResult.contentHash);
+  });
 });

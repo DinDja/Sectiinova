@@ -91,6 +91,57 @@ export function normalizePerfil(perfil) {
     return String(perfil || '').trim().toLowerCase();
 }
 
+export function normalizeIdList(values) {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+export function getUserClubIds(user) {
+    const clubsFromArray = normalizeIdList(user?.clubes_ids);
+    if (clubsFromArray.length > 0) {
+        return clubsFromArray;
+    }
+
+    return normalizeIdList([user?.clube_id]);
+}
+
+export function getUserSchoolIds(user) {
+    const schoolsFromArray = normalizeIdList(user?.escolas_ids);
+    if (schoolsFromArray.length > 0) {
+        return schoolsFromArray;
+    }
+
+    return normalizeIdList([user?.escola_id]);
+}
+
+export function getPrimaryUserClubId(user) {
+    return getUserClubIds(user)[0] || '';
+}
+
+export function getPrimaryUserSchoolId(user) {
+    return getUserSchoolIds(user)[0] || '';
+}
+
+export function withLegacyUserMembership(user) {
+    if (!user || typeof user !== 'object') {
+        return user;
+    }
+
+    const clubesIds = getUserClubIds(user);
+    const escolasIds = getUserSchoolIds(user);
+
+    return {
+        ...user,
+        clubes_ids: clubesIds,
+        escolas_ids: escolasIds,
+        clube_id: String(user.clube_id || clubesIds[0] || '').trim(),
+        escola_id: String(user.escola_id || escolasIds[0] || '').trim()
+    };
+}
+
 export function isUserInProject(project, usuario, users = []) {
     if (!project || !usuario) return false;
 

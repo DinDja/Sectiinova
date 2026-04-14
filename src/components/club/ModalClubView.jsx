@@ -40,11 +40,13 @@ export default function ModalClubView({
     // Se não estiver aberto ou não houver dados, não renderiza
     if (!isOpen || !viewingClub) return null;
 
-    const equipeDocente = [...viewingClubOrientadores, ...viewingClubCoorientadores];
+    const equipeMentor = [...viewingClubOrientadores, ...viewingClubCoorientadores];
     const investigatorCount = viewingClubInvestigadores.length;
     // Usa o prop viewingClubUsers se estiver preenchido, caso contrário calcula pelo total de perfis
-    const memberCount = viewingClubUsers.length > 0 ? viewingClubUsers.length : (investigatorCount + equipeDocente.length);
+    const memberCount = viewingClubUsers.length > 0 ? viewingClubUsers.length : (investigatorCount + equipeMentor.length);
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
+    const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
+    const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
 
     const handleAcessarDiario = (projectId) => {
         onClose(); // Fecha o modal primeiro
@@ -89,27 +91,56 @@ export default function ModalClubView({
                     
                     {/* Header do Clube (Hero Section) */}
                     <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 group min-h-[320px] flex flex-col justify-end p-8 md:p-12 shadow-sm mb-8">
-                        <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/15 transition-colors duration-700 pointer-events-none"></div>
-                        <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/5 rounded-full blur-[60px] pointer-events-none"></div>
-                        <div className="absolute inset-0 mix-blend-multiply pointer-events-none" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
+                        <div className="absolute inset-0 pointer-events-none">
+                            {clubBannerUrl ? (
+                                <img
+                                    src={clubBannerUrl}
+                                    alt={`Banner do clube ${viewingClub.nome}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <>
+                                    <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/20 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/30 transition-colors duration-700"></div>
+                                    <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/20 rounded-full blur-[60px]"></div>
+                                    <div className="absolute inset-0 mix-blend-multiply" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
+                                </>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-900/25 to-slate-950/75" />
+                        </div>
 
                         <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-end">
-                            <div className="max-w-3xl flex-1">
-                                <h1 className="text-5xl md:text-6xl text-white tracking-tighter from-slate-950 via-slate-800 to-slate-700 mb-4 leading-tight">
-                                    {viewingClub.nome}
-                                </h1>
-                                
-                                <p className="text-white font-medium text-lg flex items-center gap-2.5">
-                                    <MapIcon className="w-5 h-5 text-[#00B5B5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
-                                </p>
-                                <div className="mt-3 flex flex-wrap items-center gap-3">
-                                    <span className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-sm font-semibold text-white">
-                                        <Microscope className="w-4 h-4 text-[#FF5722]" />
-                                        Força Investigadora: {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
-                                    </span>
-                                    <span className="text-xs font-bold text-white/80 bg-[#00B5B5]/20 px-2 py-1 rounded-full">
-                                        {investigatorRatio}% da equipe
-                                    </span>
+                            <div className="max-w-3xl flex-1 flex items-end gap-5">
+                                <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl border-4 border-white/95 shadow-2xl bg-white/90 backdrop-blur-sm overflow-hidden flex items-center justify-center shrink-0">
+                                    {clubLogoUrl ? (
+                                        <img
+                                            src={clubLogoUrl}
+                                            alt={`Logo do clube ${viewingClub.nome}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-2xl md:text-3xl font-black text-slate-700">
+                                            {getInitials(viewingClub.nome)}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h1 className="text-4xl md:text-6xl text-white tracking-tighter mb-4 leading-tight drop-shadow-lg">
+                                        {viewingClub.nome}
+                                    </h1>
+
+                                    <p className="text-white font-medium text-lg flex items-center gap-2.5 drop-shadow">
+                                        <MapIcon className="w-5 h-5 text-[#7FF5F5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                                        <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-white border border-white/20">
+                                            <Microscope className="w-4 h-4 text-[#FFD1BF]" />
+                                            Clubistas: {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
+                                        </span>
+                                        <span className="text-xs font-bold text-white bg-[#00B5B5]/35 backdrop-blur-sm px-2 py-1 rounded-full border border-[#7FF5F5]/30">
+                                            {investigatorRatio}% da equipe
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +154,7 @@ export default function ModalClubView({
                                 { icon: FolderKanban, count: viewingClubProjects.length, label: "Projetos", color: "text-[#00B5B5]", bg: "bg-[#E0F7F7]", border: "border-[#00B5B5]/20" },
                                 { icon: Users, count: memberCount, label: "Membros", color: "text-[#FF5722]", bg: "bg-[#FFF3E0]", border: "border-[#FF5722]/20" },
                                 { icon: BookOpen, count: viewingClubDiaryCount, label: "Registros", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-                                { icon: Target, count: equipeDocente.length, label: "Mentores", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" }
+                                { icon: Target, count: equipeMentor.length, label: "Mentores", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" }
                             ].map((stat, i) => (
                                 <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col justify-between hover:border-[#00B5B5]/30 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 group">
                                     <div>
@@ -134,18 +165,18 @@ export default function ModalClubView({
                             ))}
                         </div>
 
-                        {/* Equipe Docente */}
+                        {/* Equipe Mentor */}
                         <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
-                            <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Equipe Docente</h3>
+                            <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Mentores</h3>
                             
                             <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
-                                {equipeDocente.length === 0 ? (
+                                {equipeMentor.length === 0 ? (
                                     <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
                                         <User className="w-10 h-10 mx-auto mb-3 opacity-50"/>
                                         <p className="text-sm">Sem mentores registrados.</p>
                                     </div>
                                 ) : (
-                                    equipeDocente.map((person) => (
+                                    equipeMentor.map((person) => (
                                         <div
                                             key={person.id}
                                             onClick={() => handleOpenProfile(person)}
@@ -163,7 +194,7 @@ export default function ModalClubView({
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.some(o => o.id === person.id) ? 'Orientador' : 'Coorientador'}</p>
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.some(o => o.id === person.id) ? 'Mentor' : 'Co-Mentor'}</p>
                                                 </div>
                                             </div>
                                             {getLattesLink(person) && (
@@ -175,11 +206,11 @@ export default function ModalClubView({
                             </div>
                         </div>
 
-                        {/* Força Investigadora */}
+                        {/* Clubistas */}
                         <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
                             <div className="absolute top-0 left-0 w-32 h-32 bg-[#FF5722]/5 rounded-full blur-2xl pointer-events-none"></div>
                             
-                            <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><Microscope className="w-6 h-6 text-[#FF5722]" /> Força Investigadora</h3>
+                            <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><Microscope className="w-6 h-6 text-[#FF5722]" /> Clubistas</h3>
                             {(
                                 <span className="absolute top-7 right-7 z-10 px-4 py-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 text-xs font-black shadow-inner">{viewingClubInvestigadores.length}</span>
                             )}
@@ -209,7 +240,7 @@ export default function ModalClubView({
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#FF5722] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Investigador</p>
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">Clubista</p>
                                                 </div>
                                             </div>
                                             {getLattesLink(person) && (

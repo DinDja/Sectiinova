@@ -397,81 +397,136 @@ export default function AuthPage({
           </div>
         </div>
       </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white to-slate-50/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Saiba Mais 
+      {/* Saiba Mais Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-sky-50/30 to-teal-50/40">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+              Saiba Mais
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Tudo que você precisa para desenvolver projetos científicos
-              inovadores
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+              Um mapa vivo do ecossistema: da ideia no clube de ciencia ao acompanhamento oficial no INPI.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                icon: Rocket,
-                title: "ColabTec",
-                desc: "Crie e gerencie projetos científicos",
-              },
-              {
-                icon: "/iconesAuth/logoAnimated.svg",
-                title: "ConectaClub",
-                desc: "Conecte-se com sua unidade escolar e seus orientadores",
-              },
-              {
-                icon: "/iconesAuth/patentes.svg",
-                title: "PatentesLab",
-                desc: "Gerador de documentos, agente de instrução e suporte para patentes",
-              },
-              {
-                icon: "/iconesAuth/mapa.svg",
-                title: "RBCC",
-                desc: "Faça parte da rede Baiana de clubes de ciência.",
-              },
-            ].map((feature, idx) => (
-              <a
-                key={idx}
-                href="#"
-                className="group relative block h-64 sm:h-80 lg:h-80"
-              >
-                <span className="absolute inset-0 border-2 border-dashed border-slate-300"></span>
 
-                <div className="relative flex h-full w-full transform items-end border-2 border-slate-300 bg-white transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2 overflow-hidden">
-                  {(typeof feature.icon === "string" && feature.icon) ? (
-                    <div className="pointer-events-none absolute inset-0">
-                      <div
-                        className="absolute inset-0 bg-center bg-no-repeat bg-contain opacity-20"
-                        style={{ backgroundImage: `url(${feature.icon})` }}
-                      />
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/85 shadow-[0_30px_90px_-45px_rgba(2,132,199,0.35)] backdrop-blur-sm">
+            <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-teal-200/40 blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 opacity-[0.04] pointer-events-none bg-[radial-gradient(circle_at_1px_1px,#0f172a_1px,transparent_0)] [background-size:18px_18px]" />
+
+            <div className="relative z-10 grid gap-12 lg:grid-cols-12 p-6 sm:p-10 lg:p-12">
+              <div className="lg:col-span-7">
+                <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Fluxo Integrado
+                </p>
+
+                <h3 className="mt-6 text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                  Da pergunta cientifica ao impacto real na rede escolar
+                </h3>
+                <p className="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                  O sistema conecta investigacao, colaboracao, orientacao e protecao intelectual em uma jornada unica.
+                  Nao e um conjunto de modulos isolados: cada etapa alimenta a proxima.
+                </p>
+
+                <div className="mt-10 space-y-7">
+                  {[
+                    {
+                      icon: Microscope,
+                      kicker: "01 | Descoberta",
+                      title: "ColabTec e Trilha CT&I",
+                      desc: "Escolha um problema real, organize o plano e registre o que for descoberto no processo.",
+                    },
+                    {
+                      icon: Users,
+                      kicker: "02 | Colaboracao",
+                      title: "ConectaClub",
+                      desc: "Equipe, orientadores e escola atuam juntos com contexto compartilhado e responsabilidades claras.",
+                    },
+                    {
+                      icon: BookOpen,
+                      kicker: "03 | Estruturacao",
+                      title: "PatentesLab",
+                      desc: "Monte documentos, refine estrategia e prepare a proposta para analise tecnica e juridica.",
+                    },
+                    {
+                      icon: Target,
+                      kicker: "04 | Protecao e monitoramento",
+                      title: "Busca e alertas INPI",
+                      desc: "Acompanhe alteracoes dos pedidos monitorados e mantenha o time informado sem retrabalho.",
+                    },
+                    {
+                      icon: Globe,
+                      kicker: "05 | Escala",
+                      title: "RBCC",
+                      desc: "Amplie o alcance das iniciativas com visibilidade em rede e troca entre clubes de ciencia.",
+                    },
+                  ].map((item, idx) => (
+                    <div key={item.title} className="relative pl-16">
+                      {idx < 4 && (
+                        <span className="absolute left-[1.38rem] top-10 h-[calc(100%+1.5rem)] w-px bg-gradient-to-b from-sky-300 via-cyan-300 to-teal-300" />
+                      )}
+                      <div className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-100 to-teal-100 text-sky-700 shadow-sm">
+                        <item.icon className="w-5 h-5" strokeWidth={2} />
+                      </div>
+                      <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-sky-700">
+                        {item.kicker}
+                      </p>
+                      <h4 className="mt-1 text-lg font-bold text-slate-900">{item.title}</h4>
+                      <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{item.desc}</p>
                     </div>
-                  ) : (
-                    <feature.icon
-                      className="pointer-events-none absolute right-4 top-4 w-28 h-28 text-[#004B8D] opacity-20"
-                      strokeWidth={1.5}
-                    />
-                  )}
+                  ))}
+                </div>
 
-                  <div className="relative z-10 px-4 pb-4 transition-opacity group-hover:absolute group-hover:opacity-0 sm:px-6 sm:pb-4 lg:px-8 lg:pb-8 w-full">
-                    <h2 className="mt-4 text-lg font-bold text-gray-900 sm:text-xl">
-                      {feature.title}
-                    </h2>
+                <div className="mt-10 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => openAuthModal("register")}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#00B5B5] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30"
+                  >
+                    Iniciar jornada
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => openAuthModal("login")}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    Ja tenho conta
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 flex items-center">
+                <div className="relative mx-auto w-full max-w-[420px] aspect-square">
+                  <div className="absolute inset-0 rounded-full border border-sky-200/60" />
+                  <div className="absolute inset-[12%] rounded-full border border-dashed border-teal-300/70" />
+                  <div className="absolute inset-[24%] rounded-full border border-sky-300/70" />
+
+                  <div className="absolute inset-[31%] rounded-full border border-slate-200 bg-white/95 shadow-[0_18px_40px_-20px_rgba(14,116,144,0.55)] flex flex-col items-center justify-center text-center px-4">
+                    <Brain className="w-10 h-10 text-sky-700" strokeWidth={1.8} />
+                    <p className="mt-3 text-sm font-black uppercase tracking-[0.16em] text-slate-700">
+                      Ecossistema CT&I
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">Ideia, metodo e impacto em ciclo continuo</p>
                   </div>
 
-                  <div className="absolute p-4 opacity-0 transition-opacity group-hover:relative group-hover:opacity-100 sm:p-6 lg:p-8 w-full">
-                    <h3 className="mt-4 text-lg font-bold text-[#004B8D] sm:text-xl">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-4 text-sm sm:text-base text-gray-600 leading-relaxed">
-                      {feature.desc}
-                    </p>
+                  <div className="absolute left-1/2 top-0 -translate-x-1/2 rounded-2xl border border-sky-200 bg-white/95 px-3 py-2 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-sky-700">ColabTec</p>
+                  </div>
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-2xl border border-teal-200 bg-white/95 px-3 py-2 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-teal-700">PatentesLab</p>
+                  </div>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 rounded-2xl border border-cyan-200 bg-white/95 px-3 py-2 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">ConectaClub</p>
+                  </div>
+                  <div className="absolute left-[14%] bottom-[10%] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Trilha CT&I</p>
+                  </div>
+                  <div className="absolute right-[14%] bottom-[10%] rounded-2xl border border-indigo-200 bg-white/95 px-3 py-2 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-indigo-700">RBCC</p>
                   </div>
                 </div>
-              </a>
-            ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -591,7 +646,7 @@ export default function AuthPage({
               onClick={closeAuthModal}
               className="absolute top-4 right-4 rounded-full bg-white/90 p-2 hover:bg-white text-gray-500 hover:text-gray-900 z-50"
             >
-              ✕
+              X
             </button>
 
             <div className="flex flex-col md:flex-row">
@@ -667,7 +722,7 @@ export default function AuthPage({
                 <div className="max-w-md mx-auto w-full">
                   {authError && (
                     <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                      <span className="text-xl">⚠️</span>
+                      <span className="text-xl">X</span>
                       <p className="mt-0.5 font-medium">{authError}</p>
                     </div>
                   )}
@@ -776,7 +831,7 @@ export default function AuthPage({
                               }))
                             }
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-12 p-3.5 text-sm outline-none transition-all focus:border-[#00B5B5] focus:bg-white focus:ring-4 focus:ring-[#00B5B5]/10"
-                            placeholder="••••••••"
+                            placeholder=""
                             required
                           />
                           <div
@@ -920,6 +975,31 @@ export default function AuthPage({
                           </label>
                         </div>
                         {/* FIM DO NOVO CHECKBOX */}
+
+                        {/* NOVO CHECKBOX FAPESB INSERIDO AQUI */}
+                        <div className="flex items-center p-3 gap-4 py-2">
+                          <MorphingCheckbox
+                            checked={registerForm.recebeBolsaFAPESB || false}
+                            onChange={(e) =>
+                              setRegisterForm((prev) => ({
+                                ...prev,
+                                recebeBolsaFAPESB: e.target.checked,
+                              }))
+                            }
+                          />
+                          <label
+                            className="text-sm font-semibold text-gray-600 cursor-pointer"
+                            onClick={() =>
+                              setRegisterForm((prev) => ({
+                                ...prev,
+                                recebeBolsaFAPESB: !prev.recebeBolsaFAPESB,
+                              }))
+                            }
+                          >
+                            Recebe bolsa FAPESB?
+                          </label>
+                        </div>
+                        {/* FIM DO NOVO CHECKBOX FAPESB */}
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -1326,3 +1406,5 @@ const StyledWrapper = styled.div`
     transform: scale(0.9) rotateY(180deg) rotateZ(180deg);
   }
 `;
+
+

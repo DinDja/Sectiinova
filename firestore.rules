@@ -17,12 +17,160 @@ service cloud.firestore {
       return get(userDocPath()).data;
     }
 
+    function clubDocPath(clubeId) {
+      return /databases/$(database)/documents/clubes/$(clubeId);
+    }
+
+    function clubExists(clubeId) {
+      return exists(clubDocPath(clubeId));
+    }
+
+    function clubData(clubeId) {
+      return get(clubDocPath(clubeId)).data;
+    }
+
+    function isMySchool(escolaId) {
+      return userExists() && (
+        (userData().escolas_ids is list && escolaId in userData().escolas_ids)
+        || userData().escola_id == escolaId
+      );
+    }
+
+    function isClubDocMember(clubeId) {
+      return isSignedIn()
+        && clubExists(clubeId)
+        && (
+          (clubData(clubeId).membros_ids is list && request.auth.uid in clubData(clubeId).membros_ids)
+          || (clubData(clubeId).clubistas_ids is list && request.auth.uid in clubData(clubeId).clubistas_ids)
+          || (clubData(clubeId).orientador_ids is list && request.auth.uid in clubData(clubeId).orientador_ids)
+          || (clubData(clubeId).coorientador_ids is list && request.auth.uid in clubData(clubeId).coorientador_ids)
+          || clubData(clubeId).mentor_id == request.auth.uid
+        );
+    }
+
+    function isClubMentorFromData(data) {
+      return isSignedIn() && (
+        (data.orientador_ids is list && request.auth.uid in data.orientador_ids)
+        || data.mentor_id == request.auth.uid
+      );
+    }
+
+    function hasRequiredClubDocuments(data) {
+      return data.documentos is map
+        && data.documentos.keys().hasAll([
+          "termo_adesao_ccb",
+          "estatuto_aprovado",
+          "ata_criacao_clube",
+          "fichas_associacao_clubistas",
+          "termo_convivencia_familias",
+          "abertura_livro_ata"
+        ]);
+    }
+
+    function hasClubMinimumStructure(data) {
+      return data.orientador_ids is list
+        && data.orientador_ids.size() >= 1
+        && request.auth.uid in data.orientador_ids
+        && data.clubistas_ids is list
+        && data.clubistas_ids.size() >= 10
+        && data.membros_ids is list
+        && data.membros_ids.size() >= 11;
+    }
+
+    function isStudentProfile(perfil) {
+      return perfil == 'estudante' || perfil == 'investigador' || perfil == 'aluno';
+    }
+
+    function hasNoClubInProfile() {
+      return userExists()
+        && (
+          !(userData().clube_id is string)
+          || userData().clube_id.size() == 0
+        )
+        && (
+          !(userData().clubes_ids is list)
+          || userData().clubes_ids.size() == 0
+        );
+    }
+
+    function userIsInSchool(data, escolaId, escolaNome) {
+      return data.escola_id == escolaId
+        || (data.escolas_ids is list && escolaId in data.escolas_ids)
+        || (
+          escolaNome is string
+          && escolaNome.size() > 0
+          && (
+            data.escola_nome == escolaNome
+            || (data.escolas_nomes is list && escolaNome in data.escolas_nomes)
+          )
+        );
+    }
+
+    function canMentorManageStudentClub(clubeId, studentData) {
+      return clubeId is string
+        && clubeId.size() > 0
+        && clubExists(clubeId)
+        && isClubMentorFromData(clubData(clubeId))
+        && userIsInSchool(
+          studentData,
+          clubData(clubeId).escola_id,
+          clubData(clubeId).escola_nome
+        );
+    }
+
+    function canMentorLinkStudentToClub() {
+      return isSignedIn()
+        && isMentor()
+        && resource.data.perfil is string
+        && isStudentProfile(resource.data.perfil)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['clube_id', 'clubes_ids'])
+        && request.resource.data.clube_id is string
+        && request.resource.data.clubes_ids is list
+        && (
+          request.resource.data.clube_id.size() == 0
+          || request.resource.data.clube_id in request.resource.data.clubes_ids
+        )
+        && (
+          request.resource.data.clube_id.size() > 0
+          || request.resource.data.clubes_ids.size() == 0
+        )
+        && (
+          canMentorManageStudentClub(request.resource.data.clube_id, resource.data)
+          || canMentorManageStudentClub(resource.data.clube_id, resource.data)
+        )
+        && (
+          resource.data.clubes_ids is list
+          ? request.resource.data.clubes_ids.size() <= resource.data.clubes_ids.size() + (
+            resource.data.clube_id is string
+            && resource.data.clube_id.size() > 0
+            && !(resource.data.clube_id in resource.data.clubes_ids)
+            ? 2
+            : 1
+          )
+          : request.resource.data.clubes_ids.size() <= (
+            resource.data.clube_id is string
+            && resource.data.clube_id.size() > 0
+            ? 2
+            : 1
+          )
+        )
+        && (
+          !(resource.data.clubes_ids is list)
+          || request.resource.data.clubes_ids.size() + 1 >= resource.data.clubes_ids.size()
+        );
+    }
+
     function isMentor() {
       return userExists() && (userData().perfil == 'orientador' || userData().perfil == 'coorientador');
     }
 
     function isMyClub(clubeId) {
-      return userExists() && userData().clube_id == clubeId;
+      return (
+        userExists() && (
+          (userData().clubes_ids is list && clubeId in userData().clubes_ids)
+          || userData().clube_id == clubeId
+        )
+      ) || isClubDocMember(clubeId);
     }
 
     function projectBelongsToClub(projectId, clubeId) {
@@ -31,13 +179,30 @@ service cloud.firestore {
     }
 
     function isExternalMember(clubeId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid))
-        && get(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid)).data.clube_id == clubeId;
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/forum_membros_externos/$(clubeId + "__" + request.auth.uid))
+        || (
+          exists(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid))
+          && get(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid)).data.clube_id == clubeId
+        )
+      );
+    }
+
+    match /clubes/{clubeId} {
+      allow read: if true;
+      allow create: if isMentor()
+        && request.resource.data.id == clubeId
+        && request.resource.data.nome is string
+        && request.resource.data.escola_id is string
+        && isMySchool(request.resource.data.escola_id)
+        && hasClubMinimumStructure(request.resource.data)
+        && hasRequiredClubDocuments(request.resource.data);
+      allow update, delete: if isMentor() && isClubMentorFromData(resource.data);
     }
 
     match /clubes_ciencia/{clubeId} {
       allow read: if true;
-      allow create, update, delete: if belongsToClub(clubeId);
+      allow create, update, delete: if isMyClub(clubeId);
     }
 
     match /diario_bordo/{entryId} {
@@ -88,12 +253,43 @@ service cloud.firestore {
       allow read: if true;
       // Permite que cada usuário gerencie seu próprio documento de perfil.
       // Inclui permissões para gerenciar sidebarOrder (ordem de navegação personalizada).
-      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, delete: if request.auth != null && request.auth.uid == userId;
+      allow update: if (request.auth != null && request.auth.uid == userId)
+        || canMentorLinkStudentToClub();
     }
 
     match /unidades_escolares/{schoolId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    match /clube_solicitacoes/{reqId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.solicitante_id == request.auth.uid
+          || (isMentor() && isMyClub(resource.data.clube_id))
+        );
+
+      allow create: if isSignedIn()
+        && userExists()
+        && isStudentProfile(userData().perfil)
+        && hasNoClubInProfile()
+        && request.resource.data.clube_id is string
+        && request.resource.data.clube_id.size() > 0
+        && clubExists(request.resource.data.clube_id)
+        && isMySchool(clubData(request.resource.data.clube_id).escola_id)
+        && request.resource.data.solicitante_id == request.auth.uid
+        && request.resource.data.status == 'pendente';
+
+      allow update: if isSignedIn()
+        && isMentor()
+        && isMyClub(resource.data.clube_id)
+        && request.resource.data.clube_id == resource.data.clube_id
+        && request.resource.data.solicitante_id == resource.data.solicitante_id
+        && request.resource.data.status is string
+        && request.resource.data.status in ['aceita', 'recusada'];
+
+      allow delete: if false;
     }
 
     // ─── Fórum: Tópicos ──────────────────────────────────
@@ -233,3 +429,4 @@ service cloud.firestore {
     }
   }
 } 
+

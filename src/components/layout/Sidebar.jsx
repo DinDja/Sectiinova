@@ -8,6 +8,7 @@ import {
   FcComments,
   FcDepartment,
 } from 'react-icons/fc';
+import { getPrimaryUserClubId, getUserClubIds } from '../../services/projectService';
 
 export default function Sidebar({
   currentView,
@@ -83,8 +84,22 @@ export default function Sidebar({
 
   const handleMyClubClick = useCallback(() => {
     setCurrentView('clube');
-    const targetClubId = String(loggedUser?.clube_id || myClubId || '').trim();
-    if (targetClubId) setViewingClubId(targetClubId);
+    const targetClubId = String(myClubId || getPrimaryUserClubId(loggedUser) || '').trim();
+    if (!targetClubId) return;
+
+    setViewingClubId((currentClubId) => {
+      const normalizedCurrentClubId = String(currentClubId || '').trim();
+      if (!normalizedCurrentClubId) {
+        return targetClubId;
+      }
+
+      const userClubIds = getUserClubIds(loggedUser);
+      if (userClubIds.includes(normalizedCurrentClubId)) {
+        return normalizedCurrentClubId;
+      }
+
+      return targetClubId;
+    });
   }, [setCurrentView, loggedUser, myClubId, setViewingClubId]);
 
   // --- Handlers de Drag & Drop Refinados ---

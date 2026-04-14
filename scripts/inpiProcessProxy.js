@@ -246,6 +246,22 @@ function normalizeSearchInput(value = "") {
   return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function createRestrictedContentHash({
+  sourceId = "",
+  processNumber = "",
+  noticeTitle = "",
+  noticeMessage = "",
+} = {}) {
+  const canonicalPayload = [
+    normalizeText(sourceId),
+    normalizeSearchInput(processNumber),
+    normalizeText(noticeTitle),
+    normalizeText(noticeMessage),
+  ].join("|");
+
+  return createContentHash(canonicalPayload);
+}
+
 function normalizeNumberForSource(number, sourceId) {
   const normalizedInput = normalizeSearchInput(number);
 
@@ -336,7 +352,12 @@ async function fetchFromSource(number, source) {
       query: trimmedNumber,
       fetchedAt: new Date().toISOString(),
       officialSearchUrl: source.officialSearchUrl,
-      contentHash: createContentHash(searchResponse.body),
+      contentHash: createRestrictedContentHash({
+        sourceId: source.id,
+        processNumber: trimmedNumber,
+        noticeTitle: restrictedNotice.title,
+        noticeMessage: restrictedNotice.message,
+      }),
       searchHtml: searchResponse.body,
       detailHtml: "",
       detailPath: "",
