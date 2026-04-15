@@ -143,6 +143,8 @@
   }
 
   .bg-home {
+    position: relative;
+    z-index: 0;
     background-image: url("/images/BGHOME.svg");
     background-position: center;
     background-repeat: no-repeat;
@@ -152,6 +154,7 @@
     content: "";
     position: absolute;
     inset: 0;
+    z-index: 0;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     background-color: rgba(0, 0, 0, 0.068);
