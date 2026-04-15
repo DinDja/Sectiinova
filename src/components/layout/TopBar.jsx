@@ -124,7 +124,7 @@ export default function TopBar({
     "UNIDADE ESCOLAR NAO VINCULADA";
 
   const contextParts = contextName.split(" ");
-  const isCollege = contextName.toUpperCase().includes("COLÃ‰GIO ESTADUAL");
+  const isCollege = contextName.toUpperCase().includes("COLÉGIO ESTADUAL");
   let contextLine1 = "";
   let contextLine2 = contextName;
 
@@ -183,7 +183,7 @@ export default function TopBar({
                 type="text"
                 placeholder={
                   isSearchDisabled
-                    ? "Busca disponÃ­vel no feed de Projetos"
+                    ? "Busca disponível no feed de Projetos"
                     : "Pesquisar projetos, clubes, pesquisadores..."
                 }
                 className={`w-full py-3.5 pl-12 pr-32 text-sm rounded-2xl outline-none transition-all duration-300 border
@@ -199,7 +199,7 @@ export default function TopBar({
                 disabled={isSearchDisabled}
                 title={
                   isSearchDisabled
-                    ? "A busca sÃ³ estÃ¡ disponÃ­vel no Feed de Projetos."
+                    ? "A busca só está disponível no Feed de Projetos."
                     : ""
                 }
               />
@@ -234,7 +234,6 @@ export default function TopBar({
             </form>
           </div>
 
-          {/* AÃ§Ãµes e Perfil */}
           <div className="flex items-center gap-3 shrink-0">
             {contextName && (
               <div className="cursor-pointer hover:bg-zinc-100 hidden md:flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white/90 shadow-sm px-3 py-2">
@@ -267,7 +266,6 @@ export default function TopBar({
               </div>
             )}
 
-            {/* BotÃ£o Busca Mobile */}
             <button
               onClick={() => setIsSearchExpanded(!isSearchExpanded)}
               className="sm:hidden p-2.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors bg-white border border-zinc-200 shadow-sm active:scale-95"
@@ -280,7 +278,6 @@ export default function TopBar({
               )}
             </button>
 
-            {/* Menu do UsuÃ¡rio */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -364,7 +361,7 @@ export default function TopBar({
                       role="menuitem"
                     >
                       <LogOut className="w-4 h-4" />
-                      Encerrar seção
+                      Encerrar sessão
                     </button>
                   </div>
                 </div>
