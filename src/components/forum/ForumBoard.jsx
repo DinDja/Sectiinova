@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -50,10 +50,10 @@ import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
 import { auth } from "../../../firebase";
 
-// ─── Constantes e Helpers ─────────────────────────────────────────
+
 const TABS = [
   { id: "meu", label: "Meu Fórum", icon: Coffee },
-  { id: "aceitos", label: "Fóruns Aceitos", icon: Users },
+  { id: "aceitos", label: "Foruns Aceitos", icon: Users },
   { id: "explorar", label: "Explorar", icon: Globe },
 ];
 
@@ -303,7 +303,7 @@ const buildForumClubSelectStyles = (primaryColor) => ({
   }),
 });
 
-// ─── Sub-Componentes Memorizados ──────────────────────────────────
+// â”€â”€â”€ Sub-Componentes Memorizados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const EmptyBox = memo(({ message, icon: Icon = Coffee }) => (
   <div className="premium-card p-10 flex flex-col items-center justify-center text-center border border-dashed border-slate-200 bg-slate-50/50">
     <div
@@ -319,6 +319,65 @@ const EmptyBox = memo(({ message, icon: Icon = Coffee }) => (
   </div>
 ));
 EmptyBox.displayName = "EmptyBox";
+
+const ForumNoClubState = memo(
+  ({ title = "Nenhum forum disponivel", message, icon: Icon = Coffee }) => (
+    <div className="relative overflow-hidden rounded-[2rem] border-2 border-slate-900 bg-[#f7fbff] p-8 sm:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-55"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.2) 1px, transparent 0)",
+          backgroundSize: "20px 20px",
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute -top-20 -right-16 h-52 w-52 rounded-full blur-2xl"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--forum-primary-soft, rgba(90, 200, 200, 0.28)), transparent)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full blur-2xl"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(251, 191, 36, 0.28), transparent)",
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white px-4 py-1.5 shadow-[3px_3px_0px_0px_#0f172a]">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 border border-slate-900" />
+          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-700">
+            Forum Hub
+          </span>
+        </div>
+
+        <div
+          className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a]"
+          style={{ color: "var(--forum-primary, #5AC8C8)" }}
+        >
+          <Icon className="h-10 w-10" />
+        </div>
+
+        <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+          {title}
+        </h3>
+        <p className="mt-3 max-w-xl text-sm sm:text-base font-medium text-slate-600">
+          {message}
+        </p>
+
+        <div className="mt-6 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-200 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]">
+          <Building2 className="h-4 w-4" />
+          Convide seu clube para iniciar discussoes
+        </div>
+      </div>
+    </div>
+  ),
+);
+ForumNoClubState.displayName = "ForumNoClubState";
 
 const TopicItem = memo(
   ({ topic, onSelect, isModerator, onTogglePin, onToggleLock, onDelete }) => {
@@ -344,13 +403,13 @@ const TopicItem = memo(
                     color: "var(--forum-primary, #5AC8C8)",
                     fill: "var(--forum-primary, #5AC8C8)",
                   }}
-                  title="Tópico Fixado"
+                  title="TÃ³pico Fixado"
                 />
               )}
               {topic.locked && (
                 <Lock
                   className="w-4 h-4 text-red-400 shrink-0"
-                  title="Tópico Bloqueado"
+                  title="TÃ³pico Bloqueado"
                 />
               )}
               <h3 className="font-bold text-slate-800 truncate group-hover:text-[var(--forum-primary)] transition-colors">
@@ -364,9 +423,9 @@ const TopicItem = memo(
             )}
             <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
               <span className="text-slate-600">{topic.autor_nome}</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span>{formattedDate}</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">
                 <MessageCircle className="w-3.5 h-3.5" />
                 {topic.mensagens_count || 0}
@@ -374,7 +433,7 @@ const TopicItem = memo(
             </div>
           </div>
 
-          {/* Ações de moderador */}
+          {/* AÃ§Ãµes de moderador */}
           {isModerator && (
             <div
               className="flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm p-1 rounded-lg"
@@ -383,7 +442,7 @@ const TopicItem = memo(
               <button
                 onClick={() => onTogglePin(topic.id, topic.pinned)}
                 className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-[var(--forum-primary-ring)] outline-none ${topic.pinned ? "bg-[var(--forum-primary-soft)] text-[var(--forum-primary)]" : "hover:bg-slate-100 text-slate-400 hover:text-[var(--forum-primary)]"}`}
-                aria-label={topic.pinned ? "Desafixar tópico" : "Fixar tópico"}
+                aria-label={topic.pinned ? "Desafixar tÃ³pico" : "Fixar tÃ³pico"}
                 title={topic.pinned ? "Desafixar" : "Fixar"}
               >
                 <Pin className="w-4 h-4" />
@@ -392,7 +451,7 @@ const TopicItem = memo(
                 onClick={() => onToggleLock(topic.id, topic.locked)}
                 className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-red-200 outline-none ${topic.locked ? "bg-red-100 text-red-700" : "hover:bg-slate-100 text-slate-400 hover:text-red-600"}`}
                 aria-label={
-                  topic.locked ? "Desbloquear tópico" : "Bloquear tópico"
+                  topic.locked ? "Desbloquear tÃ³pico" : "Bloquear tÃ³pico"
                 }
                 title={topic.locked ? "Desbloquear" : "Bloquear"}
               >
@@ -401,8 +460,8 @@ const TopicItem = memo(
               <button
                 onClick={() => onDelete(topic.id)}
                 className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors focus:ring-2 focus:ring-red-200 outline-none"
-                aria-label="Excluir tópico"
-                title="Excluir tópico"
+                aria-label="Excluir tÃ³pico"
+                title="Excluir tÃ³pico"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -565,7 +624,7 @@ const AcceptedClubCard = memo(({ club, index, onSelect }) => {
 });
 AcceptedClubCard.displayName = "AcceptedClubCard";
 
-// ─── Componente Principal ─────────────────────────────────────────
+
 export default function ForumBoard({
   loggedUser,
   myClubId,
@@ -607,9 +666,9 @@ export default function ForumBoard({
     setSearchForumInput("");
     setSearchForum("");
   }, []);
-  const [requestingClubs, setRequestingClubs] = useState(new Set()); // Para loading individual dos botões
+  const [requestingClubs, setRequestingClubs] = useState(new Set()); // Para loading individual dos botÃµes
 
-  // ─── Paginação Explorar ──────────────────────────────────
+
   const [exploreClubs, setExploreClubs] = useState([]);
   const [exploreCursor, setExploreCursor] = useState(null);
   const exploreCursorRef = useRef(null);
@@ -790,7 +849,7 @@ export default function ForumBoard({
     setSelectedTopicId(null);
   }, [viewingForumClubId, acceptedOrMemberClubIdSet]);
 
-  // ─── Subscriptions ──────────────────────────────────────
+
   useEffect(() => {
     if (!currentForumClubId) {
       setTopics([]);
@@ -835,7 +894,6 @@ export default function ForumBoard({
     return getForumsWhereAccepted(forumUserId, setAcceptedForums);
   }, [forumUserId]);
 
-  // ─── Fetch explore page ─────────────────────────────────
   const fetchExplorePage = useCallback(async (reset = false) => {
     if (exploreFetchingRef.current) return;
     if (!reset && !exploreHasMoreRef.current) return;
@@ -896,7 +954,7 @@ export default function ForumBoard({
     return () => observer.disconnect();
   }, [exploreLoadMoreNode, activeTab, fetchExplorePage]);
 
-  // ─── Derived State ────────────────────────────────────────
+
   const myForumClubs = useMemo(
     () =>
       (clubs || [])
@@ -1022,7 +1080,6 @@ export default function ForumBoard({
     [isMentor, currentForumClubId, mentorManagedClubIdSet],
   );
 
-  // ─── Handlers Otimizados (useCallback) ─────────────────────
   const handleCreateTopic = useCallback(
     async (e) => {
       e.preventDefault();
@@ -1040,7 +1097,7 @@ export default function ForumBoard({
         setShowNewTopic(false);
       } catch (error) {
         setToast({
-          message: error?.message || "Erro ao criar o tópico. Tente novamente.",
+          message: error?.message || "Erro ao criar o tÃ³pico. Tente novamente.",
           type: "error",
         });
       } finally {
@@ -1056,9 +1113,9 @@ export default function ForumBoard({
       setRequestingClubs((prev) => new Set(prev).add(clubeId));
       try {
         await requestJoinForum({ clubeId, solicitante: loggedUser });
-        setToast({ message: "Solicitação enviada com sucesso!", type: "success" });
+        setToast({ message: "SolicitaÃ§Ã£o enviada com sucesso!", type: "success" });
       } catch (error) {
-        setToast({ message: "Erro ao enviar solicitação.", type: "error" });
+        setToast({ message: "Erro ao enviar solicitaÃ§Ã£o.", type: "error" });
       } finally {
         setRequestingClubs((prev) => {
           const newSet = new Set(prev);
@@ -1093,7 +1150,7 @@ export default function ForumBoard({
         );
       } catch (error) {
         setToast({
-          message: error?.message || "Erro ao atualizar alerta de moderação.",
+          message: error?.message || "Erro ao atualizar alerta de moderaÃ§Ã£o.",
           type: "error",
         });
       }
@@ -1140,13 +1197,13 @@ export default function ForumBoard({
 
       setConfirmModal({
         open: true,
-        title: "Excluir alerta de moderação",
+        title: "Excluir alerta de moderaÃ§Ã£o",
         description: "Tem certeza que deseja excluir este alerta da central de irregularidades?",
         onConfirm: async () => {
           try {
             await deleteModerationAlert(alertId);
             setModerationAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
-            setToast({ message: "Alerta excluído.", type: "success" });
+            setToast({ message: "Alerta excluÃ­do.", type: "success" });
           } catch (error) {
             setToast({
               message: error?.message || "Falha ao excluir alerta.",
@@ -1189,8 +1246,8 @@ export default function ForumBoard({
   const handleDeleteTopic = useCallback((id) => {
     setConfirmModal({
       open: true,
-      title: "Excluir tópico",
-      description: "Excluir este tópico e todas as mensagens permanentemente?",
+      title: "Excluir tÃ³pico",
+      description: "Excluir este tÃ³pico e todas as mensagens permanentemente?",
       onConfirm: async () => {
         await deleteTopic(id);
         setConfirmModal((prev) => ({ ...prev, open: false }));
@@ -1198,7 +1255,6 @@ export default function ForumBoard({
     });
   }, []);
 
-  // ─── Render: Thread View ─────────────────────────────────
   if (selectedTopic) {
     return (
       <ForumThread
@@ -1214,7 +1270,6 @@ export default function ForumBoard({
     );
   }
 
-  // Modal de confirmação
   const ConfirmModal = () => {
     if (!confirmModal.open) return null;
     return (
@@ -1241,10 +1296,10 @@ export default function ForumBoard({
     );
   };
 
-  // ─── Render: Main View ───────────────────────────────────
+
   return (
     <>
-      {/* Fundo animado de cubos 3D (trilha pedagógica) */}
+      {/* Fundo animado de cubos 3D (trilha pedagÃ³gica) */}
       <style>{`
         .forum-pattern-grid {
           background-image:
@@ -1276,7 +1331,7 @@ export default function ForumBoard({
           style={{ backgroundColor: "var(--forum-overlay, rgba(255, 255, 255, 0.82))" }}
         ></div>
         
-        {/* DIV DO CONTEÚDO: Limita a largura e centraliza */}
+        {/* DIV DO CONTEÃšDO: Limita a largura e centraliza */}
         <div className="max-w-5xl mx-auto space-y-6 pb-12 pt-6 relative z-10 px-4 md:px-0">
           
           {/* Hero & Tabs */}
@@ -1295,7 +1350,7 @@ export default function ForumBoard({
                     POP Café
                   </h1>
                   <p className="text-white/90 text-sm mt-1 font-medium">
-                    Fórum de discussão e colaboração entre clubes
+                    Forum de discussão e colaboração entre clubes
                   </p>
                 </div>
               </div>
@@ -1351,11 +1406,11 @@ export default function ForumBoard({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-amber-600" />
-                  Central de Irregularidades do Fórum
+                  Central de Irregularidades do FÃ³rum
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full w-fit">
-                    {unreadModerationAlerts.length} não lido(s)
+                    {unreadModerationAlerts.length} nÃ£o lido(s)
                   </div>
                   {unreadModerationAlerts.length > 0 && (
                     <button
@@ -1370,7 +1425,7 @@ export default function ForumBoard({
               </div>
 
               <p className="text-sm text-slate-600 mb-4">
-                Orientadores e coorientadores recebem em tempo real os alertas de conteúdo irregular no fórum.
+                Orientadores e coorientadores recebem em tempo real os alertas de conteÃºdo irregular no fÃ³rum.
               </p>
 
               <div className="space-y-3">
@@ -1389,13 +1444,13 @@ export default function ForumBoard({
                             {alert.actor_nome || "Aluno"}
                           </p>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isUnread ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
-                            {isUnread ? "NÃO LIDO" : "LIDO"}
+                            {isUnread ? "NÃƒO LIDO" : "LIDO"}
                           </span>
                         </div>
 
                         <p className="text-xs text-slate-600 line-clamp-2">
                           {alert.reason ||
-                            "Conteúdo sinalizado pela moderação inteligente."}
+                            "ConteÃºdo sinalizado pela moderaÃ§Ã£o inteligente."}
                         </p>
 
                         {alert.excerpt && (
@@ -1415,7 +1470,7 @@ export default function ForumBoard({
                           </button>
                         ) : (
                           <span className="text-xs text-slate-400 font-medium">
-                            Já visualizado
+                            JÃ¡ visualizado
                           </span>
                         )}
                         <button
@@ -1433,7 +1488,7 @@ export default function ForumBoard({
               {moderationAlertsPageCount > 1 && (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
                   <div className="text-xs text-slate-500">
-                    Página {moderationAlertsPage + 1} de {moderationAlertsPageCount}
+                    PÃ¡gina {moderationAlertsPage + 1} de {moderationAlertsPageCount}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -1450,7 +1505,7 @@ export default function ForumBoard({
                       disabled={moderationAlertsPage === moderationAlertsPageCount - 1}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
                     >
-                      Próxima
+                      PrÃ³xima
                     </button>
                   </div>
                 </div>
@@ -1458,11 +1513,11 @@ export default function ForumBoard({
             </div>
           )}
 
-          {/* ─── Tab: Meu Fórum ──────────────────────────── */}
           {activeTab === "meu" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               {!selectedMyForumClubId ? (
-                <EmptyBox
+                <ForumNoClubState
+                  title="Seu espaco de forum ainda esta vazio"
                   message={
                     isMentor
                       ? "Voce ainda nao possui foruns administrados para visualizar."
@@ -1476,7 +1531,7 @@ export default function ForumBoard({
                 <div className="premium-card p-5 border-l-4 bg-white" style={{ borderLeftColor: "var(--forum-primary, #5AC8C8)" }}>
                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <UserPlus className="w-5 h-5 text-[var(--forum-primary)]" />
-                    Solicitações Pendentes ({joinRequests.length})
+                    SolicitaÃ§Ãµes Pendentes ({joinRequests.length})
                   </h3>
                   <div className="space-y-3">
                     {joinRequests.map((req) => (
@@ -1543,7 +1598,7 @@ export default function ForumBoard({
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <span className="text-slate-800 badge">Tópicos</span> — {currentForumClub?.nome || "Meu Clube"}
+                  <span className="text-slate-800 badge">Tópicos</span>  {currentForumClub?.nome || "Meu Clube"}
                 </h2>
                 {myForumClubs.length > 1 && (
                   <div className="min-w-[260px]">
@@ -1589,7 +1644,7 @@ export default function ForumBoard({
                     className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[var(--forum-primary-ring)]"
                   >
                     <Plus className="w-4 h-4" />
-                    Criar Tópico
+                    Criar TÃ³pico
                   </button>
                 )}
               </div>
@@ -1597,7 +1652,7 @@ export default function ForumBoard({
               <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-slate-700">
                 <img src="/Lobo.svg" alt="Agente Guia" className="w-8 h-8 shrink-0" />
                 <div className="leading-snug">
-                  <p className="font-semibold text-slate-900">AGENTE GUIÁ está protegendo o chat.</p>
+                  <p className="font-semibold text-slate-900">AGENTE GUIA está protegendo o chat.</p>
                   <p className="text-slate-600">Suas mensagens são monitoradas para manter o ambiente seguro e respeitoso.</p>
                 </div>
               </div>
@@ -1608,12 +1663,12 @@ export default function ForumBoard({
                   className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)] animate-in fade-in slide-in-from-top-2"
                 >
                   <h3 className="font-bold text-slate-700 text-lg">
-                    Iniciando uma nova discussão
+                    Iniciando uma nova discussÃ£o
                   </h3>
                   <div className="space-y-3">
                     <input
                       type="text"
-                      placeholder="Qual o assunto do tópico?"
+                      placeholder="Qual o assunto do tÃ³pico?"
                       value={newTopicTitle}
                       onChange={(e) => setNewTopicTitle(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm transition-all font-medium"
@@ -1648,7 +1703,7 @@ export default function ForumBoard({
                       className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors disabled:opacity-50"
                     >
                       {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {submitting ? "Publicando..." : "Publicar Tópico"}
+                      {submitting ? "Publicando..." : "Publicar TÃ³pico"}
                     </button>
                   </div>
                 </form>
@@ -1657,7 +1712,7 @@ export default function ForumBoard({
               <div className="space-y-3">
                 {topics.length === 0 ? (
                   <EmptyBox
-                    message="Nenhum tópico criado ainda. Seja o primeiro a iniciar uma conversa!"
+                    message="Nenhum tÃ³pico criado ainda. Seja o primeiro a iniciar uma conversa!"
                     icon={MessageCircle}
                   />
                 ) : (
@@ -1679,17 +1734,18 @@ export default function ForumBoard({
             </div>
           )}
 
-          {/* ─── Tab: Fóruns Aceitos ─────────────────────── */}
+          {/* â”€â”€â”€ Tab: FÃ³runs Aceitos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {activeTab === "aceitos" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               {!viewingForumClubId ? (
                 <>
                   <h2 className="text-xl font-bold text-slate-800">
-                    Fóruns disponíveis para você
+                    FÃ³runs disponÃ­veis para vocÃª
                   </h2>
                   {acceptedClubs.length === 0 ? (
-                    <EmptyBox
-                      message="Você ainda não tem acesso a fóruns além do seu clube principal."
+                    <ForumNoClubState
+                      title="Sem foruns aceitos no momento"
+                      message="VocÃª ainda nÃ£o tem acesso a fÃ³runs alÃ©m do seu clube principal."
                       icon={Users}
                     />
                   ) : (
@@ -1720,7 +1776,7 @@ export default function ForumBoard({
                     </button>
                     <div className="flex-1">
                       <h2 className="text-xl font-bold text-slate-800">
-                        Tópicos — {currentForumClub?.nome || "Fórum"}
+                        TÃ³picos â€” {currentForumClub?.nome || "FÃ³rum"}
                       </h2>
                     </div>
                     {canParticipate && (
@@ -1728,7 +1784,7 @@ export default function ForumBoard({
                         onClick={() => setShowNewTopic(true)}
                         className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
                       >
-                        <Plus className="w-4 h-4" /> Novo Tópico
+                        <Plus className="w-4 h-4" /> Novo TÃ³pico
                       </button>
                     )}
                   </div>
@@ -1739,7 +1795,7 @@ export default function ForumBoard({
                       onClick={() => setShowNewTopic(true)}
                       className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
                     >
-                      <Plus className="w-4 h-4" /> Novo Tópico
+                      <Plus className="w-4 h-4" /> Novo TÃ³pico
                     </button>
                   )}
 
@@ -1748,10 +1804,10 @@ export default function ForumBoard({
                       onSubmit={handleCreateTopic}
                       className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)]"
                     >
-                      {/* (Mesmo form de Novo Tópico acima, renderizado dinamicamente) */}
+                      {/* (Mesmo form de Novo TÃ³pico acima, renderizado dinamicamente) */}
                       <input
                         type="text"
-                        placeholder="Título do tópico"
+                        placeholder="TÃ­tulo do tÃ³pico"
                         value={newTopicTitle}
                         onChange={(e) => setNewTopicTitle(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm font-medium"
@@ -1759,7 +1815,7 @@ export default function ForumBoard({
                         required
                       />
                       <textarea
-                        placeholder="Descrição (opcional)"
+                        placeholder="DescriÃ§Ã£o (opcional)"
                         value={newTopicDesc}
                         onChange={(e) => setNewTopicDesc(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm resize-none"
@@ -1786,7 +1842,7 @@ export default function ForumBoard({
                           {submitting && (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           )}
-                          {submitting ? "Criando..." : "Criar Tópico"}
+                          {submitting ? "Criando..." : "Criar TÃ³pico"}
                         </button>
                       </div>
                     </form>
@@ -1795,7 +1851,7 @@ export default function ForumBoard({
                   <div className="space-y-3">
                     {topics.length === 0 ? (
                       <EmptyBox
-                        message="Nenhum tópico encontrado neste fórum."
+                        message="Nenhum tÃ³pico encontrado neste fÃ³rum."
                         icon={MessageCircle}
                       />
                     ) : (
@@ -1804,7 +1860,7 @@ export default function ForumBoard({
                           key={topic.id}
                           topic={topic}
                           onSelect={setSelectedTopicId}
-                          isModerator={false} // Não é moderador de outros clubes
+                          isModerator={false} // NÃ£o Ã© moderador de outros clubes
                         />
                       ))
                     )}
@@ -1814,7 +1870,7 @@ export default function ForumBoard({
             </div>
           )}
 
-          {/* ─── Tab: Explorar Fóruns ────────────────────── */}
+          {/* â”€â”€â”€ Tab: Explorar FÃ³runs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {activeTab === "explorar" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -1824,7 +1880,7 @@ export default function ForumBoard({
                   </h2>
                   {exploreTotalCount > 0 && (
                     <p className="text-sm text-slate-500 font-medium mt-1">
-                      Descubra discussões em outros {exploreTotalCount} clubes da
+                      Descubra discussÃµes em outros {exploreTotalCount} clubes da
                       {" "}
                       {exploreScopeLabel}
                     </p>
@@ -1903,7 +1959,7 @@ export default function ForumBoard({
 
               {!exploreHasMore && explorableClubs.length > 0 && (
                 <p className="text-center text-sm font-medium text-slate-400 py-8">
-                  Você chegou ao fim da lista.
+                  VocÃª chegou ao fim da lista.
                 </p>
               )}
             </div>

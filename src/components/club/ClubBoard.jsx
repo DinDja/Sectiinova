@@ -517,10 +517,54 @@ export default function ClubBoard({
     const investigatorCount = viewingClubInvestigadores.length;
     const memberCount = viewingClubUsers.length;
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
+    const hasClubBannerBackground = Boolean(clubBannerUrl);
+    const clubWrapperStyle = useMemo(() => {
+        const bannerBackdrop = hasClubBannerBackground
+            ? `linear-gradient(130deg, rgba(16,185,129,0.62) 0%, rgba(6,182,212,0.46) 45%, rgba(15,23,42,0.6) 100%), url("${clubBannerUrl}")`
+            : "linear-gradient(120deg, rgba(236,253,245,1) 0%, rgba(240,249,255,1) 48%, rgba(249,250,251,1) 100%)";
+
+        return {
+            backgroundImage: bannerBackdrop,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: hasClubBannerBackground ? "fixed" : "scroll",
+            backgroundRepeat: "no-repeat"
+        };
+    }, [clubBannerUrl, hasClubBannerBackground]);
+    const clubOverlayColor = hasClubBannerBackground
+        ? "rgba(255,255,255,0.76)"
+        : "rgba(255,255,255,0.9)";
 
     return (
-        <div className="space-y-8 mx-auto pb-20  font-sans bg-slate-50 p-3 md:p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-slate-800 relative overflow-hidden">
-            
+        <>
+            <style>{`
+                .club-pattern-grid {
+                    background-image:
+                        linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+                        linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+                        linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+                        linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+                        linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24)),
+                        linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24));
+                    background-size: 80px 140px;
+                    background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+                    animation: panClubCubes 60s linear infinite;
+                }
+                @keyframes panClubCubes {
+                    0% { background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px; }
+                    100% { background-position: 80px 140px, 80px 140px, 120px 210px, 120px 210px, 80px 140px, 120px 210px; }
+                }
+            `}</style>
+            <div
+                className="min-h-screen w-full club-pattern-grid relative overflow-x-hidden"
+                style={clubWrapperStyle}
+            >
+                <div
+                    className="fixed inset-0 pointer-events-none z-0"
+                    style={{ backgroundColor: clubOverlayColor }}
+                ></div>
+                <div className="space-y-8 mx-auto pb-20 font-sans p-3 md:p-6 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-slate-800 relative overflow-hidden z-10">
+             
             <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 group min-h-[320px] flex flex-col justify-end p-8 md:p-12 shadow-sm">
                 <div className="absolute inset-0 pointer-events-none">
                     {clubBannerUrl ? (
@@ -1026,10 +1070,11 @@ export default function ClubBoard({
                 clubProjects={viewingClubProjects}
                 clubUsers={viewingClubUsers}
             />
-        </div>
+                </div>
+            </div>
+        </>
     );
 }
-
 
 
 

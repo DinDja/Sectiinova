@@ -52,6 +52,7 @@ export default function MainShell({
 
   const isINPIView = currentView === "inpi";
   const isForum = currentView === "forum";
+  const isClub = currentView === "clube";
   const isTrilha = currentView === "trilha";
 
   const containerClasses = isHighContrast
@@ -93,15 +94,15 @@ export default function MainShell({
 
           <main className="flex-1 overflow-y-auto relative studio-main">
             {isINPIView ? (
-              <div className="mx-auto w-full max-w-[84rem] px-2 py-4 md:px-4">
+              <div className="mx-auto w-full max-w-[85rem] px-2 py-4 md:px-4">
                 {children}
               </div>
-            ) : isForum ? (
+            ) : isForum || isClub ? (
                <div className="w-full">{children}</div>
             ):  isTrilha ? (
               <div className="w-full">{children}</div>
             ) : (
-              <div className="max-w-[84rem] mx-auto w-full py-4">{children}</div>
+              <div className="max-w-[85rem] mx-auto w-full py-4">{children}</div>
             )}
           </main>
         </div>
