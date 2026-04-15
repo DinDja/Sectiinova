@@ -84,6 +84,7 @@ export default function App() {
         selectedSchool,
         selectedTeam,
         derivedDiaryEntries,
+        canViewDiary,
         canEditDiary,
         composeMentoriaLabel,
         getLattesLink,
@@ -103,6 +104,8 @@ export default function App() {
         reviewingClubRequestIds,
         handleRespondClubEntryRequest,
         handleCreateProject,
+        handleUpdateProject,
+        handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,
         creatingClub,
@@ -161,6 +164,7 @@ export default function App() {
             myClub={myClub}
             viewingClub={viewingClub}
             setViewingClubId={setViewingClubId}
+            setSelectedClubId={setSelectedClubId}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             leadUser={leadUser}
@@ -180,7 +184,7 @@ export default function App() {
             <div className="mx-auto">
                 {loading && (
                     <div className="mb-6 premium-card p-8 flex items-center justify-center gap-3 text-slate-600">
-                        <LoaderCircle className="w-5 h-5 animate-spin text-[#00B5B5]" />
+                        <LoaderCircle className="w-5 h-5 animate-spin text-[#10B981]" />
                         Carregando feed de inovação...
                     </div>
                 )}
@@ -213,6 +217,7 @@ export default function App() {
                         selectedSchool={selectedSchool}
                         selectedTeam={selectedTeam}
                         derivedDiaryEntries={derivedDiaryEntries}
+                        canViewDiary={canViewDiary}
                         canEditDiary={canEditDiary}
                         setIsModalOpen={setIsModalOpen}
                         getInvestigatorDisplayNames={getInvestigatorDisplayNames}
@@ -245,6 +250,8 @@ export default function App() {
                         setSelectedProjectId={setSelectedProjectId}
                         setCurrentView={setCurrentView}
                         handleCreateProject={handleCreateProject}
+                        handleUpdateProject={handleUpdateProject}
+                        handleDeleteProject={handleDeleteProject}
                         loggedUser={loggedUser}
                         schools={schools}
                         users={users}
@@ -277,6 +284,8 @@ export default function App() {
                     <MeusProjetos
                         feedProjects={feedProjects}
                         clubProjects={myClubProjects}
+                        myClubIds={myClubIds}
+                        mentorManagedClubs={mentorManagedClubs}
                         loggedUser={loggedUser}
                         clubs={clubs}
                         users={users}
@@ -287,7 +296,6 @@ export default function App() {
                             const resolvedClubId = String(project?.clube_id || '').trim();
                             if (resolvedClubId) {
                                 setSelectedClubId(resolvedClubId);
-                                setViewingClubId(resolvedClubId);
                             }
 
                             setSelectedProjectId(String(project?.id || ''));
@@ -317,3 +325,4 @@ export default function App() {
         </MainShell>
     );
 }
+

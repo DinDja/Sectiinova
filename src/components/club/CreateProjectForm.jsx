@@ -1,27 +1,54 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, Search, ChevronDown, CheckCircle, UploadCloud } from 'lucide-react';
+
+const MAX_PROJECT_IMAGES = 5;
+
+const normalizeIdArray = (values = []) => {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+};
+
+const buildInitialProjectForm = (project = null) => {
+  const coorientadores = normalizeIdArray([
+    ...(project?.coorientador_ids || []),
+    ...(project?.coorientadores_ids || [])
+  ]);
+
+  const investigadores = normalizeIdArray(project?.investigadores_ids || []);
+
+  const imagens = Array.isArray(project?.imagens)
+    ? project.imagens.filter((img) => typeof img === 'string' && img.trim()).slice(0, MAX_PROJECT_IMAGES)
+    : (typeof project?.imagem === 'string' && project.imagem.trim() ? [project.imagem.trim()] : []);
+
+  return {
+    titulo: String(project?.titulo || '').trim(),
+    descricao: String(project?.descricao || '').trim(),
+    area_tematica: String(project?.area_tematica || '').trim(),
+    status: String(project?.status || 'Em andamento').trim(),
+    tipo: String(project?.tipo || 'Projeto Científico').trim(),
+    coorientador_ids: coorientadores,
+    investigadores_ids: investigadores,
+    imagens,
+    termo_aceite_criacao: false
+  };
+};
 
 export default function CreateProjectModal({
   isOpen,
   onClose,
   viewingClub,
+  loggedUser,
   users = [],
   viewingClubOrientadores = [],
   viewingClubCoorientadores = [],
   viewingClubInvestigadores = [],
   handleCreateProject,
+  handleUpdateProject,
+  projectToEdit = null,
+  mode = 'create',
   onSuccess
 }) {
-  const [projectForm, setProjectForm] = useState({
-    titulo: '',
-    descricao: '',
-    area_tematica: '', 
-    status: 'Em andamento', 
-    tipo: 'Projeto Científico', 
-    coorientador_ids: [],
-    investigadores_ids: [],
-    imagens: [] 
-  });
+  const [projectForm, setProjectForm] = useState(() => buildInitialProjectForm(projectToEdit));
 
   const [projectMessage, setProjectMessage] = useState('');
   const [imageUploadMessage, setImageUploadMessage] = useState('');
@@ -38,8 +65,25 @@ export default function CreateProjectModal({
   };
 
   const normalizeText = (value) => String(value || '').trim().toLowerCase();
+  const isMentorProfile = ['orientador', 'coorientador'].includes(normalizeText(loggedUser?.perfil));
+  const isEditing = mode === 'edit' || Boolean(projectToEdit?.id);
+  const modalTitle = isEditing ? 'Editar Projeto' : 'Criar Novo Projeto';
+  const modalSubtitle = isEditing
+    ? 'Atualize os detalhes do projeto publicado'
+    : 'Preencha os detalhes para registrar seu projeto';
   const selectedSchoolId = String(viewingClub?.escola_id || '').trim();
   const selectedSchoolName = normalizeText(viewingClub?.escola_nome);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const initialForm = buildInitialProjectForm(projectToEdit);
+    setProjectForm(initialForm);
+    setDescriptionLength(String(initialForm.descricao || '').length);
+    setProjectMessage('');
+    setImageUploadMessage('');
+    setFileInputKey(Date.now());
+  }, [isOpen, projectToEdit]);
 
   const isSameSchoolUser = (person) => {
     if (!selectedSchoolId && !selectedSchoolName) return true;
@@ -120,7 +164,7 @@ export default function CreateProjectModal({
     });
   }, [investigadorCandidates, searchInvestigador]);
 
-  const compressImageFiles = async (files) => {
+  const compressImageFiles = async (files, limit = MAX_PROJECT_IMAGES) => {
     const toDataUrl = (file) => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -155,7 +199,7 @@ export default function CreateProjectModal({
       return canvas.toDataURL('image/jpeg', 0.75);
     };
 
-    const selectedFiles = Array.from(files).slice(0, 2);
+    const selectedFiles = Array.from(files).slice(0, limit);
     const compressed = [];
 
     for (const file of selectedFiles) {
@@ -173,19 +217,32 @@ export default function CreateProjectModal({
     const files = event.target.files;
 
     if (!files || files.length === 0) {
-      setProjectForm((prev) => ({ ...prev, imagens: [] }));
-      setImageUploadMessage('');
+      setFileInputKey(Date.now());
       return;
     }
 
-    if (files.length > 2) {
-      setImageUploadMessage('Você pode adicionar até 2 imagens.');
+    const selectedFiles = Array.from(files);
+    const existingImages = Array.isArray(projectForm.imagens) ? projectForm.imagens : [];
+    const availableSlots = Math.max(0, MAX_PROJECT_IMAGES - existingImages.length);
+
+    if (availableSlots <= 0) {
+      setImageUploadMessage(`Você pode adicionar até ${MAX_PROJECT_IMAGES} imagens.`);
+      setFileInputKey(Date.now());
+      return;
+    }
+
+    if (selectedFiles.length > availableSlots) {
+      setImageUploadMessage(`Você pode adicionar no máximo ${MAX_PROJECT_IMAGES} imagens no total.`);
     } else {
       setImageUploadMessage('');
     }
 
-    const compressedImages = await compressImageFiles(files);
-    setProjectForm((prev) => ({ ...prev, imagens: compressedImages }));
+    const compressedImages = await compressImageFiles(selectedFiles, availableSlots);
+    setProjectForm((prev) => ({
+      ...prev,
+      imagens: [...(Array.isArray(prev.imagens) ? prev.imagens : []), ...compressedImages].slice(0, MAX_PROJECT_IMAGES)
+    }));
+    setFileInputKey(Date.now());
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -224,37 +281,113 @@ export default function CreateProjectModal({
     });
   };
 
+  const termoAceiteSections = [
+    {
+      title: '1. VINCULO INSTITUCIONAL DO PROJETO',
+      paragraphs: [
+        'Declaro que compreendo que o projeto sera desenvolvido no ambito do Clube de Ciencias da unidade escolar a qual estou vinculado(a), sendo, portanto, considerado uma atividade institucional do clube.',
+        'Reconheco que:'
+      ],
+      items: [
+        'o projeto integra as acoes pedagogicas da escola;',
+        'podera utilizar recursos fisicos, materiais e humanos da unidade escolar;',
+        'podera ser apresentado pela escola em eventos, feiras e atividades academicas.'
+      ]
+    },
+    {
+      title: '2. AUTORIA E RECONHECIMENTO',
+      paragraphs: [
+        'Declaro que minha participacao no projeto sera devidamente registrada, garantindo o reconhecimento da autoria intelectual nas etapas de:'
+      ],
+      items: [
+        'idealizacao;',
+        'desenvolvimento;',
+        'execucao;',
+        'apresentacao dos resultados.'
+      ],
+      footer: 'Estou ciente de que minha autoria sera preservada no historico do projeto, independentemente de mudancas futuras.'
+    },
+    {
+      title: '3. PARTICIPACAO EM EQUIPE',
+      paragraphs: ['Nos casos de projetos coletivos:'],
+      items: [
+        'comprometo-me a respeitar a colaboracao entre os membros;',
+        'reconheco que o projeto nao pertence individualmente a um unico participante;',
+        'concordo que decisoes sobre continuidade poderao considerar o grupo como um todo.'
+      ]
+    },
+    {
+      title: '4. REGISTRO E ACOMPANHAMENTO',
+      paragraphs: ['Declaro que todas as informacoes inseridas no sistema sao de minha responsabilidade e que:'],
+      items: [
+        'o projeto sera acompanhado e registrado ao longo de seu desenvolvimento;',
+        'alteracoes relevantes deverao ser informadas e atualizadas no sistema;',
+        'o historico do projeto sera mantido para fins pedagogicos e institucionais.'
+      ]
+    },
+    {
+      title: '5. COMPROMISSO ETICO E PEDAGOGICO',
+      paragraphs: ['Comprometo-me a:'],
+      items: [
+        'desenvolver o projeto com responsabilidade e etica;',
+        'respeitar as orientacoes do(a) professor(a) orientador(a);',
+        'zelar pelo uso adequado dos recursos disponibilizados;',
+        'respeitar as normas do Clube de Ciencias e da unidade escolar.'
+      ]
+    },
+    {
+      title: '6. CIENCIA E CONCORDANCIA',
+      paragraphs: ['Ao prosseguir com a criacao do projeto, declaro que li, compreendi e concordo com todos os termos acima estabelecidos.']
+    }
+  ];
+
   const handleSubmitProject = async (e) => {
     e.preventDefault();
 
-    if (!handleCreateProject) {
-      setProjectMessage('Função de criação não disponível.');
+    if (!isEditing && isMentorProfile && !projectForm.termo_aceite_criacao) {
+      setProjectMessage('Para criar o projeto, e obrigatorio ler e aceitar o termo de criacao de projetos.');
       return;
     }
 
     try {
-      await handleCreateProject(projectForm);
-      setProjectMessage('Projeto criado com sucesso!');
-      setProjectForm({
-        titulo: '',
-        descricao: '',
-        area_tematica: '',
-        status: 'Em andamento',
-        tipo: 'Projeto Científico',
-        coorientador_ids: [],
-        investigadores_ids: [],
-        imagens: []
-      });
-      setImageUploadMessage('');
-      setFileInputKey(Date.now());
-      setDescriptionLength(0);
+      if (isEditing) {
+        const projectId = String(projectToEdit?.id || '').trim();
+
+        if (!projectId) {
+          setProjectMessage('Projeto invalido para edicao.');
+          return;
+        }
+
+        if (!handleUpdateProject) {
+          setProjectMessage('Funcao de edicao nao disponivel.');
+          return;
+        }
+
+        await handleUpdateProject(projectId, projectForm);
+        setProjectMessage('Projeto atualizado com sucesso!');
+      } else {
+        if (!handleCreateProject) {
+          setProjectMessage('Funcao de criacao nao disponivel.');
+          return;
+        }
+
+        await handleCreateProject(projectForm);
+        setProjectMessage('Projeto criado com sucesso!');
+        const nextForm = buildInitialProjectForm(null);
+        setProjectForm(nextForm);
+        setImageUploadMessage('');
+        setFileInputKey(Date.now());
+        setDescriptionLength(0);
+      }
+
       if (typeof onSuccess === 'function') {
         onSuccess();
       }
       onClose(); 
     } catch (error) {
-      console.error('Erro ao criar projeto:', error);
-      setProjectMessage('Erro ao criar projeto. Verifique os dados e tente novamente.');
+      const actionLabel = isEditing ? 'atualizar' : 'criar';
+      console.error(`Erro ao ${actionLabel} projeto:`, error);
+      setProjectMessage(String(error?.message || '').trim() || `Erro ao ${actionLabel} projeto. Verifique os dados e tente novamente.`);
     }
   };
 
@@ -265,8 +398,8 @@ export default function CreateProjectModal({
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
         
         <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-[#0E0F0F] tracking-tight">Criar Novo Projeto</h2>
-          <p className="text-base text-slate-500 mt-1">Preencha os detalhes para registrar seu projeto</p>
+          <h2 className="text-3xl font-extrabold text-[#0E0F0F] tracking-tight">{modalTitle}</h2>
+          <p className="text-base text-slate-500 mt-1">{modalSubtitle}</p>
         </div>
 
         <form onSubmit={handleSubmitProject} className="space-y-6">
@@ -281,7 +414,7 @@ export default function CreateProjectModal({
                   onChange={(e) => setProjectForm((prev) => ({ ...prev, titulo: e.target.value }))}
                   required
                   placeholder="Ex: Análise da qualidade da água..."
-                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition"
+                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition"
                 />
               </div>
               
@@ -291,7 +424,7 @@ export default function CreateProjectModal({
                   value={projectForm.area_tematica}
                   onChange={(e) => setProjectForm((prev) => ({ ...prev, area_tematica: e.target.value }))}
                   placeholder="Área"
-                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition"
+                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition"
                 />
               </div>
 
@@ -300,7 +433,7 @@ export default function CreateProjectModal({
                 <select
                   value={projectForm.tipo}
                   onChange={(e) => setProjectForm((prev) => ({ ...prev, tipo: e.target.value }))}
-                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition appearance-none"
+                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition appearance-none"
                 >
                   <option value="Projeto Científico">Projeto Científico</option>
                   <option value="Iniciação Tecnológica">Iniciação Tecnológica</option>
@@ -313,7 +446,7 @@ export default function CreateProjectModal({
                 <select
                   value={projectForm.status}
                   onChange={(e) => setProjectForm((prev) => ({ ...prev, status: e.target.value }))}
-                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition appearance-none"
+                  className="w-full border border-slate-200 px-4 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition appearance-none"
                 >
                   <option value="Em andamento">Em andamento</option>
                   <option value="Concluído">Concluído</option>
@@ -332,7 +465,7 @@ export default function CreateProjectModal({
                 value={projectForm.descricao}
                 onChange={handleDescriptionChange}
                 placeholder="Descreva os objetivos, metodologia..."
-                className="w-full border border-slate-200 px-4 py-3 rounded-xl text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition"
                 rows={5}
                 maxLength={1000}
               />
@@ -343,9 +476,9 @@ export default function CreateProjectModal({
           <section className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">3. MÍDIA</h3>
             <div className="flex gap-4">
-              <div className="flex-1 relative group cursor-pointer border-2 border-dashed border-slate-200 rounded-xl hover:border-[#00B5B5]/50 transition bg-slate-50 p-6 text-center">
-                <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-[#00B5B5]/70 mx-auto transition" />
-                <p className="text-sm text-slate-500 font-medium mt-2">Arraste até 2 fotos ou clique para enviar</p>
+              <div className="flex-1 relative group cursor-pointer border-2 border-dashed border-slate-200 rounded-xl hover:border-[#10B981]/50 transition bg-slate-50 p-6 text-center">
+                <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-[#10B981]/70 mx-auto transition" />
+                <p className="text-sm text-slate-500 font-medium mt-2">Arraste até {MAX_PROJECT_IMAGES} fotos ou clique para enviar</p>
                 <input
                   key={fileInputKey}
                   type="file"
@@ -391,7 +524,7 @@ export default function CreateProjectModal({
                     value={searchCoorientador}
                     onChange={(e) => setSearchCoorientador(e.target.value)}
                     placeholder="Buscar..."
-                    className="w-full border border-slate-200 px-10 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition"
+                    className="w-full border border-slate-200 px-10 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition"
                   />
                   <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
@@ -411,7 +544,7 @@ export default function CreateProjectModal({
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleMemberSelection('coorientador_ids', person.id)}
-                            className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
+                            className="w-4 h-4 rounded border-slate-300 text-[#10B981] focus:ring-[#10B981]"
                           />
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
                           <span className="text-sm text-slate-800 font-medium">{person.nome || 'Mentor sem nome'}</span>
@@ -429,7 +562,7 @@ export default function CreateProjectModal({
                     value={searchInvestigador}
                     onChange={(e) => setSearchInvestigador(e.target.value)}
                     placeholder="Buscar..."
-                    className="w-full border border-slate-200 px-10 py-2 rounded-lg text-sm text-slate-800 focus:border-[#00B5B5] focus:ring-[#00B5B5]/20 focus:ring-1 transition"
+                    className="w-full border border-slate-200 px-10 py-2 rounded-lg text-sm text-slate-800 focus:border-[#10B981] focus:ring-[#10B981]/20 focus:ring-1 transition"
                   />
                   <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
@@ -450,7 +583,7 @@ export default function CreateProjectModal({
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleMemberSelection('investigadores_ids', personId)}
-                            className="w-4 h-4 rounded border-slate-300 text-[#00B5B5] focus:ring-[#00B5B5]"
+                            className="w-4 h-4 rounded border-slate-300 text-[#10B981] focus:ring-[#10B981]"
                           />
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">{initials}</div>
                           <span className="text-sm text-slate-800 font-medium">{person?.nome || 'Clubista sem nome'}</span>
@@ -464,12 +597,54 @@ export default function CreateProjectModal({
             </div>
           </section>
 
+          {isMentorProfile && !isEditing && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">5. TERMO DE ACEITE</h3>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5 space-y-3">
+                <h4 className="text-sm font-extrabold text-slate-900 tracking-wide">
+                  TERMO DE ACEITE PARA CRIACAO DE PROJETOS NOS CLUBES DE CIENCIAS
+                </h4>
+
+                <div className="max-h-64 overflow-y-auto pr-2 space-y-4 text-sm text-slate-700 leading-relaxed">
+                  {termoAceiteSections.map((section) => (
+                    <div key={section.title} className="space-y-2">
+                      <p className="font-bold text-slate-900">{section.title}</p>
+                      {(section.paragraphs || []).map((paragraph) => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
+                      {(section.items || []).length > 0 && (
+                        <ul className="list-disc list-inside space-y-1">
+                          {section.items.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {section.footer && <p>{section.footer}</p>}
+                    </div>
+                  ))}
+                </div>
+
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(projectForm.termo_aceite_criacao)}
+                    onChange={(e) => setProjectForm((prev) => ({ ...prev, termo_aceite_criacao: e.target.checked }))}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-[#10B981] focus:ring-[#10B981]"
+                  />
+                  <span className="text-sm font-semibold text-slate-800">Declaro que li e aceito os termos.</span>
+                </label>
+              </div>
+            </section>
+          )}
+
           <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-             <button
+            <button
               type="submit"
-              className="px-6 py-2.5 bg-[#00B5B5] text-white font-bold text-sm rounded-full shadow-lg hover:bg-[#009191] transition flex items-center gap-2 group"
+              disabled={!isEditing && isMentorProfile && !projectForm.termo_aceite_criacao}
+              className="px-6 py-2.5 bg-[#10B981] text-white font-bold text-sm rounded-full shadow-lg hover:bg-[#047857] transition flex items-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Criar Projeto
+              {isEditing ? 'Salvar Alterações' : 'Criar Projeto'}
               <CheckCircle className="w-5 h-5 transition group-hover:scale-110" />
             </button>
             <button
@@ -495,3 +670,4 @@ export default function CreateProjectModal({
     </div>
   );
 }
+

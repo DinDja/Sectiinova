@@ -11,6 +11,7 @@ export default function MainShell({
   myClub,
   viewingClub,
   setViewingClubId,
+  setSelectedClubId,
   searchTerm,
   setSearchTerm,
   leadUser,
@@ -49,8 +50,9 @@ export default function MainShell({
     fontSize: effectiveFontSize,
   };
 
-  const isForumView = currentView === 'forum';
   const isINPIView = currentView === "inpi";
+  const isForum = currentView === "forum";
+  const isTrilha = currentView === "trilha";
 
   const containerClasses = isHighContrast
     ? "app-shell h-screen bg-black text-white flex flex-col relative"
@@ -68,6 +70,7 @@ export default function MainShell({
           loggedUser={loggedUser}
           myClubId={myClubId}
           setViewingClubId={setViewingClubId}
+          setSelectedClubId={setSelectedClubId}
           sidebarOrder={sidebarOrder}
           setSidebarOrder={setSidebarOrder}
           saveSidebarOrder={saveSidebarOrder}
@@ -88,27 +91,17 @@ export default function MainShell({
             setCurrentView={setCurrentView}
           />
 
-          <main
-            className="flex-1 overflow-y-auto relative p-2"
-            style={{
-              backgroundColor: "#f8fafc", 
-              ...(isForumView
-                ? {}
-                : {
-                    backgroundImage: ` 
-          linear-gradient(to right, rgba(203, 213, 225, 0.2) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(203, 213, 225, 0.2) 1px, transparent 1px)
-        `, 
-                    backgroundSize: "32px 32px", 
-                  }),
-            }}
-          >
+          <main className="flex-1 overflow-y-auto relative studio-main">
             {isINPIView ? (
               <div className="mx-auto w-full max-w-[84rem] px-2 py-4 md:px-4">
                 {children}
               </div>
+            ) : isForum ? (
+               <div className="w-full">{children}</div>
+            ):  isTrilha ? (
+              <div className="w-full">{children}</div>
             ) : (
-              children
+              <div className="max-w-[84rem] mx-auto w-full py-4">{children}</div>
             )}
           </main>
         </div>

@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Search,
   Globe,
+  Building2,
   LoaderCircle,
   Loader2,
   ShieldAlert,
@@ -63,6 +64,45 @@ const normalizeId = (value) => String(value || "").trim();
 const normalizeUniqueIds = (values) =>
   [...new Set((values || []).map((value) => normalizeId(value)).filter(Boolean))];
 
+const getInitials = (value) =>
+  String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "CL";
+
+const getClubLogoUrl = (club) => String(club?.logo_url || club?.logo || "").trim();
+
+const getClubBannerUrl = (club) => String(club?.banner_url || club?.banner || "").trim();
+
+const getClubMemberCount = (club) => {
+  const inferredMembers = normalizeUniqueIds([
+    ...(club?.membros_ids || []),
+    ...(club?.clubistas_ids || []),
+    ...(club?.orientador_ids || []),
+    ...(club?.coorientador_ids || []),
+    club?.mentor_id,
+  ]).length;
+
+  if (inferredMembers > 0) {
+    return inferredMembers;
+  }
+
+  const explicitCount = Number(
+    club?.membros_count || club?.membrosCount || club?.memberCount || 0,
+  );
+
+  return Number.isFinite(explicitCount) && explicitCount > 0 ? explicitCount : 0;
+};
+
+const FORUM_EXPLORE_BANNER_FALLBACKS = [
+  "/images/BG_1.png",
+  "/images/BG_2.png",
+  "/images/BG_3.png",
+];
+
 const formatSafeDate = (dateObj) => {
   if (!dateObj) return "";
   const date =
@@ -75,18 +115,165 @@ const formatSafeDate = (dateObj) => {
   });
 };
 
-const forumClubSelectStyles = {
+const hashString = (value) => {
+  const input = String(value || "");
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const hslToRgbString = (h, s, l) => {
+  const hue = Number(h) % 360;
+  const saturation = Math.max(0, Math.min(100, Number(s))) / 100;
+  const lightness = Math.max(0, Math.min(100, Number(l))) / 100;
+
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const section = hue / 60;
+  const x = chroma * (1 - Math.abs((section % 2) - 1));
+
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+
+  if (section >= 0 && section < 1) {
+    rPrime = chroma;
+    gPrime = x;
+  } else if (section >= 1 && section < 2) {
+    rPrime = x;
+    gPrime = chroma;
+  } else if (section >= 2 && section < 3) {
+    gPrime = chroma;
+    bPrime = x;
+  } else if (section >= 3 && section < 4) {
+    gPrime = x;
+    bPrime = chroma;
+  } else if (section >= 4 && section < 5) {
+    rPrime = x;
+    bPrime = chroma;
+  } else {
+    rPrime = chroma;
+    bPrime = x;
+  }
+
+  const m = lightness - chroma / 2;
+  const toChannel = (value) => Math.round((value + m) * 255);
+
+  return `rgb(${toChannel(rPrime)}, ${toChannel(gPrime)}, ${toChannel(bPrime)})`;
+};
+
+const normalizeColorValue = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const hexMatch = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    if (hexMatch[1].length === 3) {
+      const [r, g, b] = hexMatch[1].split("");
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    return raw;
+  }
+
+  const rgbMatch = raw.match(
+    /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i,
+  );
+  if (!rgbMatch) return "";
+
+  const rgbValues = rgbMatch.slice(1).map((channel) => Number(channel));
+  if (rgbValues.some((channel) => Number.isNaN(channel) || channel > 255)) {
+    return "";
+  }
+
+  return `rgb(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]})`;
+};
+
+const parseColorToRgbTuple = (color) => {
+  const normalized = normalizeColorValue(color);
+  if (!normalized) return null;
+
+  if (normalized.startsWith("#")) {
+    return [
+      Number.parseInt(normalized.slice(1, 3), 16),
+      Number.parseInt(normalized.slice(3, 5), 16),
+      Number.parseInt(normalized.slice(5, 7), 16),
+    ];
+  }
+
+  const rgbMatch = normalized.match(
+    /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i,
+  );
+  if (!rgbMatch) return null;
+
+  return rgbMatch.slice(1).map((channel) => Number(channel));
+};
+
+const withAlpha = (color, alpha = 1) => {
+  const tuple = parseColorToRgbTuple(color) || [90, 200, 200];
+  const normalizedAlpha = Math.max(0, Math.min(1, Number(alpha)));
+  return `rgba(${tuple[0]}, ${tuple[1]}, ${tuple[2]}, ${normalizedAlpha})`;
+};
+
+const resolveClubThemeColor = (club, keys) => {
+  for (const key of keys) {
+    const normalizedColor = normalizeColorValue(club?.[key]);
+    if (normalizedColor) return normalizedColor;
+  }
+  return "";
+};
+
+const buildSeedColor = (seed, hueOffset = 0, saturation = 62, lightness = 44) => {
+  const hue = (hashString(seed) + Number(hueOffset || 0)) % 360;
+  return hslToRgbString(hue, saturation, lightness);
+};
+
+const buildForumTheme = (club) => {
+  const seed = normalizeId(club?.id || club?.nome || club?.escola_id || "forum");
+  const primaryColor =
+    resolveClubThemeColor(club, [
+      "cor_primaria",
+      "corPrincipal",
+      "cor_tema",
+      "theme_color",
+      "primary_color",
+      "accent_color",
+      "cor",
+    ]) || buildSeedColor(seed, 0, 58, 44);
+
+  let secondaryColor =
+    resolveClubThemeColor(club, [
+      "cor_secundaria",
+      "corSecundaria",
+      "theme_secondary_color",
+      "secondary_color",
+      "accent_secondary_color",
+    ]) || buildSeedColor(`${seed}:secondary`, 38, 64, 40);
+
+  if (secondaryColor === primaryColor) {
+    secondaryColor = buildSeedColor(`${seed}:alt`, 76, 62, 38);
+  }
+
+  return {
+    primary: primaryColor,
+    secondary: secondaryColor,
+    bannerUrl: getClubBannerUrl(club),
+  };
+};
+
+const buildForumClubSelectStyles = (primaryColor) => ({
   control: (base, state) => ({
     ...base,
     minHeight: 42,
     borderRadius: 12,
-    borderColor: state.isFocused ? "#5AC8C8" : "#e2e8f0",
+    borderColor: state.isFocused ? primaryColor : "#e2e8f0",
     boxShadow: state.isFocused
-      ? "0 0 0 4px rgba(90, 200, 200, 0.16)"
+      ? `0 0 0 4px ${withAlpha(primaryColor, 0.16)}`
       : "none",
     backgroundColor: "#ffffff",
     "&:hover": {
-      borderColor: "#5AC8C8",
+      borderColor: primaryColor,
     },
   }),
   valueContainer: (base) => ({
@@ -106,7 +293,7 @@ const forumClubSelectStyles = {
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isSelected
-      ? "#ecfeff"
+      ? withAlpha(primaryColor, 0.16)
       : state.isFocused
         ? "#f8fafc"
         : "#ffffff",
@@ -114,13 +301,19 @@ const forumClubSelectStyles = {
     padding: "10px 12px",
     cursor: "pointer",
   }),
-};
+});
 
 // ─── Sub-Componentes Memorizados ──────────────────────────────────
 const EmptyBox = memo(({ message, icon: Icon = Coffee }) => (
   <div className="premium-card p-10 flex flex-col items-center justify-center text-center border border-dashed border-slate-200 bg-slate-50/50">
-    <div className="w-16 h-16 bg-[#5AC8C8]/20 rounded-full flex items-center justify-center mb-4">
-      <Icon className="w-8 h-8 text-[#5AC8C8]" />
+    <div
+      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+      style={{ backgroundColor: "var(--forum-primary-soft, rgba(90, 200, 200, 0.2))" }}
+    >
+      <Icon
+        className="w-8 h-8"
+        style={{ color: "var(--forum-primary, #5AC8C8)" }}
+      />
     </div>
     <p className="text-slate-500 font-medium max-w-sm">{message}</p>
   </div>
@@ -133,7 +326,7 @@ const TopicItem = memo(
 
     return (
       <div
-        className="premium-card p-4 hover:shadow-md hover:border-[#5AC8C8]/60 transition-all cursor-pointer group bg-white relative overflow-hidden"
+        className="premium-card p-4 hover:shadow-md hover:border-[var(--forum-primary-soft-strong)] transition-all cursor-pointer group bg-white relative overflow-hidden"
         onClick={() => onSelect(topic.id)}
         role="button"
         tabIndex={0}
@@ -146,7 +339,11 @@ const TopicItem = memo(
             <div className="flex items-center gap-2 mb-1.5">
               {topic.pinned && (
                 <Pin
-                  className="w-4 h-4 text-[#5AC8C8] shrink-0 fill-[#5AC8C8]"
+                  className="w-4 h-4 shrink-0"
+                  style={{
+                    color: "var(--forum-primary, #5AC8C8)",
+                    fill: "var(--forum-primary, #5AC8C8)",
+                  }}
                   title="Tópico Fixado"
                 />
               )}
@@ -156,7 +353,7 @@ const TopicItem = memo(
                   title="Tópico Bloqueado"
                 />
               )}
-              <h3 className="font-bold text-slate-800 truncate group-hover:text-[#5AC8C8] transition-colors">
+              <h3 className="font-bold text-slate-800 truncate group-hover:text-[var(--forum-primary)] transition-colors">
                 {topic.titulo}
               </h3>
             </div>
@@ -185,7 +382,7 @@ const TopicItem = memo(
             >
               <button
                 onClick={() => onTogglePin(topic.id, topic.pinned)}
-                className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-[#5AC8C8]/40 outline-none ${topic.pinned ? "bg-[#5AC8C8]/20 text-[#5AC8C8]" : "hover:bg-slate-100 text-slate-400 hover:text-[#5AC8C8]"}`}
+                className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-[var(--forum-primary-ring)] outline-none ${topic.pinned ? "bg-[var(--forum-primary-soft)] text-[var(--forum-primary)]" : "hover:bg-slate-100 text-slate-400 hover:text-[var(--forum-primary)]"}`}
                 aria-label={topic.pinned ? "Desafixar tópico" : "Fixar tópico"}
                 title={topic.pinned ? "Desafixar" : "Fixar"}
               >
@@ -218,32 +415,155 @@ const TopicItem = memo(
 );
 TopicItem.displayName = "TopicItem";
 
-const ClubExploreCard = memo(({ club, onRequestJoin, requesting }) => (
-  <div className="premium-card p-5 flex flex-col justify-between hover:shadow-md transition-shadow bg-white">
-    <div>
-      <h3 className="font-bold text-slate-800 text-lg mb-1">{club.nome}</h3>
-      {club.escola_id && (
-        <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#5AC8C8]/60"></span>
-          Escola: {club.escola_id}
-        </p>
-      )}
+const ClubExploreCard = memo(({ club, index, onRequestJoin, requesting }) => {
+  const logoUrl = getClubLogoUrl(club);
+  const bannerUrl = getClubBannerUrl(club);
+  const displayBanner =
+    bannerUrl ||
+    FORUM_EXPLORE_BANNER_FALLBACKS[
+      Number(index || 0) % FORUM_EXPLORE_BANNER_FALLBACKS.length
+    ];
+  const memberCount = getClubMemberCount(club);
+  const schoolLabel = String(club?.escola_nome || club?.escola_id || "").trim();
+
+  return (
+    <div className="premium-card p-0 overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow bg-white border border-slate-100">
+      <div className="relative h-32 overflow-visible">
+        <img
+          src={displayBanner}
+          alt={`Banner do clube ${club?.nome || ""}`}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent" />
+        {!bannerUrl && (
+          <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-white bg-black/45 px-2 py-1 rounded-full">
+            Banner ilustrativo
+          </span>
+        )}
+
+        <div className="absolute -bottom-6 left-4 w-12 h-12 rounded-2xl border-2 border-white bg-white overflow-hidden shadow-lg flex items-center justify-center">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={`Logo do clube ${club?.nome || ""}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-xs font-black text-slate-700">
+              {getInitials(club?.nome)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-5 pt-8 flex-1 flex flex-col">
+        <h3 className="font-bold text-slate-800 text-lg mb-1 line-clamp-2">{club?.nome}</h3>
+
+        {schoolLabel && (
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+            {schoolLabel}
+          </p>
+        )}
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 px-2.5 py-1 text-xs font-semibold">
+            <Users className="w-3.5 h-3.5" />
+            {memberCount} membro{memberCount === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        <button
+          onClick={() => onRequestJoin(club.id)}
+          disabled={requesting}
+          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--forum-primary-soft)] text-[var(--forum-primary)] hover:brightness-95"
+        >
+          {requesting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <LogIn className="w-4 h-4" />
+          )}
+          {requesting ? "Solicitando..." : "Solicitar Entrada"}
+        </button>
+      </div>
     </div>
-    <button
-      onClick={() => onRequestJoin(club.id)}
-      disabled={requesting}
-      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#5AC8C8]/10 text-[#5AC8C8] rounded-xl hover:bg-[#5AC8C8]/20 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {requesting ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <LogIn className="w-4 h-4" />
-      )}
-      {requesting ? "Solicitando..." : "Solicitar Entrada"}
-    </button>
-  </div>
-));
+  );
+});
 ClubExploreCard.displayName = "ClubExploreCard";
+
+const AcceptedClubCard = memo(({ club, index, onSelect }) => {
+  const logoUrl = getClubLogoUrl(club);
+  const bannerUrl = getClubBannerUrl(club);
+  const displayBanner =
+    bannerUrl ||
+    FORUM_EXPLORE_BANNER_FALLBACKS[
+      Number(index || 0) % FORUM_EXPLORE_BANNER_FALLBACKS.length
+    ];
+  const memberCount = getClubMemberCount(club);
+  const schoolLabel = String(club?.escola_nome || club?.escola_id || "").trim();
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(club.id)}
+      className="premium-card p-0 overflow-hidden group text-left bg-white border border-slate-100 hover:shadow-lg transition-all"
+    >
+      <div className="relative h-36 overflow-visible">
+        <div className="absolute inset-0 overflow-hidden">
+          <img
+            src={displayBanner}
+            alt={`Banner do clube ${club?.nome || ""}`}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20 to-transparent" />
+          {!bannerUrl && (
+            <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-white bg-black/45 px-2 py-1 rounded-full">
+              Banner ilustrativo
+            </span>
+          )}
+        </div>
+
+        <div className="absolute -bottom-8 left-4 z-10 w-16 h-16 rounded-3xl border-2 border-white bg-white overflow-hidden shadow-lg flex items-center justify-center">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={`Logo do clube ${club?.nome || ""}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-xs font-black text-slate-700">
+              {getInitials(club?.nome)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-5 pt-10 flex-1 flex flex-col">
+        <h3 className="font-bold text-slate-800 text-lg mb-1 line-clamp-2">
+          {club?.nome}
+        </h3>
+
+        {schoolLabel && (
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+            {schoolLabel}
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 px-3 py-1 text-xs font-semibold">
+            <Users className="w-3.5 h-3.5" />
+            {memberCount} membro{memberCount === 1 ? "" : "s"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+            Acessar fórum
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+});
+AcceptedClubCard.displayName = "AcceptedClubCard";
 
 // ─── Componente Principal ─────────────────────────────────────────
 export default function ForumBoard({
@@ -633,6 +953,52 @@ export default function ForumBoard({
     [clubs, currentForumClubId, myClub],
   );
 
+  const currentForumTheme = useMemo(
+    () => buildForumTheme(currentForumClub),
+    [currentForumClub],
+  );
+
+  const forumClubSelectStyles = useMemo(
+    () => buildForumClubSelectStyles(currentForumTheme.primary),
+    [currentForumTheme.primary],
+  );
+
+  const forumWrapperStyle = useMemo(() => {
+    const hasBanner = Boolean(currentForumTheme.bannerUrl);
+    const bannerBackdrop = hasBanner
+      ? `linear-gradient(130deg, ${withAlpha(currentForumTheme.primary, 0.72)} 0%, ${withAlpha(currentForumTheme.secondary, 0.58)} 45%, rgba(15, 23, 42, 0.58) 100%), url("${currentForumTheme.bannerUrl}")`
+      : `radial-gradient(circle at 8% 12%, ${withAlpha(currentForumTheme.primary, 0.22)} 0%, transparent 42%), radial-gradient(circle at 88% 10%, ${withAlpha(currentForumTheme.secondary, 0.18)} 0%, transparent 38%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)`;
+
+    return {
+      "--forum-primary": currentForumTheme.primary,
+      "--forum-secondary": currentForumTheme.secondary,
+      "--forum-primary-soft": withAlpha(currentForumTheme.primary, 0.14),
+      "--forum-primary-soft-strong": withAlpha(currentForumTheme.primary, 0.26),
+      "--forum-primary-ring": withAlpha(currentForumTheme.primary, 0.36),
+      "--forum-overlay": hasBanner
+        ? "rgba(255, 255, 255, 0.64)"
+        : "rgba(255, 255, 255, 0.82)",
+      backgroundImage: bannerBackdrop,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundAttachment: hasBanner ? "fixed" : "scroll",
+    };
+  }, [currentForumTheme]);
+
+  const forumHeroStyle = useMemo(() => {
+    if (currentForumTheme.bannerUrl) {
+      return {
+        backgroundImage: `linear-gradient(112deg, ${withAlpha(currentForumTheme.primary, 0.82)} 0%, ${withAlpha(currentForumTheme.secondary, 0.7)} 48%, rgba(15, 23, 42, 0.56) 100%), url("${currentForumTheme.bannerUrl}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+
+    return {
+      backgroundImage: `linear-gradient(112deg, ${currentForumTheme.primary} 0%, ${currentForumTheme.secondary} 100%)`,
+    };
+  }, [currentForumTheme]);
+
   const selectedTopic = useMemo(
     () => topics.find((t) => t.id === selectedTopicId) || null,
     [topics, selectedTopicId],
@@ -838,6 +1204,7 @@ export default function ForumBoard({
       <ForumThread
         topic={selectedTopic}
         clubeId={currentForumClubId}
+        forumTheme={currentForumTheme}
         loggedUser={loggedUser}
         users={users}
         canParticipate={canParticipate}
@@ -852,7 +1219,7 @@ export default function ForumBoard({
     if (!confirmModal.open) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-2xl p-6 w-11/12 max-w-md shadow-lg">
+        <div className="bg-white rounded-2xl p-6 w-11/12 shadow-lg">
           <h2 className="text-lg font-bold mb-2">{confirmModal.title}</h2>
           <p className="text-sm text-slate-600 mb-4">{confirmModal.description}</p>
           <div className="flex justify-end gap-2">
@@ -864,7 +1231,7 @@ export default function ForumBoard({
             </button>
             <button
               onClick={() => confirmModal.onConfirm?.()}
-              className="px-4 py-2 bg-[#5AC8C8] text-white rounded-lg font-medium hover:bg-[#4bb4b4]"
+              className="px-4 py-2 text-white rounded-lg font-medium transition-colors bg-[var(--forum-primary)] hover:brightness-95"
             >
               Confirmar
             </button>
@@ -879,15 +1246,14 @@ export default function ForumBoard({
     <>
       {/* Fundo animado de cubos 3D (trilha pedagógica) */}
       <style>{`
-        .bg-3d-cubes {
-          background-color: #FAFBFF;
+        .forum-pattern-grid {
           background-image:
-            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24)),
-            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24));
+            linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+            linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+            linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+            linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
+            linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24)),
+            linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24));
           background-size: 80px 140px;
           background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
           animation: panCubes 60s linear infinite;
@@ -900,16 +1266,25 @@ export default function ForumBoard({
       <ConfirmModal />
       
       {/* NOVA DIV WRAPPER: Ocupa a tela inteira (min-h-screen w-full) e recebe o fundo */}
-      <div className="min-h-screen w-full bg-3d-cubes relative overflow-x-hidden">
+      <div
+        className="min-h-screen w-full forum-pattern-grid relative overflow-x-hidden"
+        style={forumWrapperStyle}
+      >
         {/* Overlay sutil para garantir leitura perfeita (agora com fixed para cobrir o scroll) */}
-        <div className="fixed inset-0 bg-white/40 pointer-events-none z-0"></div>
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
+          style={{ backgroundColor: "var(--forum-overlay, rgba(255, 255, 255, 0.82))" }}
+        ></div>
         
         {/* DIV DO CONTEÚDO: Limita a largura e centraliza */}
         <div className="max-w-5xl mx-auto space-y-6 pb-12 pt-6 relative z-10 px-4 md:px-0">
           
           {/* Hero & Tabs */}
           <div className="premium-card overflow-hidden bg-white shadow-sm border border-slate-100">
-            <div className="bg-gradient-to-r from-[#5AC8C8] via-[#5AC8C8] to-[#3DB0B0] p-8 text-white relative overflow-hidden">
+            <div
+              className="p-8 text-white relative overflow-hidden"
+              style={forumHeroStyle}
+            >
               <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
               <div className="flex items-center gap-4 mb-2 relative z-10">
                 <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -917,9 +1292,9 @@ export default function ForumBoard({
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">
-                    POP Digital
+                    POP Café
                   </h1>
-                  <p className="text-[#5AC8C8]/90 text-sm mt-1 font-medium">
+                  <p className="text-white/90 text-sm mt-1 font-medium">
                     Fórum de discussão e colaboração entre clubes
                   </p>
                 </div>
@@ -943,12 +1318,12 @@ export default function ForumBoard({
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold transition-all
                                         ${
                                           isActive
-                                            ? "text-[#5AC8C8] border-b-2 border-[#5AC8C8] bg-[#5AC8C8]/20"
+                                            ? "text-[var(--forum-primary)] border-b-2 border-[var(--forum-primary)] bg-[var(--forum-primary-soft)]"
                                             : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                                         }`}
                   >
                     <Icon
-                      className={`w-4 h-4 ${isActive ? "text-[#5AC8C8]" : "text-slate-400"}`}
+                      className={`w-4 h-4 ${isActive ? "text-[var(--forum-primary)]" : "text-slate-400"}`}
                     />
                     {tab.label}
                     {tab.id === "meu" && isMentor && (
@@ -1098,9 +1473,9 @@ export default function ForumBoard({
               ) : (
                 <>
               {isMentor && joinRequests.length > 0 && (
-                <div className="premium-card p-5 border-l-4 border-l-[#5AC8C8]/70 bg-white">
+                <div className="premium-card p-5 border-l-4 bg-white" style={{ borderLeftColor: "var(--forum-primary, #5AC8C8)" }}>
                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[#5AC8C8]" />
+                    <UserPlus className="w-5 h-5 text-[var(--forum-primary)]" />
                     Solicitações Pendentes ({joinRequests.length})
                   </h3>
                   <div className="space-y-3">
@@ -1211,7 +1586,7 @@ export default function ForumBoard({
                 {canParticipate && (
                   <button
                     onClick={() => setShowNewTopic(true)}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[#5AC8C8]/25"
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[var(--forum-primary-ring)]"
                   >
                     <Plus className="w-4 h-4" />
                     Criar Tópico
@@ -1230,7 +1605,7 @@ export default function ForumBoard({
               {showNewTopic && (
                 <form
                   onSubmit={handleCreateTopic}
-                  className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25 animate-in fade-in slide-in-from-top-2"
+                  className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)] animate-in fade-in slide-in-from-top-2"
                 >
                   <h3 className="font-bold text-slate-700 text-lg">
                     Iniciando uma nova discussão
@@ -1241,7 +1616,7 @@ export default function ForumBoard({
                       placeholder="Qual o assunto do tópico?"
                       value={newTopicTitle}
                       onChange={(e) => setNewTopicTitle(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm transition-all font-medium"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm transition-all font-medium"
                       maxLength={200}
                       required
                       autoFocus
@@ -1250,7 +1625,7 @@ export default function ForumBoard({
                       placeholder="Adicione mais detalhes (opcional)..."
                       value={newTopicDesc}
                       onChange={(e) => setNewTopicDesc(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm resize-none transition-all"
                       rows={3}
                       maxLength={1000}
                     />
@@ -1270,7 +1645,7 @@ export default function ForumBoard({
                     <button
                       type="submit"
                       disabled={submitting || !newTopicTitle.trim()}
-                      className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors disabled:opacity-50"
                     >
                       {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                       {submitting ? "Publicando..." : "Publicar Tópico"}
@@ -1319,22 +1694,13 @@ export default function ForumBoard({
                     />
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {acceptedClubs.map((club) => (
-                        <button
+                      {acceptedClubs.map((club, index) => (
+                        <AcceptedClubCard
                           key={club.id}
-                          onClick={() => setViewingForumClubId(club.id)}
-                          className="premium-card p-5 text-left hover:shadow-lg hover:border-[#5AC8C8]/40 transition-all group bg-white focus:outline-none focus:ring-4 focus:ring-[#5AC8C8]/25"
-                        >
-                          <div className="w-10 h-10 bg-[#5AC8C8]/20 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                            <Users className="w-5 h-5 text-[#5AC8C8]" />
-                          </div>
-                          <h3 className="font-bold text-slate-800 group-hover:text-[#5AC8C8] transition-colors text-lg line-clamp-1">
-                            {club.nome}
-                          </h3>
-                          <p className="text-xs font-medium text-slate-500 mt-2 flex items-center gap-1">
-                            Acessar discussões &rarr;
-                          </p>
-                        </button>
+                          club={club}
+                          index={index}
+                          onSelect={setViewingForumClubId}
+                        />
                       ))}
                     </div>
                   )}
@@ -1347,7 +1713,7 @@ export default function ForumBoard({
                         setViewingForumClubId(null);
                         setSelectedTopicId(null);
                       }}
-                      className="p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-[#5AC8C8]/40"
+                      className="p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-[var(--forum-primary-ring)]"
                       aria-label="Voltar para lista de clubes"
                     >
                       <ArrowLeft className="w-5 h-5 text-slate-600" />
@@ -1360,7 +1726,7 @@ export default function ForumBoard({
                     {canParticipate && (
                       <button
                         onClick={() => setShowNewTopic(true)}
-                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
                       >
                         <Plus className="w-4 h-4" /> Novo Tópico
                       </button>
@@ -1371,7 +1737,7 @@ export default function ForumBoard({
                   {canParticipate && (
                     <button
                       onClick={() => setShowNewTopic(true)}
-                      className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] transition-colors text-sm font-semibold shadow-sm"
+                      className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
                     >
                       <Plus className="w-4 h-4" /> Novo Tópico
                     </button>
@@ -1380,7 +1746,7 @@ export default function ForumBoard({
                   {showNewTopic && (
                     <form
                       onSubmit={handleCreateTopic}
-                      className="premium-card p-5 space-y-4 bg-white border-2 border-[#5AC8C8]/25"
+                      className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)]"
                     >
                       {/* (Mesmo form de Novo Tópico acima, renderizado dinamicamente) */}
                       <input
@@ -1388,7 +1754,7 @@ export default function ForumBoard({
                         placeholder="Título do tópico"
                         value={newTopicTitle}
                         onChange={(e) => setNewTopicTitle(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm font-medium"
                         maxLength={200}
                         required
                       />
@@ -1396,7 +1762,7 @@ export default function ForumBoard({
                         placeholder="Descrição (opcional)"
                         value={newTopicDesc}
                         onChange={(e) => setNewTopicDesc(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm resize-none"
                         rows={3}
                         maxLength={1000}
                       />
@@ -1415,7 +1781,7 @@ export default function ForumBoard({
                         <button
                           type="submit"
                           disabled={submitting || !newTopicTitle.trim()}
-                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#5AC8C8] text-white rounded-xl hover:bg-[#4bb4b4] disabled:opacity-50"
+                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 disabled:opacity-50"
                         >
                           {submitting && (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -1474,7 +1840,7 @@ export default function ForumBoard({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleForumSearch();
                     }}
-                    className="w-full pl-10 pr-24 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[#5AC8C8]/10 focus:border-[#5AC8C8] outline-none text-sm font-medium transition-all"
+                    className="w-full pl-10 pr-24 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm font-medium transition-all"
                   />
                   <button
                     onClick={handleForumSearch}
@@ -1508,10 +1874,11 @@ export default function ForumBoard({
                 />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                  {explorableClubs.map((club) => (
+                  {explorableClubs.map((club, index) => (
                     <ClubExploreCard
                       key={club.id}
                       club={club}
+                      index={index}
                       onRequestJoin={handleRequestJoin}
                       requesting={requestingClubs.has(club.id)}
                     />
@@ -1526,7 +1893,7 @@ export default function ForumBoard({
                   className="flex items-center justify-center py-8"
                 >
                   {exploreFetching && (
-                    <div className="flex items-center gap-2 text-[#5AC8C8] font-medium text-sm bg-[#5AC8C8]/10 px-4 py-2 rounded-full">
+                    <div className="flex items-center gap-2 text-[var(--forum-primary)] font-medium text-sm bg-[var(--forum-primary-soft)] px-4 py-2 rounded-full">
                       <LoaderCircle className="w-4 h-4 animate-spin" />
                       Carregando mais clubes...
                     </div>

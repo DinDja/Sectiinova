@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Building2, FileText, UploadCloud, Users, X } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
@@ -304,7 +304,7 @@ export default function CreateClubForm({
                                 value={form.nome}
                                 onChange={(event) => updateField('nome', event.target.value)}
                                 placeholder="Ex.: Clube de Ciencias da UEE X"
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none"
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
                                 maxLength={140}
                                 required
                             />
@@ -315,7 +315,7 @@ export default function CreateClubForm({
                             <select
                                 value={form.escola_id}
                                 onChange={(event) => updateField('escola_id', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none"
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
                                 required
                             >
                                 <option value="">Selecione</option>
@@ -335,16 +335,16 @@ export default function CreateClubForm({
                                 type="text"
                                 value={form.periodicidade}
                                 onChange={(event) => updateField('periodicidade', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none"
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
                                 placeholder="Quinzenal"
                                 maxLength={60}
                             />
                         </label>
 
-                        <div className="rounded-2xl border border-[#00B5B5]/30 bg-[#E0F7F7] p-4">
-                            <p className="text-xs font-extrabold tracking-widest uppercase text-[#008A8A] mb-2">Mentor responsavel</p>
+                        <div className="rounded-2xl border border-[#10B981]/30 bg-[#ECFDF5] p-4">
+                            <p className="text-xs font-extrabold tracking-widest uppercase text-[#047857] mb-2">Mentor responsavel</p>
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-full bg-[#00B5B5] text-white flex items-center justify-center text-sm font-black">
+                                <div className="w-11 h-11 rounded-full bg-[#10B981] text-white flex items-center justify-center text-sm font-black">
                                     {String(loggedUser?.nome || '?').trim().slice(0, 1).toUpperCase()}
                                 </div>
                                 <div>
@@ -362,7 +362,7 @@ export default function CreateClubForm({
                             onChange={(event) => updateField('descricao', event.target.value)}
                             rows={4}
                             placeholder="Explique objetivo, linha de pesquisa e contexto do clube."
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none resize-none"
+                            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none resize-none"
                         />
                     </label>
 
@@ -382,7 +382,7 @@ export default function CreateClubForm({
                             value={membersSearch}
                             onChange={(event) => setMembersSearch(event.target.value)}
                             placeholder="Filtrar clubistas por nome, e-mail ou matricula"
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none mb-3 bg-white"
+                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none mb-3 bg-white"
                         />
 
                         <div className="max-h-52 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2 pr-1">
@@ -400,13 +400,13 @@ export default function CreateClubForm({
                                 availableClubistas.map((clubista) => (
                                     <label
                                         key={clubista.id}
-                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-[#00B5B5]/40 transition-colors"
+                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-[#10B981]/40 transition-colors"
                                     >
                                         <input
                                             type="checkbox"
                                             checked={selectedClubistasSet.has(String(clubista.id))}
                                             onChange={() => toggleClubista(clubista.id)}
-                                            className="accent-[#00B5B5]"
+                                            className="accent-[#10B981]"
                                         />
                                         <span className="text-sm text-slate-700">
                                             <strong className="font-semibold text-slate-900">{clubista.nome}</strong>
@@ -420,18 +420,18 @@ export default function CreateClubForm({
 
                     <section className="rounded-2xl border border-slate-200 p-4 bg-white">
                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
-                            <FileText className="w-4 h-4 text-[#00B5B5]" />
+                            <FileText className="w-4 h-4 text-[#10B981]" />
                             {isLocalhost ? 'Documentos (opcionais no localhost)' : 'Documentos obrigatorios (PDF ou imagem)'}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {CLUB_REQUIRED_DOCUMENTS.map((doc) => (
                                 <label
                                     key={doc.key}
-                                    className="rounded-xl border border-slate-200 p-3 bg-slate-50 hover:border-[#00B5B5]/40 transition-colors"
+                                    className="rounded-xl border border-slate-200 p-3 bg-slate-50 hover:border-[#10B981]/40 transition-colors"
                                 >
                                     <span className="block text-sm font-semibold text-slate-800 mb-2">{doc.label}</span>
                                     <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-                                        <UploadCloud className="w-4 h-4 text-[#00B5B5]" />
+                                        <UploadCloud className="w-4 h-4 text-[#10B981]" />
                                         <span>{documents[doc.key] ? 'Substituir anexo' : 'Selecionar arquivo'}</span>
                                         <input
                                             type="file"
@@ -470,7 +470,7 @@ export default function CreateClubForm({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#00B5B5]/25 transition-all"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#10B981]/25 transition-all"
                         >
                             <Building2 className="w-4 h-4" />
                             {isSubmitting ? 'Criando clube...' : 'Criar clube'}
@@ -481,3 +481,4 @@ export default function CreateClubForm({
         </div>
     );
 }
+

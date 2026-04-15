@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
     User, School, Lock, Edit2, Copy, Check, 
     LogOut, Mail, Shield, Camera, X, Phone, 
@@ -105,8 +105,8 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center mb-4 shadow-inner">
                     <User className="w-12 h-12 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-700">Nenhum usuário conectado</h3>
-                <p className="text-sm text-slate-500 mt-2">Faça login para visualizar seu perfil</p>
+                <h3 className="text-xl font-bold text-slate-700">Nenhum usuÃ¡rio conectado</h3>
+                <p className="text-sm text-slate-500 mt-2">FaÃ§a login para visualizar seu perfil</p>
             </div>
         );
     }
@@ -140,7 +140,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     const compressImageFile = (file, maxDimension = 600, quality = 0.7) => {
         return new Promise((resolve, reject) => {
             if (!file || !file.type.startsWith('image/')) {
-                reject(new Error('Arquivo inválido, deve ser uma imagem.'));
+                reject(new Error('Arquivo invÃ¡lido, deve ser uma imagem.'));
                 return;
             }
 
@@ -166,7 +166,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
                     resolve(compressedDataUrl);
                 };
-                img.onerror = () => reject(new Error('Falha ao carregar imagem para compressão.'));
+                img.onerror = () => reject(new Error('Falha ao carregar imagem para compressÃ£o.'));
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
@@ -400,7 +400,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                         <button 
                             onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
                             className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-white transition-all duration-300 hover:scale-105"
-                            title={isEditing ? "Cancelar edição" : "Editar Perfil"}
+                            title={isEditing ? "Cancelar ediÃ§Ã£o" : "Editar Perfil"}
                         >
                             {isEditing ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                         </button>
@@ -459,7 +459,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                         )}
 
                         <h1 className="mt-3 text-2xl font-bold text-slate-800">
-                            {loggedUser.nome || 'Usuário'}
+                            {loggedUser.nome || 'UsuÃ¡rio'}
                         </h1>
                         
                         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1">
@@ -485,13 +485,13 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     {/* Card do Clube - agora com largura total e fonte menor */}
                     <div className="flex justify-center mb-8">
                         <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center mx-auto mb-2">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2">
                                 <School className="w-5 h-5 text-white" />
                             </div>
                             <p className="text-lg font-bold text-slate-800 break-words">
-                                {myClub?.nome || 'Não informado'}
+                                {myClub?.nome || 'NÃ£o informado'}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de Ciências</p>
+                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de CiÃªncias</p>
                         </div>
                     </div>
 
@@ -522,14 +522,14 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                         >
                                             {formData.lattesLink.length > 30 ? formData.lattesLink.substring(0, 30) + '...' : formData.lattesLink}
                                         </a>
-                                    ) : 'Não informado'} 
+                                    ) : 'NÃ£o informado'} 
                                     color="text-emerald-600"
                                     isLink={formData && !!formData.lattesLink}
                                 />
                                 <InfoCard 
                                     icon={Phone} 
                                     label="Telefone" 
-                                    value={formData ? (formData.telefone || 'Não informado') : 'Não informado'} 
+                                    value={formData ? (formData.telefone || 'NÃ£o informado') : 'NÃ£o informado'} 
                                     color="text-blue-600"
                                 />
                             </div>                          
@@ -760,7 +760,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                         value={formData?.bio || ''} 
                                         onChange={(e) => handleInputChange('bio', e.target.value)}
                                         icon={User}
-                                        placeholder="Conte um pouco sobre você..."
+                                        placeholder="Conte um pouco sobre vocÃª..."
                                         rows={3}
                                     />
                                 </div>
@@ -777,7 +777,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                     type="submit"
                                     className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#0B3B5F] to-[#2E86C1] hover:from-[#0A2F57] hover:to-[#1A6AA1] rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
                                 >
-                                    <Check className="w-4 h-4" /> Salvar Alterações
+                                    <Check className="w-4 h-4" /> Salvar AlteraÃ§Ãµes
                                 </button>
                             </div>
                         </form>
@@ -851,3 +851,4 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
         </div>
     );
 }
+

@@ -320,7 +320,7 @@ export default function EditClubForm({
                                 type="text"
                                 value={form.nome}
                                 onChange={(event) => updateField('nome', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none"
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
                                 maxLength={140}
                                 required
                             />
@@ -332,7 +332,7 @@ export default function EditClubForm({
                                 type="text"
                                 value={form.periodicidade}
                                 onChange={(event) => updateField('periodicidade', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none"
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
                                 maxLength={60}
                             />
                         </label>
@@ -355,13 +355,13 @@ export default function EditClubForm({
                             onChange={(event) => updateField('descricao', event.target.value)}
                             rows={4}
                             placeholder="Descreva a proposta e objetivo do clube."
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none resize-none"
+                            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none resize-none"
                         />
                     </label>
 
                     <section className="rounded-2xl border border-slate-200 p-4 bg-white">
                         <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-4">
-                            <ImagePlus className="w-4 h-4 text-[#00B5B5]" />
+                            <ImagePlus className="w-4 h-4 text-[#10B981]" />
                             Identidade visual do clube
                         </h3>
 
@@ -372,12 +372,12 @@ export default function EditClubForm({
                                     {bannerPreview ? (
                                         <img src={bannerPreview} alt="Preview do banner" className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-r from-[#00B5B5]/20 via-slate-200 to-[#FF5722]/20" />
+                                        <div className="w-full h-full bg-gradient-to-r from-[#10B981]/20 via-slate-200 to-[#FF5722]/20" />
                                     )}
                                 </div>
 
                                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <UploadCloud className="w-4 h-4 text-[#00B5B5]" />
+                                    <UploadCloud className="w-4 h-4 text-[#10B981]" />
                                     <span>{bannerFile ? 'Trocar banner' : 'Selecionar banner'}</span>
                                     <input
                                         type="file"
@@ -407,7 +407,7 @@ export default function EditClubForm({
                                 </div>
 
                                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <Camera className="w-4 h-4 text-[#00B5B5]" />
+                                    <Camera className="w-4 h-4 text-[#10B981]" />
                                     <span>{logoFile ? 'Trocar logo' : 'Selecionar logo'}</span>
                                     <input
                                         type="file"
@@ -439,7 +439,7 @@ export default function EditClubForm({
                             value={membersSearch}
                             onChange={(event) => setMembersSearch(event.target.value)}
                             placeholder="Filtrar clubistas por nome, e-mail ou matricula"
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#00B5B5]/30 focus:border-[#00B5B5] outline-none mb-3 bg-white"
+                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none mb-3 bg-white"
                         />
 
                         <div className="max-h-52 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2 pr-1">
@@ -457,13 +457,13 @@ export default function EditClubForm({
                                 availableClubistas.map((clubista) => (
                                     <label
                                         key={clubista.id}
-                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-[#00B5B5]/40 transition-colors"
+                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-[#10B981]/40 transition-colors"
                                     >
                                         <input
                                             type="checkbox"
                                             checked={selectedClubistasSet.has(String(clubista.id || '').trim())}
                                             onChange={() => toggleClubista(clubista.id)}
-                                            className="accent-[#00B5B5]"
+                                            className="accent-[#10B981]"
                                         />
                                         <span className="text-sm text-slate-700">
                                             <strong className="font-semibold text-slate-900">{clubista.nome}</strong>
@@ -494,7 +494,7 @@ export default function EditClubForm({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#00B5B5]/25 transition-all"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#10B981]/25 transition-all"
                         >
                             <Building2 className="w-4 h-4" />
                             {isSubmitting ? 'Salvando alteracoes...' : 'Salvar alteracoes'}
@@ -505,3 +505,4 @@ export default function EditClubForm({
         </div>
     );
 }
+

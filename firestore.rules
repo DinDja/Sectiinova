@@ -178,6 +178,34 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/projetos/$(projectId)).data.clube_id == clubeId;
     }
 
+    function isProjectMemberFromData(data) {
+      return isSignedIn() && (
+        (data.membros_ids is list && request.auth.uid in data.membros_ids)
+        || (data.orientador_ids is list && request.auth.uid in data.orientador_ids)
+        || (data.orientadores_ids is list && request.auth.uid in data.orientadores_ids)
+        || (data.coorientador_ids is list && request.auth.uid in data.coorientador_ids)
+        || (data.coorientadores_ids is list && request.auth.uid in data.coorientadores_ids)
+        || (data.investigadores_ids is list && request.auth.uid in data.investigadores_ids)
+        || data.orientador_id == request.auth.uid
+        || data.coorientador_id == request.auth.uid
+        || data.mentor_id == request.auth.uid
+        || data.autor_id == request.auth.uid
+        || data.author_id == request.auth.uid
+        || data.createdBy == request.auth.uid
+        || data.created_by == request.auth.uid
+        || data.criador_id == request.auth.uid
+        || data.creator_id == request.auth.uid
+        || data.owner_id == request.auth.uid
+      );
+    }
+
+    function isProjectMember(projectId) {
+      return projectId is string
+        && projectId.size() > 0
+        && exists(/databases/$(database)/documents/projetos/$(projectId))
+        && isProjectMemberFromData(get(/databases/$(database)/documents/projetos/$(projectId)).data);
+    }
+
     function isExternalMember(clubeId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/forum_membros_externos/$(clubeId + "__" + request.auth.uid))
@@ -206,23 +234,24 @@ service cloud.firestore {
     }
 
     match /diario_bordo/{entryId} {
-      allow read: if true;
+      allow read: if resource.data.projeto_id is string
+        && isProjectMember(resource.data.projeto_id);
 
-      allow create: if (isMentor() || isMyClub(request.resource.data.clube_id))
-        && request.resource.data.clube_id is string
+      allow create: if request.resource.data.clube_id is string
         && request.resource.data.projeto_id is string
+        && isProjectMember(request.resource.data.projeto_id)
         && projectBelongsToClub(request.resource.data.projeto_id, request.resource.data.clube_id);
 
-      allow update: if (isMentor() || isMyClub(resource.data.clube_id))
-        && resource.data.clube_id is string
+      allow update: if resource.data.clube_id is string
         && resource.data.projeto_id is string
+        && isProjectMember(resource.data.projeto_id)
         && request.resource.data.clube_id == resource.data.clube_id
         && request.resource.data.projeto_id == resource.data.projeto_id
         && projectBelongsToClub(resource.data.projeto_id, resource.data.clube_id);
 
-      allow delete: if (isMentor() || isMyClub(resource.data.clube_id))
-        && resource.data.clube_id is string
+      allow delete: if resource.data.clube_id is string
         && resource.data.projeto_id is string
+        && isProjectMember(resource.data.projeto_id)
         && projectBelongsToClub(resource.data.projeto_id, resource.data.clube_id);
     }
 
@@ -239,14 +268,39 @@ service cloud.firestore {
         && request.resource.data.clube_id is string
         && request.resource.data.escola_id is string
         && request.resource.data.createdAt is timestamp
-        && (request.resource.data.imagens is list ? request.resource.data.imagens.size() <= 2 : true);
+        && (request.resource.data.imagens is list ? request.resource.data.imagens.size() <= 2 : true)
+        && (
+          !isMentor()
+          || (
+            request.resource.data.termo_aceite_criacao is map
+            && request.resource.data.termo_aceite_criacao.aceito == true
+            && request.resource.data.termo_aceite_criacao.aceito_por_id == request.auth.uid
+            && request.resource.data.termo_aceite_criacao.versao is string
+          )
+        );
 
       allow update: if (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
         && resource.data.clube_id is string
         && request.resource.data.clube_id == resource.data.clube_id;
 
-      allow delete: if (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
-        && resource.data.clube_id is string;
+      allow delete: if isMentor()
+        && resource.data.clube_id is string
+        && (
+          isProjectOrientador(resource)
+          || (resource.data.orientadores_ids is list && request.auth.uid in resource.data.orientadores_ids)
+          || resource.data.orientador_id == request.auth.uid
+          || (resource.data.coorientador_ids is list && request.auth.uid in resource.data.coorientador_ids)
+          || (resource.data.coorientadores_ids is list && request.auth.uid in resource.data.coorientadores_ids)
+          || resource.data.coorientador_id == request.auth.uid
+          || resource.data.mentor_id == request.auth.uid
+          || resource.data.autor_id == request.auth.uid
+          || resource.data.author_id == request.auth.uid
+          || resource.data.createdBy == request.auth.uid
+          || resource.data.created_by == request.auth.uid
+          || resource.data.criador_id == request.auth.uid
+          || resource.data.creator_id == request.auth.uid
+          || resource.data.owner_id == request.auth.uid
+        );
     }
 
     match /usuarios/{userId} {

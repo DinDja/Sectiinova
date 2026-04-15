@@ -59,12 +59,16 @@ export function getProjectTeam(project, users, selectedClubId = '') {
 
     const blockedIds = new Set([...orientadores, ...coorientadores].map((person) => String(person.id)));
 
-    let investigadores = uniqueUsers([
+    const membros = uniqueUsers(
+        memberUsers.filter((person) => !blockedIds.has(String(person.id)))
+    );
+
+    const investigadores = uniqueUsers([
         ...findUsersByReferences(investigadorReferences, searchableUsers),
         ...memberUsers
     ].filter((person) => !blockedIds.has(String(person.id))));
 
-    return { orientadores, coorientadores, investigadores };
+    return { orientadores, coorientadores, investigadores, membros };
 }
 
 export function getInvestigatorDisplayNames(project, team, entries = []) {

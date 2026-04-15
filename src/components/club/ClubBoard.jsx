@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
 import CreateClubForm from './CreateClubForm';
@@ -30,6 +30,8 @@ export default function ClubBoard({
     setSelectedProjectId,
     setCurrentView,
     handleCreateProject,
+    handleUpdateProject = async () => {},
+    handleDeleteProject = async () => {},
     loggedUser,
     schools,
     users,
@@ -46,8 +48,13 @@ export default function ClubBoard({
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [membershipRequestFeedback, setMembershipRequestFeedback] = useState({ type: '', message: '' });
+    const [deletingProjectIds, setDeletingProjectIds] = useState(new Set());
+    const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+    const [projectBeingEdited, setProjectBeingEdited] = useState(null);
     const isMentor = ['orientador', 'coorientador'].includes(String(loggedUser?.perfil || '').trim().toLowerCase());
     const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+    const loggedUserEmail = String(loggedUser?.email || '').toLowerCase().trim();
+    const loggedUserMatricula = String(loggedUser?.matricula || loggedUser?.['matrícula'] || '').trim();
     const mentorIds = new Set([
         String(viewingClub?.mentor_id || '').trim(),
         ...(viewingClub?.orientador_ids || []).map((id) => String(id || '').trim()),
@@ -112,6 +119,63 @@ export default function ClubBoard({
         return null;
     };
 
+    const flattenProjectReferenceValues = (value) => {
+        if (value === undefined || value === null) return [];
+
+        if (Array.isArray(value)) {
+            return value.flatMap(flattenProjectReferenceValues);
+        }
+
+        if (typeof value === 'object') {
+            return [
+                value.id,
+                value.uid,
+                value.email,
+                value.matricula,
+                value['matrícula']
+            ].flatMap(flattenProjectReferenceValues);
+        }
+
+        return String(value)
+            .split(/[,;\n]+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+    };
+
+    const canMentorDeleteProject = (project) => {
+        if (!isMentor || !loggedUserId || !project) {
+            return false;
+        }
+
+        const projectMentorReferences = new Set(
+            [
+                project?.mentor_id,
+                project?.orientador_id,
+                project?.coorientador_id,
+                project?.autor_id,
+                project?.author_id,
+                project?.created_by,
+                project?.createdBy,
+                project?.criador_id,
+                project?.creator_id,
+                project?.owner_id,
+                project?.orientador_ids,
+                project?.orientadores_ids,
+                project?.coorientador_ids,
+                project?.coorientadores_ids
+            ]
+                .flatMap(flattenProjectReferenceValues)
+                .map((value) => String(value || '').toLowerCase().trim())
+                .filter(Boolean)
+        );
+
+        return (
+            projectMentorReferences.has(loggedUserId.toLowerCase())
+            || (loggedUserEmail && projectMentorReferences.has(loggedUserEmail))
+            || (loggedUserMatricula && projectMentorReferences.has(loggedUserMatricula.toLowerCase()))
+        );
+    };
+
     const handleStudentJoinRequest = async (clubId) => {
         if (!clubId) return;
 
@@ -143,6 +207,49 @@ export default function ClubBoard({
         }
     };
 
+    const handleDeleteProjectClick = async (project) => {
+        const projectId = String(project?.id || '').trim();
+        if (!projectId || !canMentorDeleteProject(project)) return;
+
+        const projectTitle = String(project?.titulo || 'este projeto').trim();
+        const shouldDelete = window.confirm(`Deseja apagar "${projectTitle}"? Essa acao nao pode ser desfeita.`);
+        if (!shouldDelete) return;
+
+        setDeletingProjectIds((previous) => {
+            const next = new Set(previous);
+            next.add(projectId);
+            return next;
+        });
+
+        try {
+            await handleDeleteProject(projectId);
+            setMembershipRequestFeedback({ type: 'success', message: 'Projeto apagado com sucesso.' });
+        } catch (error) {
+            const message = String(error?.message || '').trim() || 'Falha ao apagar o projeto.';
+            setMembershipRequestFeedback({ type: 'error', message });
+        } finally {
+            setDeletingProjectIds((previous) => {
+                const next = new Set(previous);
+                next.delete(projectId);
+                return next;
+            });
+        }
+    };
+
+    const handleEditProjectClick = (project) => {
+        const projectId = String(project?.id || '').trim();
+        if (!projectId || !canMentorDeleteProject(project)) return;
+
+        setProjectBeingEdited(project);
+        setIsEditProjectOpen(true);
+        setIsCreateOpen(false);
+    };
+
+    const handleCloseEditProject = () => {
+        setIsEditProjectOpen(false);
+        setProjectBeingEdited(null);
+    };
+
     const handleSelectManagedClub = (clubId) => {
         const normalizedClubId = String(clubId || '').trim();
         if (!normalizedClubId) return;
@@ -172,12 +279,28 @@ export default function ClubBoard({
     if (!viewingClub) {
         if (shouldShowSchoolClubDiscovery) {
             return (
-                <div className="space-y-6 p-6 md:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
-                    <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8">
-                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Clubes da sua unidade escolar</h2>
-                        <p className="text-slate-600 mt-2">
-                            Selecione um clube para solicitar entrada. O mentor responsavel podera aceitar ou recusar.
-                        </p>
+                <div className="space-y-8 p-4 md:p-6 lg:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                    <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white shadow-sm p-6 md:p-8">
+                        <div className="absolute -top-14 -right-14 w-56 h-56 bg-[#10B981]/15 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-[#FF5722]/10 rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="relative z-10">
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Clubes da sua unidade escolar</h2>
+                            <p className="text-slate-600 mt-2 max-w-2xl">
+                                Explore os clubes disponiveis, veja identidade visual, equipe e estrutura de cada um para solicitar sua entrada.
+                            </p>
+
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700">
+                                    <Building2 className="w-3.5 h-3.5 text-[#10B981]" />
+                                    {schoolClubDiscoveryList.length} clube{schoolClubDiscoveryList.length === 1 ? '' : 's'} encontrado{schoolClubDiscoveryList.length === 1 ? '' : 's'}
+                                </span>
+                                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+                                    <MapIcon className="w-3.5 h-3.5 text-slate-500" />
+                                    {String(loggedUser?.escola_nome || '').trim() || 'Unidade escolar vinculada'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {membershipRequestFeedback.message && (
@@ -193,13 +316,14 @@ export default function ClubBoard({
                     )}
 
                     {schoolClubDiscoveryList.length === 0 ? (
-                        <div className="bg-white border border-slate-100 rounded-3xl p-10 text-center">
+                        <div className="bg-white border border-slate-100 rounded-3xl p-10 text-center shadow-sm">
                             <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <p className="text-slate-600">Nenhum clube disponivel para a sua unidade escolar no momento.</p>
+                            <p className="text-slate-700 font-bold text-lg">Nenhum clube disponivel no momento</p>
+                            <p className="text-slate-500 mt-2">Assim que um clube da sua unidade estiver ativo, ele aparecera aqui para solicitacao.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {schoolClubDiscoveryList.map((club) => {
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {schoolClubDiscoveryList.map((club, index) => {
                                 const clubId = String(club?.id || '').trim();
                                 const latestRequest = getLatestMembershipRequest(clubId);
                                 const requestStatus = String(latestRequest?.status || '').trim().toLowerCase();
@@ -229,41 +353,125 @@ export default function ClubBoard({
                                             : null;
 
                                 const StatusIcon = statusConfig?.icon || null;
+                                const bannerUrl = String(club?.banner_url || club?.banner || '').trim();
+                                const logoUrl = String(club?.logo_url || club?.logo || '').trim();
+                                const fallbackBackgrounds = ['/images/BG_1.png', '/images/BG_2.png', '/images/BG_3.png'];
+                                const displayBanner = bannerUrl || fallbackBackgrounds[index % fallbackBackgrounds.length];
+                                const isFallbackBanner = !bannerUrl;
+
+                                const memberCount = new Set([
+                                    ...(club?.membros_ids || []),
+                                    ...(club?.clubistas_ids || []),
+                                    ...(club?.orientador_ids || []),
+                                    ...(club?.coorientador_ids || []),
+                                    club?.mentor_id
+                                ].map((value) => String(value || '').trim()).filter(Boolean)).size;
+
+                                const mentorCount = new Set([
+                                    club?.mentor_id,
+                                    ...(club?.orientador_ids || []),
+                                    ...(club?.coorientador_ids || [])
+                                ].map((value) => String(value || '').trim()).filter(Boolean)).size;
+
+                                const clubistasCount = new Set(
+                                    (club?.clubistas_ids || []).map((value) => String(value || '').trim()).filter(Boolean)
+                                ).size;
+
+                                const projectsCount = Number(
+                                    club?.projetosCount
+                                    ?? club?.projetos?.length
+                                    ?? club?.projetos_ids?.length
+                                    ?? 0
+                                );
 
                                 return (
-                                    <div key={clubId} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                                        <h3 className="text-xl font-black text-slate-900">{club?.nome || 'Clube sem nome'}</h3>
-                                        <p className="text-sm text-slate-600 mt-1">
-                                            Unidade: {club?.escola_nome || club?.escola_id || 'Nao informada'}
-                                        </p>
-                                        <p className="text-sm text-slate-500 mt-2">
-                                            Mentor: {resolveMentorNames(club)}
-                                        </p>
+                                    <article key={clubId} className="group bg-white border border-slate-100 hover:border-[#10B981]/30 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+                                        <div className="relative h-44 overflow-hidden">
+                                            <img
+                                                src={displayBanner}
+                                                alt={`Banner do clube ${club?.nome || ''}`}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/20 to-slate-900/60" />
 
-                                        {statusConfig && (
-                                            <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${statusConfig.classes}`}>
-                                                {StatusIcon && <StatusIcon className="w-4 h-4" />}
-                                                {statusConfig.label}
+                                            {isFallbackBanner && (
+                                                <span className="absolute top-3 right-3 text-[10px] font-bold text-white bg-black/60 rounded-full px-2 py-1">
+                                                    Banner ilustrativo
+                                                </span>
+                                            )}
+
+                                            {statusConfig && (
+                                                <div className={`absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold bg-white/90 backdrop-blur-sm ${statusConfig.classes}`}>
+                                                    {StatusIcon && <StatusIcon className="w-3.5 h-3.5" />}
+                                                    {statusConfig.label}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="p-6">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 shrink-0 -mt-12 relative z-10">
+                                                    {logoUrl ? (
+                                                        <img src={logoUrl} alt={`Logo do clube ${club?.nome || ''}`} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-sm font-black text-slate-600">
+                                                            {getInitials(club?.nome || '')}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="text-xl font-black text-slate-900 truncate">{club?.nome || 'Clube sem nome'}</h3>
+                                                    <p className="text-sm text-slate-600 truncate">
+                                                        {club?.escola_nome || club?.escola_id || 'Unidade nao informada'}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                                                        Mentor: {resolveMentorNames(club)}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        )}
 
-                                        <button
-                                            type="button"
-                                            onClick={() => handleStudentJoinRequest(clubId)}
-                                            disabled={isPending || isAccepted || isRequesting}
-                                            className="mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-bold bg-[#00B5B5] text-white hover:bg-[#009e9e] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                        >
-                                            {isRequesting
-                                                ? 'Enviando solicitacao...'
-                                                : isPending
-                                                    ? 'Aguardando resposta do mentor'
-                                                    : isAccepted
-                                                        ? 'Solicitacao aceita'
-                                                        : isRejected
-                                                            ? 'Solicitar novamente'
-                                                            : 'Solicitar entrada'}
-                                        </button>
-                                    </div>
+                                            <div className="mt-4 grid grid-cols-4 gap-2">
+                                                <div className="rounded-xl bg-slate-50 border border-slate-100 p-2 text-center">
+                                                    <p className="text-lg font-black text-slate-900">{memberCount}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Membros</p>
+                                                </div>
+                                                <div className="rounded-xl bg-slate-50 border border-slate-100 p-2 text-center">
+                                                    <p className="text-lg font-black text-slate-900">{clubistasCount}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Clubistas</p>
+                                                </div>
+                                                <div className="rounded-xl bg-slate-50 border border-slate-100 p-2 text-center">
+                                                    <p className="text-lg font-black text-slate-900">{mentorCount}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Mentores</p>
+                                                </div>
+                                                <div className="rounded-xl bg-slate-50 border border-slate-100 p-2 text-center">
+                                                    <p className="text-lg font-black text-slate-900">{projectsCount}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Projetos</p>
+                                                </div>
+                                            </div>
+
+                                            <p className="mt-4 text-sm text-slate-600 line-clamp-2">
+                                                {String(club?.descricao || '').trim() || 'Clube ativo na unidade escolar com foco em pesquisa, inovacao e formacao cientifica.'}
+                                            </p>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleStudentJoinRequest(clubId)}
+                                                disabled={isPending || isAccepted || isRequesting}
+                                                className="mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-bold bg-[#10B981] text-white hover:bg-[#059669] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                            >
+                                                {isRequesting
+                                                    ? 'Enviando solicitacao...'
+                                                    : isPending
+                                                        ? 'Aguardando resposta do mentor'
+                                                        : isAccepted
+                                                            ? 'Solicitacao aceita'
+                                                            : isRejected
+                                                                ? 'Solicitar novamente'
+                                                                : 'Solicitar entrada'}
+                                            </button>
+                                        </div>
+                                    </article>
                                 );
                             })}
                         </div>
@@ -274,18 +482,18 @@ export default function ClubBoard({
 
         return (
             <div className="min-h-[60vh] flex items-center justify-center p-10 bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden shadow-inner">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00B5B5]/10 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#10B981]/10 rounded-full blur-[100px] pointer-events-none"></div>
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FF5722]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
                 <div className="relative z-10 bg-white/50 backdrop-blur-xl p-12 rounded-[2rem] border border-white/80 shadow-lg text-center">
-                    <Building2 className="w-16 h-16 text-[#00B5B5] mx-auto mb-6 opacity-80" />
+                    <Building2 className="w-16 h-16 text-[#10B981] mx-auto mb-6 opacity-80" />
                     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Selecione um Ecossistema</h2>
                     <p className="text-slate-600 max-w-md mx-auto">Navegue pelo Feed de Inovacao e clique no icone da escola em um projeto para revelar o universo de colaboracao do clube.</p>
                     {isMentor && (
                         <button
                             type="button"
                             onClick={() => setIsCreateClubOpen(true)}
-                            className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm hover:scale-[1.02] transition-transform shadow-lg shadow-[#00B5B5]/30"
+                            className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold text-sm hover:scale-[1.02] transition-transform shadow-lg shadow-[#10B981]/30"
                         >
                             <PlusCircle className="w-4 h-4" />
                             Criar Clube na Unidade Escolar
@@ -323,7 +531,7 @@ export default function ClubBoard({
                         />
                     ) : (
                         <>
-                            <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#00B5B5]/20 rounded-full blur-[80px] group-hover:bg-[#00B5B5]/30 transition-colors duration-700" />
+                            <div className="absolute -top-10 -right-10 w-96 h-96 bg-[#10B981]/20 rounded-full blur-[80px] group-hover:bg-[#10B981]/30 transition-colors duration-700" />
                             <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#FF5722]/20 rounded-full blur-[60px]" />
                             <div className="absolute inset-0 mix-blend-multiply" style={{ backgroundImage: "url('/clubeBG.svg')", backgroundSize: 'cover' }} />
                         </>
@@ -353,7 +561,7 @@ export default function ClubBoard({
                             </h1>
 
                             <p className="text-white font-medium text-base md:text-lg flex items-center gap-2.5 drop-shadow">
-                                <MapIcon className="w-5 h-5 text-[#7FF5F5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
+                                <MapIcon className="w-5 h-5 text-[#6EE7B7]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-3">
                                 <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-white border border-white/20">
@@ -361,7 +569,7 @@ export default function ClubBoard({
                                     Clubistas:
                                     <strong className="font-black">{investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}</strong>
                                 </span>
-                                <span className="text-xs font-bold text-white bg-[#00B5B5]/35 backdrop-blur-sm px-2 py-1 rounded-full border border-[#7FF5F5]/30">
+                                <span className="text-xs font-bold text-white bg-[#10B981]/35 backdrop-blur-sm px-2 py-1 rounded-full border border-[#6EE7B7]/30">
                                     {investigatorRatio}% da equipe
                                 </span>
                             </div>
@@ -391,7 +599,7 @@ export default function ClubBoard({
                             </button>
                         )}
 
-                        <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#00B5B5] to-[#009E9E] text-white font-bold text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#00B5B5]/30">
+                        <button onClick={() => setIsCreateOpen(!isCreateOpen)} className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#10B981]/30">
                             <Zap className={`w-5 h-5 transition-transform ${isCreateOpen ? 'rotate-45 text-amber-200' : 'text-white'}`} />
                             {isCreateOpen ? 'Cancelar Criação' : 'Iniciar Novo Projeto'}
                         </button>
@@ -404,6 +612,7 @@ export default function ClubBoard({
                     isOpen={isCreateOpen}
                     onClose={() => setIsCreateOpen(false)}
                     viewingClub={viewingClub}
+                    loggedUser={loggedUser}
                     users={users}
                     viewingClubOrientadores={viewingClubOrientadores}
                     viewingClubCoorientadores={viewingClubCoorientadores}
@@ -449,8 +658,8 @@ export default function ClubBoard({
                                     onClick={() => handleSelectManagedClub(clubId)}
                                     className={`inline-flex items-center gap-2 rounded-full px-3 py-2 border text-sm font-bold transition-colors ${
                                         isActive
-                                            ? 'bg-[#E0F7F7] text-[#007777] border-[#00B5B5]/40'
-                                            : 'bg-white text-slate-700 border-slate-200 hover:border-[#00B5B5]/40 hover:bg-slate-50'
+                                            ? 'bg-[#ECFDF5] text-[#065f46] border-[#10B981]/40'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:border-[#10B981]/40 hover:bg-slate-50'
                                     }`}
                                 >
                                     <span className="w-7 h-7 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center shrink-0">
@@ -472,7 +681,7 @@ export default function ClubBoard({
                 <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-7 shadow-sm">
                     <div className="flex items-center justify-between gap-4 mb-5">
                         <h3 className="text-xl font-bold text-slate-900">Solicitacoes de entrada de clubistas</h3>
-                        <span className="inline-flex items-center justify-center rounded-full bg-[#E0F7F7] text-[#007777] text-xs font-black px-3 py-1">
+                        <span className="inline-flex items-center justify-center rounded-full bg-[#ECFDF5] text-[#065f46] text-xs font-black px-3 py-1">
                             {clubJoinRequests.length}
                         </span>
                     </div>
@@ -513,7 +722,7 @@ export default function ClubBoard({
                                                     type="button"
                                                     onClick={() => handleMentorDecision(requestId, true)}
                                                     disabled={isReviewing}
-                                                    className="rounded-xl px-4 py-2 text-sm font-bold text-white bg-[#00B5B5] hover:bg-[#009e9e] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    className="rounded-xl px-4 py-2 text-sm font-bold text-white bg-[#10B981] hover:bg-[#059669] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
                                                     {isReviewing ? 'Processando...' : 'Aceitar'}
                                                 </button>
@@ -531,14 +740,14 @@ export default function ClubBoard({
                 
                 <div className="md:col-span-4 grid grid-cols-2 gap-4">
                     {[
-                        { icon: FolderKanban, count: viewingClubProjects.length, label: "Projetos", color: "text-[#00B5B5]", bg: "bg-[#E0F7F7]", border: "border-[#00B5B5]/20" },
+                        { icon: FolderKanban, count: viewingClubProjects.length, label: "Projetos", color: "text-[#10B981]", bg: "bg-[#ECFDF5]", border: "border-[#10B981]/20" },
                         { icon: Users, count: viewingClubUsers.length, label: "Membros", color: "text-[#FF5722]", bg: "bg-[#FFF3E0]", border: "border-[#FF5722]/20" },
                         { icon: BookOpen, count: viewingClubDiaryCount, label: "Registros", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
                         { icon: Target, count: viewingClubOrientadores.length + viewingClubCoorientadores.length, label: "Mentores", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" }
                     ].map((stat, i) => (
-                        <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col justify-between hover:border-[#00B5B5]/30 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 group">
+                        <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col justify-between hover:border-[#10B981]/30 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 group">
                             <div>
-                                <h4 className="text-4xl font-black text-slate-950 tracking-tight group-hover:text-[#00B5B5] transition-colors">{stat.count}</h4>
+                                <h4 className="text-4xl font-black text-slate-950 tracking-tight group-hover:text-[#10B981] transition-colors">{stat.count}</h4>
                                 <p className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500 mt-1.5">{stat.label}</p>
                             </div>
                         </div>
@@ -546,7 +755,7 @@ export default function ClubBoard({
                 </div>
 
                 <div className="md:col-span-4 bg-white border border-slate-100 rounded-3xl p-7 relative overflow-hidden hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
-                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#00B5B5]" /> Mentores</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-7 flex items-center gap-3 relative z-10"><GraduationCap className="w-6 h-6 text-[#10B981]" /> Mentores</h3>
                     
                     <div className="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: "230px" }}>
                         {[...viewingClubOrientadores, ...viewingClubCoorientadores].length === 0 ? (
@@ -562,13 +771,13 @@ export default function ClubBoard({
                                 <div 
                                     key={person.id} 
                                     onClick={(e) => handleUserClick(e, person)}
-                                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#00B5B5]/20 hover:shadow-sm transition-all group/item cursor-pointer"
+                                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#10B981]/20 hover:shadow-sm transition-all group/item cursor-pointer"
                                 >
                                     <div className="flex items-center justify-between gap-3.5">
                                         <div className="flex items-center gap-3.5">
-                                            <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#00B5B5] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
+                                            <div className="w-11 h-11 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold border-2 border-white shadow-sm group-hover/item:bg-[#10B981] group-hover/item:text-white transition-colors">{getInitials(person.nome)}</div>
                                                 <div>
-                                                <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#00B5B5] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
+                                                <p className="text-sm font-bold text-slate-900 leading-tight group-hover/item:text-[#10B981] transition-colors">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
                                                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium mt-0.5">{viewingClubOrientadores.includes(person) ? 'Mentor' : 'Co-Mentor'}</p>
                                             </div>
                                         </div>
@@ -578,7 +787,7 @@ export default function ClubBoard({
                                                 target="_blank" 
                                                 rel="noreferrer" 
                                                 onClick={(e) => e.stopPropagation()} 
-                                                className="w-9 h-9 rounded-xl bg-[#E0F7F7] text-[#00B5B5] border border-[#00B5B5]/20 flex items-center justify-center hover:bg-[#00B5B5] hover:text-white transition-all shadow-sm" 
+                                                className="w-9 h-9 rounded-xl bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/20 flex items-center justify-center hover:bg-[#10B981] hover:text-white transition-all shadow-sm" 
                                                 title="Ver Lattes"
                                             >
                                                 <ExternalLink className="w-4 h-4" />
@@ -591,7 +800,7 @@ export default function ClubBoard({
                                     {areas.length > 0 && (
                                         <div className="mt-3 flex flex-wrap gap-2">
                                             {areas.map((area) => (
-                                                <span key={area} className="rounded-full bg-[#E0F7F7] text-[#008A8A] px-2 py-1 text-[10px] font-semibold">
+                                                <span key={area} className="rounded-full bg-[#ECFDF5] text-[#047857] px-2 py-1 text-[10px] font-semibold">
                                                     {area}
                                                 </span>
                                             ))}
@@ -652,21 +861,28 @@ export default function ClubBoard({
             <div className="pt-10 relative z-10">
                 <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex items-center gap-3 mb-10">
-                        <div className="h-8 w-2 bg-[#00B5B5] rounded-full shadow-inner"></div>
+                        <div className="h-8 w-2 bg-[#10B981] rounded-full shadow-inner"></div>
                         <h3 className="text-3xl font-black text-slate-950 tracking-tight">Projetos Ativos</h3>
                     </div>
 
                     {viewingClubProjects.length === 0 ? (
-                        <div className="h-72 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center p-10 text-center hover:border-[#00B5B5]/30 transition-colors group">
+                        <div className="h-72 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center p-10 text-center hover:border-[#10B981]/30 transition-colors group">
                             <EmptyState icon={Sparkles} title="O Radar está Limpo" description="Nenhum projeto detectado neste ecossistema ainda. Que tal iniciar a primeira onda de inovação?" />
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Adicionado o parâmetro index aqui */}
                             {viewingClubProjects.map((project, index) => {
+                                const projectId = String(project?.id || '').trim();
                                 const isCompleted = project.status?.toLowerCase().includes('conclu');
                                 const projectImage = project?.imagens?.[0] || project?.imagem || '';
                                 const imageCount = Array.isArray(project?.imagens) ? project.imagens.length : (project?.imagem ? 1 : 0);
+                                const canEditProject = canMentorDeleteProject(project);
+                                const canDeleteProject = canMentorDeleteProject(project);
+                                const isDeletingProject = deletingProjectIds.has(projectId);
+                                const actionGridClass = canDeleteProject
+                                    ? 'grid-cols-3'
+                                    : (canEditProject ? 'grid-cols-2' : 'grid-cols-1');
 
                                 // --- LÓGICA DE FALLBACK ---
                                 const fallbackBackgrounds = ['/images/BG_1.png', '/images/BG_2.png', '/images/BG_3.png'];
@@ -676,7 +892,7 @@ export default function ClubBoard({
                                     : projectImage;
 
                                 return (
-                                    <div key={project.id} className="group relative bg-white border border-slate-100 hover:border-[#00B5B5]/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10 min-h-[420px]">
+                                    <div key={project.id} className="group relative bg-white border border-slate-100 hover:border-[#10B981]/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10 min-h-[420px]">
                                         <div className="h-44 sm:h-48 w-full bg-slate-100 overflow-hidden relative">
                                             
                                             {/* Renderização da imagem (padrão ou original) */}
@@ -702,13 +918,13 @@ export default function ClubBoard({
 
                                         <div className="p-6 flex flex-col h-[calc(100%-12rem)]">
                                             <div className="flex justify-between items-start mb-4 gap-4">
-                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-inner ${isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-[#E0F7F7] text-[#008A8A] border-[#00B5B5]/20'}`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isCompleted ? 'bg-emerald-500' : 'bg-[#00B5B5] animate-pulse'}`}></span>
+                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-inner ${isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-[#ECFDF5] text-[#047857] border-[#10B981]/20'}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isCompleted ? 'bg-emerald-500' : 'bg-[#10B981] animate-pulse'}`}></span>
                                                     {project.status || 'Em andamento'}
                                                 </span>
                                             </div>
 
-                                            <h4 className="font-extrabold text-xl text-slate-950 leading-tight mb-3 group-hover:text-[#00B5B5] transition-colors">{project.titulo || 'Projeto sem título'}</h4>
+                                            <h4 className="font-extrabold text-xl text-slate-950 leading-tight mb-3 group-hover:text-[#10B981] transition-colors">{project.titulo || 'Projeto sem título'}</h4>
 
                                             <p className="text-sm text-slate-600 line-clamp-3 mb-8 flex-1 leading-relaxed">{project.descricao || project.introducao || 'Projeto aguardando documentação descritiva.'}</p>
 
@@ -721,12 +937,37 @@ export default function ClubBoard({
                                                     ) : ""}
                                                 </div>
 
-                                                <button
-                                                    onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(project.id); setCurrentView('diario'); }}
-                                                    className="w-full text-center bg-[#00B5B5] hover:bg-[#009E9E] text-white px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 shadow-sm"
-                                                >
-                                                    Acessar Diário
-                                                </button>
+                                                <div className={`grid ${actionGridClass} gap-2`}>
+                                                    <button
+                                                        onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(project.id); setCurrentView('diario'); }}
+                                                        className="w-full text-center bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 shadow-sm"
+                                                    >
+                                                        Acessar Diário
+                                                    </button>
+
+                                                    {canEditProject && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleEditProjectClick(project)}
+                                                            className="w-full inline-flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-full font-bold text-sm transition-colors"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                            Editar
+                                                        </button>
+                                                    )}
+
+                                                    {canDeleteProject && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteProjectClick(project)}
+                                                            disabled={isDeletingProject}
+                                                            className="w-full inline-flex items-center justify-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-full font-bold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                            {isDeletingProject ? 'Apagando...' : 'Apagar'}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -745,6 +986,24 @@ export default function ClubBoard({
                 users={users}
                 isSubmitting={creatingClub}
                 onSubmit={handleCreateClub}
+            />
+
+            <CreateProjectForm
+                isOpen={isEditProjectOpen}
+                onClose={handleCloseEditProject}
+                viewingClub={viewingClub}
+                loggedUser={loggedUser}
+                users={users}
+                viewingClubOrientadores={viewingClubOrientadores}
+                viewingClubCoorientadores={viewingClubCoorientadores}
+                viewingClubInvestigadores={viewingClubInvestigadores}
+                handleUpdateProject={handleUpdateProject}
+                projectToEdit={projectBeingEdited}
+                mode="edit"
+                onSuccess={() => {
+                    setMembershipRequestFeedback({ type: 'success', message: 'Projeto atualizado com sucesso.' });
+                    handleCloseEditProject();
+                }}
             />
 
             <EditClubForm
@@ -770,6 +1029,7 @@ export default function ClubBoard({
         </div>
     );
 }
+
 
 
 

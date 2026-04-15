@@ -2,6 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import {
     addDoc,
     collection,
+    deleteDoc,
     doc,
     getDocs,
     getDoc,
@@ -61,6 +62,21 @@ const getDataUrlByteSize = (dataUrl) => {
     const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
     return Math.ceil((base64.length * 3) / 4) - padding;
 };
+
+const DIARY_PROJECT_QUERY_CHUNK_SIZE = 10;
+const MAX_PROJECT_IMAGES = 5;
+
+function chunkValues(values, size = DIARY_PROJECT_QUERY_CHUNK_SIZE) {
+    const items = Array.isArray(values) ? values : [];
+    const chunkSize = Math.max(1, Number(size) || DIARY_PROJECT_QUERY_CHUNK_SIZE);
+    const chunks = [];
+
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+
+    return chunks;
+}
 
 export default function useAppController() {
     const [currentView, setCurrentView] = useState('Projetos');
@@ -125,7 +141,7 @@ export default function useAppController() {
         nextSteps: '',
         tags: ''
     });
-    const defaultSidebarOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+    const defaultSidebarOrder = ['Projetos', 'meusProjetos', 'trilha', 'inpi', 'forum', 'clube'];
     const [sidebarOrder, setSidebarOrder] = useState(defaultSidebarOrder);
 
     const isRegisteringRef = useRef(false);
@@ -287,6 +303,47 @@ export default function useAppController() {
         return [...projectsById.values()];
     }, [allProjects, projects]);
 
+    const loggedUserId = String(loggedUser?.id || authUser?.uid || '').trim();
+
+    const isStrictProjectMember = useCallback((project) => {
+        if (!project || !loggedUserId) {
+            return false;
+        }
+
+        const projectMemberIds = normalizeIdList([
+            ...(project?.membros_ids || []),
+            ...(project?.orientador_ids || []),
+            ...(project?.orientadores_ids || []),
+            ...(project?.coorientador_ids || []),
+            ...(project?.coorientadores_ids || []),
+            ...(project?.investigadores_ids || []),
+            project?.orientador_id,
+            project?.coorientador_id,
+            project?.mentor_id,
+            project?.autor_id,
+            project?.author_id,
+            project?.createdBy,
+            project?.created_by,
+            project?.criador_id,
+            project?.creator_id,
+            project?.owner_id
+        ]);
+
+        return projectMemberIds.includes(loggedUserId);
+    }, [loggedUserId]);
+
+    const diaryAccessibleProjectIds = useMemo(() => {
+        if (!loggedUserId) {
+            return [];
+        }
+
+        return normalizeIdList(
+            projectsCatalog
+                .filter((project) => isStrictProjectMember(project))
+                .map((project) => String(project?.id || '').trim())
+        );
+    }, [projectsCatalog, loggedUserId, isStrictProjectMember]);
+
     const searchableProjects = useMemo(() => {
         return projectsCatalog.map((project) => {
             const club = clubsById.get(String(project.clube_id || ''));
@@ -315,8 +372,6 @@ export default function useAppController() {
             };
         });
     }, [projectsCatalog, clubsById, schoolsById]);
-
-    const loggedUserId = String(loggedUser?.id || authUser?.uid || '').trim();
 
     const myClubIds = useMemo(() => {
         if (!loggedUser) return [];
@@ -576,9 +631,6 @@ export default function useAppController() {
             try {
                 setLoading(true);
 
-                // Limita diário para reduzir payload/leitura em bases muito grandes.
-                const diaryConstraints = [orderBy('createdAt', 'desc'), limit(500)];
-
                 const loadedClubsPromise = cachedDataService
                     .getCollectionList('clubes', [], true)
                     .then((clubsList) => {
@@ -590,11 +642,10 @@ export default function useAppController() {
                     })
                     .catch(() => cachedDataService.getCollectionList('clubes_ciencia', [], true));
 
-                const [loadedClubs, loadedUsers, loadedSchools, loadedDiaryEntries, loadedAllProjects] = await Promise.all([
+                const [loadedClubs, loadedUsers, loadedSchools, loadedAllProjects] = await Promise.all([
                     loadedClubsPromise,
                     cachedDataService.getCollectionList('usuarios', [], true),
                     cachedDataService.getCollectionList('unidades_escolares', [], true),
-                    cachedDataService.getCollectionList('diario_bordo', diaryConstraints, true),
                     cachedDataService.getCollectionList('projetos', [], true)
                 ]);
 
@@ -620,7 +671,7 @@ export default function useAppController() {
                 setClubs((loadedClubs || []).map((club) => ({ ...club, id: String(club.id || '').trim() })));
                 setUsers((loadedUsers || []).map((user) => normalizeUserEntity(user, user?.id)));
                 setSchools([...schoolsByUniqueId.values()]);
-                setDiaryEntries(loadedDiaryEntries || []);
+                setDiaryEntries([]);
                 setAllProjects(loadedAllProjects || []);
             } catch (error) {
                 console.error('Erro ao carregar dados iniciais com cache:', error);
@@ -640,6 +691,59 @@ export default function useAppController() {
             isMounted = false;
         };
     }, [normalizeUserEntity, normalizeSchoolEntity, fallbackSchoolUnits]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadDiaryEntriesByProjectMembership = async () => {
+            if (!loggedUser || diaryAccessibleProjectIds.length === 0) {
+                if (isMounted) {
+                    setDiaryEntries([]);
+                }
+                return;
+            }
+
+            try {
+                const projectIdChunks = chunkValues(diaryAccessibleProjectIds, DIARY_PROJECT_QUERY_CHUNK_SIZE);
+                const snapshots = await Promise.all(
+                    projectIdChunks.map((projectIds) => {
+                        const diaryQuery = query(
+                            collection(db, 'diario_bordo'),
+                            where('projeto_id', 'in', projectIds)
+                        );
+                        return getDocs(diaryQuery);
+                    })
+                );
+
+                if (!isMounted) {
+                    return;
+                }
+
+                const entriesById = new Map();
+                snapshots.forEach((snapshot) => {
+                    snapshot.docs.forEach((item) => {
+                        entriesById.set(item.id, { id: item.id, ...item.data() });
+                    });
+                });
+
+                const sortedEntries = [...entriesById.values()].sort(
+                    (a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt)
+                );
+                setDiaryEntries(sortedEntries);
+            } catch (error) {
+                console.error('Erro ao carregar diário por permissao de projeto:', error);
+                if (isMounted) {
+                    setDiaryEntries([]);
+                }
+            }
+        };
+
+        void loadDiaryEntriesByProjectMembership();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [loggedUser, diaryAccessibleProjectIds, getTimestampMillis]);
 
     useEffect(() => {
         void fetchProjectsPage(true);
@@ -735,25 +839,11 @@ export default function useAppController() {
         return (baseName || 'documento').slice(0, 120);
     };
 
-    const scopedProjects = deferredSearchTerm ? filteredSearchProjects : projects;
+    const scopedProjects = deferredSearchTerm ? filteredSearchProjects : projectsCatalog;
 
     const feedProjects = useMemo(() => {
-        return scopedProjects.filter((project) => {
-            const title = String(project.titulo || '').trim();
-            const description = String(project.descricao || project.introducao || '').trim();
-
-            if (!title || /^\.*$/.test(title)) {
-                return false;
-            }
-
-            // Em pesquisa, exibimos títulos mesmo que descrição/introd esteja ausente.
-            if (deferredSearchTerm) {
-                return true;
-            }
-
-            return Boolean(description);
-        });
-    }, [scopedProjects, deferredSearchTerm]);
+        return scopedProjects.filter((project) => Boolean(String(project?.id || '').trim()));
+    }, [scopedProjects]);
 
     const selectedProject = projectsCatalog.find((project) => String(project.id) === String(selectedProjectId)) ?? null;
     const selectedClub =
@@ -767,27 +857,9 @@ export default function useAppController() {
         ? getProjectTeam(selectedProject, users, selectedClubId)
         : { orientadores: [], coorientadores: [], investigadores: [] };
 
-    const isUserProjectMember = Boolean(
-        loggedUser &&
-        [
-            ...(selectedTeam.orientadores || []),
-            ...(selectedTeam.coorientadores || []),
-            ...(selectedTeam.investigadores || [])
-        ].some((member) => {
-            if (!member || !loggedUser) return false;
-            const memberId = String(member.id || '').trim();
-            const userId = String(loggedUser.id || '').trim();
-            const memberEmail = String(member.email || '').toLowerCase().trim();
-            const userEmail = String(loggedUser.email || '').toLowerCase().trim();
-            const memberMatricula = String(member.matricula || member['matrícula'] || '').trim();
-            const userMatricula = String(loggedUser.matricula || loggedUser['matrícula'] || '').trim();
-
-            return (
-                (memberId && userId && memberId === userId) ||
-                (memberEmail && userEmail && memberEmail === userEmail) ||
-                (memberMatricula && userMatricula && memberMatricula === userMatricula)
-            );
-        })
+    const canViewDiary = Boolean(
+        selectedProject
+        && isStrictProjectMember(selectedProject)
     );
 
     const leadUser = selectedTeam.orientadores[0]
@@ -795,10 +867,12 @@ export default function useAppController() {
         ?? selectedTeam.investigadores[0]
         ?? null;
 
-    const derivedDiaryEntries = selectedProject ? buildProjectEntries(selectedProject, diaryEntries, selectedTeam) : [];
+    const derivedDiaryEntries = canViewDiary && selectedProject
+        ? buildProjectEntries(selectedProject, diaryEntries, selectedTeam)
+        : [];
 
     const currentClubId = selectedClub?.id || viewingClubId || '';
-    const canEditDiary = Boolean(selectedProject && isUserProjectMember);
+    const canEditDiary = canViewDiary;
 
     const viewingClub = clubs.find((item) => item.id === viewingClubId) ?? null;
     const viewingClubSchool = schools.find(
@@ -850,7 +924,7 @@ export default function useAppController() {
             return;
         }
 
-        if (!isUserProjectMember) {
+        if (!canEditDiary) {
             setErrorMessage('Apenas integrantes do projeto podem registrar no diário de bordo.');
             return;
         }
@@ -926,7 +1000,7 @@ export default function useAppController() {
                         
                         // Carregar ordem do sidebar se existir
                         if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
-                            const defaultOrder = ['Projetos', 'diario', 'trilha', 'inpi', 'forum', 'clube'];
+                            const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'inpi', 'forum', 'clube'];
                             const filteredOrder = userData.sidebarOrder.filter((item) => defaultOrder.includes(item));
                             const mergedOrder = [...new Set([...filteredOrder, ...defaultOrder])];
                             setSidebarOrder(mergedOrder);
@@ -1037,6 +1111,35 @@ export default function useAppController() {
     }, [clubs, authUser, loggedUser, myClubIds]);
 
     useEffect(() => {
+        if (currentView !== 'clube') {
+            return;
+        }
+
+        if (myClubIds.length === 0) {
+            if (String(viewingClubId || '').trim()) {
+                setViewingClubId('');
+            }
+
+            if (String(selectedClubId || '').trim()) {
+                setSelectedClubId('');
+            }
+            return;
+        }
+
+        const fallbackClubId = myClubIds[0];
+        const normalizedViewingClubId = String(viewingClubId || '').trim();
+        const normalizedSelectedClubId = String(selectedClubId || '').trim();
+
+        if (!normalizedViewingClubId || !myClubIds.includes(normalizedViewingClubId)) {
+            setViewingClubId(fallbackClubId);
+        }
+
+        if (!normalizedSelectedClubId || !myClubIds.includes(normalizedSelectedClubId)) {
+            setSelectedClubId(fallbackClubId);
+        }
+    }, [currentView, myClubIds, viewingClubId, selectedClubId]);
+
+    useEffect(() => {
         if (!viewingClubId) {
             setClubProjects([]);
             return;
@@ -1048,15 +1151,21 @@ export default function useAppController() {
     }, [projectsCatalog, viewingClubId]);
 
     useEffect(() => {
-        if (!myClubId) {
+        if (!Array.isArray(myClubIds) || myClubIds.length === 0) {
             setMyClubProjects([]);
             return;
         }
 
-        setMyClubProjects(
-            projectsCatalog.filter((project) => String(project.clube_id || '') === String(myClubId))
+        const myClubIdSet = new Set(
+            myClubIds
+                .map((clubId) => String(clubId || '').trim())
+                .filter(Boolean)
         );
-    }, [projectsCatalog, myClubId]);
+
+        setMyClubProjects(
+            projectsCatalog.filter((project) => myClubIdSet.has(String(project?.clube_id || '').trim()))
+        );
+    }, [projectsCatalog, myClubIds]);
 
     const handleLogin = async (event) => {
         event.preventDefault();
@@ -1233,7 +1342,108 @@ export default function useAppController() {
         setCurrentView('Projetos');
     };
 
-    const handleCreateProject = async ({ titulo, descricao, area_tematica, status, tipo, coorientador_ids = [], investigadores_ids = [], imagens = [] }) => {
+    const flattenProjectReferenceValues = (value) => {
+        if (value === undefined || value === null) return [];
+
+        if (Array.isArray(value)) {
+            return value.flatMap(flattenProjectReferenceValues);
+        }
+
+        if (typeof value === 'object') {
+            return [
+                value.id,
+                value.uid,
+                value.email,
+                value.matricula,
+                value['matrícula']
+            ].flatMap(flattenProjectReferenceValues);
+        }
+
+        return String(value)
+            .split(/[,;\n]+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+    };
+
+    const canCurrentMentorManageProject = (project) => {
+        if (!project) {
+            return false;
+        }
+
+        const currentUserId = String(loggedUser?.id || authUser?.uid || '').trim();
+        if (!currentUserId || !isMentoriaPerfil(loggedUser?.perfil)) {
+            return false;
+        }
+
+        const loggedUserEmail = String(loggedUser?.email || '').toLowerCase().trim();
+        const loggedUserMatricula = String(loggedUser?.matricula || loggedUser?.['matrícula'] || '').trim();
+
+        try {
+            const projectTeam = getProjectTeam(project, users, String(project?.clube_id || '').trim());
+            const projectMentors = [
+                ...(projectTeam?.orientadores || []),
+                ...(projectTeam?.coorientadores || [])
+            ];
+
+            const isMentorInProjectTeam = projectMentors.some((member) => {
+                const memberId = String(member?.id || '').trim();
+                const memberEmail = String(member?.email || '').toLowerCase().trim();
+                const memberMatricula = String(member?.matricula || member?.['matrícula'] || '').trim();
+
+                return (
+                    (memberId && memberId === currentUserId)
+                    || (loggedUserEmail && memberEmail && memberEmail === loggedUserEmail)
+                    || (loggedUserMatricula && memberMatricula && memberMatricula === loggedUserMatricula)
+                );
+            });
+
+            if (isMentorInProjectTeam) {
+                return true;
+            }
+        } catch (error) {
+            // fallback para validacao por referencias diretas do projeto
+        }
+
+        const projectMentorReferences = new Set(
+            [
+                project?.mentor_id,
+                project?.orientador_id,
+                project?.coorientador_id,
+                project?.autor_id,
+                project?.author_id,
+                project?.created_by,
+                project?.createdBy,
+                project?.criador_id,
+                project?.creator_id,
+                project?.owner_id,
+                project?.orientador_ids,
+                project?.orientadores_ids,
+                project?.coorientador_ids,
+                project?.coorientadores_ids
+            ]
+                .flatMap(flattenProjectReferenceValues)
+                .map((value) => String(value || '').toLowerCase().trim())
+                .filter(Boolean)
+        );
+
+        return (
+            projectMentorReferences.has(currentUserId.toLowerCase())
+            || (loggedUserEmail && projectMentorReferences.has(loggedUserEmail))
+            || (loggedUserMatricula && projectMentorReferences.has(loggedUserMatricula.toLowerCase()))
+        );
+    };
+
+    const handleCreateProject = async ({
+        titulo,
+        descricao,
+        area_tematica,
+        status,
+        tipo,
+        coorientador_ids = [],
+        investigadores_ids = [],
+        imagens = [],
+        termo_aceite_criacao = false
+    }) => {
         if (!viewingClub) {
             setErrorMessage('Selecione um clube para registrar o projeto.');
             return;
@@ -1248,6 +1458,11 @@ export default function useAppController() {
 
         if (!titulo || !String(titulo).trim()) {
             setErrorMessage('Informe o título do projeto.');
+            return;
+        }
+        const isCreatorMentor = isMentoriaPerfil(loggedUser?.perfil);
+        if (isCreatorMentor && !termo_aceite_criacao) {
+            setErrorMessage('Para criar o projeto, o mentor precisa aceitar o termo de criacao de projetos.');
             return;
         }
 
@@ -1265,6 +1480,18 @@ export default function useAppController() {
                 escola_id: viewingClub.escola_id || '',
                 createdAt: serverTimestamp()
             };
+            if (isCreatorMentor) {
+                newProjectData.termo_aceite_criacao = {
+                    aceito: true,
+                    versao: '2026-04-15',
+                    termo_id: 'termo_aceite_criacao_projetos_clubes_ciencias',
+                    aceito_em: serverTimestamp(),
+                    aceito_por_id: creatorId,
+                    aceito_por_nome: String(loggedUser?.nome || '').trim(),
+                    aceito_por_email: String(loggedUser?.email || '').trim(),
+                    aceito_por_perfil: String(loggedUser?.perfil || '').trim()
+                };
+            }
 
             const clubSchoolId = String(viewingClub?.escola_id || '').trim();
             const clubSchoolName = normalizeSchoolName(viewingClub?.escola_nome);
@@ -1340,7 +1567,7 @@ export default function useAppController() {
             }
 
             const normalizedImagens = Array.isArray(imagens)
-                ? imagens.filter((img) => typeof img === 'string' && img.trim()).slice(0, 2)
+                ? imagens.filter((img) => typeof img === 'string' && img.trim()).slice(0, MAX_PROJECT_IMAGES)
                 : [];
 
             if (normalizedImagens.length > 0) {
@@ -1420,6 +1647,170 @@ export default function useAppController() {
         } finally {
             setIsFetchingProjects(false);
         }
+    };
+
+    const handleUpdateProject = async (
+        projectId,
+        {
+            titulo,
+            descricao,
+            area_tematica,
+            status,
+            tipo,
+            coorientador_ids = [],
+            investigadores_ids = [],
+            imagens = []
+        } = {}
+    ) => {
+        const normalizedProjectId = String(projectId || '').trim();
+        if (!normalizedProjectId) {
+            throw new Error('Projeto invalido para edicao.');
+        }
+
+        const currentUserId = String(loggedUser?.id || authUser?.uid || '').trim();
+        if (!currentUserId) {
+            throw new Error('Usuario nao autenticado para edicao de projeto.');
+        }
+
+        if (!isMentoriaPerfil(loggedUser?.perfil)) {
+            throw new Error('Apenas mentor ou co-mentor pode editar projetos.');
+        }
+
+        const projectToUpdate = projectsCatalog.find((project) => String(project?.id || '').trim() === normalizedProjectId) || null;
+        if (!projectToUpdate) {
+            throw new Error('Projeto nao encontrado.');
+        }
+
+        if (!canCurrentMentorManageProject(projectToUpdate)) {
+            throw new Error('Voce so pode editar projetos em que atua como mentor responsavel.');
+        }
+
+        const normalizedTitle = String(titulo || '').trim();
+        if (!normalizedTitle) {
+            throw new Error('Informe o titulo do projeto.');
+        }
+
+        const requestedCoorientadores = normalizeIdList(coorientador_ids || []);
+        const requestedInvestigadores = normalizeIdList(investigadores_ids || []);
+
+        const existingOrientadores = normalizeIdList([
+            ...(projectToUpdate?.orientador_ids || []),
+            ...(projectToUpdate?.orientadores_ids || [])
+        ]);
+        const normalizedOrientadores = existingOrientadores.length > 0
+            ? existingOrientadores
+            : [currentUserId];
+
+        const normalizedCoorientadores = requestedCoorientadores
+            .filter((id) => id && !normalizedOrientadores.includes(id));
+
+        const normalizedInvestigadores = requestedInvestigadores
+            .filter((id) => id && !normalizedOrientadores.includes(id) && !normalizedCoorientadores.includes(id));
+
+        const normalizedImagens = Array.isArray(imagens)
+            ? imagens.filter((img) => typeof img === 'string' && img.trim()).slice(0, MAX_PROJECT_IMAGES)
+            : [];
+
+        const updatePayload = {
+            titulo: normalizedTitle,
+            descricao: String(descricao || '').trim(),
+            area_tematica: String(area_tematica || '').trim(),
+            status: String(status || 'Em andamento').trim(),
+            tipo: String(tipo || 'Projeto Científico').trim(),
+            orientador_ids: normalizedOrientadores,
+            orientadores_ids: normalizedOrientadores,
+            coorientador_ids: normalizedCoorientadores,
+            coorientadores_ids: normalizedCoorientadores,
+            investigadores_ids: normalizedInvestigadores,
+            membros_ids: normalizeIdList([
+                ...normalizedOrientadores,
+                ...normalizedCoorientadores,
+                ...normalizedInvestigadores
+            ]),
+            imagens: normalizedImagens,
+            updated_by: currentUserId,
+            updated_by_nome: String(loggedUser?.nome || '').trim(),
+            updated_by_email: String(loggedUser?.email || '').trim(),
+            updated_by_perfil: String(loggedUser?.perfil || '').trim()
+        };
+
+        await updateDoc(doc(db, 'projetos', normalizedProjectId), {
+            ...updatePayload,
+            updatedAt: serverTimestamp()
+        });
+
+        await cachedDataService.invalidateCollection('projetos');
+
+        const localUpdatedPayload = {
+            ...updatePayload,
+            updatedAt: new Date()
+        };
+
+        const applyProjectUpdate = (previousProjects) => previousProjects.map((project) => {
+            if (String(project?.id || '').trim() !== normalizedProjectId) {
+                return project;
+            }
+
+            return {
+                ...project,
+                ...localUpdatedPayload
+            };
+        });
+
+        setProjects(applyProjectUpdate);
+        setAllProjects(applyProjectUpdate);
+        setClubProjects(applyProjectUpdate);
+        setMyClubProjects(applyProjectUpdate);
+        setErrorMessage('Projeto atualizado com sucesso.');
+
+        return normalizedProjectId;
+    };
+
+    const handleDeleteProject = async (projectId) => {
+        const normalizedProjectId = String(projectId || '').trim();
+        if (!normalizedProjectId) {
+            throw new Error('Projeto invalido para exclusao.');
+        }
+
+        const currentUserId = String(loggedUser?.id || authUser?.uid || '').trim();
+        if (!currentUserId) {
+            throw new Error('Usuario nao autenticado para exclusao de projeto.');
+        }
+
+        if (!isMentoriaPerfil(loggedUser?.perfil)) {
+            throw new Error('Apenas mentor ou co-mentor pode apagar projetos.');
+        }
+
+        const projectToDelete = projectsCatalog.find((project) => String(project?.id || '').trim() === normalizedProjectId) || null;
+        if (!projectToDelete) {
+            throw new Error('Projeto nao encontrado.');
+        }
+
+        if (!canCurrentMentorManageProject(projectToDelete)) {
+            throw new Error('Voce so pode apagar projetos em que atua como mentor responsavel.');
+        }
+
+        await deleteDoc(doc(db, 'projetos', normalizedProjectId));
+        await cachedDataService.invalidateCollection('projetos');
+
+        setProjects((previous) => previous.filter((project) => String(project?.id || '').trim() !== normalizedProjectId));
+        setAllProjects((previous) => previous.filter((project) => String(project?.id || '').trim() !== normalizedProjectId));
+        setClubProjects((previous) => previous.filter((project) => String(project?.id || '').trim() !== normalizedProjectId));
+        setMyClubProjects((previous) => previous.filter((project) => String(project?.id || '').trim() !== normalizedProjectId));
+        setDiaryEntries((previous) => previous.filter((entry) => String(entry?.projeto_id || '').trim() !== normalizedProjectId));
+
+        if (String(selectedProjectId || '').trim() === normalizedProjectId) {
+            setSelectedProjectId('');
+            if (currentView === 'diario') {
+                setCurrentView('clube');
+            }
+        }
+
+        setProjectsTotalCount((previous) => {
+            const count = Number(previous || 0);
+            if (Number.isNaN(count)) return previous;
+            return Math.max(0, count - 1);
+        });
     };
 
     const handleCreateClub = async ({
@@ -2421,6 +2812,7 @@ export default function useAppController() {
         selectedSchool,
         selectedTeam,
         derivedDiaryEntries,
+        canViewDiary,
         canEditDiary,
         getLattesLink,
         composeMentoriaLabel,
@@ -2442,6 +2834,8 @@ export default function useAppController() {
         reviewingClubRequestIds,
         handleRespondClubEntryRequest,
         handleCreateProject,
+        handleUpdateProject,
+        handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,
         creatingClub,
@@ -2602,4 +2996,6 @@ function getAuthErrorMessage(code, fallbackMessage = '') {
 
     return 'Ocorreu um erro. Tente novamente.';
 }
+
+
 

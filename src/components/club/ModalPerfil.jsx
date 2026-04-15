@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
     School, Shield, Phone, 
     Users, TrendingUp, Link as LinkIcon, X, Mail 
@@ -20,9 +20,9 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
         : 0;
 
     const projetosCount = Number(usuario.projetosCount ?? usuario.projetos?.length ?? usuario.projetos_ids?.length ?? usuario.projetosIds?.length ?? projetoCountByClub ?? 0);
-    const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'Usuário Sem Nome';
+    const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'UsuÃ¡rio Sem Nome';
     const email = usuario.email || usuario.emailPrincipal || usuario.email_usuario || 'Sem e-mail';
-    const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'Não informado';
+    const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'NÃ£o informado';
     const bio = usuario.bio || usuario.descricao || usuario.sobre || '';
     const avatarSrc = usuario.fotoUrl || usuario.fotoBase64 || usuario.avatar || usuario.foto || '';
     const lattesLink = getLattesLink(usuario);
@@ -84,17 +84,17 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
                     {/* Card do Clube - destaque principal */}
                     <div className="flex justify-center mb-6">
                         <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center mx-auto mb-2">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2">
                                 <School className="w-5 h-5 text-white" />
                             </div>
                             <p className="text-lg font-bold text-slate-800 break-words">
                                 {clube}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de Ciências</p>
+                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de CiÃªncias</p>
                         </div>
                     </div>
 
-                    {/* Grid de informações */}
+                    {/* Grid de informaÃ§Ãµes */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <InfoCard 
                             icon={TrendingUp} 
@@ -111,7 +111,7 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
                         <InfoCard 
                             icon={LinkIcon} 
                             label="Lattes" 
-                            value={lattesLink ? 'Acessar Lattes' : 'Não informado'} 
+                            value={lattesLink ? 'Acessar Lattes' : 'NÃ£o informado'} 
                             isLink={!!lattesLink}
                             linkUrl={lattesLink}
                             color="text-blue-600" 

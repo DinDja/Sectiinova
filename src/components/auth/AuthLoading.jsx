@@ -2,14 +2,14 @@ import React from "react";
 
 export default function AuthLoading() {
   return (
-    <div className="bg-slate-50 min-h-screen flex items-center justify-center font-sans text-slate-800 overflow-hidden relative">
-      {/* Mensagem acessível para leitores de tela */}
+    <div className="min-h-screen flex items-center justify-center font-sans text-slate-900 overflow-hidden relative bg-[radial-gradient(circle_at_10%_20%,rgba(45,212,191,0.2),transparent_35%),radial-gradient(circle_at_90%_5%,rgba(96,165,250,0.14),transparent_30%),linear-gradient(180deg,#fefce8_0%,#f8fafc_100%)]">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.1)_1px,transparent_1px)] bg-[size:24px_24px] opacity-40" />
+
       <div className="sr-only" role="status" aria-live="polite">
         Autenticando, aguarde...
       </div>
 
       <style>{`
-        /* Mantém as animações originais, mas consolida keyframes duplicados */
         .loading-wide {
           width: 150px;
           height: 150px;
@@ -20,8 +20,8 @@ export default function AuthLoading() {
         }
 
         .color {
-          background-color: #3395ff;
-          box-shadow: 0 0 10px rgba(51, 149, 255, 0.5);
+          background-color: var(--auth-secondary, #60a5fa);
+          box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
         }
 
         .l1,
@@ -50,30 +50,57 @@ export default function AuthLoading() {
         }
 
         @keyframes move-h {
-          0% { top: 0; opacity: 0; }
-          25% { opacity: 1; }
-          50% { top: 30%; opacity: 1; }
-          75% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
+          0% {
+            top: 0;
+            opacity: 0;
+          }
+          25% {
+            opacity: 1;
+          }
+          50% {
+            top: 30%;
+            opacity: 1;
+          }
+          75% {
+            opacity: 1;
+          }
+          100% {
+            top: 100%;
+            opacity: 0;
+          }
         }
 
         @keyframes move-v {
-          0% { left: 0; opacity: 0; }
-          25% { opacity: 1; }
-          50% { left: 45%; opacity: 1; }
-          75% { opacity: 1; }
-          100% { left: 100%; opacity: 0; }
+          0% {
+            left: 0;
+            opacity: 0;
+          }
+          25% {
+            opacity: 1;
+          }
+          50% {
+            left: 45%;
+            opacity: 1;
+          }
+          75% {
+            opacity: 1;
+          }
+          100% {
+            left: 100%;
+            opacity: 0;
+          }
         }
 
-        /* Unifica as animações de efeito de luz (eram duas classes com keyframes idênticos) */
         .animation-effect-light,
         .animation-effect-light-d {
           animation: effect 0.3s infinite linear;
         }
+
         .animation-effect-light {
           animation-duration: 0.2s;
           animation-delay: 0.1s;
         }
+
         .animation-effect-light-d {
           animation-duration: 0.3s;
           animation-delay: 0.2s;
@@ -88,24 +115,41 @@ export default function AuthLoading() {
         }
 
         @keyframes effect {
-          0% { opacity: 0; }
-          50% { opacity: 1; }
-          100% { opacity: 0; }
+          0% {
+            opacity: 0;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
         }
 
         @keyframes rot {
-          0% { transform: rotate(0deg); }
-          50% { transform: rotate(180deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          50% {
+            transform: rotate(180deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
 
         @keyframes scale {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.9); }
-          100% { transform: scale(1); }
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.9);
+          }
+          100% {
+            transform: scale(1);
+          }
         }
 
-        /* Posicionamentos dos elementos mantidos */
         .e1 {
           width: 1px;
           height: 40px;
@@ -129,8 +173,8 @@ export default function AuthLoading() {
           font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
           font-weight: 900;
           font-size: 18px;
-          color: #3395ff;
-          text-shadow: 0 0 5px rgba(51, 149, 255, 0.4);
+          color: var(--auth-secondary, #60a5fa);
+          text-shadow: 0 0 5px rgba(96, 165, 250, 0.45);
         }
 
         .e4 {
@@ -155,8 +199,8 @@ export default function AuthLoading() {
           right: 0;
           font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
           font-size: 32px;
-          color: #3395ff;
-          text-shadow: 0 0 5px rgba(51, 149, 255, 0.4);
+          color: var(--auth-secondary, #60a5fa);
+          text-shadow: 0 0 5px rgba(96, 165, 250, 0.45);
         }
 
         .e7 {
@@ -170,11 +214,27 @@ export default function AuthLoading() {
         }
 
         @keyframes height {
-          0% { bottom: 0%; left: 0%; height: 0px; }
-          25% { height: 90px; }
-          50% { bottom: 100%; left: 100%; height: 90px; }
-          75% { height: 0px; }
-          100% { bottom: 0%; left: 0%; height: 0px; }
+          0% {
+            bottom: 0%;
+            left: 0%;
+            height: 0px;
+          }
+          25% {
+            height: 90px;
+          }
+          50% {
+            bottom: 100%;
+            left: 100%;
+            height: 90px;
+          }
+          75% {
+            height: 0px;
+          }
+          100% {
+            bottom: 0%;
+            left: 0%;
+            height: 0px;
+          }
         }
 
         .e8 {
@@ -187,29 +247,45 @@ export default function AuthLoading() {
         }
 
         @keyframes width {
-          0% { left: 0%; width: 0px; }
-          50% { left: 100%; width: 90px; }
-          100% { left: 0%; width: 0px; }
+          0% {
+            left: 0%;
+            width: 0px;
+          }
+          50% {
+            left: 100%;
+            width: 90px;
+          }
+          100% {
+            left: 0%;
+            width: 0px;
+          }
         }
 
         .dots::after {
-          content: '';
+          content: "";
           animation: ellipsis 1.5s infinite;
         }
 
         @keyframes ellipsis {
-          0% { content: ''; }
-          25% { content: '.'; }
-          50% { content: '..'; }
-          75% { content: '...'; }
-          100% { content: ''; }
+          0% {
+            content: "";
+          }
+          25% {
+            content: ".";
+          }
+          50% {
+            content: "..";
+          }
+          75% {
+            content: "...";
+          }
+          100% {
+            content: "";
+          }
         }
       `}</style>
 
-      {/* Fundo com glow suave */}
-
-      {/* Card com glassmorphism e padding responsivo */}
-      <div className="relative z-10 p-8 sm:p-12 rounded-3xl  flex flex-col items-center gap-10 ">
+      <div className="relative z-10 p-8 sm:p-12 rounded-3xl border-4 border-slate-900 bg-[#FAFAFA] shadow-[10px_10px_0px_0px_#0f172a] flex flex-col items-center gap-10">
         <div className="loading">
           <div className="loading-wide">
             <div className="l1 color"></div>
@@ -226,14 +302,14 @@ export default function AuthLoading() {
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500 uppercase">
-            Autenticando<span className="dots text-blue-600"></span>
+          <h1 className="text-2xl font-black tracking-widest text-slate-900 uppercase">
+            Autenticando<span className="dots text-teal-600"></span>
           </h1>
-          <p className="text-slate-500 text-sm tracking-wide">
-            Verificando credenciais e <br />a estabelecer ligação segura.
+          <p className="text-slate-700 text-sm font-bold tracking-wide">
+            Verificando credenciais e <br />
+            a estabelecer ligacao segura.
           </p>
         </div>
-
       </div>
     </div>
   );

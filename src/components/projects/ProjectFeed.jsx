@@ -204,19 +204,14 @@ export default function ProjectFeed({
     <div 
       className="min-h-screen w-full relative"
       style={{
-        backgroundColor: '#f8fafc',
-        backgroundImage: ` 
-          linear-gradient(to right, rgba(203, 213, 225, 0.2) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(203, 213, 225, 0.2) 1px, transparent 1px)
-        `,
         backgroundSize: '32px 32px',
       }}
     > 
       <div className="max-w-4xl mx-auto space-y-8 pb-12 px-4 sm:px-0 pt-8 relative z-10">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-slate-300/80 animate-fade-in bg-white/50 backdrop-blur-sm p-4 rounded-xl">
-          <div>
+        <div className="bg-white/80 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-slate-300/80 animate-fade-in p-4 rounded-xl">
+          <div >
             <h1 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-tight">
               Aprender, Experimentar e Compartilhar
             </h1>
@@ -225,10 +220,10 @@ export default function ProjectFeed({
             </p>
           </div>
           <div className="flex gap-3">
-            <div className="premium-chip bg-white shadow-sm" title="Total de escolas participantes">
+            <div className="premium-chip bg-white shadow-sm" title="Total de clubes participantes">
               <School className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700">{schools.length}</span>
-              <span className="text-xs text-slate-500 hidden sm:inline">escolas</span>
+              <span className="text-sm font-semibold text-slate-700">{clubs.length}</span>
+              <span className="text-xs text-slate-500 hidden sm:inline">clubes</span>
             </div>
             <div className="premium-chip bg-white shadow-sm" title="Total de projetos cadastrados">
               <FolderKanban className="w-4 h-4 text-slate-500" />
@@ -248,7 +243,7 @@ export default function ProjectFeed({
           {isFetchingProjects && !isInitialLoading && (
             <div className="flex justify-center">
               <div className="flex items-center gap-2 text-sm text-slate-600 font-medium bg-white border border-slate-200 px-5 py-2.5 rounded-full shadow-sm">
-                <LoaderCircle className="w-4 h-4 animate-spin text-[#00B5B5]" />
+                <LoaderCircle className="w-4 h-4 animate-spin text-[#10B981]" />
                 <span>{isSearchActive ? 'Buscando projetos...' : 'Atualizando projetos...'}</span>
               </div>
             </div>
@@ -286,7 +281,6 @@ export default function ProjectFeed({
                     const resolvedClubId = String(club?.id || project?.clube_id || '').trim();
                     if (resolvedClubId) {
                       setSelectedClubId(resolvedClubId);
-                      setViewingClubId(resolvedClubId);
                     }
                     setSelectedProjectId(project.id);
                     setCurrentView('diario');
@@ -315,7 +309,7 @@ export default function ProjectFeed({
         <div className="pt-2 pb-6 flex flex-col items-center gap-4">
           {isFetchingProjects && !isInitialLoading && (
             <div className="flex items-center gap-2 text-sm text-slate-600 bg-white border border-slate-200 px-5 py-2.5 rounded-full shadow-sm">
-              <LoaderCircle className="w-4 h-4 animate-spin text-[#00B5B5]" />
+              <LoaderCircle className="w-4 h-4 animate-spin text-[#10B981]" />
               <span>Carregando mais projetos...</span>
             </div>
           )}
@@ -354,3 +348,4 @@ export default function ProjectFeed({
     </div>
   );
 }
+
