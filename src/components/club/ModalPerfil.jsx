@@ -1,18 +1,41 @@
-﻿import React from 'react';
-import { 
-    School, Shield, Phone, 
-    Users, TrendingUp, Link as LinkIcon, X, Mail 
-} from 'lucide-react';
-import { getInitials as getInitialsFromName, getLattesLink } from '../../utils/helpers';
-import { isUserInProject } from '../../services/projectService';
+﻿import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Mail, School, TrendingUp, Shield, Link as LinkIcon } from 'lucide-react';
 
-export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = null, clubProjects = [], clubUsers = [] }) {
-    if (!isOpen || !usuario) return null;
+// --- FUNÇÕES UTILITÁRIAS (Integradas para evitar erros de importação) ---
+const getInitials = (name) => {
+    if (!name) return '??';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const getLattesLink = (person) => person?.lattes_url || person?.lattes || null;
+
+const isUserInProject = (project, user) => {
+    if (!project || !user) return false;
+    const userId = String(user.id || user.uid).trim();
+    const allIds = [
+        project.autor_id, project.mentor_id, project.orientador_id, project.coorientador_id,
+        ...(project.investigadores_ids || []), ...(project.orientadores_ids || []), ...(project.coorientadores_ids || [])
+    ].map(id => String(id).trim());
+    return allIds.includes(userId);
+};
+
+export default function ModalPerfil({ isOpen, onClose, usuario, club = null, clubProjects = [], clubUsers = [] }) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!isOpen || !usuario || !mounted || typeof document === 'undefined') return null;
 
     const projetoCountByClub = Array.isArray(clubProjects) && clubProjects.length > 0
         ? clubProjects.reduce((acc, project) => {
             try {
-                return isUserInProject(project, usuario, clubUsers) ? acc + 1 : acc;
+                return isUserInProject(project, usuario) ? acc + 1 : acc;
             } catch (err) {
                 return acc;
             }
@@ -20,137 +43,117 @@ export default function ModalPerfilVisitante({ isOpen, onClose, usuario, club = 
         : 0;
 
     const projetosCount = Number(usuario.projetosCount ?? usuario.projetos?.length ?? usuario.projetos_ids?.length ?? usuario.projetosIds?.length ?? projetoCountByClub ?? 0);
-    const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'UsuÃ¡rio Sem Nome';
+    const nome = usuario.nome || usuario.nomeCompleto || usuario.fullName || 'Usuário Sem Nome';
     const email = usuario.email || usuario.emailPrincipal || usuario.email_usuario || 'Sem e-mail';
-    const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'NÃ£o informado';
+    const clube = usuario.clube || usuario.clube_nome || usuario.clubeId || club?.nome || 'Não informado';
     const bio = usuario.bio || usuario.descricao || usuario.sobre || '';
     const avatarSrc = usuario.fotoUrl || usuario.fotoBase64 || usuario.avatar || usuario.foto || '';
     const lattesLink = getLattesLink(usuario);
-
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) onClose();
     };
 
-    return (
+    const modalContent = (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 overflow-y-auto"
             onClick={handleBackdropClick}
         >
-            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 scrollbar-hide">
-                
-                <div className="relative h-32 bg-gradient-to-r from-[#0B3B5F] via-[#1B4F72] to-[#2E86C1] overflow-hidden">
+            <div 
+                className="relative w-full max-w-2xl bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] overflow-hidden animate-in zoom-in-[0.95] duration-200 transform -rotate-1 hover:rotate-0 transition-transform"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header Vibrante do Cartão */}
+                <div className="relative z-0 h-32 bg-pink-400 border-b-4 border-slate-900 overflow-hidden">
+                    <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-20"></div>
                     <button 
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-red-500/80 backdrop-blur-md rounded-xl text-white transition-all duration-300 z-10"
+                        className="absolute top-6 right-6 w-12 h-12 bg-white border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[2px_2px_0px_0px_#0f172a] flex items-center justify-center text-slate-900 transition-all z-10"
+                        title="Fechar Perfil"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-6 h-6 stroke-[3]" />
                     </button>
-                    <svg className="absolute bottom-0 left-0 w-full h-12" preserveAspectRatio="none" viewBox="0 0 1440 120">
-                        <path fill="white" fillOpacity="1" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z"></path>
-                    </svg>
                 </div>
 
-                <div className="px-6 pb-8 relative">
-                    <div className="relative flex flex-col items-center -mt-16 mb-6">
-                        <div className="relative w-28 h-28 rounded-full border-4 border-white bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
+                <div className="px-6 md:px-10 pb-10 relative z-10">
+                    <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8">
+                        {/* Avatar Brutalista */}
+                        <div className="w-32 h-32 bg-white border-4 border-slate-900 rounded-3xl shadow-[6px_6px_0px_0px_#0f172a] flex items-center justify-center overflow-hidden transform rotate-2 z-10">
                             {avatarSrc ? (
                                 <img src={avatarSrc} alt={nome} className="w-full h-full object-cover" />
                             ) : (
-                                <span className="text-3xl font-bold text-[#0B3B5F]">
-                                    {getInitialsFromName(nome)}
+                                <span className="text-4xl font-black text-slate-900 uppercase">
+                                    {getInitials(nome)}
                                 </span>
                             )}
                         </div>
 
-                        <h1 className="mt-3 text-2xl font-bold text-slate-800">
+                        <h1 className="mt-6 text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter text-center leading-tight">
                             {nome}
                         </h1>
                         
-                        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1">
-                            <div className="flex items-center gap-1 text-slate-500 text-sm">
-                                <Mail className="w-3.5 h-3.5" />
-                                <span>{email}</span>
-                            </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                            <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-widest transform -rotate-1">
+                                <Mail className="w-4 h-4 stroke-[3]" /> {email}
+                            </span>
                         </div>
 
                         {bio && (
-                            <p className="mt-3 text-slate-600 text-sm text-center max-w-md italic px-4">
+                            <p className="mt-6 text-slate-800 font-bold text-center max-w-md bg-white border-2 border-slate-900 p-5 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-1 text-sm leading-relaxed">
                                 "{bio}"
                             </p>
                         )}
                     </div>
 
-                    {/* Card do Clube - destaque principal */}
-                    <div className="flex justify-center mb-6">
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2">
-                                <School className="w-5 h-5 text-white" />
-                            </div>
-                            <p className="text-lg font-bold text-slate-800 break-words">
-                                {clube}
-                            </p>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de CiÃªncias</p>
+                    {/* Card do Clube (Identidade Neo-Brutalista) */}
+                    <div className="mb-8 w-full bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-6 md:p-8 text-center transform -rotate-1 hover:rotate-0 transition-transform">
+                        <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform -rotate-3">
+                            <School className="w-6 h-6 stroke-[3] text-slate-900" />
                         </div>
+                        <p className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-tight">
+                            {clube}
+                        </p>
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-900 mt-3 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">Clube de Ciências</p>
                     </div>
 
-                    {/* Grid de informaÃ§Ãµes */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <InfoCard 
-                            icon={TrendingUp} 
-                            label="Projetos" 
-                            value={projetosCount} 
-                            color="text-blue-600" 
-                        />
-                        <InfoCard 
-                            icon={Shield} 
-                            label="Perfil" 
-                            value={usuario.perfil || usuario.perfil_usuario || 'Membro'} 
-                            color="text-purple-600" 
-                        />
-                        <InfoCard 
-                            icon={LinkIcon} 
-                            label="Lattes" 
-                            value={lattesLink ? 'Acessar Lattes' : 'NÃ£o informado'} 
-                            isLink={!!lattesLink}
-                            linkUrl={lattesLink}
-                            color="text-blue-600" 
-                        />
+                    {/* Grid de informações */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        {/* Projetos */}
+                        <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                            <TrendingUp className="w-8 h-8 mb-3 stroke-[2.5] text-blue-500" />
+                            <span className="text-4xl font-black text-slate-900">{projetosCount}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Projetos</span>
+                        </div>
+                        
+                        {/* Perfil */}
+                        <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                            <Shield className="w-8 h-8 mb-3 stroke-[2.5] text-purple-500" />
+                            <span className="text-lg font-black text-slate-900 uppercase mt-auto leading-tight">{usuario.perfil || usuario.perfil_usuario || 'Membro'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Perfil</span>
+                        </div>
+                        
+                        {/* Lattes */}
+                        <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                            <LinkIcon className="w-8 h-8 mb-3 stroke-[2.5] text-orange-500" />
+                            {lattesLink ? (
+                                <a 
+                                    href={lattesLink.startsWith('http') ? lattesLink : `https://${lattesLink}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-sm font-black text-slate-900 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all uppercase mt-auto"
+                                >
+                                    Acessar
+                                </a>
+                            ) : (
+                                <span className="text-sm font-black text-slate-400 uppercase mt-auto border-2 border-dashed border-slate-300 px-3 py-1">Nenhum</span>
+                            )}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Lattes</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
-}
 
-function StatCard({ icon: Icon, label, value, color }) {
-    return (
-        <div className="p-3 rounded-xl bg-slate-50 border border-gray-100 shadow-sm text-center">
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${color} flex items-center justify-center mx-auto mb-1`}>
-                <Icon className="w-4 h-4 text-white" />
-            </div>
-            <p className="text-xl font-bold text-slate-800">{value}</p>
-            <p className="text-xs text-slate-500 font-medium">{label}</p>
-        </div>
-    );
-}
-
-function InfoCard({ icon: Icon, label, value, color, isLink, linkUrl }) {
-    return (
-        <div className="p-3 rounded-xl bg-slate-50 border border-gray-100 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-white shadow-sm ${color}`}>
-                <Icon className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-400">{label}</p>
-                {isLink && linkUrl ? (
-                    <a href={linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">
-                        {value}
-                    </a>
-                ) : (
-                    <p className="text-sm font-medium text-slate-700 truncate">{value}</p>
-                )}
-            </div>
-        </div>
-    );
+    return createPortal(modalContent, document.body);
 }

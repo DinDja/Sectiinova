@@ -149,6 +149,7 @@
     overflow: hidden;
   }
 
+
   .bg-home::before {
     content: "";
     position: absolute;

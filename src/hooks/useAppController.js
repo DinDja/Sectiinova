@@ -20,11 +20,17 @@ import {
 } from 'firebase/firestore';
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import {
+    browserLocalPersistence,
+    browserSessionPersistence,
     createUserWithEmailAndPassword,
     deleteUser,
     GoogleAuthProvider,
     onAuthStateChanged,
     OAuthProvider,
+    reload,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    setPersistence,
     signInWithEmailAndPassword,
     signInWithPopup,
     signOut
@@ -34,6 +40,11 @@ import { db, auth, storage } from '../../firebase';
 import dadosUnidades from '../../DadosUnidades.json';
 import dadosUnidadesMunicipais from '../../DadosUnidadesMunicipaisBA_8_9.json';
 import { getLattesLink, composeMentoriaLabel } from '../utils/helpers';
+import {
+    getAuthErrorMessage as getAuthSecurityErrorMessage,
+    shouldRequireEmailVerification,
+    validateRegistrationPassword
+} from '../utils/authSecurity';
 import { compressImageToBase64 } from '../utils/imageCompression';
 import { STAGES, PROJECTS_PAGE_SIZE, CLUB_REQUIRED_DOCUMENTS } from '../constants/appConstants';
 import {
@@ -116,9 +127,14 @@ export default function useAppController() {
     const [authLoading, setAuthLoading] = useState(true);
     const [authMode, setAuthMode] = useState('login');
     const [authError, setAuthError] = useState('');
+    const [authNotice, setAuthNotice] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
-    const [loginForm, setLoginForm] = useState({ email: '', senha: '' });
+    const [loginForm, setLoginForm] = useState({
+        email: '',
+        senha: '',
+        rememberDevice: false
+    });
     const [registerForm, setRegisterForm] = useState({
         nome: '',
         email: '',
@@ -1170,14 +1186,73 @@ export default function useAppController() {
     const handleLogin = async (event) => {
         event.preventDefault();
         setAuthError('');
+        setAuthNotice(null);
         setIsSubmitting(true);
 
         try {
-            await signInWithEmailAndPassword(auth, loginForm.email.trim(), loginForm.senha);
+            const normalizedEmail = String(loginForm.email || '').trim().toLowerCase();
+            const persistence = loginForm.rememberDevice
+                ? browserLocalPersistence
+                : browserSessionPersistence;
+
+            await setPersistence(auth, persistence);
+            const userCredential = await signInWithEmailAndPassword(
+                auth,
+                normalizedEmail,
+                loginForm.senha
+            );
+
+            await reload(userCredential.user);
+
+            if (shouldRequireEmailVerification(userCredential.user)) {
+                try {
+                    await sendEmailVerification(userCredential.user);
+                } catch (verificationError) {
+                    console.error('Falha ao reenviar e-mail de verificacao:', verificationError);
+                }
+
+                await signOut(auth);
+                setAuthNotice({
+                    tone: 'warning',
+                    message:
+                        'Confirme o link enviado para seu e-mail antes de entrar. Se a conta ainda nao estivesse validada, um novo link foi enviado.'
+                });
+                return;
+            }
         } catch (error) {
             console.error('Erro no login:', error);
-            setAuthError(getAuthErrorMessage(error.code, error.message || String(error)));
+            setAuthError(
+                getAuthSecurityErrorMessage(error.code, error.message || String(error), {
+                    operation: 'login'
+                })
+            );
         } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handlePasswordReset = async () => {
+        const normalizedEmail = String(loginForm.email || '').trim().toLowerCase();
+        if (!normalizedEmail) {
+            setAuthNotice(null);
+            setAuthError('Informe seu e-mail para receber o link de redefinicao.');
+            return;
+        }
+
+        setAuthError('');
+        setAuthNotice(null);
+        setIsSubmitting(true);
+
+        try {
+            await sendPasswordResetEmail(auth, normalizedEmail);
+        } catch (error) {
+            console.error('Erro ao solicitar redefinicao de senha:', error);
+        } finally {
+            setAuthNotice({
+                tone: 'info',
+                message:
+                    'Se existir uma conta para este e-mail, enviaremos um link seguro de redefinicao.'
+            });
             setIsSubmitting(false);
         }
     };
@@ -1185,6 +1260,7 @@ export default function useAppController() {
     const handleRegister = async (event) => {
         event.preventDefault();
         setAuthError('');
+        setAuthNotice(null);
 
         const escolaUnit = allSchoolUnits.find((unit) => unit.escola_id === registerForm.escola_id);
         if (!escolaUnit) {
@@ -1193,6 +1269,14 @@ export default function useAppController() {
         }
         if (registerForm.senha !== registerForm.confirmarSenha) {
             setAuthError('As senhas não coincidem.');
+            return;
+        }
+        const passwordValidationError = validateRegistrationPassword(registerForm.senha, {
+            email: registerForm.email,
+            fullName: registerForm.nome
+        });
+        if (passwordValidationError) {
+            setAuthError(passwordValidationError);
             return;
         }
         if (isMentoriaPerfil(registerForm.perfil) && !registerForm.matricula.trim()) {
@@ -1216,13 +1300,20 @@ export default function useAppController() {
         isRegisteringRef.current = true;
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, registerForm.email.trim(), registerForm.senha);
+            await setPersistence(auth, browserSessionPersistence);
+
+            const normalizedEmail = String(registerForm.email || '').trim().toLowerCase();
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                normalizedEmail,
+                registerForm.senha
+            );
 
             const resolvedEscolasIds = normalizeIdList([escolaUnit.escola_id]);
             const profileData = {
                 uid: userCredential.user.uid,
                 nome: registerForm.nome.trim(),
-                email: registerForm.email.trim(),
+                email: normalizedEmail,
                 perfil: registerForm.perfil,
                 rede_administrativa: registerForm.rede_administrativa === 'municipal' ? 'municipal' : 'estadual',
                 escolas_ids: resolvedEscolasIds,
@@ -1254,14 +1345,40 @@ export default function useAppController() {
             // 🎯 INVALIDAR CACHE de usuarios
             await cachedDataService.invalidateCollection('usuarios');
 
-            const snap = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
             isRegisteringRef.current = false;
-            setAuthUser(userCredential.user);
-            setLoggedUser(normalizeUserEntity(snap.data(), snap.id));
+            let verificationNotice = {
+                tone: 'warning',
+                message:
+                    'Conta criada, mas nao foi possivel confirmar o envio do e-mail de verificacao. Tente entrar novamente para receber um novo link.'
+            };
+
+            try {
+                await sendEmailVerification(userCredential.user);
+                verificationNotice = {
+                    tone: 'success',
+                    message:
+                        'Conta criada com sucesso. Verifique seu e-mail antes do primeiro acesso.'
+                };
+            } catch (verificationError) {
+                console.error('Falha ao enviar e-mail de verificacao:', verificationError);
+            }
+
+            await signOut(auth);
+            setLoginForm({
+                email: normalizedEmail,
+                senha: '',
+                rememberDevice: false
+            });
+            setAuthMode('login');
+            setAuthNotice(verificationNotice);
         } catch (error) {
             isRegisteringRef.current = false;
             console.error('Erro no cadastro (Auth/Firestore):', error);
-            setAuthError(getAuthErrorMessage(error.code, error.message || String(error)));
+            setAuthError(
+                getAuthSecurityErrorMessage(error.code, error.message || String(error), {
+                    operation: 'register'
+                })
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -1269,6 +1386,7 @@ export default function useAppController() {
 
     const handleSocialAuth = async (providerName) => {
         setAuthError('');
+        setAuthNotice(null);
         setIsSubmitting(true);
 
         try {
@@ -1314,7 +1432,11 @@ export default function useAppController() {
             setLoggedUser(normalizeUserEntity(refreshedUserSnap.data(), refreshedUserSnap.id));
         } catch (error) {
             console.error(`Erro no login social (${providerName}):`, error);
-            setAuthError(getAuthErrorMessage(error.code, error.message || String(error)));
+            setAuthError(
+                getAuthSecurityErrorMessage(error.code, error.message || String(error), {
+                    operation: 'login'
+                })
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -2766,6 +2888,8 @@ export default function useAppController() {
         setAuthMode,
         authError,
         setAuthError,
+        authNotice,
+        setAuthNotice,
         isSubmitting,
         loginForm,
         setLoginForm,
@@ -2776,6 +2900,7 @@ export default function useAppController() {
         filteredSchoolGroups,
         allSchoolUnits,
         handleLogin,
+        handlePasswordReset,
         handleRegister,
         handleGoogleAuth,
         handleOutlookAuth,

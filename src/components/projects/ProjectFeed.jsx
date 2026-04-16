@@ -1,9 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { School, FolderKanban, LoaderCircle, AlertCircle, ChevronRight } from 'lucide-react';
-import EmptyState from '../shared/EmptyState';
-import ProjectCard from './ProjectCard';
-import ModalClubView from '../club/ModalClubView'; // Importando o modal
-import { getUserClubIds } from '../../services/projectService';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  School,
+  FolderKanban,
+  LoaderCircle,
+  AlertCircle,
+  ChevronRight,
+  Asterisk,
+} from "lucide-react";
+import EmptyState from "../shared/EmptyState";
+import ProjectCard from "./ProjectCard";
+import ModalClubView from "../club/ModalClubView"; // Importando o modal
+import { getUserClubIds } from "../../services/projectService";
 
 // Componente Skeleton para loading inicial
 const ProjectCardSkeleton = () => (
@@ -39,7 +46,7 @@ export default function ProjectFeed({
   setSelectedProjectId,
   setViewingClubId,
   getProjectTeam,
-  getInvestigatorDisplayNames
+  getInvestigatorDisplayNames,
 }) {
   // Estado para indicar se é o primeiro carregamento (para mostrar skeleton)
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -54,7 +61,7 @@ export default function ProjectFeed({
     orientadores: [],
     coorientadores: [],
     investigadores: [],
-    diaryCount: 0
+    diaryCount: 0,
   });
 
   // Simular fim do carregamento inicial quando os projetos são carregados pela primeira vez
@@ -64,27 +71,43 @@ export default function ProjectFeed({
     }
   }, [feedProjects, isFetchingProjects]);
 
-  const isSearchActive = Boolean(String(searchTerm || '').trim());
+  const isSearchActive = Boolean(String(searchTerm || "").trim());
 
   // Se está carregando inicialmente e não há projetos, mostra skeletons
-  const showSkeletons = isInitialLoading && isFetchingProjects && feedProjects.length === 0;
+  const showSkeletons =
+    isInitialLoading && isFetchingProjects && feedProjects.length === 0;
 
   // Se houver busca e nenhum resultado, ou se não há projetos na base
   const isNoResults = feedProjects.length === 0;
-  const showEmptyState = !isFetchingProjects && !isInitialLoading && isNoResults && !hasMoreProjects;
+  const showEmptyState =
+    !isFetchingProjects && !isInitialLoading && isNoResults && !hasMoreProjects;
 
-  const showNoMoreProjects = !isFetchingProjects && !isInitialLoading && !hasMoreProjects && !isNoResults;
+  const showNoMoreProjects =
+    !isFetchingProjects &&
+    !isInitialLoading &&
+    !hasMoreProjects &&
+    !isNoResults;
 
-  const showLoadMoreSentinel = !isFetchingProjects && hasMoreProjects && !isInitialLoading && !isSearchActive;
+  const showLoadMoreSentinel =
+    !isFetchingProjects &&
+    hasMoreProjects &&
+    !isInitialLoading &&
+    !isSearchActive;
 
-  const clubsById = useMemo(() => new Map(clubs.map((club) => [String(club.id), club])), [clubs]);
-  const schoolsById = useMemo(() => new Map(schools.map((school) => [String(school.id), school])), [schools]);
-  
+  const clubsById = useMemo(
+    () => new Map(clubs.map((club) => [String(club.id), club])),
+    [clubs],
+  );
+  const schoolsById = useMemo(
+    () => new Map(schools.map((school) => [String(school.id), school])),
+    [schools],
+  );
+
   const diaryEntriesByProjectId = useMemo(() => {
     const entriesMap = new Map();
 
     diaryEntries.forEach((entry) => {
-      const projectId = String(entry.projeto_id || '');
+      const projectId = String(entry.projeto_id || "");
       if (!projectId) {
         return;
       }
@@ -101,12 +124,19 @@ export default function ProjectFeed({
 
   const renderedProjects = useMemo(() => {
     return feedProjects.map((project) => {
-      const club = clubsById.get(String(project.clube_id || ''));
-      const school = schoolsById.get(String(project.escola_id || club?.escola_id || ''));
-      const isCompleted = project.status?.toLowerCase().includes('conclu');
+      const club = clubsById.get(String(project.clube_id || ""));
+      const school = schoolsById.get(
+        String(project.escola_id || club?.escola_id || ""),
+      );
+      const isCompleted = project.status?.toLowerCase().includes("conclu");
       const team = getProjectTeam(project, users, project.clube_id);
-      const projectDiaryEntries = diaryEntriesByProjectId.get(String(project.id)) || [];
-      const investigatorNames = getInvestigatorDisplayNames(project, team, projectDiaryEntries);
+      const projectDiaryEntries =
+        diaryEntriesByProjectId.get(String(project.id)) || [];
+      const investigatorNames = getInvestigatorDisplayNames(
+        project,
+        team,
+        projectDiaryEntries,
+      );
 
       return {
         project,
@@ -114,74 +144,96 @@ export default function ProjectFeed({
         school,
         isCompleted,
         team,
-        investigatorNames
+        investigatorNames,
       };
     });
-  }, [feedProjects, clubsById, schoolsById, getProjectTeam, users, diaryEntriesByProjectId, getInvestigatorDisplayNames]);
-
+  }, [
+    feedProjects,
+    clubsById,
+    schoolsById,
+    getProjectTeam,
+    users,
+    diaryEntriesByProjectId,
+    getInvestigatorDisplayNames,
+  ]);
 
   // FUNÇÃO PARA PREPARAR E ABRIR O MODAL
   const handleOpenClubModal = (club, school) => {
     if (!club) return;
 
     // Filtra os dados globais para pegar apenas os que pertencem a este clube
-    const clubProjects = feedProjects.filter(p => String(p.clube_id) === String(club.id));
-    const clubUsers = users.filter((u) => getUserClubIds(u).includes(String(club.id)));
-    
-    console.log('Club:', club);
-    console.log('Club Users by clube_id:', clubUsers);
-    console.log('All Users:', users);
-    
+    const clubProjects = feedProjects.filter(
+      (p) => String(p.clube_id) === String(club.id),
+    );
+    const clubUsers = users.filter((u) =>
+      getUserClubIds(u).includes(String(club.id)),
+    );
+
+    console.log("Club:", club);
+    console.log("Club Users by clube_id:", clubUsers);
+    console.log("All Users:", users);
+
     // Extrai a equipe diretamente dos projetos do clube
     const allTeamMembers = new Map();
-    clubProjects.forEach(project => {
+    clubProjects.forEach((project) => {
       const team = getProjectTeam(project, users, club.id);
-      
+
       // Coleta todos os orientadores únicos
-      team.orientadores?.forEach(m => {
-        allTeamMembers.set(String(m.id), { ...m, role: 'orientador' });
+      team.orientadores?.forEach((m) => {
+        allTeamMembers.set(String(m.id), { ...m, role: "orientador" });
       });
       // Coleta todos os coorientadores únicos
-      team.coorientadores?.forEach(m => {
-        allTeamMembers.set(String(m.id), { ...m, role: 'coorientador' });
+      team.coorientadores?.forEach((m) => {
+        allTeamMembers.set(String(m.id), { ...m, role: "coorientador" });
       });
       // Coleta todos os investigadores únicos
-      team.investigadores?.forEach(m => {
-        allTeamMembers.set(String(m.id), { ...m, role: 'investigador' });
+      team.investigadores?.forEach((m) => {
+        allTeamMembers.set(String(m.id), { ...m, role: "investigador" });
       });
     });
-    
+
     // Separa por role
-    const orientadores = Array.from(allTeamMembers.values()).filter(m => m.role === 'orientador');
-    const coorientadores = Array.from(allTeamMembers.values()).filter(m => m.role === 'coorientador');
-    const investigadores = Array.from(allTeamMembers.values()).filter(m => m.role === 'investigador');
-    
+    const orientadores = Array.from(allTeamMembers.values()).filter(
+      (m) => m.role === "orientador",
+    );
+    const coorientadores = Array.from(allTeamMembers.values()).filter(
+      (m) => m.role === "coorientador",
+    );
+    const investigadores = Array.from(allTeamMembers.values()).filter(
+      (m) => m.role === "investigador",
+    );
+
     // Fallback: se não há projetos, tenta filtrar diretamente por perfil
     if (clubProjects.length === 0 && clubUsers.length > 0) {
-      const orientsFromUsers = clubUsers.filter(u => 
-        u.perfil && String(u.perfil).toLowerCase().trim() === 'orientador'
+      const orientsFromUsers = clubUsers.filter(
+        (u) =>
+          u.perfil && String(u.perfil).toLowerCase().trim() === "orientador",
       );
-      const coorientsFromUsers = clubUsers.filter(u => 
-        u.perfil && String(u.perfil).toLowerCase().trim() === 'coorientador'
+      const coorientsFromUsers = clubUsers.filter(
+        (u) =>
+          u.perfil && String(u.perfil).toLowerCase().trim() === "coorientador",
       );
-      const investsFromUsers = clubUsers.filter(u => {
-        const perfil = String(u.perfil || '').toLowerCase().trim();
-        return ['estudante', 'investigador', 'aluno'].includes(perfil);
+      const investsFromUsers = clubUsers.filter((u) => {
+        const perfil = String(u.perfil || "")
+          .toLowerCase()
+          .trim();
+        return ["estudante", "investigador", "aluno"].includes(perfil);
       });
-      
-      console.log('Usando fallback - Orientadores:', orientsFromUsers);
-      console.log('Usando fallback - Coorientadores:', coorientsFromUsers);
-      console.log('Usando fallback - Investigadores:', investsFromUsers);
+
+      console.log("Usando fallback - Orientadores:", orientsFromUsers);
+      console.log("Usando fallback - Coorientadores:", coorientsFromUsers);
+      console.log("Usando fallback - Investigadores:", investsFromUsers);
     }
-    
-    console.log('Orientadores finais:', orientadores);
-    console.log('Coorientadores finais:', coorientadores);
-    console.log('Investigadores finais:', investigadores);
-    
+
+    console.log("Orientadores finais:", orientadores);
+    console.log("Coorientadores finais:", coorientadores);
+    console.log("Investigadores finais:", investigadores);
+
     // Conta os diários que pertencem aos projetos desse clube
-    const clubDiaryCount = diaryEntries.filter(entry => 
-      String(entry.clube_id) === String(club.id) || 
-      clubProjects.some(p => String(p.id) === String(entry.projeto_id))
+    const clubDiaryCount = diaryEntries.filter(
+      (entry) =>
+        String(entry.clube_id) === String(club.id) ||
+        clubProjects.some((p) => String(p.id) === String(entry.projeto_id)),
     ).length;
 
     setModalClubData({
@@ -192,49 +244,78 @@ export default function ProjectFeed({
       orientadores,
       coorientadores,
       investigadores,
-      diaryCount: clubDiaryCount
+      diaryCount: clubDiaryCount,
     });
-    
+
     setIsClubModalOpen(true);
   };
 
-
   return (
     /* CONTAINER PRINCIPAL COM O FUNDO DE QUADRADINHOS SUAVES */
-    <div 
+    <div
       className="min-h-screen w-full relative"
       style={{
-        backgroundSize: '32px 32px',
+        backgroundSize: "32px 32px",
       }}
-    > 
-      <div className="max-w-4xl mx-auto space-y-8 pb-12 px-4 sm:px-0 pt-8 relative z-10">
-        
+    >
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a15_2px,transparent_2px),linear-gradient(to_bottom,#0f172a15_2px,transparent_2px)] bg-[size:40px_40px]"></div>
+      </div>
+      <div className="max-w-4xl mx-auto space-y-8 pb-12 px-4 sm:px-0 pt-8 relative">
         {/* Header */}
-        <div className="bg-white/80 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-slate-300/80 animate-fade-in p-4 rounded-xl">
-          <div >
-            <h1 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-tight">
-              Aprender, Experimentar e Compartilhar
+        <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2rem] p-8 md:p-12 flex flex-col justify-between items-start  hover:rotate-0 transition-transform duration-300">
+          <div className="w-full">
+            <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] mb-6">
+              <Asterisk className="w-5 h-5 text-slate-900 stroke-[3]" />
+              <span className="font-black uppercase tracking-widest text-sm text-slate-900">
+                Feed Social
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase leading-[0.9]">
+              Aprender, Experimentar <br />
+              <span className="text-white [-webkit-text-stroke:2px_#0f172a] sm:[-webkit-text-stroke:3px_#0f172a]">
+                e Compartilhar
+              </span>
             </h1>
-            <p className="text-slate-600 text-sm mt-2 max-w-lg font-medium">
-              Pesquisas e descobertas da rede baiana de ciência e tecnologia.
+            <p className="text-slate-800 text-base md:text-lg font-bold mt-6 bg-white border-2 border-slate-900 p-3 inline-block shadow-[4px_4px_0px_0px_#0f172a]">
+              Deslize para explorar a rede de inovação.
             </p>
           </div>
-          <div className="flex gap-3">
-            <div className="premium-chip bg-white shadow-sm" title="Total de clubes participantes">
-              <School className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700">{clubs.length}</span>
-              <span className="text-xs text-slate-500 hidden sm:inline">clubes</span>
+
+          <div className="flex flex-row gap-4 mt-8 w-full">
+            <div
+              className="flex-1 flex items-center justify-center gap-3 bg-teal-400 border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] px-4 py-4 rounded-2xl transform hover:-translate-y-1 transition-transform"
+              title="Total de clubes participantes"
+            >
+              <School className="w-6 h-6 text-slate-900 stroke-[3]" />
+              <div>
+                <span className="block text-2xl font-black text-slate-900 leading-none">
+                  {clubs.length}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                  Clubes
+                </span>
+              </div>
             </div>
-            <div className="premium-chip bg-white shadow-sm" title="Total de projetos cadastrados">
-              <FolderKanban className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700">{projectsTotalCount}</span>
-              <span className="text-xs text-slate-500 hidden sm:inline">projetos</span>
+            <div
+              className="flex-1 flex items-center justify-center gap-3 bg-pink-400 border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] px-4 py-4 rounded-2xl transform hover:-translate-y-1 transition-transform"
+              title="Total de projetos cadastrados"
+            >
+              <FolderKanban className="w-6 h-6 text-slate-900 stroke-[3]" />
+              <div>
+                <span className="block text-2xl font-black text-slate-900 leading-none">
+                  {projectsTotalCount}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                  Projetos
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Feed */}
-        <div 
+        <div
           className="grid grid-cols-1 gap-6"
           role="feed"
           aria-busy={isFetchingProjects}
@@ -244,7 +325,11 @@ export default function ProjectFeed({
             <div className="flex justify-center">
               <div className="flex items-center gap-2 text-sm text-slate-600 font-medium bg-white border border-slate-200 px-5 py-2.5 rounded-full shadow-sm">
                 <LoaderCircle className="w-4 h-4 animate-spin text-[#10B981]" />
-                <span>{isSearchActive ? 'Buscando projetos...' : 'Atualizando projetos...'}</span>
+                <span>
+                  {isSearchActive
+                    ? "Buscando projetos..."
+                    : "Atualizando projetos..."}
+                </span>
               </div>
             </div>
           )}
@@ -257,48 +342,58 @@ export default function ProjectFeed({
             </>
           )}
 
-          {!showSkeletons && renderedProjects.map(({ project, club, school, isCompleted, team, investigatorNames }, index) => {
-            return (
-              <div
-                key={project.id}
-                className="animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <ProjectCard
-                  project={project}
-                  club={club}
-                  school={school}
-                  isCompleted={isCompleted}
-                  team={team}
-                  investigatorNames={investigatorNames}
-                  allProjects={feedProjects}
-                  allUsers={users}
-                  
-                  // AQUI ALTERAMOS PARA ABRIR O MODAL
-                  onClubClick={() => handleOpenClubModal(club, school)}
-                  
-                  onDiaryClick={() => {
-                    const resolvedClubId = String(club?.id || project?.clube_id || '').trim();
-                    if (resolvedClubId) {
-                      setSelectedClubId(resolvedClubId);
-                    }
-                    setSelectedProjectId(project.id);
-                    setCurrentView('diario');
-                  }}
-                />
-              </div>
-            );
-          })}
+          {!showSkeletons &&
+            renderedProjects.map(
+              (
+                { project, club, school, isCompleted, team, investigatorNames },
+                index,
+              ) => {
+                return (
+                  <div
+                    key={project.id}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <ProjectCard
+                      project={project}
+                      club={club}
+                      school={school}
+                      isCompleted={isCompleted}
+                      team={team}
+                      investigatorNames={investigatorNames}
+                      allProjects={feedProjects}
+                      allUsers={users}
+                      // AQUI ALTERAMOS PARA ABRIR O MODAL
+                      onClubClick={() => handleOpenClubModal(club, school)}
+                      onDiaryClick={() => {
+                        const resolvedClubId = String(
+                          club?.id || project?.clube_id || "",
+                        ).trim();
+                        if (resolvedClubId) {
+                          setSelectedClubId(resolvedClubId);
+                        }
+                        setSelectedProjectId(project.id);
+                        setCurrentView("diario");
+                      }}
+                    />
+                  </div>
+                );
+              },
+            )}
 
           {showEmptyState && (
             <div className="premium-card bg-white/80 backdrop-blur-sm border-dashed border-slate-300 p-16 text-center">
-              <EmptyState 
+              <EmptyState
                 icon={isSearchActive ? AlertCircle : FolderKanban}
-                title={isSearchActive ? 'Nenhum projeto encontrado' : 'Ainda não há projetos'}
+                title={
+                  isSearchActive
+                    ? "Nenhum projeto encontrado"
+                    : "Ainda não há projetos"
+                }
                 description={
                   isSearchActive
                     ? `Nenhum projeto corresponde à busca "${searchTerm.trim()}". Tente outro termo ou remova o filtro.`
-                    : 'Nenhum projeto foi publicado na rede ainda. Volte mais tarde ou adicione o primeiro projeto.'
+                    : "Nenhum projeto foi publicado na rede ainda. Volte mais tarde ou adicione o primeiro projeto."
                 }
               />
             </div>
@@ -315,7 +410,11 @@ export default function ProjectFeed({
           )}
 
           {showLoadMoreSentinel && (
-            <div ref={loadMoreProjectsRef} className="h-8 w-full flex justify-center items-center" aria-hidden="true">
+            <div
+              ref={loadMoreProjectsRef}
+              className="h-8 w-full flex justify-center items-center"
+              aria-hidden="true"
+            >
               <ChevronRight className="w-6 h-6 text-slate-400 animate-bounce" />
             </div>
           )}
@@ -329,7 +428,7 @@ export default function ProjectFeed({
       </div>
 
       {/* RENDERIZANDO O MODAL AQUI */}
-      <ModalClubView 
+      <ModalClubView
         isOpen={isClubModalOpen}
         onClose={() => setIsClubModalOpen(false)}
         viewingClub={modalClubData.club}
@@ -344,8 +443,6 @@ export default function ProjectFeed({
         setSelectedProjectId={setSelectedProjectId}
         setCurrentView={setCurrentView}
       />
-
     </div>
   );
 }
-

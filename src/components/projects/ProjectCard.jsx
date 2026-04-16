@@ -1,8 +1,8 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, MessageCircle, ChevronDown, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
-
+﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Heart, MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 import ModalPerfil from '../club/ModalPerfil';
-import { getUserClubIds } from '../../services/projectService';
+
+const getUserClubIds = () => [];
 
 export default function ProjectCard({
     project,
@@ -21,11 +21,9 @@ export default function ProjectCard({
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(project?.likes || 195);
     const [isHovered, setIsHovered] = useState(false);
-    const [hoveredCollageIndex, setHoveredCollageIndex] = useState(null);
+    
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-    const collageHoverPointerRef = useRef({ x: null, y: null });
-
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
@@ -37,7 +35,7 @@ export default function ProjectCard({
     };
 
     const defaultOrientador = {
-        nome: 'Orientador nÃ£o informado',
+        nome: 'Orientador não informado',
         papel: 'Orientador',
         instituicao: ''
     };
@@ -57,6 +55,7 @@ export default function ProjectCard({
     const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comercio Local";
     const tagText = project?.status || "EIXO PROJETOS";
     const descricao = project?.descricao || "Projeto inovador que conecta estudantes do ensino médio com pequenos comerciantes locais para promover a transformação digital e o desenvolvimento comunitário sustentável.";
+    
     const projectImages = useMemo(() => {
         const normalizedImages = Array.isArray(project?.imagens)
             ? project.imagens.filter((img) => typeof img === 'string' && img.trim())
@@ -73,115 +72,112 @@ export default function ProjectCard({
         return [];
     }, [project?.imagem, project?.imagens]);
 
-    const projectImage = projectImages[0] || '';
-    const imageCount = projectImages.length;
-    const hasMultipleImages = imageCount > 1;
+    const displayImages = projectImages;
+    const imageCount = displayImages.length;
 
-    const fallbackBackgrounds = ['/images/BG_1.png', '/images/BG_2.png', '/images/BG_3.png'];
-    const isFallbackImage = !projectImage;
-    const backgroundImage = useMemo(() => {
-        if (!isFallbackImage) return '';
-        return fallbackBackgrounds[Math.floor(Math.random() * fallbackBackgrounds.length)];
-    }, [isFallbackImage]);
-    const displayImage = isFallbackImage ? backgroundImage : projectImage;
-    const collageImages = projectImages.slice(0, 4);
-    const hiddenImagesCount = Math.max(0, imageCount - collageImages.length);
-    const collageOrder = useMemo(() => {
-        const indexes = collageImages.map((_, index) => index);
-        const hasValidHoveredIndex =
-            hoveredCollageIndex !== null &&
-            hoveredCollageIndex >= 0 &&
-            hoveredCollageIndex < indexes.length;
+    // Lógica para o Grid Dinâmico - Máximo 5 posições
+    const gridItems = displayImages.slice(0, 5);
+    const hiddenImagesCount = Math.max(0, imageCount - 5);
 
-        if (!hasValidHoveredIndex) {
-            return indexes;
+    // Estado para o Efeito Accordion no Grid
+    const [hoveredGridIndex, setHoveredGridIndex] = useState(null);
+
+    // Helpers para obter o layout dinâmico baseado na quantidade de imagens
+    const getGridContainerClass = (count) => {
+        switch(count) {
+            case 1: return "grid-cols-1 grid-rows-1";
+            case 2: return "grid-cols-2 grid-rows-1";
+            case 3: return "grid-cols-3 grid-rows-2";
+            case 4: return "grid-cols-2 grid-rows-2";
+            case 5: return "grid-cols-3 grid-rows-4";
+            default: return "grid-cols-1 grid-rows-1";
         }
+    };
 
-        return [hoveredCollageIndex, ...indexes.filter((index) => index !== hoveredCollageIndex)];
-    }, [collageImages, hoveredCollageIndex]);
+    const getGridItemClass = (count, index) => {
+        if (count === 1) return "col-span-1 row-span-1";
+        if (count === 2) return "col-span-1 row-span-1";
+        if (count === 3) {
+            return index === 0 ? "col-span-2 row-span-2" : "col-span-1 row-span-1";
+        }
+        if (count === 4) return "col-span-1 row-span-1";
+        if (count >= 5) {
+            // Posicionamentos exatos do wireframe (5 imagens)
+            return [
+                "col-start-1 col-span-1 row-start-1 row-span-1", // Quadrado topo esquerdo
+                "col-start-2 col-span-2 row-start-1 row-span-1", // Retângulo topo direito
+                "col-start-1 col-span-2 row-start-2 row-span-2", // Quadrado grande esquerdo
+                "col-start-1 col-span-2 row-start-4 row-span-1", // Retângulo deitado baixo
+                "col-start-3 col-span-1 row-start-2 row-span-3"  // Retângulo alto direito
+            ][index];
+        }
+        return "";
+    };
+
+    // Helper para animar as proporções (Efeito Accordion 2D)
+    const getGridStyle = (count, hoverIdx) => {
+        const style = { 
+            transition: 'grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1), grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
+        };
+        
+        if (count === 1) {
+            style.gridTemplateColumns = '1fr';
+            style.gridTemplateRows = '1fr';
+        } else if (count === 2) {
+            style.gridTemplateColumns = hoverIdx === 0 ? '2fr 1fr' : hoverIdx === 1 ? '1fr 2fr' : '1fr 1fr';
+            style.gridTemplateRows = '1fr';
+        } else if (count === 3) {
+            style.gridTemplateColumns = hoverIdx === 0 ? '1.5fr 1fr 0.5fr' : (hoverIdx === 1 || hoverIdx === 2) ? '1fr 1fr 1.5fr' : '1fr 1fr 1fr';
+            style.gridTemplateRows = hoverIdx === 1 ? '1.5fr 1fr' : hoverIdx === 2 ? '1fr 1.5fr' : '1fr 1fr';
+        } else if (count === 4) {
+            style.gridTemplateColumns = (hoverIdx === 0 || hoverIdx === 2) ? '1.5fr 1fr' : (hoverIdx === 1 || hoverIdx === 3) ? '1fr 1.5fr' : '1fr 1fr';
+            style.gridTemplateRows = (hoverIdx === 0 || hoverIdx === 1) ? '1.5fr 1fr' : (hoverIdx === 2 || hoverIdx === 3) ? '1fr 1.5fr' : '1fr 1fr';
+        } else if (count >= 5) {
+            style.gridTemplateColumns = hoverIdx === 0 ? '1.5fr 1fr 1fr'
+                                      : hoverIdx === 1 ? '0.8fr 1.2fr 1.2fr'
+                                      : (hoverIdx === 2 || hoverIdx === 3) ? '1.2fr 1.2fr 0.8fr'
+                                      : hoverIdx === 4 ? '1fr 1fr 1.5fr'
+                                      : '1fr 1fr 1fr';
+                                      
+            style.gridTemplateRows = (hoverIdx === 0 || hoverIdx === 1) ? '1.5fr 1fr 1fr 1fr'
+                                   : hoverIdx === 2 ? '1fr 1.5fr 1.5fr 1fr'
+                                   : hoverIdx === 3 ? '1fr 1fr 1fr 1.5fr'
+                                   : hoverIdx === 4 ? '1fr 1.2fr 1.2fr 1.2fr'
+                                   : '1fr 1fr 1fr 1fr';
+        }
+        return style;
+    };
+
+    // Controles avançados de navegação para a galeria
+    const handleNextImage = useCallback((e) => {
+        if (e) e.stopPropagation();
+        setActiveGalleryIndex((prev) => (prev + 1) % displayImages.length);
+    }, [displayImages.length]);
+
+    const handlePrevImage = useCallback((e) => {
+        if (e) e.stopPropagation();
+        setActiveGalleryIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+    }, [displayImages.length]);
 
     useEffect(() => {
         if (!isGalleryOpen) return undefined;
 
-        const handleEscape = (event) => {
-            if (event.key === 'Escape') {
-                setIsGalleryOpen(false);
-            }
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setIsGalleryOpen(false);
+            if (event.key === 'ArrowRight') handleNextImage();
+            if (event.key === 'ArrowLeft') handlePrevImage();
         };
 
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
-    }, [isGalleryOpen]);
-
-    useEffect(() => {
-        if (collageImages.length <= 1) {
-            collageHoverPointerRef.current = { x: null, y: null };
-            setHoveredCollageIndex(null);
-            return;
-        }
-
-        if (hoveredCollageIndex !== null && hoveredCollageIndex >= collageImages.length) {
-            setHoveredCollageIndex(null);
-        }
-    }, [collageImages.length, hoveredCollageIndex]);
-
-    const handleCollageHover = (event, imageIndex) => {
-        if (hoveredCollageIndex === imageIndex) {
-            return;
-        }
-
-        const clientX = Number(event?.clientX);
-        const clientY = Number(event?.clientY);
-        const hasPointerCoords = Number.isFinite(clientX) && Number.isFinite(clientY);
-        const lastX = collageHoverPointerRef.current.x;
-        const lastY = collageHoverPointerRef.current.y;
-        const hasLastCoords = Number.isFinite(lastX) && Number.isFinite(lastY);
-
-        // Evita loop de troca causado pelo reflow da grade sem movimento real do cursor.
-        if (hasPointerCoords && hasLastCoords) {
-            const pointerDistance = Math.hypot(clientX - lastX, clientY - lastY);
-            if (pointerDistance < 10) {
-                return;
-            }
-        }
-
-        collageHoverPointerRef.current = hasPointerCoords
-            ? { x: clientX, y: clientY }
-            : { x: null, y: null };
-
-        setHoveredCollageIndex(imageIndex);
-    };
-
-    const handleCollageLeave = () => {
-        collageHoverPointerRef.current = { x: null, y: null };
-        setHoveredCollageIndex(null);
-    };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isGalleryOpen, handleNextImage, handlePrevImage]);
 
     const openGalleryAt = (index = 0) => {
-        if (imageCount === 0) return;
+        if (displayImages.length === 0 || !displayImages[index]) return;
 
-        const safeIndex = Math.max(0, Math.min(index, imageCount - 1));
+        const safeIndex = Math.max(0, Math.min(index, displayImages.length - 1));
         setActiveGalleryIndex(safeIndex);
         setIsGalleryOpen(true);
-    };
-
-    const getCollageSlotClass = (index, count) => {
-        if (count === 2) {
-            return index === 0
-                ? 'col-start-1 row-start-1 col-span-3 row-span-2'
-                : 'col-start-4 row-start-1 col-span-1 row-span-2';
-        }
-
-        if (count === 3) {
-            if (index === 0) return 'col-start-1 row-start-1 col-span-2 row-span-2';
-            if (index === 1) return 'col-start-3 row-start-1 col-span-2 row-span-1';
-            return 'col-start-3 row-start-2 col-span-2 row-span-1';
-        }
-
-        if (index === 0) return 'col-start-1 row-start-1 col-span-2 row-span-2';
-        if (index === 1) return 'col-start-3 row-start-1 col-span-1 row-span-1';
-        if (index === 2) return 'col-start-4 row-start-1 col-span-1 row-span-1';
-        return 'col-start-3 row-start-2 col-span-2 row-span-1';
     };
 
     const getAvatarSrc = (user) => {
@@ -201,7 +197,7 @@ export default function ProjectCard({
 
     const getTagColor = () => {
         const status = tagText.toLowerCase();
-        if (status.includes('concluÃ­do') || status.includes('concluido')) return 'bg-emerald-300';
+        if (status.includes('concluído') || status.includes('concluido')) return 'bg-emerald-300';
         if (status.includes('em andamento')) return 'bg-blue-300';
         if (status.includes('pendente')) return 'bg-yellow-300';
         return 'bg-orange-300';
@@ -246,8 +242,8 @@ export default function ProjectCard({
             onMouseLeave={() => setIsHovered(false)}
         >
             
+            {/* Header / Info do Orientador */}
             <div className="p-5 flex items-center justify-between bg-white border-b-4 border-slate-900">
-                
                 <div 
                     className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={(e) => handleUserClick(e, orientador)}
@@ -258,11 +254,10 @@ export default function ProjectCard({
                                 <img src={getAvatarSrc(orientador)} alt={orientador.nome} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-slate-900 font-black text-lg">
-                                    {orientador.nome.charAt(0)}
+                                    {orientador.nome.charAt(0)}   
                                 </div>
                             )}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-400 rounded-full border-2 border-slate-900"></div>
                     </div>
                     
                     <div className="flex flex-col">
@@ -293,45 +288,39 @@ export default function ProjectCard({
                 </span>
             </div>
 
-            {/* Imagem Principal */}
-            <div className="relative w-full h-[260px] sm:h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden border-b-4 border-slate-900">
-                {hasMultipleImages ? (
+            {/* Grid Dinâmico Baseado na Quantidade de Imagens com Efeito Accordion */}
+            <div className="relative w-full h-[340px] sm:h-[440px] bg-white overflow-hidden border-b-4 border-slate-900">
+                {imageCount > 0 ? (
                     <>
-                        <div
-                            className="absolute inset-0 p-2 sm:p-3 grid grid-cols-4 grid-rows-2 gap-2"
-                            onMouseLeave={handleCollageLeave}
+                        <div 
+                            className={`absolute inset-0 p-3 grid gap-2.5 ${getGridContainerClass(gridItems.length)}`}
+                            style={getGridStyle(gridItems.length, hoveredGridIndex)}
+                            onMouseLeave={() => setHoveredGridIndex(null)}
                         >
-                            {collageOrder.map((imageIndex, slotIndex) => {
-                                const imageSrc = collageImages[imageIndex];
-                                const isHoveredTile = hoveredCollageIndex === imageIndex;
-                                const isLastVisibleTile = slotIndex === collageOrder.length - 1;
-                                const shouldShowHiddenBadge = isLastVisibleTile && hiddenImagesCount > 0;
+                            {gridItems.map((imageSrc, index) => {
+                                const isLastSlot = index === gridItems.length - 1;
+                                const shouldShowHiddenBadge = isLastSlot && hiddenImagesCount > 0;
+                                
+                                const gridClasses = getGridItemClass(gridItems.length, index);
 
                                 return (
                                     <button
-                                        key={`${project?.id || 'project'}-img-${imageIndex}`}
+                                        key={`${project?.id || 'project'}-grid-${index}`}
                                         type="button"
-                                        onClick={() => openGalleryAt(imageIndex)}
-                                        onMouseEnter={(event) => handleCollageHover(event, imageIndex)}
-                                        onFocus={() => {
-                                            collageHoverPointerRef.current = { x: null, y: null };
-                                            setHoveredCollageIndex(imageIndex);
-                                        }}
-                                        className={`${getCollageSlotClass(slotIndex, collageImages.length)} relative rounded-2xl overflow-hidden transition-all duration-300 border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-white/70 ${
-                                            isHoveredTile ? 'z-20 shadow-[8px_8px_0px_0px_#0f172a] ring-2 ring-white/65 -translate-y-0.5 -translate-x-0.5' : 'z-10 shadow-[4px_4px_0px_0px_#0f172a]'
-                                        }`}
-                                        title={`Abrir foto ${imageIndex + 1} de ${imageCount}`}
+                                        onClick={() => openGalleryAt(index)}
+                                        onMouseEnter={() => setHoveredGridIndex(index)}
+                                        className={`relative rounded-xl overflow-hidden border-2 border-slate-900 transition-all duration-500 shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none cursor-pointer ${gridClasses} ${hoveredGridIndex === index ? 'shadow-[4px_4px_0px_0px_#0f172a] -translate-y-0.5 z-10' : 'z-0'}`}
+                                        title={`Abrir foto ${index + 1}`}
                                     >
                                         <img
                                             src={imageSrc}
-                                            alt={`${titulo} - foto ${imageIndex + 1}`}
-                                            className={`w-full h-full object-cover transition-transform duration-700 ${
-                                                isHoveredTile ? 'scale-110' : isHovered ? 'scale-105' : 'scale-100'
-                                            }`}
+                                            alt={`${titulo} - detalhe ${index + 1}`}
+                                            className={`w-full h-full object-cover transition-transform duration-700 ${hoveredGridIndex === index ? 'scale-105' : 'scale-100'}`}
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                                        <div className={`absolute inset-0 transition-opacity duration-500 ${hoveredGridIndex === index ? 'bg-transparent' : 'bg-black/20 hover:bg-black/10'}`} />
+                                        
                                         {shouldShowHiddenBadge && (
-                                            <div className="absolute inset-0 bg-black/55 text-white font-bold text-xl flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/60 hover:bg-black/40 transition-colors text-white font-black text-2xl flex items-center justify-center backdrop-blur-sm">
                                                 +{hiddenImagesCount}
                                             </div>
                                         )}
@@ -339,43 +328,18 @@ export default function ProjectCard({
                                 );
                             })}
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => openGalleryAt(0)}
-                            className="absolute top-3 left-3 bg-yellow-300 border-2 border-slate-900 text-slate-900 text-xs font-black px-2 py-1 rounded-xl shadow-[2px_2px_0px_0px_#0f172a] hover:bg-yellow-200 transition-colors focus:outline-none focus:ring-2 focus:ring-white/70"
-                            title="Abrir mural de fotos"
-                        >
-                            Mural - {imageCount} fotos
-                        </button>
+                        
+                    
                     </>
-                ) : displayImage ? (
-                    <button
-                        type="button"
-                        onClick={() => openGalleryAt(0)}
-                        className="w-full h-full text-left"
-                        title="Abrir foto do projeto"
-                    >
-                        <img
-                            src={displayImage}
-                            alt={titulo}
-                            className={`w-full h-full object-cover transition-transform duration-700 ${isHovered ? 'scale-110' : 'scale-100'}`}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        {isFallbackImage && (
-                            <div className="absolute bottom-3 left-3 bg-white border-2 border-slate-900 text-slate-900 text-[11px] sm:text-xs px-2 py-1 rounded-lg font-bold shadow-[2px_2px_0px_0px_#0f172a]">
-                                Projeto sem foto. Imagem ilustrativa.
-                            </div>
-                        )}
-                    </button>
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
-                        <BookOpen className="w-12 h-12 mb-2" />
-                        <span>Imagem do Projeto nÃ£o disponÃ­vel</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-100">
+                        <BookOpen className="w-12 h-12 mb-2 opacity-50" />
+                        <span className="font-semibold opacity-70">Projeto sem imagens</span>
                     </div>
                 )}
             </div>
 
-            {/* ConteÃºdo: TÃ­tulo e DescriÃ§Ã£o */}
+            {/* Conteúdo: Título e Descrição */}
             <div className="p-6 pb-4 flex flex-col gap-4 bg-[#FAFAFA]">
                 <h2 className="text-[22px] sm:text-2xl font-black text-slate-900 leading-snug line-clamp-2 hover:text-teal-700 transition-colors cursor-pointer">
                     {titulo}
@@ -425,11 +389,10 @@ export default function ProjectCard({
                 )}
             </div>
 
-            {/* MÃ©tricas e Indicadores */}
+            {/* Métricas e Indicadores */}
             <div className="px-6 pb-20 pt-2">
                 <div className="flex items-center gap-4 sm:gap-6 mb-4"></div>
 
-                {/* Indicador de progresso se o projeto estiver em andamento */}
                 {isCompleted === false && project?.progress && (
                     <div className="mt-4">
                         <div className="flex justify-between text-xs text-slate-700 font-bold mb-1">
@@ -446,9 +409,8 @@ export default function ProjectCard({
                 )}
             </div>
 
-            {/* BotÃµes de AÃ§Ã£o: Clube e DiÃ¡rio */}
+            {/* Botões de Ação: Clube e Diário */}
             <div className="absolute bottom-6 right-6 z-10 flex items-center gap-3">
-                {/* BotÃ£o Acessar Clube */}
                 {club && (
                     <button 
                         onClick={(e) => {
@@ -456,14 +418,13 @@ export default function ProjectCard({
                             if (onClubClick) onClubClick();
                         }}
                         className="group/btn-club bg-white border-2 border-slate-900 text-slate-900 hover:bg-yellow-300 px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2 transition-all duration-200 shadow-[3px_3px_0px_0px_#0f172a] hover:shadow-[5px_5px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:-translate-x-0.5"
-                        title="Ver pÃ¡gina do clube"
+                        title="Ver página do clube"
                     >
                         <School className="w-4 h-4 transition-transform duration-300 group-hover/btn-club:scale-110" />
                         Ver Clube
                     </button>
                 )}
 
-                {/* Botão Acessar Diário */}
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
@@ -477,51 +438,81 @@ export default function ProjectCard({
                 </button>
             </div> 
 
+            {/* GALERIA MODAL REFEITA - 100% Responsiva com Setas */}
             {isGalleryOpen && (
                 <div
-                    className="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm p-4 sm:p-8"
+                    className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md p-2 sm:p-6 lg:p-8 flex items-center justify-center"
                     onClick={() => setIsGalleryOpen(false)}
                     role="dialog"
                     aria-modal="true"
                     aria-label="Galeria de fotos do projeto"
                 >
                     <div
-                        className="max-w-5xl h-full mx-auto flex flex-col gap-4"
+                        className="w-full max-w-6xl h-full max-h-[95vh] lg:max-h-[85vh] flex flex-col gap-4 bg-slate-900 rounded-[2rem] border-4 border-slate-700 p-4 sm:p-6 shadow-2xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between text-white">
-                            <p className="text-sm sm:text-base font-semibold">
-                                Mural do projeto â€¢ {imageCount} foto{imageCount > 1 ? 's' : ''}
-                            </p>
+                        {/* Cabeçalho Galeria */}
+                        <div className="flex items-center justify-between text-white shrink-0">
+                            <div>
+                                <h3 className="font-black text-lg sm:text-2xl text-teal-400">Mural do Projeto</h3>
+                                <p className="text-slate-300 text-sm sm:text-base font-semibold mt-1">
+                                    Foto {activeGalleryIndex + 1} de {displayImages.length}
+                                </p>
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setIsGalleryOpen(false)}
-                                className="px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 transition-colors text-sm font-medium"
+                                className="p-2 sm:p-3 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 hover:border-slate-500 transition-all text-white hover:text-red-400"
+                                title="Fechar galeria"
                             >
-                                Fechar
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
-                            <div className="relative rounded-2xl overflow-hidden bg-black/30 border border-white/10">
+                        {/* Área Principal Responsiva */}
+                        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4">
+                            
+                            {/* Imagem em Destaque */}
+                            <div className="relative flex-[3] lg:flex-[4] rounded-2xl overflow-hidden bg-black/60 border-2 border-slate-700 flex items-center justify-center group">
                                 <img
-                                    src={projectImages[activeGalleryIndex] || projectImages[0]}
+                                    src={displayImages[activeGalleryIndex] || displayImages[0]}
                                     alt={`${titulo} - destaque`}
-                                    className="w-full h-full object-cover"
+                                    className="max-w-full max-h-full object-contain drop-shadow-2xl"
                                 />
+                                
+                                {/* Setas de Navegação */}
+                                <div className="absolute inset-y-0 left-0 flex items-center px-2 sm:px-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button 
+                                        onClick={handlePrevImage} 
+                                        className="p-3 sm:p-4 rounded-full bg-slate-900/80 hover:bg-teal-400 text-white hover:text-slate-900 backdrop-blur-md border-2 border-slate-700 hover:border-slate-900 transition-all shadow-[4px_4px_0px_0px_#0f172a] hover:scale-110"
+                                        title="Imagem anterior"
+                                    >
+                                        <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 stroke-[3]" />
+                                    </button>
+                                </div>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 sm:px-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button 
+                                        onClick={handleNextImage} 
+                                        className="p-3 sm:p-4 rounded-full bg-slate-900/80 hover:bg-teal-400 text-white hover:text-slate-900 backdrop-blur-md border-2 border-slate-700 hover:border-slate-900 transition-all shadow-[4px_4px_0px_0px_#0f172a] hover:scale-110"
+                                        title="Próxima imagem"
+                                    >
+                                        <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 stroke-[3]" />
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="rounded-2xl bg-black/25 border border-white/10 p-3 overflow-y-auto">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {projectImages.map((imageSrc, index) => (
+                            {/* Miniaturas (Thumbnails) */}
+                            <div className="flex-none lg:w-72 xl:w-80 rounded-2xl bg-slate-800/80 border-2 border-slate-700 p-4 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto min-h-[120px] lg:min-h-0 custom-scrollbar">
+                                <div className="flex lg:grid lg:grid-cols-2 gap-3 w-max lg:w-full pb-2 lg:pb-0">
+                                    {displayImages.map((imageSrc, index) => (
                                         <button
                                             key={`${project?.id || 'project'}-gallery-${index}`}
                                             type="button"
                                             onClick={() => setActiveGalleryIndex(index)}
-                                            className={`relative aspect-square rounded-xl overflow-hidden border transition-all ${
+                                            className={`relative flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 lg:w-auto lg:aspect-square rounded-xl overflow-hidden border-4 transition-all duration-200 ${
                                                 index === activeGalleryIndex
-                                                    ? 'border-cyan-200 ring-2 ring-cyan-200/60'
-                                                    : 'border-white/20 hover:border-white/60'
+                                                    ? 'border-yellow-300 scale-95 opacity-100 shadow-[0_0_15px_rgba(253,224,71,0.4)]'
+                                                    : 'border-slate-700 opacity-50 hover:opacity-100 hover:border-slate-500 hover:scale-[1.02]'
                                             }`}
                                             title={`Selecionar foto ${index + 1}`}
                                         >
@@ -551,7 +542,3 @@ export default function ProjectCard({
         </article>
     );
 }
-
-
-
-

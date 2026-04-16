@@ -32,6 +32,8 @@ export default function App() {
         setAuthMode,
         authError,
         setAuthError,
+        authNotice,
+        setAuthNotice,
         isSubmitting,
         loginForm,
         setLoginForm,
@@ -46,6 +48,7 @@ export default function App() {
         filteredSchoolGroups,
         allSchoolUnits,
         handleLogin,
+        handlePasswordReset,
         handleRegister,
         handleGoogleAuth,
         handleOutlookAuth,
@@ -130,6 +133,7 @@ export default function App() {
                 authMode={authMode}
                 setAuthMode={setAuthMode}
                 authError={authError}
+                authNotice={authNotice}
                 isSubmitting={isSubmitting}
                 loginForm={loginForm}
                 setLoginForm={setLoginForm}
@@ -144,11 +148,13 @@ export default function App() {
                 filteredSchoolGroups={filteredSchoolGroups}
                 allSchoolUnits={allSchoolUnits}
                 handleLogin={handleLogin}
+                handlePasswordReset={handlePasswordReset}
                 handleRegister={handleRegister}
                 handleGoogleAuth={handleGoogleAuth}
                 handleOutlookAuth={handleOutlookAuth}
                 isMentoriaPerfil={isMentoriaPerfil}
                 setAuthError={setAuthError}
+                setAuthNotice={setAuthNotice}
                 PERFIS_LOGIN={PERFIS_LOGIN}
             />
         );

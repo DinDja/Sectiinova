@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GripHorizontal, Check, Settings2 } from 'lucide-react';
 import {
   FcGlobe,
@@ -34,29 +34,25 @@ export default function Sidebar({
       icon: FcGlobe,
       iconSrc: '/iconesSidebar/colabtec.svg',
       tooltip: 'Explorar projetos',
-      iconClass: 'text-sky-600',
     },
     {
       id: 'meusProjetos',
       label: 'Meus Projetos',
       icon: FcOpenedFolder,
       tooltip: 'Projetos que participo',
-      iconClass: 'text-emerald-600',
     },
     {
       id: 'trilha',
-      label: 'Trilha Pedagógica',
+      label: 'Trilha',
       icon: FcWorkflow,
       iconSrc: '/iconesSidebar/trilha.svg',
       tooltip: 'Planejar trilha CT&I',
-      iconClass: 'text-violet-600',
     },
     {
       id: 'inpi',
       label: 'PatentesLab',
       icon: FcIdea,
       tooltip: 'Propriedade intelectual',
-      iconClass: 'text-amber-600',
     },
     {
       id: 'forum',
@@ -64,7 +60,6 @@ export default function Sidebar({
       icon: FcComments,
       iconSrc: '/iconesSidebar/CafeDigital.svg',
       tooltip: 'Fórum de discussão',
-      iconClass: 'text-orange-600',
     },
     {
       id: 'clube',
@@ -72,7 +67,6 @@ export default function Sidebar({
       icon: FcDepartment,
       iconSrc: '/iconesSidebar/meuclube.svg',
       tooltip: 'Gerenciar meu clube',
-      iconClass: 'text-rose-600',
     },
   ];
 
@@ -104,7 +98,7 @@ export default function Sidebar({
     }
   }, [setCurrentView, loggedUser, myClubId, setViewingClubId, setSelectedClubId]);
 
-  // --- Handlers de Drag & Drop Refinados ---
+  // --- Handlers de Drag & Drop ---
   const handleDragStart = (e, index) => {
     if (!isEditing) {
       e.preventDefault();
@@ -113,7 +107,7 @@ export default function Sidebar({
     setDraggedItemIndex(index);
     if (!tempOrder) setTempOrder([...displayOrder]);
     
-    // Configura a imagem fantasma nativa para algo transparente (para usarmos nosso prÃ³prio estilo)
+    // Configura a imagem fantasma nativa para algo transparente
     const img = new Image();
     img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     e.dataTransfer.setDragImage(img, 0, 0);
@@ -161,46 +155,46 @@ export default function Sidebar({
         await saveSidebarOrder(tempOrder);
       }
     }
-    setIsEditing(false); // Sai do modo de ediÃ§Ã£o ao finalizar
+    setIsEditing(false);
     setTempOrder(null);
   };
 
   const toggleEditMode = () => {
     setIsEditing(!isEditing);
     if (isEditing && tempOrder) {
-        setTempOrder(null); // Cancela alteraÃ§Ãµes se apenas clicar para sair
+        setTempOrder(null); // Cancela alterações se apenas clicar para sair
     }
   };
 
   return (
     <aside
-      className="w-28 sm:w-32 h-full min-h-screen bg-white/90 backdrop-blur-xl border-r border-zinc-200 flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300 shadow-[4px_0_24px_-12px_rgba(17,24,39,0.14)]"
+      className="w-28 sm:w-36 h-full min-h-screen bg-[#FAFAFA] border-r-4 border-slate-900 flex flex-col items-center py-6 overflow-y-auto shrink-0 z-30 transition-all duration-300"
       aria-label="Menu principal"
     >
-      {/* BotÃ£o de Modo de EdiÃ§Ã£o Premium */}
-      <div className="w-full px-4 mb-6 flex justify-center">
+      {/* Botão de Modo de Edição Neo-Brutalista */}
+      <div className="w-full px-4 mb-8 flex justify-center">
         <button
           onClick={toggleEditMode}
           className={`
-            group flex items-center justify-center p-2.5 rounded-2xl transition-all duration-300
+            group flex items-center justify-center p-3 rounded-xl border-2 border-slate-900 transition-all duration-300 outline-none
             ${isEditing
-              ? 'bg-[#10B981]/10 text-[#10B981] shadow-inner ring-1 ring-[#10B981]/30'
-              : 'bg-zinc-100 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 border border-zinc-200/60 hover:border-zinc-300 shadow-sm'
+              ? 'bg-teal-400 shadow-none translate-y-0.5'
+              : 'bg-yellow-300 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a]'
             }
           `}
-          title={isEditing ? 'Concluir organizaÃ§Ã£o' : 'Organizar menu'}
+          title={isEditing ? 'Concluir organização' : 'Organizar menu'}
           aria-pressed={isEditing}
         >
           {isEditing ? (
-            <Check className="w-5 h-5 animate-in zoom-in duration-200" strokeWidth={2.5} />
+            <Check className="w-5 h-5 stroke-[3] text-slate-900 animate-in zoom-in duration-200" />
           ) : (
-            <Settings2 className="w-5 h-5 transition-transform group-hover:rotate-45 duration-300" strokeWidth={2} />
+            <Settings2 className="w-5 h-5 stroke-[3] text-slate-900 transition-transform group-hover:rotate-45 duration-300" />
           )}
         </button>
       </div>
 
-      {/* NavegaÃ§Ã£o principal */}
-      <nav className="flex flex-col w-full px-3 space-y-1.5 flex-1" aria-label="NavegaÃ§Ã£o">
+      {/* Navegação principal */}
+      <nav className="flex flex-col w-full px-3 sm:px-4 space-y-4 flex-1" aria-label="Navegação">
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -224,72 +218,57 @@ export default function Sidebar({
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               className="relative w-full transition-all duration-300 ease-out"
-              style={{
-                zIndex: isBeingDragged ? 50 : 1,
-              }}
+              style={{ zIndex: isBeingDragged ? 50 : 1 }}
             >
               <button
                 onClick={handleClick}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
                 disabled={isEditing}
                 className={`
-                  relative flex flex-col items-center py-3.5 px-2 w-full rounded-2xl
-                  transition-all duration-300 group
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2
-                  ${isEditing ? 'cursor-grab active:cursor-grabbing hover:bg-zinc-50' : 'cursor-pointer'}
+                  relative flex flex-col items-center justify-center py-3 px-2 w-full rounded-xl border-2 border-slate-900 transition-all duration-300 group outline-none
+                  ${isEditing ? 'cursor-grab active:cursor-grabbing hover:bg-slate-100' : 'cursor-pointer'}
                   ${isBeingDragged 
-                    ? 'opacity-60 scale-105 shadow-xl bg-white border border-[#10B981]/30 rotate-2' 
+                    ? 'opacity-90 scale-105 shadow-[4px_4px_0px_0px_#14b8a6] bg-white rotate-3' 
                     : isDragTarget 
                         ? 'translate-y-2' 
-                        : 'opacity-100 scale-100'
+                        : 'scale-100'
                   }
                   ${!isEditing && isActive
-                    ? 'bg-gradient-to-b from-zinc-50 to-zinc-100/80 shadow-sm border border-zinc-200/60'
-                    : !isEditing ? 'hover:bg-zinc-50 border border-transparent hover:border-zinc-100' : ''
+                    ? 'bg-teal-400 shadow-[4px_4px_0px_0px_#0f172a] -translate-y-1'
+                    : !isEditing ? 'bg-white shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a]' : 'bg-white shadow-[2px_2px_0px_0px_#0f172a]'
                   }
                 `}
                 title={item.tooltip}
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {/* Indicador Ativo Lateral Moderno */}
-                {!isEditing && isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-[#10B981] rounded-r-full shadow-[2px_0_8px_rgba(16,185,129,0.45)]" />
-                )}
-
-                {/* Ãcone de Arrastar (Apenas no modo ediÃ§Ã£o) */}
+                {/* Ícone de Arrastar (Apenas no modo edição) */}
                 {isEditing && (
-                    <div className="absolute top-2 right-2 text-zinc-300 opacity-50 group-hover:opacity-100 group-hover:text-zinc-500 transition-opacity">
-                        <GripHorizontal className="w-4 h-4" />
+                    <div className="absolute top-1 right-1 text-slate-900 opacity-50 group-hover:opacity-100 transition-opacity">
+                        <GripHorizontal className="w-4 h-4 stroke-[3]" />
                     </div>
                 )}
 
-                <span
-                  className={`
-                    mb-2 inline-flex items-center justify-center rounded-xl p-2.5
-                    transition-all duration-300 ease-out
-                    ${!isEditing && isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:-translate-y-1'}
-                  `}
-                >
+                <div className="mb-2 transition-transform duration-300 ease-out group-hover:scale-110 flex items-center justify-center mt-1">
                   {item.iconSrc ? (
                     <img
                       src={item.iconSrc}
                       alt=""
                       aria-hidden="true"
-                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'drop-shadow-md brightness-95' : 'opacity-80 group-hover:opacity-100'}`}
+                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'drop-shadow-[2px_2px_0px_#0f172a]' : ''}`}
                       loading="lazy"
                     />
                   ) : (
                     <Icon
-                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'text-[#065f46] drop-shadow-md' : `${item.iconClass} opacity-80 group-hover:opacity-100`}`}
+                      className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-300 ${!isEditing && isActive ? 'drop-shadow-[2px_2px_0px_#0f172a]' : ''}`}
                     />
                   )}
-                </span>
+                </div>
                 
                 <span 
                     className={`
-                        mono-accent text-[10px] sm:text-[11px] font-semibold text-center leading-tight transition-colors duration-200
-                        ${!isEditing && isActive ? 'text-[#065f46]' : 'text-zinc-500 group-hover:text-zinc-800'}
+                        text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center leading-tight transition-colors duration-200
+                        ${!isEditing && isActive ? 'text-slate-900' : 'text-slate-900'}
                     `}
                 >
                     {item.id === 'clube' ? (
@@ -303,15 +282,14 @@ export default function Sidebar({
           );
         })}
 
-        <div className="my-4 border-t border-zinc-200/70 w-12 mx-auto rounded-full" />
       </nav>
 
-      {/* Logo do sistema */}
+      {/* Logo do sistema mantida */}
       <div className="mt-auto w-full px-4 pb-2 pt-4 flex justify-center shrink-0">
         <img
           src="images/Secti_Vertical.png"
           alt="Logo do sistema"
-          className="w-16 sm:w-20 object-contain transition-all duration-500"
+          className="w-16 sm:w-20 object-contain transition-all duration-500 hover:scale-105 drop-shadow-[2px_2px_0px_#0f172a]"
           loading="lazy"
         />
       </div>

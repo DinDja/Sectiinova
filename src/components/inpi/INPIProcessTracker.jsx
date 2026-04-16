@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -16,6 +18,9 @@ import {
   Search,
   Trash2,
   User,
+  ChevronDown,
+  HardDrive,
+  Sparkles  
 } from "lucide-react";
 
 import {
@@ -34,14 +39,23 @@ import {
 import { createSearchIdentity } from "../../services/inpiTrackingShared";
 import { auth } from "../../../firebase";
 
-const RECENT_SEARCHES_KEY = "inpi_process_tracker_recent";
+
+// Estilos Neo-Brutalistas
+const STATUS_STYLES = {
+  emerald: "bg-teal-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+  amber: "bg-yellow-300 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+  red: "bg-red-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+  indigo: "bg-blue-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+  sky: "bg-sky-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+  slate: "bg-white text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]",
+};
 
 const TRACKING_SOURCE_OPTIONS = [
   {
     id: "automatico",
     label: "Detectar automaticamente",
     description:
-      "O agente tenta localizar primeiro a base mais provavel para o numero informado.",
+      "O agente tenta localizar primeiro a base mais provável para o número informado.",
     placeholder: "Ex.: PI 0101161-8, 904155196 ou BR 51 2026 001439 5",
   },
   {
@@ -53,7 +67,7 @@ const TRACKING_SOURCE_OPTIONS = [
   {
     id: "marca",
     label: "Marca",
-    description: "Consulta a base de marcas por numero de processo.",
+    description: "Consulta a base de marcas por número de processo.",
     placeholder: "Ex.: 904155196",
   },
   {
@@ -64,14 +78,7 @@ const TRACKING_SOURCE_OPTIONS = [
   },
 ];
 
-const STATUS_STYLES = {
-  emerald: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  amber: "bg-amber-100 text-amber-800 border-amber-200",
-  red: "bg-red-100 text-red-800 border-red-200",
-  indigo: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  sky: "bg-sky-100 text-sky-800 border-sky-200",
-  slate: "bg-slate-100 text-slate-800 border-slate-200",
-};
+const RECENT_SEARCHES_KEY = "inpi_process_tracker_recent";
 
 function formatFetchedAt(isoString) {
   if (!isoString) return "-";
@@ -140,26 +147,26 @@ function getNotFoundMessage(result, selectedSourceId) {
       .join(", ");
 
     if (labels) {
-      return `A busca automatica nao encontrou resultado nas bases testadas: ${labels}.`;
+      return `A busca automática não encontrou resultado nas bases testadas: ${labels}.`;
     }
 
-    return "A busca automatica nao encontrou resultado nas bases suportadas pelo agente.";
+    return "A busca automática não encontrou resultado nas bases suportadas pelo agente.";
   }
 
   const selectedSource =
     result?.requestedSourceLabel || getSourceOption(selectedSourceId).label;
 
-  return `A base publica de ${selectedSource.toLowerCase()} nao retornou resultado para esse numero.`;
+  return `A base pública de ${selectedSource.toLowerCase()} não retornou resultado para esse número.`;
 }
 
 function ResultInfoCard({ icon, label, value }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold uppercase tracking-wide">
+    <div className="rounded-2xl border-4 border-slate-900 bg-white p-6 shadow-[6px_6px_0px_0px_#0f172a] transform hover:-translate-y-1 transition-transform flex flex-col justify-between">
+      <div className="inline-flex items-center gap-2 text-slate-900 text-[10px] font-black uppercase tracking-widest bg-yellow-300 border-2 border-slate-900 px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a] w-fit mb-4 transform -">
         {icon}
         {label}
       </div>
-      <p className="mt-2 text-sm text-slate-800 leading-relaxed break-words">
+      <p className="text-base font-bold text-slate-900 leading-relaxed break-words bg-slate-100 p-4 border-2 border-slate-900 rounded-xl">
         {value || "-"}
       </p>
     </div>
@@ -170,19 +177,19 @@ function getResultInfoCards(result) {
   if (result?.publicDataAvailable === false) {
     return [
       {
-        icon: <CheckCircle2 className="w-4 h-4" />,
-        label: "Situacao",
-        value: "O pedido foi localizado no INPI, mas o detalhe ainda nao esta aberto na consulta publica.",
+        icon: <CheckCircle2 className="w-4 h-4 stroke-[3]" />,
+        label: "Situação",
+        value: "O pedido foi localizado no INPI, mas o detalhe ainda não está aberto na consulta pública.",
       },
       {
-        icon: <User className="w-4 h-4" />,
-        label: "Acesso necessario",
-        value: "Entre com seu login do INPI, refaca a busca e abra o resultado em Meus pedidos.",
+        icon: <User className="w-4 h-4 stroke-[3]" />,
+        label: "Acesso necessário",
+        value: "Entre com seu login do INPI, refaça a busca e abra o resultado em Meus pedidos.",
       },
       {
-        icon: <Cloud className="w-4 h-4" />,
+        icon: <Cloud className="w-4 h-4 stroke-[3]" />,
         label: "Acompanhamento oficial",
-        value: "Enquanto o detalhe publico nao aparecer, acompanhe as publicacoes pela RPI.",
+        value: "Enquanto o detalhe público não aparecer, acompanhe as publicações pela RPI.",
       },
     ];
   }
@@ -190,32 +197,32 @@ function getResultInfoCards(result) {
   if (result?.sourceId === "marca") {
     return [
       {
-        icon: <Calendar className="w-4 h-4" />,
-        label: "Data do deposito",
+        icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+        label: "Data do depósito",
         value: result.summary?.depositDate,
       },
       {
-        icon: <Calendar className="w-4 h-4" />,
-        label: "Data da concessao",
+        icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+        label: "Data da concessão",
         value: result.summary?.grantDate,
       },
       {
-        icon: <Calendar className="w-4 h-4" />,
-        label: "Data de vigencia",
+        icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+        label: "Data de vigência",
         value: result.summary?.validityDate,
       },
       {
-        icon: <Building2 className="w-4 h-4" />,
+        icon: <Building2 className="w-4 h-4 stroke-[3]" />,
         label: "Titular",
         value: result.summary?.holder,
       },
       {
-        icon: <User className="w-4 h-4" />,
+        icon: <User className="w-4 h-4 stroke-[3]" />,
         label: "Procurador",
         value: result.summary?.attorney,
       },
       {
-        icon: <FileText className="w-4 h-4" />,
+        icon: <FileText className="w-4 h-4 stroke-[3]" />,
         label: "Classe",
         value:
           result.summary?.classes?.join(" • ") || result.summary?.classFromSearch,
@@ -226,32 +233,32 @@ function getResultInfoCards(result) {
   if (result?.sourceId === "programa") {
     return [
       {
-        icon: <Calendar className="w-4 h-4" />,
-        label: "Data do deposito",
+        icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+        label: "Data do depósito",
         value: result.summary?.depositDate,
       },
       {
-        icon: <Code2 className="w-4 h-4" />,
+        icon: <Code2 className="w-4 h-4 stroke-[3]" />,
         label: "Linguagem",
         value: result.summary?.language,
       },
       {
-        icon: <FileText className="w-4 h-4" />,
-        label: "Campo de aplicacao",
+        icon: <FileText className="w-4 h-4 stroke-[3]" />,
+        label: "Campo de aplicação",
         value: result.summary?.applicationField?.display,
       },
       {
-        icon: <FileText className="w-4 h-4" />,
+        icon: <FileText className="w-4 h-4 stroke-[3]" />,
         label: "Tipo de programa",
         value: result.summary?.programType?.display,
       },
       {
-        icon: <Building2 className="w-4 h-4" />,
+        icon: <Building2 className="w-4 h-4 stroke-[3]" />,
         label: "Titular",
         value: result.summary?.holder,
       },
       {
-        icon: <User className="w-4 h-4" />,
+        icon: <User className="w-4 h-4 stroke-[3]" />,
         label: "Autor",
         value: result.summary?.author,
       },
@@ -260,32 +267,32 @@ function getResultInfoCards(result) {
 
   return [
     {
-      icon: <Calendar className="w-4 h-4" />,
-      label: "Data do deposito",
+      icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+      label: "Data do depósito",
       value: result.summary?.depositDate,
     },
     {
-      icon: <Calendar className="w-4 h-4" />,
-      label: "Data da publicacao",
+      icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+      label: "Data da publicação",
       value: result.summary?.publicationDate,
     },
     {
-      icon: <Calendar className="w-4 h-4" />,
-      label: "Data da concessao",
+      icon: <Calendar className="w-4 h-4 stroke-[3]" />,
+      label: "Data da concessão",
       value: result.summary?.grantDate,
     },
     {
-      icon: <Building2 className="w-4 h-4" />,
+      icon: <Building2 className="w-4 h-4 stroke-[3]" />,
       label: "Depositante",
       value: result.summary?.applicant,
     },
     {
-      icon: <User className="w-4 h-4" />,
+      icon: <User className="w-4 h-4 stroke-[3]" />,
       label: "Inventores",
       value: result.summary?.inventors,
     },
     {
-      icon: <FileText className="w-4 h-4" />,
+      icon: <FileText className="w-4 h-4 stroke-[3]" />,
       label: "IPC",
       value:
         result.summary?.ipcCodes?.join(" • ") || result.summary?.ipcFromSearch,
@@ -555,20 +562,21 @@ export default function INPIProcessTracker({ loggedUser = null }) {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-10 animate-in fade-in duration-500 font-sans text-slate-900">
+      {/* HEADER DE CONSULTA */}
+      <div className="bg-blue-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[12px_12px_0px_0px_#0f172a] transform  hover:rotate-0 transition-transform">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-8">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              <Clock3 className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 bg-white px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest transform -rotate-2 mb-6">
+              <Clock3 className="w-5 h-5 stroke-[3] text-slate-900" />
               Agente de acompanhamento
             </div>
-            <h2 className="mt-4 text-2xl font-bold text-slate-800">
-              Consultar andamento público por número do pedido
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter bg-white inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] mb-6">
+              Consultar andamento <br/> <span className="text-white [-webkit-text-stroke:2px_#0f172a] sm:[-webkit-text-stroke:3px_#0f172a]">público</span>
             </h2>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              Este agente consulta a base publica escolhida no INPI antes de
-              pesquisar, evitando que um numero de marca seja tratado como
+            <p className="font-bold text-slate-900 bg-white/60 p-5 border-2 border-slate-900 rounded-xl leading-relaxed text-base">
+              Este agente consulta a base pública escolhida no INPI antes de
+              pesquisar, evitando que um número de marca seja tratado como
               patente ou que um registro de software caia na base errada.
             </p>
           </div>
@@ -577,20 +585,22 @@ export default function INPIProcessTracker({ loggedUser = null }) {
             href={result?.officialSearchUrl || getSearchUrlBySource(selectedSourceId)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            className="inline-flex items-center justify-center gap-2 bg-teal-400 border-4 border-slate-900 text-slate-900 px-6 py-4 font-black uppercase tracking-widest text-xs rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all w-full lg:w-auto"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="w-5 h-5 stroke-[3]" />
             Abrir BuscaWeb
           </a>
         </div>
 
-        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
+        <div className="mt-8 bg-pink-400 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -">
+          <AlertCircle className="w-6 h-6 inline-block mr-2 -mt-1 stroke-[3]" />
           O acompanhamento continua sendo oficialmente publicado na RPI. Este
           Agente facilita a leitura do processo, mas não substitui a conferência
           formal no portal do INPI.
         </div>
 
-        <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 leading-relaxed">
+        <div className="mt-6 bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform ">
+          <Cloud className="w-6 h-6 inline-block mr-2 -mt-1 stroke-[3]" />
           {firestoreUserId
             ? "As consultas encontradas ficam salvas automaticamente no documento do usuário em usuarios. Você pode ativar o monitoramento automático e o sistema vai verificar mudanças sem precisar consultar manualmente."
             : "Entre com uma conta para salvar consultas no Firebase e ativar o monitoramento automático dos projetos do INPI."}
@@ -598,41 +608,46 @@ export default function INPIProcessTracker({ loggedUser = null }) {
 
         {(trackerMessage || trackerError) && (
           <div
-            className={`mt-4 rounded-xl border p-4 text-sm ${
+            className={`mt-8 border-4 border-slate-900 p-5 text-sm font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a] flex items-center gap-3 ${
               trackerError
-                ? "border-red-200 bg-red-50 text-red-800"
-                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                ? "bg-red-400 text-slate-900"
+                : "bg-teal-400 text-slate-900"
             }`}
           >
+            {trackerError ? <AlertCircle className="w-6 h-6 stroke-[3]" /> : <CheckCircle2 className="w-6 h-6 stroke-[3]" />}
             {trackerError || trackerMessage}
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {/* FORMULÁRIO DE BUSCA */}
+      <div className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-[2.5rem] p-8 md:p-12">
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 lg:flex-row lg:items-end"
+          className="flex flex-col gap-6 lg:flex-row lg:items-end"
         >
-          <div className="lg:w-72">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <div className="lg:w-80">
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-3">
               Base de pesquisa
             </label>
-            <select
-              value={selectedSourceId}
-              onChange={(event) => setSelectedSourceId(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-            >
-              {TRACKING_SOURCE_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedSourceId}
+                onChange={(event) => setSelectedSourceId(event.target.value)}
+                className="w-full rounded-2xl border-4 border-slate-900 bg-white px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-900 outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all shadow-[4px_4px_0px_0px_#0f172a] appearance-none cursor-pointer"
+              >
+                {TRACKING_SOURCE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-6 h-6 stroke-[3] text-slate-900 pointer-events-none" />
+            </div>
           </div>
 
           <div className="flex-1">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-3">
               Número do pedido
             </label>
             <input
@@ -640,20 +655,20 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               value={processNumber}
               onChange={(event) => setProcessNumber(event.target.value)}
               placeholder={getSourceOption(selectedSourceId).placeholder}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+              className="w-full rounded-2xl border-4 border-slate-900 bg-white px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-900 outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all shadow-[4px_4px_0px_0px_#0f172a] placeholder:text-slate-400 placeholder:font-bold placeholder:normal-case"
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4 lg:pt-0">
             <button
               type="submit"
               disabled={isLoading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-3 bg-teal-400 border-4 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
             >
               {isLoading ? (
-                <LoaderCircle className="w-4 h-4 animate-spin" />
+                <LoaderCircle className="w-5 h-5 animate-spin stroke-[3]" />
               ) : (
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5 stroke-[3]" />
               )}
               {isLoading ? "Consultando..." : "Consultar andamento"}
             </button>
@@ -668,10 +683,10 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                   )
                 }
                 disabled={isLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-3 bg-yellow-300 border-4 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
               >
                 <RefreshCw
-                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  className={`w-5 h-5 stroke-[3] ${isLoading ? "animate-spin" : ""}`}
                 />
                 Atualizar
               </button>
@@ -680,19 +695,19 @@ export default function INPIProcessTracker({ loggedUser = null }) {
         </form>
 
         {!!recentSearches.length && (
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+          <div className="mt-8 pt-8 border-t-4 border-slate-900 border-dashed">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-4 bg-slate-200 inline-block px-3 py-1 border-2 border-slate-900">
               Consultas recentes
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {recentSearches.map((entry) => (
                 <button
                   key={`${entry.sourceId || "automatico"}-${entry.processNumber}`}
                   type="button"
                   onClick={() => runSavedSearch(entry)}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                  className="bg-white border-2 border-slate-900 px-4 py-2 font-black uppercase text-[10px] tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all flex items-center gap-2"
                 >
-                  {entry.processNumber} • {entry.sourceLabel}
+                  <span className="text-teal-500">{entry.sourceLabel}</span> • {entry.processNumber} 
                 </button>
               ))}
             </div>
@@ -700,448 +715,206 @@ export default function INPIProcessTracker({ loggedUser = null }) {
         )}
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
+          <div className="mt-8 rounded-xl border-4 border-slate-900 bg-red-400 p-5 text-sm font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-3 transform ">
+            <AlertCircle className="w-6 h-6 shrink-0 stroke-[3]" />
+            <span className="mt-0.5">{error}</span>
           </div>
         )}
       </div>
 
-      {firestoreUserId && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">
-                Pesquisas salvas
-              </h3>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed max-w-3xl">
-                Cada consulta encontrada é gravada no seu documento em usuarios. Ative o sino apenas nos processos que realmente precisam de acompanhamento automático.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-start gap-3">
-              {lastWatchRunAt && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Última varredura do monitoramento
-                  </p>
-                  <p className="mt-1 font-semibold text-slate-900">
-                    {formatFetchedAt(lastWatchRunAt)}
-                  </p>
-                  {lastWatchSummary && (
-                    <p className="mt-1 text-xs text-slate-500">{lastWatchSummary}</p>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleRunWatchNow}
-                disabled={isRunningWatch || isPersisting}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${isRunningWatch ? "animate-spin" : ""}`}
-                />
-                {isRunningWatch ? "Executando..." : "Executar minha varredura"}
-              </button>
-            </div>
-          </div>
-
-          {savedSearches.length ? (
-            <div className="mt-5 grid gap-3">
-              {savedSearches.map((entry) => (
-                <div
-                  key={getSavedSearchKey(entry)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                          {entry.sourceLabel}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClassName(
-                            entry.statusTone,
-                          )}`}
-                        >
-                          {entry.statusLabel || "Acompanhando"}
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                            entry.watchEnabled
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : "border-slate-200 bg-white text-slate-500"
-                          }`}
-                        >
-                          {entry.watchEnabled ? (
-                            <Bell className="w-3.5 h-3.5" />
-                          ) : (
-                            <BellOff className="w-3.5 h-3.5" />
-                          )}
-                          {entry.watchEnabled ? "Monitorando" : "Somente salvo"}
-                        </span>
-                      </div>
-
-                      <h4 className="mt-3 text-base font-bold text-slate-900">
-                        {entry.title || entry.processNumber}
-                      </h4>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {entry.processNumber}
-                      </p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        Última sincronização manual: {formatFetchedAt(entry.lastManualSyncAt || entry.updatedAt || entry.fetchedAt)}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Última checagem automática: {formatFetchedAt(entry.lastCheckedAt || entry.updatedAt || entry.fetchedAt)}
-                      </p>
-                      {entry.lastError && (
-                        <p className="mt-2 text-xs font-medium text-amber-700">
-                          {entry.lastError}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => runSavedSearch(entry)}
-                        disabled={isLoading || isPersisting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Reconsultar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleWatch(entry, !entry.watchEnabled)}
-                        disabled={isPersisting}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70 ${
-                          entry.watchEnabled
-                            ? "bg-amber-600 hover:bg-amber-700"
-                            : "bg-emerald-600 hover:bg-emerald-700"
-                        }`}
-                      >
-                        {entry.watchEnabled ? (
-                          <BellOff className="w-4 h-4" />
-                        ) : (
-                          <Bell className="w-4 h-4" />
-                        )}
-                        {entry.watchEnabled ? "Pausar alerta" : "Ativar alerta"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSavedSearch(entry)}
-                        disabled={isPersisting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Remover
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-600">
-              Nenhuma pesquisa foi salva ainda. Faça uma consulta bem-sucedida e ela será gravada automaticamente no seu perfil.
-            </p>
-          )}
-        </div>
-      )}
-
-      {firestoreUserId && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">
-                Alertas automáticos
-              </h3>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed max-w-3xl">
-                Quando o sistema detectar alteração em uma busca monitorada, o alerta aparecerá aqui sem você precisar consultar manualmente o número do processo.
-              </p>
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
-              <Cloud className="w-3.5 h-3.5" />
-              Verificação automática a cada 30 minutos
-            </div>
-          </div>
-
-          {trackingAlerts.length ? (
-            <div className="mt-5 grid gap-3">
-              {trackingAlerts.map((alertEntry) => (
-                <div
-                  key={alertEntry.id}
-                  className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
-                          {alertEntry.sourceLabel}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClassName(
-                            alertEntry.statusTone,
-                          )}`}
-                        >
-                          {alertEntry.statusLabel || "Mudança detectada"}
-                        </span>
-                      </div>
-                      <h4 className="mt-3 text-base font-bold text-emerald-950">
-                        {alertEntry.title || alertEntry.processNumber}
-                      </h4>
-                      <p className="mt-1 text-sm text-emerald-900">
-                        {alertEntry.message}
-                      </p>
-                      <p className="mt-2 text-xs text-emerald-700">
-                        Detectado em {formatFetchedAt(alertEntry.detectedAt)}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          runSavedSearch({
-                            processNumber: alertEntry.processNumber,
-                            sourceId: alertEntry.sourceId,
-                          })
-                        }
-                        disabled={isLoading}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Abrir resultado
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDismissAlert(alertEntry.id)}
-                        disabled={isPersisting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Dispensar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-600">
-              Nenhuma mudança detectada até agora nas buscas com monitoramento automático ativo.
-            </p>
-          )}
-        </div>
-      )}
-
+      {/* RESULTADO NADA ENCONTRADO */}
       {result && !result.found && !error && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800">
-            Nenhum processo encontrado
+        <div className="bg-yellow-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[8px_8px_0px_0px_#0f172a] transform -">
+          <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4 flex items-center gap-3">
+             <AlertCircle className="w-8 h-8 stroke-[3]" /> Nenhum processo encontrado
           </h3>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+          <p className="text-base font-bold text-slate-900 bg-white p-5 border-2 border-slate-900 rounded-xl leading-relaxed shadow-[4px_4px_0px_0px_#0f172a]">
             {getNotFoundMessage(result, selectedSourceId)} Vale conferir a
-            formatacao e, se necessario, repetir a consulta diretamente no
+            formatação e, se necessário, repetir a consulta diretamente no
             BuscaWeb.
           </p>
         </div>
       )}
 
+      {/* RESULTADO ENCONTRADO */}
       {result?.found && (
-        <>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-4xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                    {result.sourceLabel}
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClassName(
-                      result.status?.tone,
-                    )}`}
-                  >
-                    {result.status?.label}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Consulta realizada em {formatFetchedAt(result.fetchedAt)}
-                  </span>
-                </div>
-
-                <h3 className="mt-4 text-2xl font-bold text-slate-800 leading-tight">
-                  {result.summary?.title}
-                </h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  {result.summary?.presentationType}
-                </p>
+        <div className="bg-white border-4 border-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-[12px_12px_0px_0px_#0f172a] animate-in slide-in-from-bottom-8">
+          <div className="flex flex-col lg:flex-row items-start justify-between gap-8 mb-10 border-b-4 border-slate-900 pb-8">
+            <div className="max-w-4xl">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="bg-white border-2 border-slate-900 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                  {result.sourceLabel}
+                </span>
+                <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest ${getStatusClassName(result.status?.tone)}`}>
+                  {result.status?.label}
+                </span>
+                <span className="inline-flex items-center gap-2 bg-slate-100 border-2 border-slate-900 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                  <CheckCircle2 className="w-4 h-4 stroke-[3]" />
+                  Consulta em {formatFetchedAt(result.fetchedAt)}
+                </span>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Número do pedido
-                </p>
-                <p className="mt-1 font-bold text-slate-900">
-                  {result.summary?.processNumber}
-                </p>
-              </div>
+              <h3 className="text-3xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-4">
+                {result.summary?.title}
+              </h3>
+              <p className="text-base font-bold text-slate-700 bg-slate-100 px-4 py-2 border-2 border-slate-900 inline-block rounded-xl">
+                {result.summary?.presentationType}
+              </p>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {getResultInfoCards(result).map((item) => (
-                <ResultInfoCard
-                  key={item.label}
-                  icon={item.icon}
-                  label={item.label}
-                  value={item.value}
-                />
-              ))}
-            </div>
-
-            {result.notice?.message && (
-              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">
-                      {result.notice.title || "Acesso restrito no INPI"}
-                    </p>
-                    <p className="mt-1">{result.notice.message}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              <Cloud className="w-4 h-4 text-sky-600" />
-              {firestoreUserId ? (
-                <>
-                  <span>
-                    Busca salva automaticamente no seu perfil após a consulta bem-sucedida.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleEnableCurrentResultWatch}
-                    disabled={isPersisting}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70 ${
-                      currentSavedSearch?.watchEnabled
-                        ? "bg-amber-600 hover:bg-amber-700"
-                        : "bg-emerald-600 hover:bg-emerald-700"
-                    }`}
-                  >
-                    {currentSavedSearch?.watchEnabled ? (
-                      <BellOff className="w-4 h-4" />
-                    ) : (
-                      <Bell className="w-4 h-4" />
-                    )}
-                    {currentSavedSearch?.watchEnabled
-                      ? "Pausar alerta automático"
-                      : "Ativar alerta automático"}
-                  </button>
-                </>
-              ) : (
-                <span>Entre com uma conta para salvar esta busca no seu perfil e ativar alertas automáticos.</span>
-              )}
+            <div className="bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#0f172a] shrink-0 text-center transform rotate-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-2">
+                Número do pedido
+              </p>
+              <p className="text-2xl font-black text-slate-900 bg-white px-4 py-2 border-2 border-slate-900 shadow-inner">
+                {result.summary?.processNumber}
+              </p>
             </div>
           </div>
 
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+            {getResultInfoCards(result).map((item, idx) => (
+              <ResultInfoCard
+                key={idx}
+                icon={item.icon}
+                label={item.label}
+                value={item.value}
+              />
+            ))}
+          </div>
+
+          {result.notice?.message && (
+            <div className="bg-orange-400 border-4 border-slate-900 rounded-2xl p-6 md:p-8 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-4 mb-10 transform -">
+              <AlertCircle className="w-8 h-8 shrink-0 stroke-[3]" />
+              <div>
+                <p className="text-xl font-black uppercase tracking-tighter mb-2">
+                  {result.notice.title || "Acesso restrito no INPI"}
+                </p>
+                <p className="text-base bg-white/60 p-4 border-2 border-slate-900 rounded-xl leading-relaxed">
+                    {result.notice.message}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-slate-100 border-4 border-slate-900 rounded-2xl p-6 md:p-8 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-400 border-2 border-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#0f172a] transform rotate-3">
+                    <Cloud className="w-6 h-6 stroke-[3] text-slate-900" />
+                </div>
+                <p className="text-sm font-bold text-slate-800">
+                {firestoreUserId ? (
+                    "Busca salva automaticamente no seu perfil. Ative o monitoramento para ser notificado de mudanças."
+                ) : (
+                    "Entre com uma conta para salvar esta busca no seu perfil e ativar alertas automáticos."
+                )}
+                </p>
+            </div>
+            
+            {firestoreUserId && (
+                <button
+                    type="button"
+                    onClick={handleEnableCurrentResultWatch}
+                    disabled={isPersisting}
+                    className={`inline-flex items-center justify-center gap-3 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all w-full md:w-auto shrink-0 disabled:opacity-50 disabled:pointer-events-none ${
+                        currentSavedSearch?.watchEnabled ? "bg-orange-400 text-slate-900" : "bg-teal-400 text-slate-900"
+                    }`}
+                >
+                    {currentSavedSearch?.watchEnabled ? (
+                        <BellOff className="w-5 h-5 stroke-[3]" />
+                    ) : (
+                        <Bell className="w-5 h-5 stroke-[3]" />
+                    )}
+                    {currentSavedSearch?.watchEnabled ? "Pausar Alerta" : "Ativar Alerta"}
+                </button>
+            )}
+          </div>
+
           {result.publicDataAvailable !== false && (
-            <>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-800">
-                  Ultima publicacao identificada
+            <div className="space-y-12">
+              
+              {/* DESPACHO MAIS RECENTE */}
+              <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-8 flex items-center gap-3">
+                   <Sparkles className="w-8 h-8 stroke-[3] text-teal-500" />
+                   Última publicação identificada
                 </h3>
 
                 {result.latestDispatch ? (
-                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-800">
+                  <div className="bg-teal-400 border-4 border-slate-900 rounded-2xl p-6 md:p-8 shadow-[4px_4px_0px_0px_#0f172a] transform ">
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
                       {result.latestDispatch.code ? (
-                        <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
+                        <span className="bg-white px-4 py-2 border-2 border-slate-900 font-black text-xs uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
                           Código {result.latestDispatch.code}
                         </span>
                       ) : (
-                        <span className="rounded-full bg-white px-3 py-1 border border-emerald-200">
+                        <span className="bg-white px-4 py-2 border-2 border-slate-900 font-black text-xs uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
                           Despacho textual
                         </span>
                       )}
-                      <span>RPI {result.latestDispatch.rpiEdition}</span>
-                      <span>•</span>
-                      <span>{result.latestDispatch.rpiDate}</span>
+                      <span className="bg-slate-900 text-white px-4 py-2 border-2 border-slate-900 font-black text-xs uppercase tracking-widest shadow-[2px_2px_0px_0px_#cbd5e1]">
+                        RPI {result.latestDispatch.rpiEdition}
+                      </span>
+                      <span className="bg-slate-100 text-slate-900 px-4 py-2 border-2 border-slate-900 font-black text-xs uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
+                        {result.latestDispatch.rpiDate}
+                      </span>
                     </div>
 
-                    <p className="mt-4 text-sm text-emerald-950 leading-relaxed">
+                    <p className="text-lg font-bold text-slate-900 leading-relaxed bg-white/70 p-5 rounded-xl border-2 border-slate-900">
                       {result.latestDispatch.description}
                     </p>
 
                     {result.latestDispatch.complement && (
-                      <div className="mt-4 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-900">
-                        <span className="font-semibold">Complemento:</span>{" "}
+                      <div className="mt-6 bg-yellow-300 border-2 border-slate-900 px-5 py-4 rounded-xl text-sm font-bold text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                        <span className="font-black uppercase tracking-widest block mb-1">Complemento:</span>
                         {result.latestDispatch.complement}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-slate-600">
-                    Nao foi possivel extrair a publicacao mais recente desta
-                    consulta.
+                  <p className="text-sm font-bold text-slate-600 bg-slate-100 p-4 border-2 border-slate-900 border-dashed rounded-xl">
+                    Não foi possível extrair a publicação mais recente desta consulta.
                   </p>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-800">
-                  Historico recente de publicacoes
+              {/* HISTÓRICO DE DESPACHOS */}
+              <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">
+                  Histórico recente de publicações
                 </h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  Ultimos eventos publicos identificados na base do INPI para esse
-                  pedido.
+                <p className="text-sm font-bold text-slate-600 mb-8">
+                  Últimos eventos públicos identificados na base do INPI para esse pedido.
                 </p>
 
-                <div className="mt-4 overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-0">
-                    <thead>
+                <div className="overflow-x-auto neo-scrollbar-x w-full">
+                  <table className="w-full text-sm border-4 border-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#0f172a] bg-white">
+                    <thead className="bg-blue-400 border-b-4 border-slate-900">
                       <tr>
-                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          RPI
-                        </th>
-                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Data
-                        </th>
-                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Despacho
-                        </th>
-                        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Complemento
-                        </th>
+                        <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">RPI</th>
+                        <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Data</th>
+                        <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Despacho</th>
+                        <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Complemento</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {result.dispatches.map((dispatch) => (
-                        <tr
-                          key={`${dispatch.rpiEdition}-${dispatch.code}-${dispatch.rpiDate}`}
-                        >
-                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                      {result.dispatches.map((dispatch, idx) => (
+                        <tr key={`${dispatch.rpiEdition}-${dispatch.code}-${dispatch.rpiDate}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-100'}>
+                          <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 whitespace-nowrap">
                             {dispatch.rpiEdition}
                           </td>
-                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                          <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 whitespace-nowrap">
                             {dispatch.rpiDate}
                           </td>
-                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                            <div className="font-semibold text-slate-900">
+                          <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 min-w-[250px]">
+                            <div className="font-black text-slate-900 mb-1 inline-block bg-yellow-300 px-2 border-2 border-slate-900">
                               {dispatch.code || "-"}
                             </div>
-                            <div className="mt-1 leading-relaxed">
+                            <div className="leading-relaxed">
                               {dispatch.description}
                             </div>
                           </td>
-                          <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                          <td className="border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 leading-relaxed min-w-[200px]">
                             {dispatch.complement || "-"}
                           </td>
                         </tr>
@@ -1151,60 +924,48 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                 </div>
               </div>
 
+              {/* PETIÇÕES */}
               {!!result.petitions?.length && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800">
-                    Petições registradas
+                <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">
+                    Petições Registradas
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Eventos protocolados identificados no detalhe publico do
-                    processo.
+                  <p className="text-sm font-bold text-slate-600 mb-8">
+                    Eventos protocolados identificados no detalhe público do processo.
                   </p>
 
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-full border-separate border-spacing-0">
-                      <thead>
+                  <div className="overflow-x-auto neo-scrollbar-x w-full">
+                    <table className="w-full text-sm border-4 border-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#0f172a] bg-white">
+                      <thead className="bg-pink-400 border-b-4 border-slate-900">
                         <tr>
-                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Status
-                          </th>
-                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Protocolo
-                          </th>
-                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Data
-                          </th>
-                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Servico
-                          </th>
-                          <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Cliente
-                          </th>
+                          <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Status</th>
+                          <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Protocolo</th>
+                          <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Data</th>
+                          <th className="border-r-4 border-slate-900 px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Serviço</th>
+                          <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-slate-900">Cliente</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {result.petitions.map((petition) => (
-                          <tr
-                            key={`${petition.protocol}-${petition.serviceCode}-${petition.date}`}
-                          >
-                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                              {petition.paymentStatus || "-"}
+                        {result.petitions.map((petition, idx) => (
+                          <tr key={`${petition.protocol}-${petition.serviceCode}-${petition.date}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-100'}>
+                            <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 whitespace-nowrap">
+                              <span className="bg-white border-2 border-slate-900 px-2 py-1 shadow-[2px_2px_0px_0px_#0f172a]">{petition.paymentStatus || "-"}</span>
                             </td>
-                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 whitespace-nowrap">
                               {petition.protocol}
                             </td>
-                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 whitespace-nowrap">
                               {petition.date}
                             </td>
-                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
-                              <div className="font-semibold text-slate-900">
+                            <td className="border-r-4 border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 min-w-[250px]">
+                              <div className="font-black text-slate-900 mb-1 inline-block bg-yellow-300 px-2 border-2 border-slate-900">
                                 {petition.serviceCode}
                               </div>
-                              <div className="mt-1 leading-relaxed">
+                              <div className="leading-relaxed">
                                 {petition.serviceDescription || "-"}
                               </div>
                             </td>
-                            <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">
+                            <td className="border-t-4 border-slate-900 px-6 py-4 font-bold text-slate-800 min-w-[150px]">
                               {petition.client || "-"}
                             </td>
                           </tr>
@@ -1214,9 +975,255 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
-        </>
+        </div>
+      )}
+
+      {/* ÁREA DO USUÁRIO LOGADO - PESQUISAS SALVAS & ALERTAS */}
+      {firestoreUserId && (
+        <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-8 md:p-12 transform  hover:rotate-0 transition-transform mt-16">
+          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 mb-12 border-b-4 border-slate-900 pb-8">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest transform - mb-4">
+                <HardDrive className="w-5 h-5 stroke-[3] text-slate-900" />
+                Painel do Usuário
+              </div>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter mb-4">
+                Pesquisas Salvas
+              </h3>
+              <p className="text-base font-bold text-slate-700 bg-slate-100 p-4 border-2 border-slate-900 rounded-xl leading-relaxed">
+                Cada consulta encontrada é gravada no seu perfil. Ative o sino apenas nos processos que realmente precisam de acompanhamento automático (alertas).
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start xl:items-end gap-4 w-full xl:w-auto">
+              {lastWatchRunAt && (
+                <div className="rounded-2xl border-4 border-slate-900 bg-teal-400 p-5 shadow-[4px_4px_0px_0px_#0f172a] w-full transform ">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-1 bg-white px-2 inline-block border-2 border-slate-900">
+                    Última varredura do monitoramento
+                  </p>
+                  <p className="font-black text-slate-900 text-lg">
+                    {formatFetchedAt(lastWatchRunAt)}
+                  </p>
+                  {lastWatchSummary && (
+                    <p className="mt-2 text-xs font-bold text-slate-900 bg-white/60 p-2 border-2 border-slate-900 rounded-lg">{lastWatchSummary}</p>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRunWatchNow}
+                disabled={isRunningWatch || isPersisting}
+                className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-white px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all disabled:opacity-50 disabled:pointer-events-none w-full"
+              >
+                <RefreshCw
+                  className={`w-5 h-5 stroke-[3] ${isRunningWatch ? "animate-spin" : ""}`}
+                />
+                {isRunningWatch ? "Executando..." : "Forçar Varredura Manual"}
+              </button>
+            </div>
+          </div>
+
+          {savedSearches.length ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              {savedSearches.map((entry) => (
+                <div
+                  key={getSavedSearchKey(entry)}
+                  className="rounded-2xl border-4 border-slate-900 bg-white p-6 md:p-8 shadow-[6px_6px_0px_0px_#0f172a] flex flex-col hover:-translate-y-1 transition-transform"
+                >
+                  <div className="flex flex-wrap items-center gap-3 mb-6">
+                    <span className="inline-flex items-center bg-white border-2 border-slate-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                      {entry.sourceLabel}
+                    </span>
+                    <span
+                      className={`inline-flex items-center border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
+                        entry.statusTone,
+                      )}`}
+                    >
+                      {entry.statusLabel || "Acompanhando"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-2 border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${
+                        entry.watchEnabled
+                          ? "border-slate-900 bg-yellow-300 text-slate-900"
+                          : "border-slate-900 bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {entry.watchEnabled ? (
+                        <Bell className="w-4 h-4 stroke-[3]" />
+                      ) : (
+                        <BellOff className="w-4 h-4 stroke-[3]" />
+                      )}
+                      {entry.watchEnabled ? "Monitorando" : "Somente salvo"}
+                    </span>
+                  </div>
+
+                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">
+                    {entry.title || entry.processNumber}
+                  </h4>
+                  <p className="text-base font-bold text-slate-600 bg-slate-100 px-3 py-1 border-2 border-slate-900 w-fit mb-6">
+                    {entry.processNumber}
+                  </p>
+                  
+                  <div className="bg-[#FAFAFA] p-4 border-4 border-slate-900 rounded-xl mb-8 flex-1">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                        Sincronização manual:
+                      </p>
+                      <p className="text-sm font-bold text-slate-900 mb-3">{formatFetchedAt(entry.lastManualSyncAt || entry.updatedAt || entry.fetchedAt)}</p>
+                      
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                        Checagem automática:
+                      </p>
+                      <p className="text-sm font-bold text-slate-900">{formatFetchedAt(entry.lastCheckedAt || entry.updatedAt || entry.fetchedAt)}</p>
+
+                      {entry.lastError && (
+                        <p className="mt-4 text-xs font-black uppercase text-slate-900 bg-red-400 p-2 border-2 border-slate-900">
+                          Erro: {entry.lastError}
+                        </p>
+                      )}
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => runSavedSearch(entry)}
+                      disabled={isLoading || isPersisting}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-blue-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                    >
+                      <RefreshCw className="w-4 h-4 stroke-[3]" />
+                      Reconsultar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleWatch(entry, !entry.watchEnabled)}
+                      disabled={isPersisting}
+                      className={`inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50 ${
+                        entry.watchEnabled
+                          ? "bg-orange-400"
+                          : "bg-teal-400"
+                      }`}
+                    >
+                      {entry.watchEnabled ? (
+                        <BellOff className="w-4 h-4 stroke-[3]" />
+                      ) : (
+                        <Bell className="w-4 h-4 stroke-[3]" />
+                      )}
+                      {entry.watchEnabled ? "Pausar Alerta" : "Ativar Alerta"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSavedSearch(entry)}
+                      disabled={isPersisting}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-red-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4 stroke-[3]" />
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-8 text-sm font-bold text-slate-900 bg-yellow-300 p-6 border-4 border-slate-900 rounded-2xl shadow-[4px_4px_0px_0px_#0f172a] transform - text-center">
+              Nenhuma pesquisa foi salva ainda. Faça uma consulta bem-sucedida e ela será gravada automaticamente no seu perfil.
+            </p>
+          )}
+
+          {/* ALERTAS AUTOMÁTICOS */}
+          <div className="mt-16 pt-12 border-t-4 border-slate-900 border-dashed">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
+              <div>
+                <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-2 flex items-center gap-3">
+                    <Cloud className="w-8 h-8 stroke-[3] text-blue-500" /> Alertas Automáticos
+                </h3>
+                <p className="text-sm font-bold text-slate-700 bg-white border-2 border-slate-900 p-3 rounded-xl shadow-[2px_2px_0px_0px_#cbd5e1] max-w-3xl">
+                  Quando o sistema detectar alteração em uma busca monitorada, o alerta aparecerá aqui sem você precisar consultar manualmente.
+                </p>
+              </div>
+
+              <div className="inline-flex items-center gap-2 rounded-xl border-4 border-slate-900 bg-teal-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-2 shrink-0">
+                <RefreshCw className="w-4 h-4 stroke-[3] animate-spin" />
+                Auto: 30 mins
+              </div>
+            </div>
+
+            {trackingAlerts.length ? (
+              <div className="grid gap-6">
+                {trackingAlerts.map((alertEntry) => (
+                  <div
+                    key={alertEntry.id}
+                    className="rounded-[2rem] border-4 border-slate-900 bg-white p-8 shadow-[8px_8px_0px_0px_#0f172a] transform hover:-translate-y-1 transition-transform"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                          <span className="inline-flex items-center bg-blue-300 border-2 border-slate-900 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transform -">
+                            {alertEntry.sourceLabel}
+                          </span>
+                          <span
+                            className={`inline-flex items-center border-2 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
+                              alertEntry.statusTone,
+                            )}`}
+                          >
+                            {alertEntry.statusLabel || "Mudança detectada"}
+                          </span>
+                        </div>
+                        
+                        <h4 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">
+                          {alertEntry.title || alertEntry.processNumber}
+                        </h4>
+                        <p className="text-base font-bold text-slate-900 leading-relaxed bg-slate-100 p-5 rounded-2xl border-2 border-slate-900">
+                          {alertEntry.message}
+                        </p>
+                        <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500 bg-white border-2 border-slate-900 px-3 py-1 inline-block shadow-[2px_2px_0px_0px_#0f172a]">
+                          Detectado em {formatFetchedAt(alertEntry.detectedAt)}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-4 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            runSavedSearch({
+                              processNumber: alertEntry.processNumber,
+                              sourceId: alertEntry.sourceId,
+                            })
+                          }
+                          disabled={isLoading}
+                          className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-teal-400 px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                        >
+                          <RefreshCw className="w-5 h-5 stroke-[3]" />
+                          Abrir resultado
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDismissAlert(alertEntry.id)}
+                          disabled={isPersisting}
+                          className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-white px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                        >
+                          <Trash2 className="w-5 h-5 stroke-[3]" />
+                          Dispensar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center bg-[#FAFAFA] border-4 border-dashed border-slate-900 rounded-[2rem] p-12">
+                <BellOff className="w-16 h-16 stroke-[2] text-slate-400 mx-auto mb-4" />
+                <p className="text-lg font-black uppercase tracking-widest text-slate-500">
+                    Nenhuma mudança detectada até agora.
+                </p>
+                <p className="text-sm font-bold text-slate-500 mt-2">
+                    Mantenha o monitoramento automático ligado nas buscas que deseja acompanhar.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

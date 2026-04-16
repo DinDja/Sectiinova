@@ -19,6 +19,11 @@ import {
   Rocket,
   Asterisk,
 } from "lucide-react";
+import {
+  PASSWORD_MIN_LENGTH,
+  getPasswordSecurityChecks,
+  getPasswordStrength,
+} from "../../utils/authSecurity";
 
 // --- HOOKS E ANIMAÇÕES ---
 
@@ -158,6 +163,7 @@ export default function AuthPage({
   authMode,
   setAuthMode,
   authError,
+  authNotice,
   isSubmitting,
   loginForm,
   setLoginForm,
@@ -168,10 +174,12 @@ export default function AuthPage({
   filteredSchoolGroups,
   allSchoolUnits,
   handleLogin,
+  handlePasswordReset,
   handleRegister,
   handleGoogleAuth,
   isMentoriaPerfil,
   setAuthError,
+  setAuthNotice,
   PERFIS_LOGIN,
 }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -189,6 +197,7 @@ export default function AuthPage({
   const openAuthModal = (mode) => {
     setAuthMode(mode);
     setAuthError("");
+    setAuthNotice(null);
     setShowAuthModal(true);
     document.body.style.overflow = "hidden";
   };
@@ -216,6 +225,20 @@ export default function AuthPage({
   const hasSchoolError = String(authError || "")
     .toLowerCase()
     .includes("unidade escolar");
+  const passwordChecks = getPasswordSecurityChecks(registerForm.senha, {
+    email: registerForm.email,
+    fullName: registerForm.nome,
+  });
+  const passwordStrength = getPasswordStrength(registerForm.senha, {
+    email: registerForm.email,
+    fullName: registerForm.nome,
+  });
+  const noticeClasses =
+    authNotice?.tone === "success"
+      ? "bg-emerald-300"
+      : authNotice?.tone === "warning"
+        ? "bg-yellow-300"
+        : "bg-sky-300";
 
   return (
     <div className="relative min-h-screen w-full font-sans text-slate-900 bg-home bg-cover selection:bg-teal-400 selection:text-slate-900 overflow-x-hidden">
@@ -554,6 +577,7 @@ export default function AuthPage({
                     onClick={() => {
                       setAuthMode("login");
                       setAuthError("");
+                      setAuthNotice(null);
                     }}
                     className={`flex-1 py-3 text-sm font-black rounded-xl border-2 border-slate-900 transition-all ${
                       authMode === "login"
@@ -568,6 +592,7 @@ export default function AuthPage({
                     onClick={() => {
                       setAuthMode("register");
                       setAuthError("");
+                      setAuthNotice(null);
                     }}
                     className={`flex-1 py-3 text-sm font-black rounded-xl border-2 border-slate-900 transition-all ${
                       authMode === "register"
@@ -590,6 +615,15 @@ export default function AuthPage({
                   </p>
                 </div>
 
+                {authNotice?.message && (
+                  <div
+                    className={`mb-6 rounded-xl border-2 border-slate-900 ${noticeClasses} p-4 flex items-center gap-3 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] animate-in fade-in`}
+                  >
+                    <div className="font-black text-xl">i</div>
+                    <p className="text-sm font-black">{authNotice.message}</p>
+                  </div>
+                )}
+
                 {authError && (
                   <div className="mb-6 rounded-xl border-2 border-slate-900 bg-red-400 p-4 flex items-center gap-3 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] animate-in fade-in">
                     <div className="font-black text-xl">!</div>
@@ -598,43 +632,10 @@ export default function AuthPage({
                 )}
 
                 <div className="mb-8">
-                  <SolidButton
-                    onClick={handleGoogleAuth}
-                    disabled={isSubmitting}
-                    color="bg-white"
-                    className="w-full"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M18.9572 9.69769C18.9535 8.91776 18.8871 8.34892 18.7465 7.75937L9.79301 7.80273L9.81006 11.323L15.0656 11.2975C14.9639 12.1729 14.3981 13.4931 13.1309 14.3846L13.1136 14.5025L15.9551 16.6703L16.1513 16.6888C17.9446 15.0253 18.9712 12.5856 18.9572 9.69769Z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M9.84733 19.017C12.4221 19.0046 14.5795 18.1509 16.1513 16.6888L13.1309 14.3846C12.3283 14.9471 11.2494 15.3423 9.82956 15.3492C7.30776 15.3614 5.15939 13.7171 4.38534 11.4336L4.27355 11.4436L1.34087 13.7239L1.30289 13.8306C2.88608 16.9216 6.11755 19.0351 9.84733 19.017Z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M4.38534 11.4336C4.18116 10.8444 4.06159 10.2125 4.05842 9.55907C4.05526 8.90556 4.1687 8.27263 4.35657 7.68149L4.35063 7.55581L1.35894 5.26779L1.26164 5.31441C0.621552 6.6034 0.257686 8.04918 0.265089 9.57744C0.272491 11.1057 0.650345 12.5478 1.30289 13.8305L4.38534 11.4336Z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M9.7732 3.71328C11.5639 3.70461 12.7755 4.46816 13.4674 5.10779L16.1461 2.48087C14.4858 0.960619 12.3302 0.0329942 9.75543 0.0454659C6.02565 0.0635323 2.81481 2.20815 1.26164 5.31442L4.35657 7.6815C5.11906 5.39063 7.2514 3.7255 9.7732 3.71328Z"
-                        fill="#EB4335"
-                      />
-                    </svg>
-                    Acesso rápido com Google
-                  </SolidButton>
-
                   <div className="flex items-center gap-4 my-8">
                     <div className="flex-1 border-t-2 border-slate-900"></div>
                     <span className="text-xs font-black uppercase tracking-widest text-slate-900">
-                      OU POR E-MAIL
+                      Login
                     </span>
                     <div className="flex-1 border-t-2 border-slate-900"></div>
                   </div>
@@ -650,6 +651,10 @@ export default function AuthPage({
                       icon={Mail}
                       label="Endereço de e-mail"
                       type="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={loginForm.email}
                       onChange={(e) =>
                         setLoginForm((prev) => ({
@@ -658,13 +663,13 @@ export default function AuthPage({
                         }))
                       }
                       required
-                      placeholder="exemplo@escola.ba.gov.br"
                     />
                     <div className="relative">
                       <SolidInput
                         icon={Lock}
                         label="Senha secreta"
                         type={showLoginPwd ? "text" : "password"}
+                        autoComplete="current-password"
                         value={loginForm.senha}
                         onChange={(e) =>
                           setLoginForm((prev) => ({
@@ -673,7 +678,6 @@ export default function AuthPage({
                           }))
                         }
                         required
-                        placeholder="••••••••"
                       />
                       <button
                         type="button"
@@ -682,6 +686,33 @@ export default function AuthPage({
                       >
                         {showLoginPwd ? "Ocultar" : "Mostrar"}
                       </button>
+                    </div>
+
+                    <div className="mb-6 rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+                      <SolidCheckbox
+                        label="Manter sessão neste dispositivo"
+                        checked={loginForm.rememberDevice || false}
+                        onChange={(e) =>
+                          setLoginForm((prev) => ({
+                            ...prev,
+                            rememberDevice: e.target.checked,
+                          }))
+                        }
+                      />
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-700">
+                          Em computador compartilhado, deixe essa opção
+                          desmarcada.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handlePasswordReset}
+                          disabled={isSubmitting}
+                          className="text-xs font-black uppercase tracking-wider text-slate-900 underline underline-offset-4 hover:text-teal-600 disabled:opacity-50"
+                        >
+                          Esqueci minha senha
+                        </button>
+                      </div>
                     </div>
 
                     <SolidButton
@@ -708,6 +739,7 @@ export default function AuthPage({
                     <SolidInput
                       icon={User}
                       label="Nome Completo *"
+                      autoComplete="name"
                       value={registerForm.nome}
                       onChange={(e) =>
                         setRegisterForm((prev) => ({
@@ -721,7 +753,10 @@ export default function AuthPage({
                       icon={Mail}
                       label="E-mail de Contato *"
                       type="email"
-                      placeholder="seu.nome@escola.ba.gov.br"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={registerForm.email}
                       onChange={(e) =>
                         setRegisterForm((prev) => ({
@@ -802,8 +837,8 @@ export default function AuthPage({
                           icon={Lock}
                           label="Crie uma Senha *"
                           type={showRegPwd ? "text" : "password"}
-                          minLength={6}
-                          placeholder="Mínimo 6"
+                          autoComplete="new-password"
+                          minLength={PASSWORD_MIN_LENGTH}
                           value={registerForm.senha}
                           onChange={(e) =>
                             setRegisterForm((prev) => ({
@@ -819,6 +854,7 @@ export default function AuthPage({
                           icon={ShieldCheck}
                           label="Confirme *"
                           type={showRegConfPwd ? "text" : "password"}
+                          autoComplete="new-password"
                           value={registerForm.confirmarSenha}
                           onChange={(e) =>
                             setRegisterForm((prev) => ({
@@ -829,6 +865,46 @@ export default function AuthPage({
                           required
                         />
                       </div>
+                    </div>
+
+                    <div className="mb-6 mt-3 rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                          Segurança da senha
+                        </span>
+                        <span
+                          className={`rounded-full border-2 border-slate-900 px-3 py-1 text-xs font-black uppercase ${
+                            passwordStrength.tone === "emerald"
+                              ? "bg-emerald-300"
+                              : passwordStrength.tone === "amber"
+                                ? "bg-yellow-300"
+                                : "bg-rose-300"
+                          }`}
+                        >
+                          {passwordStrength.label}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {passwordChecks.map((check) => (
+                          <div
+                            key={check.id}
+                            className="flex items-center gap-3 text-sm font-bold text-slate-800"
+                          >
+                            <span
+                              className={`flex h-6 w-6 items-center justify-center rounded-md border-2 border-slate-900 text-xs font-black ${
+                                check.passed ? "bg-emerald-300" : "bg-slate-100"
+                              }`}
+                            >
+                              {check.passed ? "OK" : "--"}
+                            </span>
+                            <span>{check.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs font-bold text-slate-700">
+                        Prefira uma frase longa e única. Sem reutilizar senha de
+                        outro serviço.
+                      </p>
                     </div>
 
                     {/* Dados Acadêmicos Adicionais */}

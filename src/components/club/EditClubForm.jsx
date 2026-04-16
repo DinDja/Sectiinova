@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Building2, Camera, ImagePlus, UploadCloud, Users, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Building2, Camera, FileText, ImagePlus, UploadCloud, Users, X, Check } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 import { db } from '../../../firebase';
@@ -270,7 +271,7 @@ export default function EditClubForm({
         }
 
         if (!isLocalhost && clubistasIds.length < 10) {
-            setError('O clube precisa de no minimo 10 clubistas.');
+            setError('O clube precisa de no mínimo 10 clubistas.');
             return;
         }
 
@@ -292,217 +293,264 @@ export default function EditClubForm({
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[120] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-2xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+    const inputClasses = "w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-3 text-sm font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all placeholder:text-slate-400";
+    const labelClasses = "text-xs font-black uppercase tracking-widest text-slate-900 mb-2 block";
+    const sectionTitleClasses = "text-xl font-black text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3";
+
+    const modalContent = (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+            {/* INJEÇÃO DE CSS DA SCROLLBAR */}
+            <style>{`
+                .neo-scrollbar::-webkit-scrollbar { width: 8px; }
+                .neo-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
+            `}</style>
+
+            <div className="w-full max-w-5xl max-h-[95vh] flex flex-col rounded-3xl bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200">
+                
+                {/* HEADER NEO-BRUTALISTA */}
+                <div className="flex items-center justify-between px-8 py-6 border-b-4 border-slate-900 bg-blue-300">
                     <div>
-                        <h2 className="text-xl font-black text-slate-900">Editar Clube</h2>
-                        <p className="text-sm text-slate-600 mt-1">
+                        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                            <Building2 className="w-8 h-8 stroke-[3]" /> Editar Clube
+                        </h2>
+                        <p className="text-sm font-bold text-slate-900 mt-2 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transform -rotate-1">
                             Atualize nome, identidade visual e equipe de clubistas.
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-colors flex items-center justify-center"
-                        aria-label="Fechar formulario de edicao do clube"
+                        className="w-12 h-12 rounded-xl bg-white border-2 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#0f172a] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center shrink-0"
+                        aria-label="Fechar formulário de edição do clube"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-6 h-6 stroke-[3]" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="max-h-[calc(92vh-80px)] overflow-y-auto p-6 space-y-6">
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className="flex flex-col gap-2">
-                            <span className="text-sm font-bold text-slate-700">Nome do clube</span>
-                            <input
-                                type="text"
-                                value={form.nome}
-                                onChange={(event) => updateField('nome', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
-                                maxLength={140}
-                                required
-                            />
-                        </label>
+                <div className="flex-1 overflow-y-auto neo-scrollbar p-8">
+                    <form id="edit-club-form" onSubmit={handleSubmit} className="space-y-10">
+                        
+                        {/* INFORMAÇÕES BÁSICAS */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-cyan-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <h3 className={sectionTitleClasses}>
+                                <FileText className="w-7 h-7 stroke-[3]" /> Informações Básicas
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className={labelClasses}>Nome do clube *</label>
+                                    <input
+                                        type="text"
+                                        value={form.nome}
+                                        onChange={(event) => updateField('nome', event.target.value)}
+                                        className={inputClasses}
+                                        maxLength={140}
+                                        required
+                                    />
+                                </div>
 
-                        <label className="flex flex-col gap-2">
-                            <span className="text-sm font-bold text-slate-700">Periodicidade minima dos encontros</span>
-                            <input
-                                type="text"
-                                value={form.periodicidade}
-                                onChange={(event) => updateField('periodicidade', event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none"
-                                maxLength={60}
-                            />
-                        </label>
-                    </section>
+                                <div>
+                                    <label className={labelClasses}>Periodicidade mínima dos encontros</label>
+                                    <input
+                                        type="text"
+                                        value={form.periodicidade}
+                                        onChange={(event) => updateField('periodicidade', event.target.value)}
+                                        className={inputClasses}
+                                        maxLength={60}
+                                    />
+                                </div>
+                            </div>
 
-                    <label className="flex flex-col gap-2">
-                        <span className="text-sm font-bold text-slate-700">Unidade escolar</span>
-                        <input
-                            type="text"
-                            value={selectedSchool?.nome || viewingClub?.escola_nome || 'Nao informada'}
-                            readOnly
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600"
-                        />
-                    </label>
+                            <div className="mb-6">
+                                <label className={labelClasses}>Unidade escolar *</label>
+                                <input
+                                    type="text"
+                                    value={selectedSchool?.nome || viewingClub?.escola_nome || 'Não informada'}
+                                    readOnly
+                                    className="w-full rounded-xl border-2 border-slate-900 bg-slate-200 px-4 py-3 text-sm font-bold text-slate-500 cursor-not-allowed"
+                                />
+                            </div>
 
-                    <label className="flex flex-col gap-2">
-                        <span className="text-sm font-bold text-slate-700">Descricao do clube</span>
-                        <textarea
-                            value={form.descricao}
-                            onChange={(event) => updateField('descricao', event.target.value)}
-                            rows={4}
-                            placeholder="Descreva a proposta e objetivo do clube."
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none resize-none"
-                        />
-                    </label>
+                            <div>
+                                <label className={labelClasses}>Descrição do clube *</label>
+                                <textarea
+                                    value={form.descricao}
+                                    onChange={(event) => updateField('descricao', event.target.value)}
+                                    rows={4}
+                                    className={`${inputClasses} resize-none`}
+                                    required
+                                />
+                            </div>
+                        </section>
 
-                    <section className="rounded-2xl border border-slate-200 p-4 bg-white">
-                        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-4">
-                            <ImagePlus className="w-4 h-4 text-[#10B981]" />
-                            Identidade visual do clube
-                        </h3>
+                        {/* IDENTIDADE VISUAL */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-pink-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <h3 className={sectionTitleClasses}>
+                                <ImagePlus className="w-7 h-7 stroke-[3]" /> Identidade Visual
+                            </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Banner do Header</p>
-                                <div className="aspect-[16/7] rounded-xl overflow-hidden border border-slate-200 bg-slate-100 mb-3">
-                                    {bannerPreview ? (
-                                        <img src={bannerPreview} alt="Preview do banner" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-r from-[#10B981]/20 via-slate-200 to-[#FF5722]/20" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Banner */}
+                                <div className="rounded-2xl border-4 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col">
+                                    <p className={labelClasses}>Banner do Header</p>
+                                    <div className="aspect-[16/7] rounded-xl overflow-hidden border-2 border-slate-900 bg-slate-100 mb-4 shadow-[2px_2px_0px_0px_#0f172a]">
+                                        {bannerPreview ? (
+                                            <img src={bannerPreview} alt="Preview do banner" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-slate-200" />
+                                        )}
+                                    </div>
+
+                                    <label className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 border-2 border-slate-900 text-xs font-black text-slate-900 uppercase tracking-widest cursor-pointer hover:-translate-y-1 hover:shadow-[2px_2px_0px_0px_#0f172a] transition-all">
+                                        <UploadCloud className="w-5 h-5 stroke-[3]" />
+                                        <span>{bannerFile ? 'Trocar banner' : 'Selecionar banner'}</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                                            onChange={(event) => void handleBannerChange(event.target.files?.[0] || null)}
+                                        />
+                                    </label>
+                                    {bannerFile && (
+                                        <p className="text-[10px] font-bold text-slate-600 mt-3 truncate bg-slate-100 p-2 border border-slate-900 rounded-lg">
+                                            {bannerFile.name}
+                                        </p>
+                                    )}
+                                    {bannerWarning && (
+                                        <p className="text-[10px] font-bold text-slate-900 bg-yellow-300 p-2 border-2 border-slate-900 rounded-lg mt-3 transform -rotate-1 shadow-[2px_2px_0px_0px_#0f172a]">
+                                            ! {bannerWarning}
+                                        </p>
                                     )}
                                 </div>
 
-                                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <UploadCloud className="w-4 h-4 text-[#10B981]" />
-                                    <span>{bannerFile ? 'Trocar banner' : 'Selecionar banner'}</span>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/png,image/jpeg,image/jpg,image/webp"
-                                        onChange={(event) => void handleBannerChange(event.target.files?.[0] || null)}
-                                    />
-                                </label>
-                                {bannerFile && (
-                                    <p className="text-xs text-emerald-700 mt-2 font-medium">{bannerFile.name}</p>
-                                )}
-                                {bannerWarning && (
-                                    <p className="text-xs text-amber-700 mt-2">{bannerWarning}</p>
-                                )}
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Logo do Clube</p>
-                                <div className="h-[170px] rounded-xl border border-slate-200 bg-slate-100 mb-3 flex items-center justify-center">
-                                    <div className="w-28 h-28 rounded-3xl overflow-hidden border-4 border-white shadow-lg bg-white flex items-center justify-center">
-                                        {logoPreview ? (
-                                            <img src={logoPreview} alt="Preview da logo" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-2xl font-black text-slate-600">{getInitials(viewingClub?.nome)}</span>
-                                        )}
+                                {/* Logo */}
+                                <div className="rounded-2xl border-4 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col">
+                                    <p className={labelClasses}>Logo do Clube</p>
+                                    <div className="h-[170px] rounded-xl border-2 border-slate-900 bg-slate-100 mb-4 shadow-[2px_2px_0px_0px_#0f172a] flex items-center justify-center">
+                                        <div className="w-28 h-28 rounded-3xl overflow-hidden border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] bg-white flex items-center justify-center">
+                                            {logoPreview ? (
+                                                <img src={logoPreview} alt="Preview da logo" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-3xl font-black text-slate-600">{getInitials(viewingClub?.nome)}</span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <Camera className="w-4 h-4 text-[#10B981]" />
-                                    <span>{logoFile ? 'Trocar logo' : 'Selecionar logo'}</span>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/png,image/jpeg,image/jpg,image/webp"
-                                        onChange={(event) => void handleLogoChange(event.target.files?.[0] || null)}
-                                    />
-                                </label>
-                                {logoFile && (
-                                    <p className="text-xs text-emerald-700 mt-2 font-medium">{logoFile.name}</p>
+                                    <label className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 border-2 border-slate-900 text-xs font-black text-slate-900 uppercase tracking-widest cursor-pointer hover:-translate-y-1 hover:shadow-[2px_2px_0px_0px_#0f172a] transition-all">
+                                        <Camera className="w-5 h-5 stroke-[3]" />
+                                        <span>{logoFile ? 'Trocar logo' : 'Selecionar logo'}</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                                            onChange={(event) => void handleLogoChange(event.target.files?.[0] || null)}
+                                        />
+                                    </label>
+                                    {logoFile && (
+                                        <p className="text-[10px] font-bold text-slate-600 mt-3 truncate bg-slate-100 p-2 border border-slate-900 rounded-lg">
+                                            {logoFile.name}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* LISTA DE CLUBISTAS */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-yellow-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                                <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
+                                    <Users className="w-7 h-7 stroke-[3]" />
+                                    {isLocalhost ? 'Clubistas' : 'Clubistas (Mínimo 10)'}
+                                </h3>
+                                <span className={`text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] ${isLocalhost ? 'bg-white text-slate-900' : selectedClubistas.length >= 10 ? 'bg-teal-400 text-slate-900' : 'bg-red-400 text-white'}`}>
+                                    {isLocalhost ? `${selectedClubistas.length} selecionados` : `${selectedClubistas.length} de 10 obrigatórios`}
+                                </span>
+                            </div>
+
+                            <input
+                                type="text"
+                                value={membersSearch}
+                                onChange={(event) => setMembersSearch(event.target.value)}
+                                placeholder="FILTRAR CLUBISTAS DA UNIDADE..."
+                                className="w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-4 text-sm font-black text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all uppercase placeholder:text-slate-400 mb-6"
+                            />
+
+                            <div className="max-h-60 overflow-y-auto neo-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pr-2">
+                                {isRefreshingClubistas && (
+                                    <p className="text-sm font-black text-slate-800 md:col-span-2 bg-white/50 p-4 rounded-xl border-2 border-slate-900">
+                                        ATUALIZANDO BASE DE DADOS DE ESTUDANTES...
+                                    </p>
+                                )}
+
+                                {availableClubistas.length === 0 && !isRefreshingClubistas ? (
+                                    <p className="text-sm font-bold text-slate-800 md:col-span-2 bg-white/50 p-4 rounded-xl border-2 border-slate-900 border-dashed">
+                                        Nenhum estudante elegível encontrado.
+                                    </p>
+                                ) : (
+                                    availableClubistas.map((clubista) => {
+                                        const isSelected = selectedClubistasSet.has(String(clubista.id));
+                                        return (
+                                            <label
+                                                key={clubista.id}
+                                                className={`flex items-center gap-4 rounded-2xl border-2 border-slate-900 px-4 py-3 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a] ${
+                                                    isSelected ? 'bg-teal-400 shadow-[4px_4px_0px_0px_#0f172a]' : 'bg-white shadow-[2px_2px_0px_0px_#0f172a]'
+                                                }`}
+                                            >
+                                                <div className="relative w-8 h-8 shrink-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleClubista(clubista.id)}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`absolute inset-0 rounded-lg border-2 border-slate-900 flex items-center justify-center transition-colors ${isSelected ? 'bg-slate-900' : 'bg-white'}`}>
+                                                        {isSelected && <Check className="w-5 h-5 text-teal-400 stroke-[3]" />}
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="block text-sm font-black text-slate-900 uppercase truncate">{clubista.nome}</span>
+                                                    <span className="block text-[10px] font-bold text-slate-700 truncate">{clubista.email || clubista.matricula || 'SEM CONTATO'}</span>
+                                                </div>
+                                            </label>
+                                        );
+                                    })
                                 )}
                             </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <section className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-[#FF5722]" />
-                                {isLocalhost ? 'Clubistas (sem minimo no localhost)' : 'Clubistas (minimo 10)'}
-                            </h3>
-                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${isLocalhost ? 'bg-sky-100 text-sky-700' : selectedClubistas.length >= 10 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {isLocalhost ? `${selectedClubistas.length} selecionados` : `${selectedClubistas.length}/10`}
-                            </span>
-                        </div>
+                        {error && (
+                            <div className="rounded-2xl border-4 border-slate-900 bg-red-400 px-6 py-4 text-sm font-black text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] uppercase flex items-center gap-3">
+                                <span className="text-2xl">!</span> {error}
+                            </div>
+                        )}
+                    </form>
+                </div>
 
-                        <input
-                            type="text"
-                            value={membersSearch}
-                            onChange={(event) => setMembersSearch(event.target.value)}
-                            placeholder="Filtrar clubistas por nome, e-mail ou matricula"
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] outline-none mb-3 bg-white"
-                        />
+                {/* FOOTER (BOTÕES DE AÇÃO) */}
+                <div className="px-8 py-6 border-t-4 border-slate-900 bg-slate-100 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-4 shrink-0">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all"
+                    >
+                        Cancelar
+                    </button>
 
-                        <div className="max-h-52 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2 pr-1">
-                            {isRefreshingClubistas && (
-                                <p className="text-xs text-slate-500 md:col-span-2">
-                                    Atualizando lista de estudantes da unidade...
-                                </p>
-                            )}
-
-                            {availableClubistas.length === 0 ? (
-                                <p className="text-sm text-slate-500 md:col-span-2">
-                                    Nenhum estudante elegivel encontrado para a unidade selecionada.
-                                </p>
-                            ) : (
-                                availableClubistas.map((clubista) => (
-                                    <label
-                                        key={clubista.id}
-                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-[#10B981]/40 transition-colors"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedClubistasSet.has(String(clubista.id || '').trim())}
-                                            onChange={() => toggleClubista(clubista.id)}
-                                            className="accent-[#10B981]"
-                                        />
-                                        <span className="text-sm text-slate-700">
-                                            <strong className="font-semibold text-slate-900">{clubista.nome}</strong>
-                                            <span className="block text-xs text-slate-500">{clubista.email || clubista.matricula || 'Sem contato'}</span>
-                                        </span>
-                                    </label>
-                                ))
-                            )}
-                        </div>
-                    </section>
-
-                    {error && (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-100 transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                            Cancelar
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#10B981]/25 transition-all"
-                        >
-                            <Building2 className="w-4 h-4" />
-                            {isSubmitting ? 'Salvando alteracoes...' : 'Salvar alteracoes'}
-                        </button>
-                    </div>
-                </form>
+                    <button
+                        type="submit"
+                        form="edit-club-form"
+                        disabled={isSubmitting}
+                        className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl border-2 border-slate-900 bg-teal-400 text-slate-900 font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                        <Building2 className="w-5 h-5 stroke-[3]" />
+                        {isSubmitting ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                    </button>
+                </div>
             </div>
         </div>
     );
-}
 
+    if (typeof document === 'undefined') return modalContent;
+    return createPortal(modalContent, document.body);
+}

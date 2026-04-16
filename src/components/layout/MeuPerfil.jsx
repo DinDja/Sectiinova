@@ -5,7 +5,26 @@ import {
     MapPin, Calendar, Award, Star, TrendingUp, Briefcase, 
     Globe, Users, Heart, BookOpen, Link as LinkIcon, LoaderCircle, RefreshCw
 } from 'lucide-react';
-import { fetchLattesPreviewByLink } from '../../services/lattesService';
+
+// --- MOCKS E STUBS DE DEPENDÊNCIAS EXTERNAS ---
+// Simulação da função do serviço Lattes para evitar erros de importação no preview.
+const fetchLattesPreviewByLink = async (link) => {
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Delay simulado
+    if (!link.includes('lattes.cnpq.br/')) {
+        return { success: false, message: 'Link do Lattes inválido. Certifique-se que contém lattes.cnpq.br/' };
+    }
+    return {
+        success: true,
+        data: {
+            id_lattes: link.match(/(\d{16})/) ? link.match(/(\d{16})/)[1] : '0000000000000000',
+            nome: 'Pesquisador Exemplo (Mock)',
+            resumo: 'Este é um resumo gerado automaticamente pela simulação de importação do currículo Lattes para fins de teste de interface.',
+            areas_atuacao: ['Ciência da Computação', 'Engenharia de Software', 'Educação Tecnológica'],
+            formacao_academica: ['Doutorado em Ciências Exatas', 'Mestrado em Informática'],
+            ultima_atualizacao: new Date().toLocaleDateString('pt-BR')
+        }
+    };
+};
 
 export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfile, onClose }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -101,24 +120,23 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
 
     if (!loggedUser) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 rounded-3xl bg-gradient-to-br from-slate-50 to-white shadow-xl text-center">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center mb-4 shadow-inner">
-                    <User className="w-12 h-12 text-slate-400" />
+            <div className="flex flex-col items-center justify-center p-12 rounded-3xl border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a] text-center max-w-md mx-auto mt-20">
+                <div className="w-24 h-24 rounded-2xl bg-yellow-300 border-4 border-slate-900 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-3">
+                    <User className="w-12 h-12 text-slate-900 stroke-[3]" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-700">Nenhum usuÃ¡rio conectado</h3>
-                <p className="text-sm text-slate-500 mt-2">FaÃ§a login para visualizar seu perfil</p>
+                <h3 className="text-2xl font-black text-slate-900 uppercase">Nenhum utilizador conectado</h3>
+                <p className="text-sm font-bold text-slate-600 mt-2">Faça login para visualizar o seu perfil oficial.</p>
             </div>
         );
     }
 
     if (!formData) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 rounded-3xl bg-gradient-to-br from-slate-50 to-white shadow-xl text-center">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center mb-4 shadow-inner">
-                    <User className="w-12 h-12 text-slate-400 animate-spin" />
+            <div className="flex flex-col items-center justify-center p-12 rounded-3xl border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a] text-center max-w-md mx-auto mt-20">
+                <div className="w-24 h-24 rounded-2xl bg-teal-400 border-4 border-slate-900 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#0f172a] animate-spin">
+                    <RefreshCw className="w-10 h-10 text-slate-900 stroke-[3]" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-700">Carregando perfil...</h3>
-                <p className="text-sm text-slate-500 mt-2">Aguarde um momento</p>
+                <h3 className="text-2xl font-black text-slate-900 uppercase">A Carregar Perfil...</h3>
             </div>
         );
     }
@@ -140,7 +158,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     const compressImageFile = (file, maxDimension = 600, quality = 0.7) => {
         return new Promise((resolve, reject) => {
             if (!file || !file.type.startsWith('image/')) {
-                reject(new Error('Arquivo invÃ¡lido, deve ser uma imagem.'));
+                reject(new Error('Arquivo inválido, deve ser uma imagem.'));
                 return;
             }
 
@@ -166,7 +184,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
                     resolve(compressedDataUrl);
                 };
-                img.onerror = () => reject(new Error('Falha ao carregar imagem para compressÃ£o.'));
+                img.onerror = () => reject(new Error('Falha ao carregar imagem para compressão.'));
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
@@ -232,12 +250,12 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 }
                 setLattesFetchError(
                     result?.message
-                    || 'Nao foi possivel extrair os campos do Lattes para esse link.'
+                    || 'Não foi possível extrair os campos do Lattes para esse link.'
                 );
                 return;
             }
 
-            setLattesImportInfo('Dados do Lattes carregados. Selecione os campos e aplique no formulario.');
+            setLattesImportInfo('Dados do Lattes carregados. Selecione os campos e aplique no formulário.');
         } catch (error) {
             console.error('Erro ao buscar dados do Lattes:', error);
             setLattesFetchError(error?.message || 'Falha ao buscar dados do Lattes.');
@@ -278,7 +296,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         );
 
         if (!hasAnyManualData) {
-            setLattesFetchError('Preencha ao menos um campo manual para montar a pre-visualizacao.');
+            setLattesFetchError('Preencha ao menos um campo manual para montar a pré-visualização.');
             setLattesImportInfo('');
             return;
         }
@@ -286,7 +304,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         setLattesPreview(manualData);
         setLattesImportSelection(buildDefaultLattesSelection(manualData));
         setLattesFetchError('');
-        setLattesImportInfo('Pre-visualizacao manual criada. Selecione os campos e aplique no formulario.');
+        setLattesImportInfo('Pré-visualização manual criada. Selecione os campos e aplique no formulário.');
     };
 
     const handleApplySelectedLattesFields = () => {
@@ -353,7 +371,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         });
 
         setLattesFetchError('');
-        setLattesImportInfo('Campos selecionados aplicados. Clique em Salvar Alteracoes para persistir no perfil.');
+        setLattesImportInfo('Campos selecionados aplicados. Clique em Salvar Alterações para persistir no perfil.');
     };
 
     const handleCancelEdit = () => {
@@ -388,44 +406,60 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     const projetosCount = loggedUser?.projetosCount || 0;
 
     return (
-        <div className="w-full max-w-4xl mx-auto">
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 ">
+            <style>{`
+                .neo-scrollbar::-webkit-scrollbar { width: 8px; }
+                .neo-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
+            `}</style>
+            
+            <div className="w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
                 
-                <div className="relative h-36 bg-gradient-to-r from-[#0B3B5F] via-[#1B4F72] to-[#2E86C1] overflow-hidden">
-                    <svg className="absolute bottom-0 left-0 w-full h-16" preserveAspectRatio="none" viewBox="0 0 1440 120">
-                        <path fill="white" fillOpacity="1" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z"></path>
-                    </svg>
+                {/* HEADER NEO-BRUTALISTA */}
+                <div className="relative z-0 h-36 bg-blue-400 border-b-4 border-slate-900 overflow-hidden flex-shrink-0">
+                    <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-20"></div>
                     
-                    <div className="absolute top-4 left-4 flex gap-2">
+                    <div className="absolute top-4 left-4 flex gap-3 z-10">
                         <button 
                             onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
-                            className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-white transition-all duration-300 hover:scale-105"
-                            title={isEditing ? "Cancelar ediÃ§Ã£o" : "Editar Perfil"}
+                            className="p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[2px_2px_0px_0px_#0f172a] hover:translate-y-0.5 hover:translate-x-0.5 rounded-xl text-slate-900 font-black uppercase tracking-widest text-xs flex items-center gap-2 transition-all"
+                            title={isEditing ? "Cancelar edição" : "Editar Perfil"}
                         >
-                            {isEditing ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                            {isEditing ? <X className="w-4 h-4 stroke-[3]" /> : <Edit2 className="w-4 h-4 stroke-[3]" />}
+                            {isEditing ? 'Cancelar' : 'Editar'}
                         </button>
                         
                         {onLogout && (
                             <button 
                                 onClick={onLogout}
-                                className="p-2 bg-red-500/80 hover:bg-red-500 backdrop-blur-md rounded-xl text-white transition-all duration-300 hover:scale-105"
+                                className="p-3 bg-red-400 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[2px_2px_0px_0px_#0f172a] hover:translate-y-0.5 hover:translate-x-0.5 rounded-xl text-slate-900 font-black uppercase tracking-widest text-xs flex items-center gap-2 transition-all"
                                 title="Sair"
                             >
-                                <LogOut className="w-4 h-4" />
+                                <LogOut className="w-4 h-4 stroke-[3]" /> Sair
                             </button>
                         )}
                     </div>
+                    {onClose && (
+                        <button 
+                            onClick={onClose}
+                            className="absolute top-4 right-4 p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[2px_2px_0px_0px_#0f172a] hover:translate-y-0.5 hover:translate-x-0.5 rounded-xl text-slate-900 transition-all z-10"
+                        >
+                            <X className="w-5 h-5 stroke-[3]" />
+                        </button>
+                    )}
                 </div>
 
-                <div className="px-6 sm:px-8 pb-8 relative">
-                    <div className="relative flex flex-col items-center -mt-16 mb-6">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#0B3B5F] to-[#2E86C1] rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shadow-xl">
+                {/* CORPO DO MODAL */}
+                <div className="flex-1  neo-scrollbar px-6 sm:px-10 pb-10 relative z-10">
+                    
+                    {/* INFO PRINCIPAL DO UTILIZADOR */}
+                    <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8 isolate">
+                        <div className="relative group z-50">
+                            <div className="relative z-20 w-32 h-32 rounded-3xl border-4 border-slate-900 bg-yellow-300 flex items-center justify-center overflow-hidden shadow-[6px_6px_0px_0px_#0f172a] transform rotate-2">
                                 {avatarSrc ? (
-                                    <img src={avatarSrc} alt={loggedUser.nome} className="w-full h-full object-cover" />
+                                    <img src={avatarSrc} alt={loggedUser.nome} className="relative z-10 w-full h-full object-cover transform -rotate-2" />
                                 ) : (
-                                    <span className="text-3xl font-bold text-[#0B3B5F]">
+                                    <span className="text-5xl font-black text-slate-900 transform -rotate-2">
                                         {getInitials(loggedUser.nome)}
                                     </span>
                                 )}
@@ -438,13 +472,15 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                     onChange={handlePhotoUpload}
                                 />
 
-                                <label htmlFor="profileImageInput" className="absolute inset-0 bg-gradient-to-br from-[#0B3B5F]/70 to-[#2E86C1]/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
-                                    {uploadingAvatar ? (
-                                        <div className="w-5 h-5 rounded-full animate-spin"></div>
-                                    ) : (
-                                        <Camera className="w-6 h-6 text-white" />
-                                    )}
-                                </label>
+                                {isEditing && (
+                                    <label htmlFor="profileImageInput" className="absolute inset-0 z-50 rounded-3xl bg-slate-900/60 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {uploadingAvatar ? (
+                                            <LoaderCircle className="w-8 h-8 text-white animate-spin stroke-[3]" />
+                                        ) : (
+                                            <Camera className="w-8 h-8 text-white stroke-[3]" />
+                                        )}
+                                    </label>
+                                )}
                             </div>
                         </div>
 
@@ -452,355 +488,314 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                             <button
                                 type="button"
                                 onClick={handleSavePhoto}
-                                className="mt-2 text-xs font-medium text-white bg-[#0B3B5F] hover:bg-[#1B4F72] rounded-full px-3 py-1 transition-all"
+                                className="mt-4 text-xs font-black uppercase tracking-widest text-slate-900 bg-teal-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] rounded-lg px-4 py-2 transition-all hover:translate-y-0.5 hover:shadow-none"
                             >
                                 Salvar foto
                             </button>
                         )}
 
-                        <h1 className="mt-3 text-2xl font-bold text-slate-800">
-                            {loggedUser.nome || 'UsuÃ¡rio'}
+                        <h1 className="mt-6 text-3xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter text-center leading-none">
+                            {loggedUser.nome || 'Usuário'}
                         </h1>
                         
-                        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1">
-                            <div className="flex items-center gap-1 text-slate-500 text-sm">
-                                <Mail className="w-3.5 h-3.5" />
-                                <span>{loggedUser.email || 'Sem e-mail'}</span>
-                            </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                            <span className="inline-flex items-center gap-2 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-xs font-black text-slate-900 uppercase">
+                                <Mail className="w-4 h-4 stroke-[3]" /> {loggedUser.email || 'Sem e-mail'}
+                            </span>
                             {formData && formData.telefone && (
-                                <div className="flex items-center gap-1 text-slate-500 text-sm">
-                                    <Phone className="w-3.5 h-3.5" />
-                                    <span>{formData.telefone}</span>
-                                </div>
+                                <span className="inline-flex items-center gap-2 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-xs font-black text-slate-900 uppercase">
+                                    <Phone className="w-4 h-4 stroke-[3]" /> {formData.telefone}
+                                </span>
                             )}
                         </div>
 
                         {formData && formData.bio && !isEditing && (
-                            <p className="mt-3 text-slate-600 text-sm text-center max-w-md italic px-4">
+                            <p className="mt-6 text-slate-800 font-bold text-center max-w-lg bg-white border-2 border-slate-900 p-4 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-1 text-sm leading-relaxed">
                                 "{formData.bio}"
                             </p>
                         )}
                     </div>
 
-                    {/* Card do Clube - agora com largura total e fonte menor */}
-                    <div className="flex justify-center mb-8">
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white shadow-sm text-center w-full">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2">
-                                <School className="w-5 h-5 text-white" />
-                            </div>
-                            <p className="text-lg font-bold text-slate-800 break-words">
-                                {myClub?.nome || 'NÃ£o informado'}
-                            </p>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Clube de CiÃªncias</p>
-                        </div>
-                    </div>
-
+                    {/* MODO VISUALIZAÇÃO */}
                     {!isEditing ? (
-                        <div className="space-y-4 animate-in fade-in duration-500">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <InfoCard 
-                                    icon={TrendingUp} 
-                                    label="Projetos" 
-                                    value={projetosCount} 
-                                    color="text-blue-600"
-                                />
-                                <InfoCard 
-                                    icon={Shield} 
-                                    label="Perfil" 
-                                    value={loggedUser.perfil || 'Membro'} 
-                                    color="text-purple-600"
-                                />
-                                <InfoCard 
-                                    icon={LinkIcon} 
-                                    label="Lattes" 
-                                    value={formData && formData.lattesLink ? (
+                        <div className="space-y-6 animate-in fade-in duration-500">
+                            
+                            {/* Card do Clube */}
+                            <div className="flex justify-center mb-8">
+                                <div className="p-6 rounded-2xl bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] text-center w-full transform -rotate-1 hover:rotate-0 transition-transform">
+                                    <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform -rotate-3">
+                                        <School className="w-6 h-6 stroke-[3] text-slate-900" />
+                                    </div>
+                                    <p className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-tight break-words">
+                                        {myClub?.nome || 'Não vinculado a um clube'}
+                                    </p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-900 mt-3 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">Clube de Ciências</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                                    <TrendingUp className="w-8 h-8 mb-3 stroke-[2.5] text-blue-500" />
+                                    <span className="text-4xl font-black text-slate-900">{projetosCount}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Projetos</span>
+                                </div>
+                                
+                                <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                                    <Shield className="w-8 h-8 mb-3 stroke-[2.5] text-purple-500" />
+                                    <span className="text-lg font-black text-slate-900 uppercase mt-auto leading-tight">{loggedUser.perfil || 'Membro'}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Perfil</span>
+                                </div>
+                                
+                                <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
+                                    <LinkIcon className="w-8 h-8 mb-3 stroke-[2.5] text-orange-500" />
+                                    {formData && formData.lattesLink ? (
                                         <a 
                                             href={formData.lattesLink.startsWith('http') ? formData.lattesLink : `https://${formData.lattesLink}`} 
                                             target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline truncate block"
+                                            rel="noopener noreferrer" 
+                                            className="text-sm font-black text-slate-900 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all uppercase mt-auto truncate w-full"
                                         >
-                                            {formData.lattesLink.length > 30 ? formData.lattesLink.substring(0, 30) + '...' : formData.lattesLink}
+                                            Acessar
                                         </a>
-                                    ) : 'NÃ£o informado'} 
-                                    color="text-emerald-600"
-                                    isLink={formData && !!formData.lattesLink}
-                                />
-                                <InfoCard 
-                                    icon={Phone} 
-                                    label="Telefone" 
-                                    value={formData ? (formData.telefone || 'NÃ£o informado') : 'NÃ£o informado'} 
-                                    color="text-blue-600"
-                                />
-                            </div>                          
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputGroup 
-                                    label="Nome Completo" 
-                                    value={formData?.nome || ''} 
-                                    onChange={(e) => handleInputChange('nome', e.target.value)}
-                                    icon={User}
-                                    placeholder="Seu nome completo"
-                                    required
-                                />
-                                <InputGroup 
-                                    label="E-mail" 
-                                    type="email"
-                                    value={formData?.email || ''} 
-                                    onChange={(e) => handleInputChange('email', e.target.value)}
-                                    icon={Mail}
-                                    disabled
-                                />
-                                <InputGroup 
-                                    label="Telefone" 
-                                    type="tel"
-                                    value={formData?.telefone || ''} 
-                                    onChange={(e) => handleInputChange('telefone', formatPhone(e.target.value))}
-                                    icon={Phone}
-                                    placeholder="(00) 00000-0000"
-                                    maxLength={15}
-                                />
-                                <InputGroup 
-                                    label="Link do Lattes" 
-                                    value={formData?.lattesLink || ''} 
-                                    onChange={(e) => handleInputChange('lattesLink', e.target.value)}
-                                    icon={LinkIcon}
-                                    placeholder="https://lattes.cnpq.br/..."
-                                />
-                                <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-700">
-                                                Importar dados do Lattes
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                Busque pelo link informado e escolha os campos que deseja aplicar.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleFetchLattesData}
-                                            disabled={isFetchingLattes}
-                                            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            {isFetchingLattes ? (
-                                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                                            ) : (
-                                                <RefreshCw className="h-3.5 w-3.5" />
-                                            )}
-                                            Buscar dados
-                                        </button>
-                                    </div>
-
-                                    {lattesFetchError && (
-                                        <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">
-                                            {lattesFetchError}
-                                        </p>
+                                    ) : (
+                                        <span className="text-sm font-black text-slate-400 uppercase mt-auto border-2 border-dashed border-slate-300 px-3 py-1">Nenhum</span>
                                     )}
-
-                                    {lattesImportInfo && (
-                                        <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
-                                            {lattesImportInfo}
-                                        </p>
-                                    )}
-
-                                    <div className="mt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowManualLattesForm((prev) => !prev)}
-                                            className="text-xs font-medium text-[#0B3B5F] hover:text-[#1B4F72] underline underline-offset-2"
-                                        >
-                                            {showManualLattesForm ? 'Ocultar preenchimento manual' : 'Preencher dados manualmente'}
-                                        </button>
-                                    </div>
-
-                                    {showManualLattesForm && (
-                                        <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                                            <input
-                                                type="text"
-                                                value={manualLattesDraft.nome}
-                                                onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, nome: e.target.value }))}
-                                                placeholder="Nome do pesquisador"
-                                                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#0B3B5F]"
-                                            />
-                                            <textarea
-                                                value={manualLattesDraft.resumo}
-                                                onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, resumo: e.target.value }))}
-                                                placeholder="Resumo do curriculo"
-                                                rows={3}
-                                                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#0B3B5F] resize-y"
-                                            />
-                                            <textarea
-                                                value={manualLattesDraft.areas}
-                                                onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, areas: e.target.value }))}
-                                                placeholder="Areas de atuacao (uma por linha)"
-                                                rows={3}
-                                                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#0B3B5F] resize-y"
-                                            />
-                                            <textarea
-                                                value={manualLattesDraft.formacao}
-                                                onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, formacao: e.target.value }))}
-                                                placeholder="Formacao academica (uma por linha)"
-                                                rows={3}
-                                                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#0B3B5F] resize-y"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={manualLattesDraft.ultimaAtualizacao}
-                                                onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, ultimaAtualizacao: e.target.value }))}
-                                                placeholder="Ultima atualizacao do CV"
-                                                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#0B3B5F]"
-                                            />
-                                            <div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleBuildManualLattesPreview}
-                                                    className="inline-flex items-center gap-2 rounded-lg border border-[#0B3B5F] bg-[#0B3B5F] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1B4F72]"
-                                                >
-                                                    Gerar pre-visualizacao manual
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {lattesPreview && (
-                                        <div className="mt-3 space-y-2">
-                                            <label className="flex items-start gap-2 text-xs text-slate-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5"
-                                                    checked={lattesImportSelection.nome}
-                                                    onChange={() => toggleLattesImportField('nome')}
-                                                />
-                                                <span>
-                                                    <span className="font-semibold">Nome</span>
-                                                    {lattesPreview.nome ? `: ${lattesPreview.nome}` : ': sem dado'}
-                                                </span>
-                                            </label>
-
-                                            <label className="flex items-start gap-2 text-xs text-slate-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5"
-                                                    checked={lattesImportSelection.resumo}
-                                                    onChange={() => toggleLattesImportField('resumo')}
-                                                />
-                                                <span>
-                                                    <span className="font-semibold">Resumo para biografia</span>
-                                                    {lattesPreview.resumo
-                                                        ? `: ${String(lattesPreview.resumo).slice(0, 140)}${String(lattesPreview.resumo).length > 140 ? '...' : ''}`
-                                                        : ': sem dado'}
-                                                </span>
-                                            </label>
-
-                                            <label className="flex items-start gap-2 text-xs text-slate-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5"
-                                                    checked={lattesImportSelection.areas_atuacao}
-                                                    onChange={() => toggleLattesImportField('areas_atuacao')}
-                                                />
-                                                <span>
-                                                    <span className="font-semibold">Areas de atuacao</span>
-                                                    {Array.isArray(lattesPreview.areas_atuacao) && lattesPreview.areas_atuacao.length > 0
-                                                        ? `: ${formatListPreview(lattesPreview.areas_atuacao)}`
-                                                        : ': sem dado'}
-                                                </span>
-                                            </label>
-
-                                            <label className="flex items-start gap-2 text-xs text-slate-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5"
-                                                    checked={lattesImportSelection.formacao_academica}
-                                                    onChange={() => toggleLattesImportField('formacao_academica')}
-                                                />
-                                                <span>
-                                                    <span className="font-semibold">Formacao academica</span>
-                                                    {Array.isArray(lattesPreview.formacao_academica) && lattesPreview.formacao_academica.length > 0
-                                                        ? `: ${formatListPreview(lattesPreview.formacao_academica)}`
-                                                        : ': sem dado'}
-                                                </span>
-                                            </label>
-
-                                            <label className="flex items-start gap-2 text-xs text-slate-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5"
-                                                    checked={lattesImportSelection.ultima_atualizacao}
-                                                    onChange={() => toggleLattesImportField('ultima_atualizacao')}
-                                                />
-                                                <span>
-                                                    <span className="font-semibold">Ultima atualizacao do CV</span>
-                                                    {lattesPreview.ultima_atualizacao
-                                                        ? `: ${lattesPreview.ultima_atualizacao}`
-                                                        : ': sem dado'}
-                                                </span>
-                                            </label>
-
-                                            <div className="pt-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleApplySelectedLattesFields}
-                                                    className="inline-flex items-center gap-2 rounded-lg bg-[#0B3B5F] px-3 py-2 text-xs font-medium text-white hover:bg-[#1B4F72]"
-                                                >
-                                                    <Check className="h-3.5 w-3.5" />
-                                                    Aplicar campos selecionados
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Lattes</span>
                                 </div>
-                                <div className="md:col-span-2">
+                            </div>
+                        </div>
+
+                    ) : (
+                        
+                        /* MODO EDIÇÃO (FORMULÁRIO) */
+                        <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-500">
+                            
+                            <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-2">
+                                    <User className="w-6 h-6 stroke-[3] text-teal-500" /> Dados Pessoais
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <InputGroup 
-                                        label="Biografia" 
-                                        type="textarea"
-                                        value={formData?.bio || ''} 
-                                        onChange={(e) => handleInputChange('bio', e.target.value)}
+                                        label="Nome Completo" 
+                                        value={formData?.nome || ''} 
+                                        onChange={(e) => handleInputChange('nome', e.target.value)}
                                         icon={User}
-                                        placeholder="Conte um pouco sobre vocÃª..."
-                                        rows={3}
+                                        placeholder="Seu nome completo"
+                                        required
+                                    />
+                                    <InputGroup 
+                                        label="E-mail" 
+                                        type="email"
+                                        value={formData?.email || ''} 
+                                        onChange={(e) => handleInputChange('email', e.target.value)}
+                                        icon={Mail}
+                                        disabled
+                                    />
+                                    <InputGroup 
+                                        label="Telefone" 
+                                        type="tel"
+                                        value={formData?.telefone || ''} 
+                                        onChange={(e) => handleInputChange('telefone', formatPhone(e.target.value))}
+                                        icon={Phone}
+                                        placeholder="(00) 00000-0000"
+                                        maxLength={15}
+                                    />
+                                    <InputGroup 
+                                        label="Link do Lattes" 
+                                        value={formData?.lattesLink || ''} 
+                                        onChange={(e) => handleInputChange('lattesLink', e.target.value)}
+                                        icon={LinkIcon}
+                                        placeholder="https://lattes.cnpq.br/..."
                                     />
                                 </div>
                             </div>
-                            <div className="pt-3 flex justify-end gap-3 ">
+
+                            {/* INTEGRAÇÃO LATTES */}
+                            <div className="bg-pink-300 border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-2">
+                                            <Award className="w-6 h-6 stroke-[3]" /> Currículo Lattes
+                                        </h3>
+                                        <p className="text-sm font-bold text-slate-800 mt-1">Busque pelo link informado ou preencha manualmente.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleFetchLattesData}
+                                        disabled={isFetchingLattes}
+                                        className="inline-flex items-center gap-2 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[2px_2px_0px_0px_#0f172a] hover:translate-y-0.5 hover:translate-x-0.5 px-4 py-2 font-black uppercase text-xs text-slate-900 transition-all disabled:opacity-60 disabled:pointer-events-none"
+                                    >
+                                        {isFetchingLattes ? <LoaderCircle className="w-4 h-4 animate-spin stroke-[3]" /> : <RefreshCw className="w-4 h-4 stroke-[3]" />}
+                                        Buscar Dados
+                                    </button>
+                                </div>
+
+                                {lattesFetchError && (
+                                    <div className="mb-4 bg-red-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-3 text-xs font-black uppercase text-slate-900">
+                                        ! {lattesFetchError}
+                                    </div>
+                                )}
+
+                                {lattesImportInfo && (
+                                    <div className="mb-4 bg-teal-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-3 text-xs font-black uppercase text-slate-900">
+                                        {lattesImportInfo}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowManualLattesForm(!showManualLattesForm)}
+                                    className="text-xs font-black uppercase tracking-widest text-slate-900 underline underline-offset-4 hover:text-white transition-colors mb-4"
+                                >
+                                    {showManualLattesForm ? 'Ocultar preenchimento manual' : 'Preencher dados manualmente'}
+                                </button>
+
+                                {showManualLattesForm && (
+                                    <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl p-5 mb-6 grid gap-4 animate-in fade-in">
+                                        <input
+                                            type="text"
+                                            value={manualLattesDraft.nome}
+                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, nome: e.target.value }))}
+                                            placeholder="Nome do pesquisador"
+                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all"
+                                        />
+                                        <textarea
+                                            value={manualLattesDraft.resumo}
+                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, resumo: e.target.value }))}
+                                            placeholder="Resumo do currículo"
+                                            rows={2}
+                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
+                                        />
+                                        <textarea
+                                            value={manualLattesDraft.areas}
+                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, areas: e.target.value }))}
+                                            placeholder="Áreas de atuação (uma por linha)"
+                                            rows={2}
+                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
+                                        />
+                                        <textarea
+                                            value={manualLattesDraft.formacao}
+                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, formacao: e.target.value }))}
+                                            placeholder="Formação acadêmica (uma por linha)"
+                                            rows={2}
+                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={manualLattesDraft.ultimaAtualizacao}
+                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, ultimaAtualizacao: e.target.value }))}
+                                            placeholder="Última atualização (Ex: 01/10/2023)"
+                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleBuildManualLattesPreview}
+                                            className="bg-slate-900 text-white font-black uppercase text-xs tracking-widest px-4 py-3 rounded-lg border-2 border-slate-900 shadow-[4px_4px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all"
+                                        >
+                                            Gerar pré-visualização
+                                        </button>
+                                    </div>
+                                )}
+
+                                {lattesPreview && (
+                                    <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl p-5 space-y-4">
+                                        <label className="flex items-start gap-3 cursor-pointer group">
+                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
+                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.nome} onChange={() => toggleLattesImportField('nome')} />
+                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.nome ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
+                                                    {lattesImportSelection.nome && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Nome Completo</span>
+                                                <span className="block font-bold text-sm text-slate-600">{lattesPreview.nome || 'Sem dado'}</span>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-start gap-3 cursor-pointer group">
+                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
+                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.resumo} onChange={() => toggleLattesImportField('resumo')} />
+                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.resumo ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
+                                                    {lattesImportSelection.resumo && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Resumo (Vai para Biografia)</span>
+                                                <span className="block font-bold text-sm text-slate-600 line-clamp-2">{lattesPreview.resumo || 'Sem dado'}</span>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-start gap-3 cursor-pointer group">
+                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
+                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.areas_atuacao} onChange={() => toggleLattesImportField('areas_atuacao')} />
+                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.areas_atuacao ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
+                                                    {lattesImportSelection.areas_atuacao && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Áreas de Atuação</span>
+                                                <span className="block font-bold text-sm text-slate-600">
+                                                    {Array.isArray(lattesPreview.areas_atuacao) && lattesPreview.areas_atuacao.length > 0 ? formatListPreview(lattesPreview.areas_atuacao) : 'Sem dado'}
+                                                </span>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-start gap-3 cursor-pointer group">
+                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
+                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.formacao_academica} onChange={() => toggleLattesImportField('formacao_academica')} />
+                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.formacao_academica ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
+                                                    {lattesImportSelection.formacao_academica && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Formação Acadêmica</span>
+                                                <span className="block font-bold text-sm text-slate-600">
+                                                    {Array.isArray(lattesPreview.formacao_academica) && lattesPreview.formacao_academica.length > 0 ? formatListPreview(lattesPreview.formacao_academica) : 'Sem dado'}
+                                                </span>
+                                            </div>
+                                        </label>
+
+                                        <div className="pt-4 border-t-2 border-slate-200">
+                                            <button
+                                                type="button"
+                                                onClick={handleApplySelectedLattesFields}
+                                                className="w-full bg-slate-900 text-white font-black uppercase text-xs tracking-widest px-4 py-3 rounded-lg border-2 border-slate-900 shadow-[4px_4px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Check className="w-4 h-4 stroke-[3]" /> Aplicar Seleção
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                                <InputGroup 
+                                    label="Biografia" 
+                                    type="textarea"
+                                    value={formData?.bio || ''} 
+                                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                                    icon={BookOpen}
+                                    placeholder="Conte um pouco sobre você..."
+                                    rows={4}
+                                />
+                            </div>
+
+                            <div className="pt-6 border-t-4 border-slate-900 flex flex-col sm:flex-row justify-end gap-4">
                                 <button 
                                     type="button" 
                                     onClick={handleCancelEdit}
-                                    className="px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                                    className="px-8 py-4 bg-white border-4 border-slate-900 text-slate-900 font-black uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-none transition-all text-sm"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     type="submit"
-                                    className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#0B3B5F] to-[#2E86C1] hover:from-[#0A2F57] hover:to-[#1A6AA1] rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+                                    className="px-8 py-4 bg-teal-400 border-4 border-slate-900 text-slate-900 font-black uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2 text-sm"
                                 >
-                                    <Check className="w-4 h-4" /> Salvar AlteraÃ§Ãµes
+                                    <Check className="w-5 h-5 stroke-[3]" /> Salvar Perfil
                                 </button>
                             </div>
                         </form>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function InfoCard({ icon: Icon, label, value, color, isLink = false }) {
-    return (
-        <div className="p-3 rounded-xl bg-slate-50 ">
-            <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-lg bg-white ${color}`}>
-                    <Icon className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-400">{label}</p>
-                    {isLink ? (
-                        <div className="text-sm font-medium truncate">{value}</div>
-                    ) : (
-                        <p className="text-sm font-medium text-slate-700 truncate">{value}</p>
                     )}
                 </div>
             </div>
@@ -813,13 +808,12 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
     
     return (
         <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-                {label}
-                {required && <span className="text-red-500 ml-1">*</span>}
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-2">
+                {label} {required && <span className="text-red-500">*</span>}
             </label>
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Icon className="h-4 w-4 text-slate-400" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Icon className="h-5 w-5 stroke-[2.5] text-slate-500" />
                 </div>
                 {isTextarea ? (
                     <textarea
@@ -829,8 +823,8 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
                         rows={rows || 3}
                         placeholder={placeholder}
                         maxLength={maxLength}
-                        className={`block w-full pl-9 pr-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#0B3B5F] focus:border-[#0B3B5F] outline-none transition-all resize-none ${
-                            disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900'
+                        className={`block w-full pl-12 pr-4 py-3 border-2 border-slate-900 rounded-xl text-sm font-bold shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all resize-none ${
+                            disabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900'
                         }`}
                     />
                 ) : (
@@ -842,8 +836,8 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
                         placeholder={placeholder}
                         required={required}
                         maxLength={maxLength}
-                        className={`block w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0B3B5F] focus:border-[#0B3B5F] outline-none transition-all ${
-                            disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900'
+                        className={`block w-full pl-12 pr-4 py-3 border-2 border-slate-900 rounded-xl text-sm font-bold shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all ${
+                            disabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900'
                         }`}
                     />
                 )}
@@ -851,4 +845,3 @@ function InputGroup({ label, type = "text", value, onChange, icon: Icon, disable
         </div>
     );
 }
-

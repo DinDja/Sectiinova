@@ -26,6 +26,7 @@ import {
   LoaderCircle,
   Loader2,
   ShieldAlert,
+  X
 } from "lucide-react";
 import Toast from "./Toast";
 import {
@@ -53,7 +54,7 @@ import { auth } from "../../../firebase";
 
 const TABS = [
   { id: "meu", label: "Meu Fórum", icon: Coffee },
-  { id: "aceitos", label: "Foruns Aceitos", icon: Users },
+  { id: "aceitos", label: "Fóruns Aceitos", icon: Users },
   { id: "explorar", label: "Explorar", icon: Globe },
 ];
 
@@ -211,7 +212,7 @@ const parseColorToRgbTuple = (color) => {
 };
 
 const withAlpha = (color, alpha = 1) => {
-  const tuple = parseColorToRgbTuple(color) || [90, 200, 200];
+  const tuple = parseColorToRgbTuple(color) || [20, 184, 166]; // Fallback to teal-500
   const normalizedAlpha = Math.max(0, Math.min(1, Number(alpha)));
   return `rgba(${tuple[0]}, ${tuple[1]}, ${tuple[2]}, ${normalizedAlpha})`;
 };
@@ -265,16 +266,19 @@ const buildForumTheme = (club) => {
 const buildForumClubSelectStyles = (primaryColor) => ({
   control: (base, state) => ({
     ...base,
-    minHeight: 42,
+    minHeight: 48,
     borderRadius: 12,
-    borderColor: state.isFocused ? primaryColor : "#e2e8f0",
-    boxShadow: state.isFocused
-      ? `0 0 0 4px ${withAlpha(primaryColor, 0.16)}`
-      : "none",
+    border: '4px solid #0f172a',
+    borderColor: '#0f172a',
+    boxShadow: state.isFocused ? '4px 4px 0px 0px #14b8a6' : '4px 4px 0px 0px #0f172a',
     backgroundColor: "#ffffff",
+    fontWeight: '900',
     "&:hover": {
-      borderColor: primaryColor,
+      borderColor: '#0f172a',
+      boxShadow: '6px 6px 0px 0px #0f172a',
+      transform: 'translate(-2px, -2px)'
     },
+    transition: 'all 0.2s ease',
   }),
   valueContainer: (base) => ({
     ...base,
@@ -285,93 +289,63 @@ const buildForumClubSelectStyles = (primaryColor) => ({
   }),
   menu: (base) => ({
     ...base,
-    borderRadius: 12,
-    border: "1px solid #e2e8f0",
+    borderRadius: 16,
+    border: "4px solid #0f172a",
     overflow: "hidden",
-    boxShadow: "0 14px 36px rgba(15, 23, 42, 0.16)",
+    boxShadow: "8px 8px 0px 0px #0f172a",
   }),
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isSelected
-      ? withAlpha(primaryColor, 0.16)
+      ? primaryColor
       : state.isFocused
         ? "#f8fafc"
         : "#ffffff",
-    color: "#0f172a",
-    padding: "10px 12px",
+    color: state.isSelected ? "#ffffff" : "#0f172a",
+    fontWeight: '900',
+    padding: "12px 16px",
     cursor: "pointer",
+    borderBottom: '2px solid #e2e8f0'
   }),
 });
 
-// â”€â”€â”€ Sub-Componentes Memorizados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sub-Componentes Memorizados ───────────────────────────────────────────────
 const EmptyBox = memo(({ message, icon: Icon = Coffee }) => (
-  <div className="premium-card p-10 flex flex-col items-center justify-center text-center border border-dashed border-slate-200 bg-slate-50/50">
-    <div
-      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-      style={{ backgroundColor: "var(--forum-primary-soft, rgba(90, 200, 200, 0.2))" }}
-    >
-      <Icon
-        className="w-8 h-8"
-        style={{ color: "var(--forum-primary, #5AC8C8)" }}
-      />
+  <div className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-3xl p-10 flex flex-col items-center justify-center text-center">
+    <div className="w-20 h-20 bg-yellow-300 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center mb-6 transform -rotate-3">
+      <Icon className="w-10 h-10 text-slate-900 stroke-[3]" />
     </div>
-    <p className="text-slate-500 font-medium max-w-sm">{message}</p>
+    <p className="text-slate-900 font-black uppercase tracking-wider text-sm max-w-sm leading-relaxed">{message}</p>
   </div>
 ));
 EmptyBox.displayName = "EmptyBox";
 
 const ForumNoClubState = memo(
   ({ title = "Nenhum forum disponivel", message, icon: Icon = Coffee }) => (
-    <div className="relative overflow-hidden rounded-[2rem] border-2 border-slate-900 bg-[#f7fbff] p-8 sm:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-55"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.2) 1px, transparent 0)",
-          backgroundSize: "20px 20px",
-        }}
-      />
-
-      <div
-        className="pointer-events-none absolute -top-20 -right-16 h-52 w-52 rounded-full blur-2xl"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--forum-primary-soft, rgba(90, 200, 200, 0.28)), transparent)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full blur-2xl"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(251, 191, 36, 0.28), transparent)",
-        }}
-      />
-
-      <div className="relative z-10 flex flex-col items-center text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white px-4 py-1.5 shadow-[3px_3px_0px_0px_#0f172a]">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 border border-slate-900" />
-          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-700">
+    <div className="relative overflow-hidden rounded-[2rem] border-4 border-slate-900 bg-pink-400 p-8 sm:p-12 shadow-[12px_12px_0px_0px_#0f172a] flex flex-col items-center text-center transform - hover:rotate-0 transition-transform">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-10"></div>
+      <div className="relative  flex flex-col items-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-2">
+          <span className="h-3 w-3 rounded-full bg-teal-400 border-2 border-slate-900 animate-pulse" />
+          <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-900">
             Forum Hub
           </span>
         </div>
 
-        <div
-          className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a]"
-          style={{ color: "var(--forum-primary, #5AC8C8)" }}
-        >
-          <Icon className="h-10 w-10" />
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-slate-900 bg-white shadow-[6px_6px_0px_0px_#0f172a] transform -rotate-3">
+          <Icon className="h-12 w-12 text-slate-900 stroke-[2.5]" />
         </div>
 
-        <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+        <h3 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase text-slate-900 mb-4 bg-white/80 inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
           {title}
         </h3>
-        <p className="mt-3 max-w-xl text-sm sm:text-base font-medium text-slate-600">
+        <p className="max-w-xl text-base sm:text-lg font-bold text-slate-900 bg-yellow-300 p-4 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform ">
           {message}
         </p>
 
-        <div className="mt-6 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-200 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]">
-          <Building2 className="h-4 w-4" />
-          Convide seu clube para iniciar discussoes
+        <div className="mt-8 inline-flex items-center gap-3 rounded-2xl border-4 border-slate-900 bg-teal-400 px-6 py-3 text-sm font-black uppercase tracking-widest text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] transition-all">
+          <Building2 className="h-5 w-5 stroke-[3]" />
+          Convide seu clube para iniciar discussões
         </div>
       </div>
     </div>
@@ -385,7 +359,7 @@ const TopicItem = memo(
 
     return (
       <div
-        className="premium-card p-4 hover:shadow-md hover:border-[var(--forum-primary-soft-strong)] transition-all cursor-pointer group bg-white relative overflow-hidden"
+        className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-[12px_12px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 rounded-[1.5rem] p-6 transition-all cursor-pointer group relative overflow-hidden"
         onClick={() => onSelect(topic.id)}
         role="button"
         tabIndex={0}
@@ -393,77 +367,71 @@ const TopicItem = memo(
           if (e.key === "Enter") onSelect(topic.id);
         }}
       >
-        <div className="flex items-start justify-between gap-3 relative z-10">
+        <div className="flex items-start justify-between gap-4 relative ">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-3 mb-3">
               {topic.pinned && (
-                <Pin
-                  className="w-4 h-4 shrink-0"
-                  style={{
-                    color: "var(--forum-primary, #5AC8C8)",
-                    fill: "var(--forum-primary, #5AC8C8)",
-                  }}
-                  title="TÃ³pico Fixado"
-                />
+                <div className="bg-yellow-300 border-2 border-slate-900 p-1.5 rounded-lg shadow-[2px_2px_0px_0px_#0f172a] transform -rotate-6">
+                  <Pin className="w-4 h-4 text-slate-900 stroke-[3]" title="Tópico Fixado" />
+                </div>
               )}
               {topic.locked && (
-                <Lock
-                  className="w-4 h-4 text-red-400 shrink-0"
-                  title="TÃ³pico Bloqueado"
-                />
+                <div className="bg-red-400 border-2 border-slate-900 p-1.5 rounded-lg shadow-[2px_2px_0px_0px_#0f172a]">
+                  <Lock className="w-4 h-4 text-slate-900 stroke-[3]" title="Tópico Bloqueado" />
+                </div>
               )}
-              <h3 className="font-bold text-slate-800 truncate group-hover:text-[var(--forum-primary)] transition-colors">
+              <h3 className="font-black text-xl md:text-2xl uppercase tracking-tighter text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                 {topic.titulo}
               </h3>
             </div>
             {topic.descricao && (
-              <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed mb-2">
+              <p className="text-sm font-bold text-slate-600 line-clamp-2 leading-relaxed mb-4">
                 {topic.descricao}
               </p>
             )}
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
-              <span className="text-slate-600">{topic.autor_nome}</span>
-              <span>â€¢</span>
-              <span>{formattedDate}</span>
-              <span>â€¢</span>
-              <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">
-                <MessageCircle className="w-3.5 h-3.5" />
+            <div className="flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-900">
+              <span className="bg-teal-400 border-2 border-slate-900 px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_#0f172a]">
+                {topic.autor_nome}
+              </span>
+              <span className="bg-slate-100 border-2 border-slate-900 px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_#0f172a]">
+                {formattedDate}
+              </span>
+              <span className="flex items-center gap-2 bg-pink-400 border-2 border-slate-900 px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_#0f172a]">
+                <MessageCircle className="w-4 h-4 stroke-[3]" />
                 {topic.mensagens_count || 0}
               </span>
             </div>
           </div>
 
-          {/* AÃ§Ãµes de moderador */}
+          {/* Ações de moderador */}
           {isModerator && (
             <div
-              className="flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm p-1 rounded-lg"
+              className="flex flex-col sm:flex-row gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-slate-100 border-2 border-slate-900 p-2 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => onTogglePin(topic.id, topic.pinned)}
-                className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-[var(--forum-primary-ring)] outline-none ${topic.pinned ? "bg-[var(--forum-primary-soft)] text-[var(--forum-primary)]" : "hover:bg-slate-100 text-slate-400 hover:text-[var(--forum-primary)]"}`}
-                aria-label={topic.pinned ? "Desafixar tÃ³pico" : "Fixar tÃ³pico"}
+                className={`p-2 border-2 border-slate-900 rounded-lg transition-colors focus:ring-4 focus:ring-slate-900/20 outline-none ${topic.pinned ? "bg-yellow-300 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]" : "bg-white text-slate-900 hover:bg-yellow-300 shadow-[2px_2px_0px_0px_#0f172a]"}`}
+                aria-label={topic.pinned ? "Desafixar tópico" : "Fixar tópico"}
                 title={topic.pinned ? "Desafixar" : "Fixar"}
               >
-                <Pin className="w-4 h-4" />
+                <Pin className="w-4 h-4 stroke-[3]" />
               </button>
               <button
                 onClick={() => onToggleLock(topic.id, topic.locked)}
-                className={`p-2 rounded-lg transition-colors focus:ring-2 focus:ring-red-200 outline-none ${topic.locked ? "bg-red-100 text-red-700" : "hover:bg-slate-100 text-slate-400 hover:text-red-600"}`}
-                aria-label={
-                  topic.locked ? "Desbloquear tÃ³pico" : "Bloquear tÃ³pico"
-                }
+                className={`p-2 border-2 border-slate-900 rounded-lg transition-colors focus:ring-4 focus:ring-slate-900/20 outline-none ${topic.locked ? "bg-red-400 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]" : "bg-white text-slate-900 hover:bg-red-400 shadow-[2px_2px_0px_0px_#0f172a]"}`}
+                aria-label={topic.locked ? "Desbloquear tópico" : "Bloquear tópico"}
                 title={topic.locked ? "Desbloquear" : "Bloquear"}
               >
-                <Lock className="w-4 h-4" />
+                <Lock className="w-4 h-4 stroke-[3]" />
               </button>
               <button
                 onClick={() => onDelete(topic.id)}
-                className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors focus:ring-2 focus:ring-red-200 outline-none"
-                aria-label="Excluir tÃ³pico"
-                title="Excluir tÃ³pico"
+                className="p-2 border-2 border-slate-900 rounded-lg bg-white hover:bg-slate-900 hover:text-white transition-colors focus:ring-4 focus:ring-slate-900/20 outline-none shadow-[2px_2px_0px_0px_#0f172a]"
+                aria-label="Excluir tópico"
+                title="Excluir tópico"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 stroke-[3]" />
               </button>
             </div>
           )}
@@ -486,21 +454,21 @@ const ClubExploreCard = memo(({ club, index, onRequestJoin, requesting }) => {
   const schoolLabel = String(club?.escola_nome || club?.escola_id || "").trim();
 
   return (
-    <div className="premium-card p-0 overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow bg-white border border-slate-100">
-      <div className="relative h-32 overflow-visible">
+    <div className="bg-white border-4 border-slate-900 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-[12px_12px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 transition-all group">
+      <div className="relative h-36 overflow-visible border-b-4 border-slate-900 bg-slate-100">
         <img
           src={displayBanner}
           alt={`Banner do clube ${club?.nome || ""}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover mix-blend-luminosity opacity-90 group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent" />
+        <div className="absolute inset-0 bg-yellow-300/20 mix-blend-multiply" />
         {!bannerUrl && (
-          <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-white bg-black/45 px-2 py-1 rounded-full">
-            Banner ilustrativo
+          <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1">
+            Ilustrativo
           </span>
         )}
 
-        <div className="absolute -bottom-6 left-4 w-12 h-12 rounded-2xl border-2 border-white bg-white overflow-hidden shadow-lg flex items-center justify-center">
+        <div className="absolute -bottom-8 left-6 w-16 h-16 rounded-2xl border-4 border-slate-900 bg-white overflow-hidden shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center transform -rotate-3 ">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -508,26 +476,26 @@ const ClubExploreCard = memo(({ club, index, onRequestJoin, requesting }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-xs font-black text-slate-700">
+            <span className="text-xl font-black text-slate-900">
               {getInitials(club?.nome)}
             </span>
           )}
         </div>
       </div>
 
-      <div className="p-5 pt-8 flex-1 flex flex-col">
-        <h3 className="font-bold text-slate-800 text-lg mb-1 line-clamp-2">{club?.nome}</h3>
+      <div className="p-6 pt-12 flex-1 flex flex-col bg-[#FAFAFA]">
+        <h3 className="font-black uppercase tracking-tighter text-slate-900 text-xl md:text-2xl mb-2 line-clamp-2 leading-[1.1]">{club?.nome}</h3>
 
         {schoolLabel && (
-          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+          <p className="text-xs font-bold text-slate-600 flex items-center gap-2 mb-4 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-2 w-fit">
+            <Building2 className="w-4 h-4 stroke-[3] text-slate-900" />
             {schoolLabel}
           </p>
         )}
 
-        <div className="mt-3 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 px-2.5 py-1 text-xs font-semibold">
-            <Users className="w-3.5 h-3.5" />
+        <div className="mt-auto flex items-center gap-3 mb-6">
+          <span className="inline-flex items-center gap-2 bg-teal-400 border-2 border-slate-900 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+            <Users className="w-4 h-4 stroke-[3]" />
             {memberCount} membro{memberCount === 1 ? "" : "s"}
           </span>
         </div>
@@ -535,12 +503,12 @@ const ClubExploreCard = memo(({ club, index, onRequestJoin, requesting }) => {
         <button
           onClick={() => onRequestJoin(club.id)}
           disabled={requesting}
-          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--forum-primary-soft)] text-[var(--forum-primary)] hover:brightness-95"
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 text-sm font-black uppercase tracking-widest bg-blue-400 border-4 border-slate-900 text-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all disabled:opacity-50 disabled:pointer-events-none"
         >
           {requesting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin stroke-[3]" />
           ) : (
-            <LogIn className="w-4 h-4" />
+            <LogIn className="w-5 h-5 stroke-[3]" />
           )}
           {requesting ? "Solicitando..." : "Solicitar Entrada"}
         </button>
@@ -565,24 +533,24 @@ const AcceptedClubCard = memo(({ club, index, onSelect }) => {
     <button
       type="button"
       onClick={() => onSelect(club.id)}
-      className="premium-card p-0 overflow-hidden group text-left bg-white border border-slate-100 hover:shadow-lg transition-all"
+      className="bg-white border-4 border-slate-900 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-[12px_12px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 transition-all group text-left w-full"
     >
-      <div className="relative h-36 overflow-visible">
+      <div className="relative h-40 overflow-visible border-b-4 border-slate-900 bg-slate-100">
         <div className="absolute inset-0 overflow-hidden">
           <img
             src={displayBanner}
             alt={`Banner do clube ${club?.nome || ""}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover mix-blend-luminosity opacity-90 transition-transform duration-500 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20 to-transparent" />
+          <div className="absolute inset-0 bg-blue-300/30 mix-blend-multiply" />
           {!bannerUrl && (
-            <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-white bg-black/45 px-2 py-1 rounded-full">
-              Banner ilustrativo
+            <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1">
+              Ilustrativo
             </span>
           )}
         </div>
 
-        <div className="absolute -bottom-8 left-4 z-10 w-16 h-16 rounded-3xl border-2 border-white bg-white overflow-hidden shadow-lg flex items-center justify-center">
+        <div className="absolute -bottom-8 left-6  w-20 h-20 rounded-2xl border-4 border-slate-900 bg-white overflow-hidden shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center transform rotate-3 group-hover:rotate-0 transition-transform">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -590,32 +558,32 @@ const AcceptedClubCard = memo(({ club, index, onSelect }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-xs font-black text-slate-700">
+            <span className="text-2xl font-black text-slate-900">
               {getInitials(club?.nome)}
             </span>
           )}
         </div>
       </div>
 
-      <div className="p-5 pt-10 flex-1 flex flex-col">
-        <h3 className="font-bold text-slate-800 text-lg mb-1 line-clamp-2">
+      <div className="p-6 pt-12 flex-1 flex flex-col bg-[#FAFAFA]">
+        <h3 className="font-black uppercase tracking-tighter text-slate-900 text-xl md:text-2xl mb-3 line-clamp-2 leading-[1.1]">
           {club?.nome}
         </h3>
 
         {schoolLabel && (
-          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+          <p className="text-xs font-bold text-slate-600 flex items-center gap-2 mb-6 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-2 w-fit">
+            <Building2 className="w-4 h-4 stroke-[3] text-slate-900" />
             {schoolLabel}
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-2 items-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF3E0] text-[#FF5722] border border-[#FF5722]/20 px-3 py-1 text-xs font-semibold">
-            <Users className="w-3.5 h-3.5" />
-            {memberCount} membro{memberCount === 1 ? "" : "s"}
+        <div className="mt-auto flex flex-wrap gap-3 items-center">
+          <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+            <Users className="w-4 h-4 stroke-[3]" />
+            {memberCount} Membro{memberCount === 1 ? "" : "s"}
           </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
-            Acessar fórum
+          <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white bg-slate-900 border-2 border-slate-900 px-4 py-2 shadow-[2px_2px_0px_0px_#cbd5e1] hover:bg-teal-400 hover:text-slate-900 transition-colors">
+            Acessar Fórum
           </span>
         </div>
       </div>
@@ -646,6 +614,10 @@ export default function ForumBoard({
   const [viewingForumClubId, setViewingForumClubId] = useState(null);
   const [selectedMyForumClubId, setSelectedMyForumClubId] = useState(() => normalizeId(myClubId));
   const [selectedTopicId, setSelectedTopicId] = useState(null);
+  const selectedTopic = useMemo(
+    () => topics.find((topic) => topic?.id === selectedTopicId) || null,
+    [topics, selectedTopicId],
+  );
 
   const [showNewTopic, setShowNewTopic] = useState(false);
   const [newTopicTitle, setNewTopicTitle] = useState("");
@@ -666,7 +638,7 @@ export default function ForumBoard({
     setSearchForumInput("");
     setSearchForum("");
   }, []);
-  const [requestingClubs, setRequestingClubs] = useState(new Set()); // Para loading individual dos botÃµes
+  const [requestingClubs, setRequestingClubs] = useState(new Set()); // Para loading individual dos botões
 
 
   const [exploreClubs, setExploreClubs] = useState([]);
@@ -1016,68 +988,26 @@ export default function ForumBoard({
     [currentForumClub],
   );
 
+  const isModeratorOfCurrent = useMemo(
+    () => {
+      if (!currentForumClubId) return false;
+      return mentorManagedClubIdSet.has(normalizeId(currentForumClubId));
+    },
+    [currentForumClubId, mentorManagedClubIdSet],
+  );
+
+  const canParticipate = useMemo(() => {
+    if (!currentForumClubId) return false;
+    const normalized = normalizeId(currentForumClubId);
+    return (
+      acceptedOrMemberClubIdSet.has(normalized)
+      || mentorManagedClubIdSet.has(normalized)
+    );
+  }, [currentForumClubId, acceptedOrMemberClubIdSet, mentorManagedClubIdSet]);
+
   const forumClubSelectStyles = useMemo(
     () => buildForumClubSelectStyles(currentForumTheme.primary),
     [currentForumTheme.primary],
-  );
-
-  const forumWrapperStyle = useMemo(() => {
-    const hasBanner = Boolean(currentForumTheme.bannerUrl);
-    const bannerBackdrop = hasBanner
-      ? `linear-gradient(130deg, ${withAlpha(currentForumTheme.primary, 0.72)} 0%, ${withAlpha(currentForumTheme.secondary, 0.58)} 45%, rgba(15, 23, 42, 0.58) 100%), url("${currentForumTheme.bannerUrl}")`
-      : `radial-gradient(circle at 8% 12%, ${withAlpha(currentForumTheme.primary, 0.22)} 0%, transparent 42%), radial-gradient(circle at 88% 10%, ${withAlpha(currentForumTheme.secondary, 0.18)} 0%, transparent 38%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)`;
-
-    return {
-      "--forum-primary": currentForumTheme.primary,
-      "--forum-secondary": currentForumTheme.secondary,
-      "--forum-primary-soft": withAlpha(currentForumTheme.primary, 0.14),
-      "--forum-primary-soft-strong": withAlpha(currentForumTheme.primary, 0.26),
-      "--forum-primary-ring": withAlpha(currentForumTheme.primary, 0.36),
-      "--forum-overlay": hasBanner
-        ? "rgba(255, 255, 255, 0.64)"
-        : "rgba(255, 255, 255, 0.82)",
-      backgroundImage: bannerBackdrop,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundAttachment: hasBanner ? "fixed" : "scroll",
-    };
-  }, [currentForumTheme]);
-
-  const forumHeroStyle = useMemo(() => {
-    if (currentForumTheme.bannerUrl) {
-      return {
-        backgroundImage: `linear-gradient(112deg, ${withAlpha(currentForumTheme.primary, 0.82)} 0%, ${withAlpha(currentForumTheme.secondary, 0.7)} 48%, rgba(15, 23, 42, 0.56) 100%), url("${currentForumTheme.bannerUrl}")`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      };
-    }
-
-    return {
-      backgroundImage: `linear-gradient(112deg, ${currentForumTheme.primary} 0%, ${currentForumTheme.secondary} 100%)`,
-    };
-  }, [currentForumTheme]);
-
-  const selectedTopic = useMemo(
-    () => topics.find((t) => t.id === selectedTopicId) || null,
-    [topics, selectedTopicId],
-  );
-
-  const exploreScopeLabel = restrictExploreToOwnSchool
-    ? "da sua unidade escolar"
-    : "da plataforma";
-
-  const canParticipate = useMemo(() => {
-    if (!loggedUser || !currentForumClubId) return false;
-    const normalizedCurrentForumClubId = normalizeId(currentForumClubId);
-    if (allUserClubIdSet.has(normalizedCurrentForumClubId)) return true;
-    if (mentorManagedClubIdSet.has(normalizedCurrentForumClubId)) return true;
-    return acceptedClubIdSet.has(normalizedCurrentForumClubId);
-  }, [loggedUser, currentForumClubId, allUserClubIdSet, mentorManagedClubIdSet, acceptedClubIdSet]);
-
-  const isModeratorOfCurrent = useMemo(
-    () =>
-      isMentor && mentorManagedClubIdSet.has(normalizeId(currentForumClubId)),
-    [isMentor, currentForumClubId, mentorManagedClubIdSet],
   );
 
   const handleCreateTopic = useCallback(
@@ -1097,7 +1027,7 @@ export default function ForumBoard({
         setShowNewTopic(false);
       } catch (error) {
         setToast({
-          message: error?.message || "Erro ao criar o tÃ³pico. Tente novamente.",
+          message: error?.message || "Erro ao criar o tópico. Tente novamente.",
           type: "error",
         });
       } finally {
@@ -1113,9 +1043,9 @@ export default function ForumBoard({
       setRequestingClubs((prev) => new Set(prev).add(clubeId));
       try {
         await requestJoinForum({ clubeId, solicitante: loggedUser });
-        setToast({ message: "SolicitaÃ§Ã£o enviada com sucesso!", type: "success" });
+        setToast({ message: "Solicitação enviada com sucesso!", type: "success" });
       } catch (error) {
-        setToast({ message: "Erro ao enviar solicitaÃ§Ã£o.", type: "error" });
+        setToast({ message: "Erro ao enviar solicitação.", type: "error" });
       } finally {
         setRequestingClubs((prev) => {
           const newSet = new Set(prev);
@@ -1150,7 +1080,7 @@ export default function ForumBoard({
         );
       } catch (error) {
         setToast({
-          message: error?.message || "Erro ao atualizar alerta de moderaÃ§Ã£o.",
+          message: error?.message || "Erro ao atualizar alerta de moderação.",
           type: "error",
         });
       }
@@ -1197,13 +1127,13 @@ export default function ForumBoard({
 
       setConfirmModal({
         open: true,
-        title: "Excluir alerta de moderaÃ§Ã£o",
+        title: "Excluir alerta de moderação",
         description: "Tem certeza que deseja excluir este alerta da central de irregularidades?",
         onConfirm: async () => {
           try {
             await deleteModerationAlert(alertId);
             setModerationAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
-            setToast({ message: "Alerta excluÃ­do.", type: "success" });
+            setToast({ message: "Alerta excluído.", type: "success" });
           } catch (error) {
             setToast({
               message: error?.message || "Falha ao excluir alerta.",
@@ -1234,7 +1164,6 @@ export default function ForumBoard({
     [selectedMyForumClubId],
   );
 
-  // Handlers do TopicItem
   const handleTogglePin = useCallback(
     (id, pinned) => togglePinTopic(id, pinned),
     [],
@@ -1246,8 +1175,8 @@ export default function ForumBoard({
   const handleDeleteTopic = useCallback((id) => {
     setConfirmModal({
       open: true,
-      title: "Excluir tÃ³pico",
-      description: "Excluir este tÃ³pico e todas as mensagens permanentemente?",
+      title: "Excluir tópico",
+      description: "Excluir este tópico e todas as mensagens permanentemente?",
       onConfirm: async () => {
         await deleteTopic(id);
         setConfirmModal((prev) => ({ ...prev, open: false }));
@@ -1273,20 +1202,20 @@ export default function ForumBoard({
   const ConfirmModal = () => {
     if (!confirmModal.open) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-2xl p-6 w-11/12 shadow-lg">
-          <h2 className="text-lg font-bold mb-2">{confirmModal.title}</h2>
-          <p className="text-sm text-slate-600 mb-4">{confirmModal.description}</p>
-          <div className="flex justify-end gap-2">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div className="bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-3xl p-8 w-full max-w-md animate-in zoom-in-[0.95]">
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">{confirmModal.title}</h2>
+          <p className="text-sm font-bold text-slate-700 mb-8">{confirmModal.description}</p>
+          <div className="flex justify-end gap-4">
             <button
               onClick={() => setConfirmModal((prev) => ({ ...prev, open: false }))}
-              className="px-4 py-2 bg-slate-100 rounded-lg font-medium hover:bg-slate-200"
+              className="px-6 py-3 bg-white border-2 border-slate-900 rounded-xl font-black text-slate-900 uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all"
             >
               Cancelar
             </button>
             <button
               onClick={() => confirmModal.onConfirm?.()}
-              className="px-4 py-2 text-white rounded-lg font-medium transition-colors bg-[var(--forum-primary)] hover:brightness-95"
+              className="px-6 py-3 bg-teal-400 border-2 border-slate-900 rounded-xl font-black text-slate-900 uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all"
             >
               Confirmar
             </button>
@@ -1299,64 +1228,52 @@ export default function ForumBoard({
 
   return (
     <>
-      {/* Fundo animado de cubos 3D (trilha pedagÃ³gica) */}
+      {/* Estilos para a scrollbar Neo-Brutalista */}
       <style>{`
-        .forum-pattern-grid {
-          background-image:
-            linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
-            linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
-            linear-gradient(30deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
-            linear-gradient(150deg, rgba(255,255,255,0.2) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.2) 87.5%, rgba(255,255,255,0.2)),
-            linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24)),
-            linear-gradient(60deg, rgba(241,245,249,0.24) 25%, transparent 25.5%, transparent 75%, rgba(241,245,249,0.24) 75%, rgba(241,245,249,0.24));
-          background-size: 80px 140px;
-          background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
-          animation: panCubes 60s linear infinite;
-        }
-        @keyframes panCubes {
-          0% { background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px; }
-          100% { background-position: 80px 140px, 80px 140px, 120px 210px, 120px 210px, 80px 140px, 120px 210px; }
-        }
+        .neo-scrollbar::-webkit-scrollbar { width: 8px; }
+        .neo-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
       `}</style>
+      
       <ConfirmModal />
       
-      {/* NOVA DIV WRAPPER: Ocupa a tela inteira (min-h-screen w-full) e recebe o fundo */}
-      <div
-        className="min-h-screen w-full forum-pattern-grid relative overflow-x-hidden"
-        style={forumWrapperStyle}
-      >
-        {/* Overlay sutil para garantir leitura perfeita (agora com fixed para cobrir o scroll) */}
-        <div
-          className="fixed inset-0 pointer-events-none z-0"
-          style={{ backgroundColor: "var(--forum-overlay, rgba(255, 255, 255, 0.82))" }}
-        ></div>
+      <div className="min-h-screen w-full bg-[#FAFAFA] text-slate-900 font-sans relative overflow-x-hidden">
         
-        {/* DIV DO CONTEÃšDO: Limita a largura e centraliza */}
-        <div className="max-w-5xl mx-auto space-y-6 pb-12 pt-6 relative z-10 px-4 md:px-0">
+        {/* PADRÃO DE FUNDO - GRID (BLUEPRINT) NEO-BRUTALISTA */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a15_2px,transparent_2px),linear-gradient(to_bottom,#0f172a15_2px,transparent_2px)] bg-[size:40px_40px]"></div>
+        </div>
+        
+        {/* DIV DO CONTEÚDO: Limita a largura e centraliza */}
+        <div className="max-w-5xl mx-auto space-y-10 pb-16 pt-10 relative  px-4 md:px-0">
           
           {/* Hero & Tabs */}
-          <div className="premium-card overflow-hidden bg-white shadow-sm border border-slate-100">
-            <div
-              className="p-8 text-white relative overflow-hidden"
-              style={forumHeroStyle}
-            >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-              <div className="flex items-center gap-4 mb-2 relative z-10">
-                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                  <img src="./cafe.svg" alt="" className="w-12 h-12" />
+          <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2rem] overflow-hidden transition-transform duration-300">
+            
+            {/* Cabecalho de Cor */}
+            <div className="p-8 md:p-10 relative overflow-hidden bg-yellow-300 border-b-4 border-slate-900">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+              <div className="flex items-center gap-6 relative ">
+                <div className="p-4 bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl transform rotate-3">
+                         <img
+                src="/cafe.svg"
+                alt="SECTI"
+                className="h-20 object-contain opacity-95 hover:opacity-100 transition-opacity duration-300"
+                loading="lazy"
+              />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight">
+                  <h1 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">
                     POP Café
                   </h1>
-                  <p className="text-white/90 text-sm mt-1 font-medium">
-                    Forum de discussão e colaboração entre clubes
+                  <p className="text-slate-900 font-bold bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] text-xs uppercase tracking-widest transform -">
+                    Fórum de discussão e colaboração
                   </p>
                 </div>
               </div>
             </div>
 
-            <nav className="flex border-b border-slate-200" role="tablist">
+            <nav className="flex flex-col sm:flex-row border-b-4 border-slate-900 bg-slate-100" role="tablist">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -1370,26 +1287,26 @@ export default function ForumBoard({
                       setSelectedTopicId(null);
                       if (tab.id === "meu") setViewingForumClubId(null);
                     }}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold transition-all
+                    className={`flex-1 flex items-center justify-center gap-3 px-6 py-5 text-xs sm:text-sm font-black uppercase tracking-widest transition-all border-b-4 sm:border-b-0 sm:border-r-4 border-slate-900 last:border-0
                                         ${
                                           isActive
-                                            ? "text-[var(--forum-primary)] border-b-2 border-[var(--forum-primary)] bg-[var(--forum-primary-soft)]"
-                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                                            ? "bg-teal-400 text-slate-900 shadow-[inset_0_-4px_0_0_#0f172a]"
+                                            : "bg-white text-slate-500 hover:bg-yellow-300 hover:text-slate-900"
                                         }`}
                   >
                     <Icon
-                      className={`w-4 h-4 ${isActive ? "text-[var(--forum-primary)]" : "text-slate-400"}`}
+                      className={`w-5 h-5 stroke-[3] ${isActive ? "text-slate-900" : "text-slate-400 group-hover:text-slate-900"}`}
                     />
                     {tab.label}
                     {tab.id === "meu" && isMentor && (
                       <>
                         {unreadModerationAlerts.length > 0 && (
-                          <span className="ml-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-sm">
+                          <span className="ml-2 bg-red-400 border-2 border-slate-900 text-slate-900 text-[10px] font-black rounded-lg min-w-[24px] h-6 px-1 flex items-center justify-center shadow-[2px_2px_0px_0px_#0f172a]">
                             {unreadModerationAlerts.length}
                           </span>
                         )}
                         {joinRequests.length > 0 && (
-                          <span className="ml-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-sm">
+                          <span className="ml-2 bg-blue-400 border-2 border-slate-900 text-slate-900 text-[10px] font-black rounded-lg min-w-[24px] h-6 px-1 flex items-center justify-center shadow-[2px_2px_0px_0px_#0f172a]">
                             {joinRequests.length}
                           </span>
                         )}
@@ -1402,33 +1319,33 @@ export default function ForumBoard({
           </div>
 
           {isMentor && moderationAlerts.length > 0 && (
-            <div className="premium-card p-5 border border-amber-200 bg-gradient-to-r from-amber-50 to-white">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-amber-600" />
-                  Central de Irregularidades do FÃ³rum
+            <div className="bg-red-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-[2rem] p-6 sm:p-8 transform transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <h3 className="font-black text-2xl text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                  <ShieldAlert className="w-8 h-8 text-slate-900 stroke-[3]" />
+                  Central de Irregularidades
                 </h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full w-fit">
-                    {unreadModerationAlerts.length} nÃ£o lido(s)
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-4 py-2 rounded-xl">
+                    {unreadModerationAlerts.length} NÃO LIDO(S)
                   </div>
                   {unreadModerationAlerts.length > 0 && (
                     <button
                       onClick={handleMarkAllAsRead}
                       disabled={markingAllRead}
-                      className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 rounded-xl bg-slate-900 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#ffffff] text-xs font-black uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#ffffff] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {markingAllRead ? "Marcando..." : "Marcar todos como lido"}
+                      {markingAllRead ? "MARCANDO..." : "MARCAR TODOS COMO LIDO"}
                     </button>
                   )}
                 </div>
               </div>
 
-              <p className="text-sm text-slate-600 mb-4">
-                Orientadores e coorientadores recebem em tempo real os alertas de conteÃºdo irregular no fÃ³rum.
+              <p className="text-sm font-bold text-slate-900 mb-6 bg-white/50 p-3 border-2 border-slate-900 rounded-xl inline-block shadow-[2px_2px_0px_0px_#0f172a]">
+                Orientadores e coorientadores recebem em tempo real os alertas de conteúdo irregular no fórum.
               </p>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {pagedModerationAlerts.map((alert) => {
                   const isUnread =
                     String(alert?.status || "unread").toLowerCase() === "unread";
@@ -1436,48 +1353,48 @@ export default function ForumBoard({
                   return (
                     <div
                       key={alert.id}
-                      className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 bg-white border border-amber-100 rounded-xl p-3"
+                      className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl p-5"
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-semibold text-slate-700">
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-lg font-black text-slate-900 uppercase">
                             {alert.actor_nome || "Aluno"}
                           </p>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isUnread ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
-                            {isUnread ? "NÃƒO LIDO" : "LIDO"}
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] ${isUnread ? "bg-yellow-300 text-slate-900" : "bg-slate-200 text-slate-500"}`}>
+                            {isUnread ? "NÃO LIDO" : "LIDO"}
                           </span>
                         </div>
 
-                        <p className="text-xs text-slate-600 line-clamp-2">
+                        <p className="text-sm font-bold text-slate-700 line-clamp-2">
                           {alert.reason ||
-                            "ConteÃºdo sinalizado pela moderaÃ§Ã£o inteligente."}
+                            "Conteúdo sinalizado pela moderação inteligente."}
                         </p>
 
                         {alert.excerpt && (
-                          <p className="text-xs text-slate-500 mt-1 line-clamp-2 italic">
+                          <p className="text-xs font-bold text-slate-500 mt-2 bg-slate-100 p-3 border-2 border-slate-300 rounded-lg italic">
                             Trecho: "{alert.excerpt}"
                           </p>
                         )}
                       </div>
 
-                      <div className="flex flex-col sm:items-end gap-2">
+                      <div className="flex flex-col sm:items-end gap-3 shrink-0">
                         {isUnread ? (
                           <button
                             onClick={() => handleMarkAlertAsRead(alert.id)}
-                            className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-xs font-semibold"
+                            className="px-4 py-2 rounded-xl bg-teal-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all text-xs font-black uppercase tracking-widest w-full sm:w-auto"
                           >
-                            Marcar como lido
+                            MARCAR COMO LIDO
                           </button>
                         ) : (
-                          <span className="text-xs text-slate-400 font-medium">
-                            JÃ¡ visualizado
+                          <span className="text-xs font-black text-slate-500 uppercase tracking-widest border-2 border-dashed border-slate-300 px-3 py-1 rounded-lg">
+                            JÁ VISUALIZADO
                           </span>
                         )}
                         <button
                           onClick={() => handleDeleteModerationAlert(alert.id)}
-                          className="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-700 transition-colors text-xs font-semibold"
+                          className="px-4 py-2 rounded-xl bg-white text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-red-400 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all text-xs font-black uppercase tracking-widest w-full sm:w-auto"
                         >
-                          Excluir alerta
+                          EXCLUIR ALERTA
                         </button>
                       </div>
                     </div>
@@ -1486,15 +1403,15 @@ export default function ForumBoard({
               </div>
 
               {moderationAlertsPageCount > 1 && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-                  <div className="text-xs text-slate-500">
-                    PÃ¡gina {moderationAlertsPage + 1} de {moderationAlertsPageCount}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 pt-6 border-t-4 border-slate-900 border-dashed">
+                  <div className="text-sm font-black text-slate-900 uppercase bg-white border-2 border-slate-900 px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a] inline-block w-fit">
+                    Página {moderationAlertsPage + 1} de {moderationAlertsPageCount}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => setModerationAlertsPage((prev) => Math.max(0, prev - 1))}
                       disabled={moderationAlertsPage === 0}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                      className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 border-slate-900 bg-white text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                     >
                       Anterior
                     </button>
@@ -1503,9 +1420,9 @@ export default function ForumBoard({
                         setModerationAlertsPage((prev) => Math.min(moderationAlertsPageCount - 1, prev + 1))
                       }
                       disabled={moderationAlertsPage === moderationAlertsPageCount - 1}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                      className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 border-slate-900 bg-white text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                     >
-                      PrÃ³xima
+                      Próxima
                     </button>
                   </div>
                 </div>
@@ -1514,54 +1431,54 @@ export default function ForumBoard({
           )}
 
           {activeTab === "meu" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {!selectedMyForumClubId ? (
                 <ForumNoClubState
-                  title="Seu espaco de forum ainda esta vazio"
+                  title="SEU FÓRUM ESTÁ VAZIO"
                   message={
                     isMentor
-                      ? "Voce ainda nao possui foruns administrados para visualizar."
-                      : "Voce ainda nao participa de nenhum forum."
+                      ? "Você ainda não possui fóruns administrados para visualizar."
+                      : "Você ainda não participa de nenhum fórum."
                   }
                   icon={Coffee}
                 />
               ) : (
                 <>
               {isMentor && joinRequests.length > 0 && (
-                <div className="premium-card p-5 border-l-4 bg-white" style={{ borderLeftColor: "var(--forum-primary, #5AC8C8)" }}>
-                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[var(--forum-primary)]" />
-                    SolicitaÃ§Ãµes Pendentes ({joinRequests.length})
+                <div className="bg-blue-300 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-[2rem] p-6 sm:p-8">
+                  <h3 className="font-black text-2xl text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3">
+                    <UserPlus className="w-8 h-8 stroke-[3]" />
+                    Solicitações Pendentes <span className="bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-sm">{joinRequests.length}</span>
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {joinRequests.map((req) => (
                       <div
                         key={req.id}
-                        className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl p-5 gap-4"
                       >
                         <div>
-                          <span className="font-semibold text-slate-700 block">
+                          <span className="font-black text-xl text-slate-900 uppercase block mb-1">
                             {req.solicitante_nome}
                           </span>
-                          <span className="text-xs font-medium text-slate-500">
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 border-2 border-slate-900 px-2 py-1 rounded-lg shadow-[2px_2px_0px_0px_#0f172a] inline-block">
                             Clube:{" "}
                             {(clubs || []).find(
                               (c) => c.id === req.solicitante_clube_id,
                             )?.nome || "Desconhecido"}
                           </span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3 shrink-0">
                           <button
                             onClick={() => handleRespondRequest(req.id, true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-400 border-2 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all text-xs font-black uppercase tracking-widest w-full sm:w-auto justify-center"
                           >
-                            <CheckCircle className="w-4 h-4" /> Aceitar
+                            <CheckCircle className="w-4 h-4 stroke-[3]" /> ACEITAR
                           </button>
                           <button
                             onClick={() => handleRespondRequest(req.id, false)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-400 border-2 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all text-xs font-black uppercase tracking-widest w-full sm:w-auto justify-center"
                           >
-                            <XCircle className="w-4 h-4" /> Recusar
+                            <XCircle className="w-4 h-4 stroke-[3]" /> RECUSAR
                           </button>
                         </div>
                       </div>
@@ -1571,24 +1488,24 @@ export default function ForumBoard({
               )}
 
               {isMentor && externalMembers.length > 0 && (
-                <div className="premium-card p-5 bg-white">
-                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-500" />
-                    Membros Externos ({externalMembers.length})
+                <div className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-[2rem] p-6 sm:p-8">
+                  <h3 className="font-black text-2xl text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3">
+                    <Users className="w-8 h-8 stroke-[3] text-blue-500" />
+                    Membros Externos <span className="bg-yellow-300 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-sm">{externalMembers.length}</span>
                   </h3>
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-wrap gap-4">
                     {externalMembers.map((m) => (
                       <span
                         key={m.id}
-                        className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-sm font-medium border border-blue-100"
+                        className="inline-flex items-center gap-3 bg-blue-300 border-2 border-slate-900 text-slate-900 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a]"
                       >
                         {m.membro_nome}
                         <button
                           onClick={() => handleRemoveExternal(m.membro_id)}
-                          className="text-blue-400 hover:text-red-500 transition-colors outline-none focus:ring-2 focus:ring-red-200 rounded-full"
+                          className="bg-white border-2 border-slate-900 rounded-lg p-1 hover:bg-red-400 transition-colors outline-none shadow-[2px_2px_0px_0px_#0f172a] active:shadow-none active:translate-y-0.5 active:translate-x-0.5"
                           title="Remover membro externo"
                         >
-                          <XCircle className="w-4 h-4" />
+                          <XCircle className="w-4 h-4 stroke-[3]" />
                         </button>
                       </span>
                     ))}
@@ -1596,96 +1513,100 @@ export default function ForumBoard({
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <span className="text-slate-800 badge">Tópicos</span>  {currentForumClub?.nome || "Meu Clube"}
-                </h2>
-                {myForumClubs.length > 1 && (
-                  <div className="min-w-[260px]">
-                    <Select
-                      inputId="forum-club-select"
-                      classNamePrefix="forum-club-select"
-                      styles={forumClubSelectStyles}
-                      value={selectedMyForumSelectOption}
-                      options={myForumSelectOptions}
-                      isSearchable={myForumSelectOptions.length > 6}
-                      onChange={(option) => {
-                        const nextClubId = normalizeId(option?.value);
-                        setSelectedMyForumClubId(nextClubId);
-                        setSelectedTopicId(null);
-                        setShowNewTopic(false);
-                      }}
-                      formatOptionLabel={(option) => (
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                            {option.logoUrl ? (
-                              <img
-                                src={option.logoUrl}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-slate-500">
-                                {String(option.label || "C").trim().charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-sm font-medium text-slate-800 truncate">
-                            {option.label}
-                          </span>
-                        </div>
-                      )}
-                    />
-                  </div>
-                )}
-                {canParticipate && (
-                  <button
-                    onClick={() => setShowNewTopic(true)}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 active:scale-95 transition-all text-sm font-semibold shadow-sm focus:ring-4 focus:ring-[var(--forum-primary-ring)]"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Criar TÃ³pico
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-slate-700">
-                <img src="/Lobo.svg" alt="Agente Guia" className="w-8 h-8 shrink-0" />
-                <div className="leading-snug">
-                  <p className="font-semibold text-slate-900">AGENTE GUIA está protegendo o chat.</p>
-                  <p className="text-slate-600">Suas mensagens são monitoradas para manter o ambiente seguro e respeitoso.</p>
+              <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2rem] p-6 md:p-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 border-b-4 border-slate-900 pb-6">
+                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-4">
+                        <MessageCircle className="w-8 h-8 stroke-[3]" /> Tópicos
+                    </h2>
+                    {myForumClubs.length > 1 && (
+                    <div className="min-w-[280px] relative z-20">
+                        <Select
+                        inputId="forum-club-select"
+                        classNamePrefix="forum-club-select"
+                        styles={forumClubSelectStyles}
+                        value={selectedMyForumSelectOption}
+                        options={myForumSelectOptions}
+                        isSearchable={myForumSelectOptions.length > 6}
+                        onChange={(option) => {
+                            const nextClubId = normalizeId(option?.value);
+                            setSelectedMyForumClubId(nextClubId);
+                            setSelectedTopicId(null);
+                            setShowNewTopic(false);
+                        }}
+                        formatOptionLabel={(option) => (
+                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-xl overflow-hidden bg-slate-100 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] shrink-0">
+                                {option.logoUrl ? (
+                                <img
+                                    src={option.logoUrl}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                />
+                                ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs font-black text-slate-900">
+                                    {String(option.label || "C").trim().charAt(0).toUpperCase()}
+                                </div>
+                                )}
+                            </div>
+                            <span className="text-sm font-black uppercase text-slate-900 truncate">
+                                {option.label}
+                            </span>
+                            </div>
+                        )}
+                        />
+                    </div>
+                    )}
                 </div>
-              </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                  <div className="flex items-center gap-3 bg-yellow-300 border-4 border-slate-900 p-4 rounded-2xl shadow-[4px_4px_0px_0px_#0f172a] w-full sm:w-auto">
+                      <img src="/Lobo.svg" alt="Agente Guia" className="w-10 h-10 shrink-0 border-2 border-slate-900 rounded-full bg-white" />
+                      <div>
+                      <p className="font-black uppercase text-sm text-slate-900">AGENTE GUIA PROTEGE O CHAT</p>
+                      <p className="text-xs font-bold text-slate-800 mt-1">Monitorização inteligente ativa.</p>
+                      </div>
+                  </div>
+
+                  {canParticipate && (
+                      <button
+                      onClick={() => setShowNewTopic(true)}
+                      className="flex items-center justify-center gap-3 px-8 py-4 bg-teal-400 border-4 border-slate-900 text-slate-900 rounded-2xl hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] shadow-[4px_4px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all text-sm font-black uppercase tracking-widest shrink-0 w-full sm:w-auto"
+                      >
+                      <Plus className="w-5 h-5 stroke-[3]" />
+                      Novo Tópico
+                      </button>
+                  )}
+                </div>
 
               {showNewTopic && (
                 <form
                   onSubmit={handleCreateTopic}
-                  className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)] animate-in fade-in slide-in-from-top-2"
+                  className="bg-pink-300 p-6 md:p-8 rounded-3xl border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] space-y-6 mb-10 animate-in fade-in slide-in-from-top-4 duration-500 transform "
                 >
-                  <h3 className="font-bold text-slate-700 text-lg">
-                    Iniciando uma nova discussÃ£o
+                  <h3 className="font-black text-slate-900 text-2xl uppercase tracking-tighter bg-white inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-2">
+                    Iniciar Discussão
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <input
                       type="text"
-                      placeholder="Qual o assunto do tÃ³pico?"
+                      placeholder="Qual o assunto do tópico? *"
                       value={newTopicTitle}
                       onChange={(e) => setNewTopicTitle(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm transition-all font-medium"
+                      className="w-full px-5 py-4 rounded-xl border-4 border-slate-900 focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none text-base transition-all font-black text-slate-900 placeholder:text-slate-500 shadow-[4px_4px_0px_0px_#0f172a]"
                       maxLength={200}
                       required
                       autoFocus
                     />
                     <textarea
-                      placeholder="Adicione mais detalhes (opcional)..."
+                      placeholder="Adicione detalhes (opcional)..."
                       value={newTopicDesc}
                       onChange={(e) => setNewTopicDesc(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm resize-none transition-all"
-                      rows={3}
+                      className="w-full px-5 py-4 rounded-xl border-4 border-slate-900 focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none text-base transition-all font-bold text-slate-900 placeholder:text-slate-500 shadow-[4px_4px_0px_0px_#0f172a] resize-y"
+                      rows={4}
                       maxLength={1000}
                     />
                   </div>
-                  <div className="flex gap-3 justify-end pt-2">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-end pt-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -1693,26 +1614,26 @@ export default function ForumBoard({
                         setNewTopicTitle("");
                         setNewTopicDesc("");
                       }}
-                      className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                      className="px-8 py-4 text-sm font-black uppercase tracking-widest bg-white border-4 border-slate-900 text-slate-900 hover:bg-slate-100 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all text-center"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !newTopicTitle.trim()}
-                      className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors disabled:opacity-50"
+                      className="flex items-center justify-center gap-3 px-8 py-4 text-sm font-black uppercase tracking-widest bg-blue-400 border-4 border-slate-900 text-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all disabled:opacity-50 disabled:pointer-events-none text-center"
                     >
-                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {submitting ? "Publicando..." : "Publicar TÃ³pico"}
+                      {submitting && <Loader2 className="w-5 h-5 animate-spin stroke-[3]" />}
+                      {submitting ? "Publicando..." : "Publicar Tópico"}
                     </button>
                   </div>
                 </form>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-6">
                 {topics.length === 0 ? (
                   <EmptyBox
-                    message="Nenhum tÃ³pico criado ainda. Seja o primeiro a iniciar uma conversa!"
+                    message="Nenhum tópico criado ainda. Seja o primeiro a iniciar uma conversa!"
                     icon={MessageCircle}
                   />
                 ) : (
@@ -1729,27 +1650,33 @@ export default function ForumBoard({
                   ))
                 )}
               </div>
+              </div>
                 </>
               )}
             </div>
           )}
 
-          {/* â”€â”€â”€ Tab: FÃ³runs Aceitos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ─── Tab: Fóruns Aceitos ───────────────────────────────────────── */}
           {activeTab === "aceitos" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {!viewingForumClubId ? (
                 <>
-                  <h2 className="text-xl font-bold text-slate-800">
-                    FÃ³runs disponÃ­veis para vocÃª
-                  </h2>
+                  <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2rem] p-8 md:p-12 mb-8 transform ">
+                      <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter mb-4">
+                        Fóruns Aprovados
+                      </h2>
+                      <p className="text-slate-800 font-bold text-lg bg-yellow-300 inline-block px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                        Acesso liberado. Explore as discussões destes clubes.
+                      </p>
+                  </div>
                   {acceptedClubs.length === 0 ? (
                     <ForumNoClubState
-                      title="Sem foruns aceitos no momento"
-                      message="VocÃª ainda nÃ£o tem acesso a fÃ³runs alÃ©m do seu clube principal."
+                      title="SEM FÓRUNS APROVADOS"
+                      message="Você ainda não tem acesso a fóruns além do seu clube principal."
                       icon={Users}
                     />
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                       {acceptedClubs.map((club, index) => (
                         <AcceptedClubCard
                           key={club.id}
@@ -1763,66 +1690,62 @@ export default function ForumBoard({
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-4 pb-2 border-b border-slate-200">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b-4 border-slate-900 mb-8">
                     <button
                       onClick={() => {
                         setViewingForumClubId(null);
                         setSelectedTopicId(null);
                       }}
-                      className="p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-[var(--forum-primary-ring)]"
+                      className="p-3 border-4 border-slate-900 bg-white rounded-xl hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all outline-none"
                       aria-label="Voltar para lista de clubes"
                     >
-                      <ArrowLeft className="w-5 h-5 text-slate-600" />
+                      <ArrowLeft className="w-6 h-6 stroke-[3] text-slate-900" />
                     </button>
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-slate-800">
-                        TÃ³picos â€” {currentForumClub?.nome || "FÃ³rum"}
+                      <h2 className="text-3xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none bg-yellow-300 inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -">
+                        Tópicos <span className="text-white [-webkit-text-stroke:2px_#0f172a] ml-2">{currentForumClub?.nome || "Fórum"}</span>
                       </h2>
                     </div>
                     {canParticipate && (
                       <button
                         onClick={() => setShowNewTopic(true)}
-                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
+                        className="flex items-center justify-center gap-3 px-6 py-4 bg-teal-400 border-4 border-slate-900 text-slate-900 font-black uppercase tracking-widest text-xs rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a] transition-all w-full sm:w-auto"
                       >
-                        <Plus className="w-4 h-4" /> Novo TÃ³pico
+                        <Plus className="w-5 h-5 stroke-[3]" /> Novo Tópico
                       </button>
                     )}
                   </div>
 
-                  {/* Mobile Novo Topico Button */}
-                  {canParticipate && (
-                    <button
-                      onClick={() => setShowNewTopic(true)}
-                      className="sm:hidden w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 transition-colors text-sm font-semibold shadow-sm"
-                    >
-                      <Plus className="w-4 h-4" /> Novo TÃ³pico
-                    </button>
-                  )}
-
                   {showNewTopic && (
                     <form
                       onSubmit={handleCreateTopic}
-                      className="premium-card p-5 space-y-4 bg-white border-2 border-[var(--forum-primary-soft-strong)]"
+                      className="bg-pink-300 p-6 md:p-8 rounded-3xl border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] space-y-6 mb-10 animate-in fade-in slide-in-from-top-4 duration-500 transform "
                     >
-                      {/* (Mesmo form de Novo TÃ³pico acima, renderizado dinamicamente) */}
-                      <input
-                        type="text"
-                        placeholder="TÃ­tulo do tÃ³pico"
-                        value={newTopicTitle}
-                        onChange={(e) => setNewTopicTitle(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm font-medium"
-                        maxLength={200}
-                        required
-                      />
-                      <textarea
-                        placeholder="DescriÃ§Ã£o (opcional)"
-                        value={newTopicDesc}
-                        onChange={(e) => setNewTopicDesc(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm resize-none"
-                        rows={3}
-                        maxLength={1000}
-                      />
-                      <div className="flex gap-3 justify-end">
+                      {/* (Mesmo form de Novo Tópico Neo-Brutalista) */}
+                      <h3 className="font-black text-slate-900 text-2xl uppercase tracking-tighter bg-white inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-2">
+                        Iniciar Discussão
+                      </h3>
+                      <div className="space-y-4">
+                        <input
+                            type="text"
+                            placeholder="Qual o assunto do tópico? *"
+                            value={newTopicTitle}
+                            onChange={(e) => setNewTopicTitle(e.target.value)}
+                            className="w-full px-5 py-4 rounded-xl border-4 border-slate-900 focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none text-base transition-all font-black text-slate-900 placeholder:text-slate-500 shadow-[4px_4px_0px_0px_#0f172a]"
+                            maxLength={200}
+                            required
+                            autoFocus
+                        />
+                        <textarea
+                            placeholder="Adicione detalhes (opcional)..."
+                            value={newTopicDesc}
+                            onChange={(e) => setNewTopicDesc(e.target.value)}
+                            className="w-full px-5 py-4 rounded-xl border-4 border-slate-900 focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none text-base transition-all font-bold text-slate-900 placeholder:text-slate-500 shadow-[4px_4px_0px_0px_#0f172a] resize-y"
+                            rows={4}
+                            maxLength={1000}
+                        />
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-4 justify-end pt-4">
                         <button
                           type="button"
                           onClick={() => {
@@ -1830,28 +1753,26 @@ export default function ForumBoard({
                             setNewTopicTitle("");
                             setNewTopicDesc("");
                           }}
-                          className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                          className="px-8 py-4 text-sm font-black uppercase tracking-widest bg-white border-4 border-slate-900 text-slate-900 hover:bg-slate-100 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-center"
                         >
                           Cancelar
                         </button>
                         <button
                           type="submit"
                           disabled={submitting || !newTopicTitle.trim()}
-                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[var(--forum-primary)] text-white rounded-xl hover:brightness-95 disabled:opacity-50"
+                          className="flex items-center justify-center gap-3 px-8 py-4 text-sm font-black uppercase tracking-widest bg-blue-400 border-4 border-slate-900 text-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50 disabled:pointer-events-none text-center"
                         >
-                          {submitting && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          )}
-                          {submitting ? "Criando..." : "Criar TÃ³pico"}
+                          {submitting && <Loader2 className="w-5 h-5 animate-spin stroke-[3]" />}
+                          {submitting ? "Publicando..." : "Publicar Tópico"}
                         </button>
                       </div>
                     </form>
                   )}
 
-                  <div className="space-y-3">
+                  <div className="space-y-6">
                     {topics.length === 0 ? (
                       <EmptyBox
-                        message="Nenhum tÃ³pico encontrado neste fÃ³rum."
+                        message="Nenhum tópico criado ainda. Seja o primeiro a iniciar uma conversa!"
                         icon={MessageCircle}
                       />
                     ) : (
@@ -1860,7 +1781,7 @@ export default function ForumBoard({
                           key={topic.id}
                           topic={topic}
                           onSelect={setSelectedTopicId}
-                          isModerator={false} // NÃ£o Ã© moderador de outros clubes
+                          isModerator={false} // Não é moderador de outros clubes
                         />
                       ))
                     )}
@@ -1870,24 +1791,22 @@ export default function ForumBoard({
             </div>
           )}
 
-          {/* â”€â”€â”€ Tab: Explorar FÃ³runs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ─── Tab: Explorar Fóruns ─────────────────────────────────────── */}
           {activeTab === "explorar" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2rem] p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8 transform ">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">
-                    Explorar Outros Clubes
+                  <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-4">
+                    Explorar <br/>Outros Clubes
                   </h2>
                   {exploreTotalCount > 0 && (
-                    <p className="text-sm text-slate-500 font-medium mt-1">
-                      Descubra discussÃµes em outros {exploreTotalCount} clubes da
-                      {" "}
-                      {exploreScopeLabel}
+                    <p className="text-sm font-black uppercase tracking-widest text-slate-900 bg-yellow-300 inline-block px-3 py-1.5 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transform -rotate-2">
+                      {exploreTotalCount} clubes {exploreScopeLabel}
                     </p>
                   )}
                 </div>
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-900 stroke-[3]" />
                   <input
                     type="text"
                     placeholder="Buscar clube..."
@@ -1896,11 +1815,11 @@ export default function ForumBoard({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleForumSearch();
                     }}
-                    className="w-full pl-10 pr-24 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-[var(--forum-primary-soft)] focus:border-[var(--forum-primary)] outline-none text-sm font-medium transition-all"
+                    className="w-full pl-14 pr-24 py-4 rounded-xl border-4 border-slate-900 focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none text-base font-black text-slate-900 uppercase placeholder:text-slate-400 transition-all shadow-[4px_4px_0px_0px_#0f172a]"
                   />
                   <button
                     onClick={handleForumSearch}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest text-slate-900 bg-teal-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                     aria-label="Buscar"
                   >
                     Buscar
@@ -1908,10 +1827,10 @@ export default function ForumBoard({
                   {searchForumInput && (
                     <button
                       onClick={handleClearForumSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                      className="absolute right-24 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                       aria-label="Limpar busca"
                     >
-                      <XCircle className="w-4 h-4 text-slate-400" />
+                      <XCircle className="w-4 h-4 text-slate-900 stroke-[3]" />
                     </button>
                   )}
                 </div>
@@ -1929,7 +1848,7 @@ export default function ForumBoard({
                   icon={Globe}
                 />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                   {explorableClubs.map((club, index) => (
                     <ClubExploreCard
                       key={club.id}
@@ -1946,11 +1865,11 @@ export default function ForumBoard({
               {exploreHasMore && (
                 <div
                   ref={exploreLoadMoreRef}
-                  className="flex items-center justify-center py-8"
+                  className="flex items-center justify-center py-12"
                 >
                   {exploreFetching && (
-                    <div className="flex items-center gap-2 text-[var(--forum-primary)] font-medium text-sm bg-[var(--forum-primary-soft)] px-4 py-2 rounded-full">
-                      <LoaderCircle className="w-4 h-4 animate-spin" />
+                    <div className="flex items-center gap-3 text-sm text-slate-900 font-black uppercase tracking-widest bg-yellow-300 border-4 border-slate-900 px-6 py-3 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
+                      <LoaderCircle className="w-5 h-5 animate-spin stroke-[3]" />
                       Carregando mais clubes...
                     </div>
                   )}
@@ -1958,8 +1877,8 @@ export default function ForumBoard({
               )}
 
               {!exploreHasMore && explorableClubs.length > 0 && (
-                <p className="text-center text-sm font-medium text-slate-400 py-8">
-                  VocÃª chegou ao fim da lista.
+                <p className="text-center text-xs font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-6 py-3 rounded-xl mt-8 mx-auto w-fit">
+                  Você chegou ao fim da lista.
                 </p>
               )}
             </div>
@@ -1977,4 +1896,3 @@ export default function ForumBoard({
     </>
   );
 }
-

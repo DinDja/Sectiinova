@@ -5,13 +5,9 @@ import {
   Check,
   BookOpen,
   Microscope,
-  Cpu,
   Target,
-  Sparkles,
   Brain,
   Orbit,
-  Heart,
-  Leaf,
   Code,
   Lightbulb,
   ChevronRight,
@@ -21,10 +17,10 @@ import {
   Atom,
   Palette,
   Calculator,
+  Asterisk,
 } from "lucide-react";
-import { FcWorkflow } from "react-icons/fc";
 
-// --- COMPONENTE DE ANIMAÇÃO DE SCROLL ---
+// --- COMPONENTE DE ANIMAÇÃO DE SCROLL (NEO-BRUTALISTA) ---
 const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -47,8 +43,8 @@ const ScrollReveal = ({ children, delay = 0, className = "" }) => {
     <div
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transform transition-all duration-700 ease-out ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+      className={`transform transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+        isVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-16 scale-95"
       } ${className}`}
     >
       {children}
@@ -64,7 +60,7 @@ const TRILHA_LEVELS = [
     file: "/trilha.json",
     legal:
       "RESOLUÇÃO CNE/CEB Nº 4, DE 12 DE MAIO DE 2025 — Parâmetros Nacionais para IFA's no Ensino Médio.",
-    headingAccent: "CT&I",
+    headingAccent: "CT&I Ensino Médio",
     headingDescription:
       "Siga os passos e revele o caminho do conhecimento científico e tecnológico.",
   },
@@ -74,7 +70,7 @@ const TRILHA_LEVELS = [
     subtitle: "Anos finais com foco em investigação, autoria e inovação",
     file: "/trilha_anos_finais_8_9.json",
     legal:
-      "BNCC — Competências e práticas integradas para os Anos Finais do Ensino Fundamental (8º e 9º ano).",
+      "DCRB — Competências e práticas integradas para os Anos Finais do Ensino Fundamental (8º e 9º ano).",
     headingAccent: "CT&I 8º/9º",
     headingDescription:
       "Explore trilhas investigativas adaptadas aos Anos Finais, com linguagem acessível e protagonismo estudantil.",
@@ -198,57 +194,35 @@ export default function TrilhaPedagogica() {
   };
 
   const getAreaIcon = (nome) => {
-    if (!nome) return <Layers className="w-8 h-8" />;
+    if (!nome) return <Layers className="w-8 h-8 stroke-[2.5]" />;
     const n = nome.toLowerCase();
     if (n.includes("exatas") || n.includes("matemática"))
-      return <Calculator className="w-8 h-8" />;
+      return <Calculator className="w-8 h-8 stroke-[2.5]" />;
     if (n.includes("humanas") || n.includes("sociais"))
-      return <Globe className="w-8 h-8" />;
+      return <Globe className="w-8 h-8 stroke-[2.5]" />;
     if (n.includes("biológicas") || n.includes("ciência"))
-      return <Atom className="w-8 h-8" />;
+      return <Atom className="w-8 h-8 stroke-[2.5]" />;
     if (n.includes("artes") || n.includes("linguagens"))
-      return <Palette className="w-8 h-8" />;
-    return <Layers className="w-8 h-8" />;
+      return <Palette className="w-8 h-8 stroke-[2.5]" />;
+    return <Layers className="w-8 h-8 stroke-[2.5]" />;
   };
 
+  // Cores adaptadas para o estilo Neo-Brutalista
   const getThemeVars = (foco) => {
     const themes = {
-      "Inteligência Artificial": {
-        accent: "text-indigo-600",
-        bg: "bg-indigo-50",
-        dot: "bg-indigo-600",
-      },
-      Sustentabilidade: {
-        accent: "text-emerald-600",
-        bg: "bg-emerald-50",
-        dot: "bg-emerald-600",
-      },
-      Robótica: {
-        accent: "text-blue-600",
-        bg: "bg-blue-50",
-        dot: "bg-blue-600",
-      },
-      Saúde: { accent: "text-rose-600", bg: "bg-rose-50", dot: "bg-rose-600" },
-      Educação: {
-        accent: "text-amber-600",
-        bg: "bg-amber-50",
-        dot: "bg-amber-600",
-      },
+      "Inteligência Artificial": { accent: "bg-blue-400", dot: "bg-blue-400" },
+      "Sustentabilidade": { accent: "bg-teal-400", dot: "bg-teal-400" },
+      "Robótica": { accent: "bg-purple-400", dot: "bg-purple-400" },
+      "Saúde": { accent: "bg-pink-400", dot: "bg-pink-400" },
+      "Educação": { accent: "bg-yellow-300", dot: "bg-yellow-300" },
     };
-    return (
-      themes[foco] || {
-        accent: "text-slate-600",
-        bg: "bg-slate-100",
-        dot: "bg-slate-600",
-      }
-    );
+    return themes[foco] || { accent: "bg-slate-300", dot: "bg-slate-300" };
   };
 
-  // Helpers para renderizar listas que podem ser strings ou objetos
   const renderList = (arr) => {
     if (!arr || !arr.length) return null;
     return (
-      <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
+      <ul className="list-disc list-outside ml-4 text-slate-800 text-sm font-bold space-y-2 marker:text-slate-900">
         {arr.map((item, i) => (
           <li key={i}>
             {typeof item === "string"
@@ -266,15 +240,17 @@ export default function TrilhaPedagogica() {
   const renderActivities = (acts) => {
     if (!acts || !acts.length) return null;
     return (
-      <ul className="list-disc list-inside text-slate-600 text-sm space-y-2">
+      <ul className="list-disc list-outside ml-4 text-slate-800 text-sm font-bold space-y-3 marker:text-slate-900">
         {acts.map((a, i) => (
           <li key={i}>
-            <span className="font-semibold">
+            <span className="font-black text-slate-900 uppercase underline decoration-2 decoration-slate-300">
               {a.titulo || a.nome || `Atividade ${i + 1}`}
             </span>
             {a.descricao ? ` — ${a.descricao}` : null}
             {a.duracao ? (
-              <span className="text-xs text-slate-400"> ({a.duracao})</span>
+              <span className="text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded ml-2 shadow-[2px_2px_0px_0px_#cbd5e1]">
+                {a.duracao}
+              </span>
             ) : null}
           </li>
         ))}
@@ -285,32 +261,36 @@ export default function TrilhaPedagogica() {
   const renderEncounterDetails = (encontros) => {
     if (!encontros || !encontros.length) return null;
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {encontros.map((enc, i) => (
           <article
             key={`${enc.numero || i}-${enc.titulo || `enc-${i}`}`}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-xl border-4 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all"
           >
-            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
-              {enc.numero ? `Encontro ${enc.numero}` : `Encontro ${i + 1}`}
-            </p>
-            <h6 className="text-sm font-bold text-slate-800 mt-1">
+            <div className="inline-block bg-yellow-300 border-2 border-slate-900 px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a] transform -rotate-1 mb-3">
+              <p className="text-[10px] uppercase tracking-widest font-black text-slate-900">
+                {enc.numero ? `Encontro ${enc.numero}` : `Encontro ${i + 1}`}
+              </p>
+            </div>
+            
+            <h6 className="text-lg font-black text-slate-900 leading-tight">
               {enc.titulo || `Etapa ${i + 1}`}
             </h6>
+            
             {enc.foco ? (
-              <p className="text-xs text-slate-600 mt-2">
-                <span className="font-semibold">Foco:</span> {enc.foco}
+              <p className="text-xs text-slate-800 font-bold mt-2 bg-slate-100 p-2 rounded-md border-2 border-slate-900 inline-block">
+                <span className="font-black uppercase">Foco:</span> {enc.foco}
               </p>
             ) : null}
 
             {enc.descricao_linhas?.length > 0 ? (
-              <ul className="list-disc list-inside mt-2 text-xs text-slate-600 space-y-1">
+              <ul className="list-disc list-outside ml-4 mt-4 text-sm font-bold text-slate-800 space-y-2 marker:text-slate-900">
                 {enc.descricao_linhas.map((line, idx) => (
                   <li key={idx}>{line}</li>
                 ))}
               </ul>
             ) : enc.descricao ? (
-              <p className="text-xs text-slate-600 mt-2">{enc.descricao}</p>
+              <p className="text-sm font-bold text-slate-800 mt-4 leading-relaxed">{enc.descricao}</p>
             ) : null}
           </article>
         ))}
@@ -320,121 +300,102 @@ export default function TrilhaPedagogica() {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-[#FAFBFF] flex items-center justify-center">
-        <Orbit className="w-10 h-10 text-blue-600 animate-spin" />
+      <div className="min-h-screen bg-[#F4F4F0] flex items-center justify-center">
+        <Orbit className="w-16 h-16 text-slate-900 animate-spin" />
       </div>
     );
 
   return (
     <>
-      {/* ESTILOS INJETADOS PARA O FUNDO DE CUBOS 3D E ANIMAÇÃO */}
-      <style>{`
-        .bg-3d-cubes {
-          background-color: #FAFBFF;
-          background-image:
-            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(30deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(150deg, rgba(240,244,248,0.28) 12%, transparent 12.5%, transparent 87%, rgba(240,244,248,0.28) 87.5%, rgba(240,244,248,0.28)),
-            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24)),
-            linear-gradient(60deg, rgba(226,232,240,0.24) 25%, transparent 25.5%, transparent 75%, rgba(226,232,240,0.24) 75%, rgba(226,232,240,0.24));
-          background-size: 80px 140px;
-          background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
-          animation: panCubes 60s linear infinite;
-        }
-        @keyframes panCubes {
-          0% { background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px; }
-          100% { background-position: 80px 140px, 80px 140px, 120px 210px, 120px 210px, 80px 140px, 120px 210px; }
-        }
-      `}</style>
+      <div className="min-h-screen bg-[#F4F4F0] text-slate-900 pb-32 font-sans selection:bg-teal-400 selection:text-slate-900 overflow-x-hidden relative">
+        
+        {/* PADRÃO DE FUNDO - GRID (BLUEPRINT) NEO-BRUTALISTA */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a15_2px,transparent_2px),linear-gradient(to_bottom,#0f172a15_2px,transparent_2px)] bg-[size:40px_40px]"></div>
+        </div>
 
-      <div className="min-h-screen bg-3d-cubes text-slate-900 pb-32 font-sans selection:bg-blue-100 overflow-x-hidden relative">
-        {/* Overlay sutil para garantir leitura perfeita sobre os cubos */}
-        <div className="absolute inset-0 bg-white/20 pointer-events-none"></div>
-
-        <div className="max-w-4xl mx-auto px-6 py-16 space-y-24 relative z-10">
-          {/* Header */}
+        <div className="max-w-5xl mx-auto px-6 py-16 space-y-24 relative ">
+          
+          {/* --- HEADER --- */}
           <ScrollReveal>
-            <header className="text-center space-y-4">
+            <header className="text-center space-y-6">
               <div className="mx-auto max-w-3xl">
-                <p className="inline-block bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-4 py-2 rounded-lg text-sm md:text-base font-extrabold leading-tight">
+                <p className="inline-block bg-yellow-300 border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] text-slate-900 px-6 py-3 rounded-xl text-sm md:text-base font-black leading-tight uppercase tracking-wider transform -rotate-1">
                   {selectedLevel?.legal}
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3">
-                <FcWorkflow className="w-12 h-12 text-blue-600" />
-                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
-                  Sua Jornada Em
-                  <span className="ms-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              
+              <div className="flex flex-col items-center justify-center gap-4 mt-6">
+                <div className="w-20 h-20 bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform rotate-3">
+                  <Brain className="w-10 h-10 text-slate-900 stroke-[2.5]" />
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 uppercase leading-[0.9] mt-4 bg-white/60 px-4 py-2 backdrop-blur-sm rounded-2xl border-4 border-slate-900/10">
+                  Sua Jornada Em <br />
+                  <span className="inline-block bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] px-6 py-2 mt-4 transform -rotate-1">
                     {selectedLevel?.headingAccent || "CT&I"}
                   </span>
                 </h1>
               </div>
-              <p className="text-slate-600 text-lg max-w-xl mx-auto font-medium">
+              
+              <p className="text-slate-800 text-xl max-w-2xl mx-auto font-bold mt-8 bg-white p-6 border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] rounded-xl text-left transform rotate-1">
                 {selectedLevel?.headingDescription}
               </p>
-              <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
-                Estas são apenas sugestões de atividades e recursos. O(a)
-                professor(a) tem autonomia para adaptar, rejeitar ou reorganizar
-                conforme a realidade da turma.
+              
+              <p className="text-xs text-slate-500 max-w-xl mx-auto font-black uppercase tracking-widest mt-6 bg-[#F4F4F0] px-4 py-1 rounded-full border-2 border-slate-900/20">
+                * Estas são apenas sugestões de atividades e recursos. O(a) professor(a) tem autonomia para adaptar, rejeitar ou reorganizar conforme a realidade da turma.
               </p>
             </header>
           </ScrollReveal>
 
+          {/* --- SELETOR DE ETAPA DE ENSINO --- */}
           <ScrollReveal delay={100}>
             <section className="relative z-30">
-              <div className="rounded-3xl p-[1px] bg-gradient-to-r from-cyan-400/70 via-blue-500/60 to-indigo-500/70 shadow-xl">
-                <div className="rounded-3xl bg-white/90 backdrop-blur-md p-4 md:p-5 border border-white/60">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <h2 className="text-sm md:text-base font-extrabold text-slate-700 uppercase tracking-wide">
-                      Selecione a etapa de ensino
-                    </h2>
-                    <span className="text-[11px] md:text-xs text-slate-500 font-semibold">
-                      {areas.length} áreas • {totalObjectives} objetivos
-                    </span>
-                  </div>
+              <div className="rounded-[2rem] bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] p-6 md:p-10">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                    <Asterisk className="w-6 h-6 stroke-[3]" /> Selecione a Etapa
+                  </h2>
+                  <span className="text-xs bg-slate-900 text-white font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-[2px_2px_0px_0px_#cbd5e1]">
+                    {areas.length} áreas • {totalObjectives} objetivos
+                  </span>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {TRILHA_LEVELS.map((level) => {
-                      const active = level.id === selectedLevelId;
-                      return (
-                        <button
-                          key={level.id}
-                          onClick={() => handleSelectLevel(level.id)}
-                          className={`text-left rounded-2xl px-4 py-4 border transition-all duration-300 ${
-                            active
-                              ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-transparent shadow-[0_10px_30px_-10px_rgba(37,99,235,0.7)] -translate-y-0.5"
-                              : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/40"
-                          }`}
-                        >
-                          <p className="text-base font-black tracking-tight">
-                            {level.label}
-                          </p>
-                          <p
-                            className={`text-xs mt-1 leading-relaxed ${
-                              active ? "text-blue-100" : "text-slate-500"
-                            }`}
-                          >
-                            {level.subtitle}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {TRILHA_LEVELS.map((level) => {
+                    const active = level.id === selectedLevelId;
+                    return (
+                      <button
+                        key={level.id}
+                        onClick={() => handleSelectLevel(level.id)}
+                        className={`text-left rounded-2xl px-6 py-6 border-4 transition-all duration-200 flex flex-col justify-center ${
+                          active
+                            ? "bg-teal-400 border-slate-900 text-slate-900 shadow-[8px_8px_0px_0px_#0f172a] -translate-y-1 -translate-x-1"
+                            : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0px_0px_#0f172a] hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="text-2xl font-black tracking-tight uppercase">
+                          {level.label}
+                        </p>
+                        <p className={`text-sm font-bold mt-2 leading-relaxed ${active ? "text-slate-900" : "text-slate-600"}`}>
+                          {level.subtitle}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </section>
           </ScrollReveal>
 
           {/* PARTE 1: ÁREAS */}
-          <section className="space-y-8 relative z-30">
+          <section className="space-y-12 relative z-30">
             <ScrollReveal>
-              <div className="flex items-center gap-3 justify-center mb-4">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm shadow-md">
+              <div className="flex flex-col items-center gap-4 justify-center mb-8">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-black text-2xl shadow-[4px_4px_0px_0px_#cbd5e1] transform -rotate-3">
                   1
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 bg-white/60 px-4 py-1 rounded-xl backdrop-blur-sm">
-                  Escolha o seu Bloco de Conhecimento
+                <h2 className="text-3xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter text-center bg-white/60 px-4 py-2 backdrop-blur-sm rounded-xl">
+                  Bloco de Conhecimento
                 </h2>
               </div>
             </ScrollReveal>
@@ -448,20 +409,18 @@ export default function TrilhaPedagogica() {
                   <ScrollReveal key={areaId} delay={idx * 100}>
                     <button
                       onClick={() => handleSelectArea(areaId)}
-                      className={`w-full h-full relative p-6 rounded-2xl flex flex-col justify-center items-center gap-3 text-center transition-all duration-300 ease-out backdrop-blur-sm
+                      className={`w-full h-full relative p-8 rounded-3xl flex flex-col justify-center items-center gap-4 text-center border-4 border-slate-900 transition-all duration-200
                         ${
                           isSelected
-                            ? "bg-blue-600 text-white border-transparent shadow-[0_10px_40px_-10px_rgba(37,99,235,0.6)] -translate-y-2 scale-105 ring-4 ring-blue-100/50"
-                            : "bg-white/90 text-slate-600 border border-slate-200 border-b-[6px] hover:border-b-[6px] hover:border-blue-200 hover:text-blue-600 hover:-translate-y-1 hover:shadow-xl"
+                            ? "bg-blue-400 text-slate-900 shadow-[8px_8px_0px_0px_#0f172a] -translate-y-2 -translate-x-2"
+                            : "bg-white text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0px_0px_#0f172a] hover:bg-blue-50"
                         }
                       `}
                     >
-                      <div
-                        className={`p-4 rounded-full transition-colors ${isSelected ? "bg-blue-500/50" : "bg-slate-50 text-slate-400 group-hover:bg-blue-50"}`}
-                      >
+                      <div className={`p-5 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transition-colors ${isSelected ? "bg-white" : "bg-yellow-300 group-hover:bg-yellow-400"}`}>
                         {getAreaIcon(area.area_de_conhecimento)}
                       </div>
-                      <span className="font-extrabold text-lg tracking-tight break-words leading-tight">
+                      <span className="font-black text-xl tracking-tight break-words uppercase leading-none">
                         {area.area_de_conhecimento}
                       </span>
                     </button>
@@ -473,22 +432,23 @@ export default function TrilhaPedagogica() {
 
           {/* PARTE 2: OBJETIVOS */}
           {selectedArea && (
-            <div ref={objectivesRef} className="pt-8 space-y-8 relative z-20">
+            <div ref={objectivesRef} className="pt-12 space-y-12 relative z-20">
               <ScrollReveal>
-                <div className="flex justify-center animate-bounce text-slate-400 mb-8">
-                  <ArrowDown className="w-8 h-8 drop-shadow-sm" />
+                <div className="flex justify-center animate-bounce text-slate-900 mb-12">
+                  <ArrowDown className="w-12 h-12 stroke-[3]" />
                 </div>
-                <div className="flex items-center gap-3 justify-center mb-4">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm shadow-md">
+                
+                <div className="flex flex-col items-center gap-4 justify-center mb-8">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-black text-2xl shadow-[4px_4px_0px_0px_#cbd5e1] transform rotate-3">
                     2
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-800 bg-white/60 px-4 py-1 rounded-xl backdrop-blur-sm">
-                    Defina o Objetivo da Investigação
+                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter text-center bg-white/60 px-4 py-2 backdrop-blur-sm rounded-xl">
+                    Objetivo da Investigação
                   </h2>
                 </div>
               </ScrollReveal>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-6">
                 {objectives.map((obj, idx) => {
                   const objId = obj.id || idx;
                   const isSelected = selectedObjectiveId === objId;
@@ -497,18 +457,18 @@ export default function TrilhaPedagogica() {
                     <ScrollReveal key={objId} delay={idx * 100}>
                       <button
                         onClick={() => handleSelectObjective(objId)}
-                        className={`w-full p-5 rounded-2xl text-left transition-all duration-300 flex items-start gap-4 border backdrop-blur-sm
+                        className={`w-full p-8 rounded-[2rem] text-left transition-all duration-200 flex items-start gap-5 border-4 border-slate-900
                           ${
                             isSelected
-                              ? "bg-slate-800 border-slate-800 text-white shadow-xl shadow-slate-300/50 scale-[1.02]"
-                              : "bg-white/90 border-slate-200 text-slate-600 border-b-4 hover:border-slate-300 hover:bg-white hover:-translate-y-1"
+                              ? "bg-slate-900 text-white shadow-[8px_8px_0px_0px_#14b8a6] -translate-y-2 -translate-x-2"
+                              : "bg-white text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[8px_8px_0px_0px_#0f172a]"
                           }
                         `}
                       >
-                        <Target
-                          className={`w-6 h-6 shrink-0 mt-0.5 ${isSelected ? "text-blue-400" : "text-slate-400"}`}
-                        />
-                        <span className="font-semibold text-sm leading-relaxed">
+                        <div className={`p-3 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] shrink-0 mt-0.5 ${isSelected ? "bg-teal-400" : "bg-white"}`}>
+                           <Target className={`w-6 h-6 stroke-[3] ${isSelected ? "text-slate-900" : "text-slate-900"}`} />
+                        </div>
+                        <span className="font-black text-lg leading-snug">
                           {obj.descricao_objetivo}
                         </span>
                       </button>
@@ -521,39 +481,40 @@ export default function TrilhaPedagogica() {
 
           {/* PARTE 3: A TRILHA DE PROJETOS */}
           {selectedObjective && (
-            <div ref={projectsRef} className="pt-8 space-y-8 relative z-10">
+            <div ref={projectsRef} className="pt-12 space-y-12 relative ">
               <ScrollReveal>
-                <div className="flex justify-center animate-bounce text-slate-400 mb-8">
-                  <ArrowDown className="w-8 h-8 drop-shadow-sm" />
+                <div className="flex justify-center animate-bounce text-slate-900 mb-12">
+                  <ArrowDown className="w-12 h-12 stroke-[3]" />
                 </div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 bg-white/60 p-4 rounded-2xl backdrop-blur-sm border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm shadow-md">
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 bg-white p-8 rounded-[2rem] border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-black text-2xl shadow-[4px_4px_0px_0px_#cbd5e1] transform -rotate-3">
                       3
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800">
+                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter">
                       Explore a Trilha
                     </h2>
                   </div>
 
-                  <div className="relative w-full md:w-72">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="relative w-full md:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-900 stroke-[3]" />
                     <input
                       type="text"
                       value={filterText}
                       onChange={(e) => setFilterText(e.target.value)}
-                      placeholder="Filtrar projetos..."
-                      className="w-full pl-10 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500/50 transition-all shadow-sm"
+                      placeholder="FILTRAR PROJETOS..."
+                      className="w-full pl-14 pr-4 py-4 bg-[#F4F4F0] border-4 border-slate-900 rounded-2xl text-sm font-black text-slate-900 focus:outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all shadow-[4px_4px_0px_0px_#0f172a] uppercase placeholder:text-slate-400"
                     />
                   </div>
                 </div>
               </ScrollReveal>
 
-              <div className="relative pl-6 md:pl-8">
-                {/* Linha Central da Timeline (Com sombra suave para destacar nos cubos) */}
-                <div className="absolute left-6 md:left-8 top-0 bottom-0 w-[3px] bg-gradient-to-b from-slate-300 via-slate-300 to-transparent rounded-full shadow-sm"></div>
+              <div className="relative pl-6 md:pl-10">
+                {/* Linha Central da Timeline Neo-Brutalista */}
+                <div className="absolute left-6 md:left-10 top-4 bottom-0 w-2 bg-slate-900 rounded-full"></div>
 
-                <div className="space-y-8">
+                <div className="space-y-12">
                   {filteredProjects.map((projeto, index) => {
                     const q = projeto.qualidades_do_projeto || {};
                     const theme = getThemeVars(q.foco || q.focus);
@@ -562,81 +523,80 @@ export default function TrilhaPedagogica() {
 
                     return (
                       <ScrollReveal key={index} delay={100}>
-                        <div className="relative pl-8 md:pl-12 group">
+                        <div className="relative pl-8 md:pl-14 group">
+                          
                           {/* Ponto na linha do tempo */}
                           <div
-                            className={`absolute left-[-6px] md:left-[-6px] top-6 w-4 h-4 rounded-full ring-4 ring-[#FAFBFF] shadow-sm transition-all duration-500 z-10 ${
+                            className={`absolute left-[-11px] md:left-[-11px] top-10 w-8 h-8 rounded-full border-4 border-slate-900  transition-all duration-300 ${
                               isExpanded
-                                ? `${theme.dot} scale-150`
-                                : "bg-slate-300 group-hover:bg-slate-400 group-hover:scale-125"
+                                ? `${theme.dot} scale-125 shadow-[2px_2px_0px_0px_#0f172a]`
+                                : "bg-white hover:bg-slate-200 hover:scale-110 shadow-[2px_2px_0px_0px_#0f172a]"
                             }`}
                           ></div>
 
-                          {/* Card do Projeto (wrapper com barra de destaque) */}
-                          <div className="relative">
-                            <div className={`absolute left-4 top-6 bottom-6 w-1 rounded-r-xl transition-colors ${isExpanded ? theme.dot : 'bg-slate-200'}`}></div>
-                            <div
-                              onClick={() => {
-                                if (isExpanded) {
-                                  setExpandedProjectId(null);
-                                } else {
-                                  setExpandedProjectId(index);
-                                  setSelectedProjectAction((prev) => ({
-                                    ...prev,
-                                    [index]: null,
-                                  }));
-                                }
-                              }}
-                              className={`ml-6 bg-white/90 backdrop-blur-sm rounded-2xl border transition-all duration-500 cursor-pointer overflow-hidden min-h-[220px] flex flex-col
-                                ${
-                                  isExpanded
-                                    ? "border-slate-300 shadow-2xl shadow-slate-300/40 translate-x-2"
-                                    : "border-slate-200 border-b-4 hover:border-slate-300 shadow-md hover:shadow-xl hover:translate-x-1 hover:bg-white/95"
-                                }
-                              `}
-                            >
-                            <div className="p-6 md:p-8">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2 flex-wrap">
+                          {/* Card do Projeto */}
+                          <div
+                            onClick={() => {
+                              if (isExpanded) {
+                                setExpandedProjectId(null);
+                              } else {
+                                setExpandedProjectId(index);
+                                setSelectedProjectAction((prev) => ({
+                                  ...prev,
+                                  [index]: null,
+                                }));
+                              }
+                            }}
+                            className={`bg-white rounded-[2.5rem] border-4 border-slate-900 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col relative
+                              ${
+                                isExpanded
+                                  ? "shadow-[16px_16px_0px_0px_#0f172a] -translate-y-2 -translate-x-2"
+                                  : "shadow-[8px_8px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[12px_12px_0px_0px_#0f172a]"
+                              }
+                            `}
+                          >
+                            <div className="p-8 md:p-10">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-6">
+                                <div className="flex items-center gap-3 flex-wrap">
                                   <span
-                                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${theme.bg} ${theme.accent}`}
+                                    className={`px-4 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] rounded-lg text-xs font-black uppercase tracking-widest text-slate-900 ${theme.accent}`}
                                   >
                                     {q.foco || q.focus || "Geral"}
                                   </span>
-                                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                  <span className="px-4 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] rounded-lg text-xs font-black uppercase tracking-widest bg-slate-100 text-slate-900">
                                     {selectedLevel?.label}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-slate-300">#{String(index + 1).padStart(2, "0")}</span>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-3xl font-black text-slate-300">#{String(index + 1).padStart(2, "0")}</span>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenResourcesIndex(openResourcesIndex === index ? null : index);
                                     }}
-                                    className="p-2 rounded-md hover:bg-slate-100"
+                                    className="p-3 rounded-xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                                     aria-label="Ver recursos"
                                   >
-                                    <BookOpen className="w-4 h-4 text-slate-500" />
+                                    <BookOpen className="w-5 h-5 text-slate-900 stroke-[2.5]" />
                                   </button>
                                 </div>
                               </div>
 
-                              <h3 className="text-xl md:text-2xl font-bold text-slate-800 pr-8 leading-tight">
+                              <h3 className="text-2xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-[1.1] mb-4">
                                 {projeto.titulo}
                               </h3>
 
                               {/* Resumo curto do projeto */}
                               {projeto.resumo && (
-                                <p className="mt-2 text-sm text-slate-600 max-w-[70ch]">
+                                <p className="text-base font-bold text-slate-600 max-w-4xl border-l-4 border-slate-900 pl-4 bg-slate-50 p-4 rounded-r-xl">
                                   {projeto.resumo.length > 160 ? projeto.resumo.slice(0, 160) + '...' : projeto.resumo}
                                 </p>
                               )}
 
                               {!isExpanded && (
-                                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest opacity-80 group-hover:opacity-100 transition-opacity">
-                                  Desvendar projeto
-                                  <ChevronRight className="w-4 h-4" />
+                                <div className="mt-8 flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-widest bg-yellow-300 w-max px-4 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                                  Desvendar Projeto
+                                  <ChevronRight className="w-5 h-5 stroke-[3]" />
                                 </div>
                               )}
                             </div>
@@ -645,210 +605,164 @@ export default function TrilhaPedagogica() {
                             <div
                               className={`grid transition-all duration-500 ease-in-out ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
                             >
-                              <div className="overflow-hidden bg-slate-50/80 border-t border-slate-100">
-                                <div className="p-6 md:p-8 space-y-6">
+                              <div className="overflow-hidden bg-[#F4F4F0] border-t-4 border-slate-900">
+                                <div className="p-8 md:p-10 space-y-8">
                                   {!selectedAction ? (
-                                    <div className="space-y-5">
-                                      <p className="text-sm font-bold text-slate-700">
-                                        O que você quer fazer hoje?
+                                    <div className="space-y-6">
+                                      <p className="text-xl font-black text-slate-900 uppercase tracking-tighter">
+                                        Escolha o seu caminho de ação:
                                       </p>
-                                      <div className="grid sm:grid-cols-3 gap-3">
+                                      <div className="grid sm:grid-cols-3 gap-4">
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedProjectAction(
-                                              (prev) => ({
-                                                ...prev,
-                                                [index]: "investigacao",
-                                              }),
-                                            );
+                                            setSelectedProjectAction((prev) => ({ ...prev, [index]: "investigacao" }));
                                           }}
-                                          className="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold hover:bg-blue-100"
+                                          className="px-4 py-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-4 border-slate-900 bg-teal-400 text-slate-900 font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-sm"
                                         >
-                                          <Microscope className="w-4 h-4 inline mr-1" />
-                                          Investigação Científica
+                                          <Microscope className="w-8 h-8 stroke-[2.5]" />
+                                          Investigação
                                         </button>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedProjectAction(
-                                              (prev) => ({
-                                                ...prev,
-                                                [index]: "inovacao",
-                                              }),
-                                            );
+                                            setSelectedProjectAction((prev) => ({ ...prev, [index]: "inovacao" }));
                                           }}
-                                          className="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 font-bold hover:bg-amber-100"
+                                          className="px-4 py-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-4 border-slate-900 bg-orange-400 text-slate-900 font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-sm"
                                         >
-                                          <Lightbulb className="w-4 h-4 inline mr-1" />
+                                          <Lightbulb className="w-8 h-8 stroke-[2.5]" />
                                           Inovação
                                         </button>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedProjectAction(
-                                              (prev) => ({
-                                                ...prev,
-                                                [index]: "tecnologia",
-                                              }),
-                                            );
+                                            setSelectedProjectAction((prev) => ({ ...prev, [index]: "tecnologia" }));
                                           }}
-                                          className="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100"
+                                          className="px-4 py-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-4 border-slate-900 bg-pink-400 text-slate-900 font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-sm"
                                         >
-                                          <Code className="w-4 h-4 inline mr-1" />
+                                          <Code className="w-8 h-8 stroke-[2.5]" />
                                           Tecnologia
                                         </button>
                                       </div>
-                                      <p className="text-xs text-slate-500">
-                                        Selecione uma das opções para ver o
-                                        detalhe específico do projeto.
+                                      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+                                        * Selecione uma trilha para ver os detalhes operacionais.
                                       </p>
                                     </div>
                                   ) : (
-                                    <div className="space-y-4">
-                                      <div className="flex items-center justify-between gap-3">
-                                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                                          {selectedAction === "investigacao"
-                                            ? "Investigação Científica"
-                                            : selectedAction === "inovacao"
-                                              ? "Inovação"
-                                              : "Tecnologia"}
+                                    <div className="space-y-8">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-4 border-slate-900 pb-6">
+                                        <span className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
+                                          {selectedAction === "investigacao" ? "Investigação Científica" : selectedAction === "inovacao" ? "Processo de Inovação" : "Desenvolvimento Tecnológico"}
                                         </span>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedProjectAction(
-                                              (prev) => ({
-                                                ...prev,
-                                                [index]: null,
-                                              }),
-                                            );
+                                            setSelectedProjectAction((prev) => ({ ...prev, [index]: null }));
                                           }}
-                                          className="text-xs text-blue-600 underline"
+                                          className="px-4 py-2 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] text-xs font-black uppercase tracking-widest text-slate-900 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
                                         >
-                                          Mudar opção
+                                          Voltar Opções
                                         </button>
                                       </div>
-                                      <p className="text-slate-600 text-sm leading-relaxed bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                      
+                                      <p className="text-slate-900 font-bold text-lg leading-relaxed bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
                                         {selectedAction === "investigacao"
-                                          ? q.a_investigação_científica ||
-                                            "Não especificado."
+                                          ? q.a_investigação_científica || "Não especificado."
                                           : selectedAction === "inovacao"
                                             ? q.inovação || "Não especificado."
-                                            : q.o_componente_tecnológico ||
-                                              "Não especificado."}
+                                            : q.o_componente_tecnológico || "Não especificado."}
                                       </p>
 
-                                      {/* Detalhes por especificidade */}
+                                      {/* Detalhes Investigação */}
                                       {selectedAction === "investigacao" && (
-                                        <div className="mt-4 space-y-4">
-                                          {projeto.objetivos_especificos
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                        <div className="mt-8 space-y-8">
+                                          {projeto.objetivos_especificos?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Objetivos de investigação
                                               </p>
-                                              {renderList(
-                                                projeto.objetivos_especificos,
-                                              )}
+                                              {renderList(projeto.objetivos_especificos)}
                                             </div>
                                           )}
 
                                           {projeto.metodologias?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Metodologias
                                               </p>
-                                              <p className="text-slate-600 text-sm">
-                                                {projeto.metodologias.join(
-                                                  ", ",
-                                                )}
+                                              <p className="text-slate-800 font-bold text-base">
+                                                {projeto.metodologias.join(", ")}
                                               </p>
                                             </div>
                                           )}
 
-                                          {projeto.avaliacao?.indicadores
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.avaliacao?.indicadores?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Avaliação
                                               </p>
-                                              <p className="text-slate-600 text-sm">
-                                                Métodos:{" "}
-                                                {projeto.avaliacao.metodos?.join(
-                                                  ", ",
-                                                )}
+                                              <p className="text-slate-800 font-black mb-4">
+                                                Métodos: {projeto.avaliacao.metodos?.join(", ")}
                                               </p>
-                                              {renderList(
-                                                projeto.avaliacao.indicadores,
-                                              )}
+                                              {renderList(projeto.avaliacao.indicadores)}
                                             </div>
                                           )}
 
                                           {projeto.atividades?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Atividades de investigação
                                               </p>
-                                              {renderActivities(
-                                                projeto.atividades,
-                                              )}
+                                              {renderActivities(projeto.atividades)}
                                             </div>
                                           )}
 
-                                          {projeto.recursos_necessarios
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.recursos_necessarios?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Recursos de pesquisa
                                               </p>
-                                              {renderList(
-                                                projeto.recursos_necessarios,
-                                              )}
+                                              {renderList(projeto.recursos_necessarios)}
                                             </div>
                                           )}
                                         </div>
                                       )}
 
+                                      {/* Detalhes Inovação */}
                                       {selectedAction === "inovacao" && (
-                                        <div className="mt-4 space-y-4">
+                                        <div className="mt-8 space-y-8">
                                           {projeto.impacto_esperado && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Impacto esperado
                                               </p>
-                                              <p className="text-slate-600 text-sm">
+                                              <p className="text-slate-800 font-bold text-base">
                                                 {projeto.impacto_esperado}
                                               </p>
                                             </div>
                                           )}
 
                                           {projeto.atividades?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Atividades de inovação
                                               </p>
-                                              {renderActivities(
-                                                projeto.atividades,
-                                              )}
+                                              {renderActivities(projeto.atividades)}
                                             </div>
                                           )}
 
-                                          {projeto.recursos_necessarios
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.recursos_necessarios?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Recursos necessários
                                               </p>
-                                              {renderList(
-                                                projeto.recursos_necessarios,
-                                              )}
+                                              {renderList(projeto.recursos_necessarios)}
                                             </div>
                                           )}
 
                                           {projeto.parcerias?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Parcerias
                                               </p>
                                               {renderList(projeto.parcerias)}
@@ -857,200 +771,178 @@ export default function TrilhaPedagogica() {
                                         </div>
                                       )}
 
+                                      {/* Detalhes Tecnologia */}
                                       {selectedAction === "tecnologia" && (
-                                        <div className="mt-4 space-y-4">
+                                        <div className="mt-8 space-y-8">
                                           <div>
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                                              Componente tecnológico
-                                            </p>
-                                            <p className="text-slate-600 text-sm">
-                                              {q.o_componente_tecnológico ||
-                                                "Não especificado."}
-                                            </p>
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
+                                                Componente tecnológico
+                                              </p>
+                                              <p className="text-slate-800 font-bold text-base">
+                                                {q.o_componente_tecnológico || "Não especificado."}
+                                              </p>
+                                            </div>
                                           </div>
 
-                                          {projeto.recursos_necessarios
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.recursos_necessarios?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Recursos necessários
                                               </p>
-                                              {renderList(
-                                                projeto.recursos_necessarios,
-                                              )}
+                                              {renderList(projeto.recursos_necessarios)}
                                             </div>
                                           )}
 
-                                          {projeto.cronograma?.fases?.length >
-                                            0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.cronograma?.fases?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Cronograma
                                               </p>
-                                              <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
-                                                {projeto.cronograma.fases.map(
-                                                  (f, i) => (
-                                                    <li key={i}>
-                                                      {f.fase}
-                                                      {f.duracao_semanas
-                                                        ? ` — ${f.duracao_semanas} semanas`
-                                                        : ""}
-                                                    </li>
-                                                  ),
-                                                )}
+                                              <ul className="list-disc list-outside ml-4 text-slate-800 text-sm font-bold space-y-2 marker:text-slate-900">
+                                                {projeto.cronograma.fases.map((f, i) => (
+                                                  <li key={i}>
+                                                    <span className="font-black underline decoration-2 decoration-slate-300">{f.fase}</span>
+                                                    {f.duracao_semanas ? <span className="bg-yellow-300 border-2 border-slate-900 px-2 py-0.5 ml-2 rounded text-[10px] font-black"> {f.duracao_semanas} semanas</span> : ""}
+                                                  </li>
+                                                ))}
                                               </ul>
                                             </div>
                                           )}
 
                                           {projeto.competencias?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Competências técnicas
                                               </p>
-                                              <div className="flex flex-wrap gap-2">
-                                                {projeto.competencias.map(
-                                                  (c, i) => (
-                                                    <span
-                                                      key={i}
-                                                      className="px-2 py-1 bg-white text-slate-600 text-[11px] rounded-md border border-slate-200"
-                                                    >
-                                                      {c}
-                                                    </span>
-                                                  ),
-                                                )}
+                                              <div className="flex flex-wrap gap-3">
+                                                {projeto.competencias.map((c, i) => (
+                                                  <span
+                                                    key={i}
+                                                    className="px-3 py-1.5 bg-blue-300 text-slate-900 font-black uppercase text-[10px] tracking-widest rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                                                  >
+                                                    {c}
+                                                  </span>
+                                                ))}
                                               </div>
                                             </div>
                                           )}
 
-                                          {projeto.acessibilidade?.adaptacoes
-                                            ?.length > 0 && (
-                                            <div>
-                                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                          {projeto.acessibilidade?.adaptacoes?.length > 0 && (
+                                            <div className="bg-white p-6 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+                                              <p className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
                                                 Acessibilidade
                                               </p>
-                                              {renderList(
-                                                projeto.acessibilidade
-                                                  .adaptacoes,
-                                              )}
+                                              {renderList(projeto.acessibilidade.adaptacoes)}
                                             </div>
                                           )}
                                         </div>
                                       )}
 
+                                      {/* Encontros (Global) */}
                                       {projeto.encontros?.length > 0 && (
-                                        <div className="mt-6 pt-5 border-t border-slate-200/80">
-                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                                            Encontros da sequência por competência
+                                        <div className="mt-12 pt-8 border-t-4 border-slate-900 border-dashed">
+                                          <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-8">
+                                            Roteiro de Encontros
                                           </p>
-                                          {renderEncounterDetails(
-                                            projeto.encontros,
-                                          )}
+                                          {renderEncounterDetails(projeto.encontros)}
                                         </div>
                                       )}
                                     </div>
                                   )}
 
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-slate-200">
-                                    <div className="flex flex-wrap gap-2">
+                                  {/* FOOTER DO CARD EXPANDIDO: Tags e Copiar */}
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t-4 border-slate-900">
+                                    <div className="flex flex-wrap gap-3">
                                       {projeto.tags?.map((tag, i) => (
                                         <span
                                           key={i}
-                                          className="px-2.5 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg shadow-sm border border-slate-200"
+                                          className="px-3 py-1.5 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
                                         >
-                                          #{tag.toUpperCase()}
+                                          #{tag}
                                         </span>
                                       ))}
                                     </div>
                                     <button
-                                      onClick={(e) =>
-                                        copyToClipboard(
-                                          projeto.titulo,
-                                          index,
-                                          e,
-                                        )
-                                      }
-                                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+                                      onClick={(e) => copyToClipboard(projeto.titulo, index, e)}
+                                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 active:translate-x-0 ${
                                         copiedId === index
-                                          ? "bg-green-100 border-green-200 text-green-700"
-                                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                          ? "bg-teal-400 text-slate-900"
+                                          : "bg-yellow-300 text-slate-900"
                                       }`}
                                     >
                                       {copiedId === index ? (
-                                        <>
-                                          <Check className="w-4 h-4" /> Copiado!
-                                        </>
+                                        <><Check className="w-5 h-5 stroke-[3]" /> COPIADO</>
                                       ) : (
-                                        <>
-                                          <Copy className="w-4 h-4" /> Copiar
-                                          Título
-                                        </>
+                                        <><Copy className="w-5 h-5 stroke-[3]" /> COPIAR TÍTULO</>
                                       )}
                                     </button>
                                   </div>
 
-                                  {/* Recursos agora exibidos fora do card (popover) */}
+                                  {/* Popover de Recursos (agora Brutalista) */}
                                   {openResourcesIndex === index && projeto.recursos && (
                                     <div
                                       onClick={(e) => e.stopPropagation()}
-                                      className="absolute right-4 top-6 z-50 w-80 md:w-96 bg-white border rounded-xl shadow-xl p-4 text-sm text-slate-700"
+                                      className="absolute right-8 top-8 z-50 w-80 md:w-96 bg-white border-4 border-slate-900 rounded-3xl shadow-[8px_8px_0px_0px_#0f172a] p-8 text-sm text-slate-900 animate-in zoom-in-95 duration-200"
                                     >
-                                      <div className="flex justify-between items-start mb-2">
-                                        <h5 className="font-bold">Recursos</h5>
+                                      <div className="flex justify-between items-start mb-6 border-b-4 border-slate-900 pb-4">
+                                        <h5 className="font-black uppercase tracking-tighter text-2xl">Recursos</h5>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setOpenResourcesIndex(null);
                                           }}
-                                          className="text-xs text-slate-400 hover:text-slate-600"
+                                          className="w-8 h-8 rounded-lg bg-slate-100 border-2 border-slate-900 flex items-center justify-center font-black hover:bg-red-400 shadow-[2px_2px_0px_0px_#0f172a] transition-colors"
                                         >
-                                          Fechar
+                                          X
                                         </button>
                                       </div>
 
-                                      {projeto.recursos.referencias?.length > 0 && (
-                                        <div className="mb-3">
-                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Referências</p>
-                                          <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
-                                            {projeto.recursos.referencias.map((ref, i) => (
-                                              <li key={`ref-${i}`}>{ref}</li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
-
-                                      {projeto.recursos.imagens?.length > 0 && (
-                                        <div className="mb-3">
-                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Imagens</p>
-                                          <ul className="list-disc list-inside text-slate-600 text-sm space-y-1">
-                                            {projeto.recursos.imagens.map((img, i) => (
-                                              <li key={`img-${i}`}>
-                                                <span className="font-semibold">{img.descricao}</span>
-                                                {img.fonte_sugerida && ` — ${img.fonte_sugerida}`}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
-
-                                      {projeto.recursos.conteudo_adicional && (
-                                        <div>
-                                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Conteúdo adicional</p>
-                                          <div className="text-slate-600 text-sm space-y-1">
-                                            {Object.entries(projeto.recursos.conteudo_adicional).map(([key, value]) => (
-                                              <p key={key}>
-                                                <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span> {value}
-                                              </p>
-                                            ))}
+                                      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {projeto.recursos.referencias?.length > 0 && (
+                                          <div>
+                                            <p className="text-xs font-black text-slate-900 uppercase tracking-widest bg-yellow-300 inline-block px-2 py-1 border-2 border-slate-900 mb-3">Referências</p>
+                                            <ul className="list-disc list-outside ml-4 text-slate-800 text-sm font-bold space-y-2 marker:text-slate-900">
+                                              {projeto.recursos.referencias.map((ref, i) => (
+                                                <li key={`ref-${i}`}>{ref}</li>
+                                              ))}
+                                            </ul>
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
+
+                                        {projeto.recursos.imagens?.length > 0 && (
+                                          <div>
+                                            <p className="text-xs font-black text-slate-900 uppercase tracking-widest bg-teal-400 inline-block px-2 py-1 border-2 border-slate-900 mb-3">Imagens</p>
+                                            <ul className="list-disc list-outside ml-4 text-slate-800 text-sm font-bold space-y-2 marker:text-slate-900">
+                                              {projeto.recursos.imagens.map((img, i) => (
+                                                <li key={`img-${i}`}>
+                                                  <span className="font-black bg-slate-100 px-1 border border-slate-300">{img.descricao}</span>
+                                                  {img.fonte_sugerida && ` — ${img.fonte_sugerida}`}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {projeto.recursos.conteudo_adicional && (
+                                          <div>
+                                            <p className="text-xs font-black text-slate-900 uppercase tracking-widest bg-pink-400 inline-block px-2 py-1 border-2 border-slate-900 mb-3">Conteúdo extra</p>
+                                            <div className="text-slate-800 text-sm font-bold space-y-3">
+                                              {Object.entries(projeto.recursos.conteudo_adicional).map(([key, value]) => (
+                                                <p key={key} className="bg-slate-50 p-3 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#cbd5e1]">
+                                                  <span className="font-black uppercase tracking-wider block mb-1">{key.replace(/_/g, " ")}:</span> {value}
+                                                </p>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
                         </div>
                       </ScrollReveal>
                     );
@@ -1060,6 +952,12 @@ export default function TrilhaPedagogica() {
             </div>
           )}
         </div>
+        
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+        `}</style>
       </div>
     </>
   );
