@@ -10,7 +10,7 @@ import {
 describe("authSecurity", () => {
   it("exige senha longa no cadastro", () => {
     expect(
-      validateRegistrationPassword("curta123", {
+      validateRegistrationPassword("curta", {
         email: "usuario@exemplo.com",
         fullName: "Usuario Teste",
       }),

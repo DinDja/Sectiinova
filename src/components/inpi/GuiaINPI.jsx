@@ -4,126 +4,9 @@ import {
   AlertCircle, Calendar, CheckCircle2, CreditCard, DollarSign,
   ExternalLink, Info, Search, Sparkles, Upload, UserPlus
 } from "lucide-react";
-
-// --- MOCKS DE DEPENDÊNCIAS EXTERNAS PARA O AMBIENTE DE PRÉ-VISUALIZAÇÃO ---
-// Pode remover estes mocks e descomentar os seus imports no projeto real.
-
-const SearchIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
-
-const ModalPesquisaAnterioridade = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-        <div className="bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] p-8 max-w-xl w-full relative animate-in zoom-in-[0.95]">
-            <button onClick={onClose} className="absolute top-4 right-4 p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-slate-900 font-black">
-              <X className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-16 h-16 bg-yellow-300 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform -rotate-3 mb-6">
-              <SearchIcon className="w-8 h-8 stroke-[3] text-slate-900" />
-            </div>
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4">Pesquisa de Anterioridade</h2>
-            <p className="font-bold text-slate-700 bg-white p-4 border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
-              Módulo de pesquisa de patentes em desenvolvimento para integração.
-            </p>
-        </div>
-    </div>
-  );
-};
-
-const ModalPI = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-        <div className="bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] p-8 max-w-xl w-full relative animate-in zoom-in-[0.95]">
-            <button onClick={onClose} className="absolute top-4 right-4 p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-slate-900 font-black">
-              <X className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-16 h-16 bg-blue-400 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform -rotate-3 mb-6">
-              <Info className="w-8 h-8 stroke-[3] text-slate-900" />
-            </div>
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4">Patente de Invenção (PI)</h2>
-            <p className="font-bold text-slate-700 bg-white p-4 border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
-              Módulo detalhado de Patente de Invenção (PI) em desenvolvimento para integração.
-            </p>
-        </div>
-    </div>
-  );
-};
-
-const ModalMU = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-        <div className="bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] p-8 max-w-xl w-full relative animate-in zoom-in-[0.95]">
-            <button onClick={onClose} className="absolute top-4 right-4 p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-slate-900 font-black">
-              <X className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-16 h-16 bg-emerald-400 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform -rotate-3 mb-6">
-              <Info className="w-8 h-8 stroke-[3] text-slate-900" />
-            </div>
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4">Modelo de Utilidade (MU)</h2>
-            <p className="font-bold text-slate-700 bg-white p-4 border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
-              Módulo detalhado de Modelo de Utilidade (MU) em desenvolvimento para integração.
-            </p>
-        </div>
-    </div>
-  );
-};
-
-const ModalLogin = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-        <div className="bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] p-8 max-w-xl w-full relative animate-in zoom-in-[0.95]">
-            <button onClick={onClose} className="absolute top-4 right-4 p-3 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all text-slate-900 font-black">
-              <X className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-16 h-16 bg-purple-400 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform -rotate-3 mb-6">
-              <UserPlus className="w-8 h-8 stroke-[3] text-slate-900" />
-            </div>
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4">Autenticação INPI</h2>
-            <p className="font-bold text-slate-700 bg-white p-4 border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
-              Módulo de autenticação e acesso ao e-INPI em desenvolvimento para integração.
-            </p>
-        </div>
-    </div>
-  );
-};
-
-const StubComponent = ({ title, bg, icon: Icon }) => (
-  <div className={`p-8 md:p-12 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-[2rem] ${bg} transform 6px hover:rotate-0 transition-transform duration-300`}>
-     <div className="w-16 h-16 bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-2xl flex items-center justify-center transform -rotate-3 mb-6">
-        {Icon && <Icon className="w-8 h-8 stroke-[3] text-slate-900" />}
-     </div>
-     <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-slate-900 mb-6 bg-white inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -6px">
-      {title}
-     </h2>
-     <p className="text-sm sm:text-base font-bold text-slate-900 bg-white/60 p-5 border-2 border-slate-900 rounded-xl shadow-[2px_2px_0px_0px_#0f172a]">
-      Esta é uma simulação do módulo "{title}". No ambiente real, este componente será carregado com a lógica completa do PatentesLab.
-     </p>
-  </div>
-);
-
-const GeradorDocumentos = () => <StubComponent title="Gerador de Documentos" bg="bg-teal-400" icon={FileText} />;
-const DocumentosObrigatorios = () => <StubComponent title="Documentos Obrigatórios" bg="bg-pink-400" icon={File} />;
-const INPIProcessTracker = () => <StubComponent title="Acompanhamento" bg="bg-blue-400" icon={Clock3} />;
-const AutonomousINPIAgent = () => <StubComponent title="Agente GUIÁ" bg="bg-orange-400" icon={CheckSquare} />;
-
-const ChecklistSidebar = () => (
-  <div className="space-y-4">
-    {['Verificar viabilidade', 'Redigir quadro reivindicatório', 'Pagar GRU', 'Enviar ao INPI'].map((item, i) => (
-      <label key={i} className="flex items-center gap-4 p-4 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl cursor-pointer hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all group">
-        <div className="relative w-6 h-6 shrink-0">
-            <input type="checkbox" className="sr-only peer" />
-            <div className="absolute inset-0 border-2 border-slate-900 rounded bg-white flex items-center justify-center peer-checked:bg-slate-900 transition-colors">
-                <CheckCircle2 className="w-4 h-4 text-teal-400 opacity-0 peer-checked:opacity-100 transition-opacity stroke-[3]" />
-            </div>
-        </div>
-        <span className="font-bold text-slate-900">{item}</span>
-      </label>
-    ))}
-  </div>
-);
+import RealModalLogin from "./ModalLogin";
+import RealModalMU from "./ModalMU";
+import RealModalPI from "./ModalPI";
 
 // --- COMPONENTE GUIA INPI ---
 export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }) {
@@ -540,12 +423,12 @@ export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }
           </button>
         </div>
 
-        <ModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-        <ModalMU
+        <RealModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        <RealModalMU
           isOpen={isModalMUOpen}
           onClose={() => setIsModalMUOpen(false)}
         />
-        <ModalLogin
+        <RealModalLogin
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
         />
@@ -824,7 +707,7 @@ export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }
                 {idx + 1}
               </div>
 
-              <div className="relative z-10 flex flex-col lg:flex-row gap-10">
+              <div className="relative flex flex-col lg:flex-row gap-10">
                 <div className="flex-shrink-0">
                   <div className={`w-20 h-20 border-4 border-slate-900 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-3 ${step.iconBg}`}>
                     {step.icon}
@@ -1030,9 +913,9 @@ export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }
         </div>
       </div>
 
-      <ModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <ModalMU isOpen={isModalMUOpen} onClose={() => setIsModalMUOpen(false)} />
-      <ModalLogin
+      <RealModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <RealModalMU isOpen={isModalMUOpen} onClose={() => setIsModalOpen(false)} />
+      <RealModalLogin
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />

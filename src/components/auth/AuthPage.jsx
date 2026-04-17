@@ -17,6 +17,7 @@ import {
   Sparkles,
   Lightbulb,
   Rocket,
+  Search,
   Asterisk,
 } from "lucide-react";
 import {
@@ -157,6 +158,608 @@ const SolidButton = ({
   </button>
 );
 
+const HeroNotebook = () => (
+  <div className="nbk-container" aria-hidden="true">
+    <style>{`
+      .nbk-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        min-height: 950px;
+      }
+
+      .nbk-scale {
+        transform: scale(2.9952);
+        transform-origin: center;
+      }
+
+      .nbk-macbook {
+        position: relative;
+        width: 228px;
+        height: 260px;
+      }
+
+      .nbk-macbook__topBord {
+        position: absolute;
+        z-index: 0;
+        top: 34px;
+        left: 0;
+        width: 128px;
+        height: 116px;
+        border-radius: 6px;
+        transform-origin: center;
+        background: linear-gradient(-135deg, #c8c9c9 52%, #8c8c8c 56%);
+        transform: scale(0) skewY(-30deg);
+        animation: nbk-topbord 0.4s 1.7s ease-out;
+        animation-fill-mode: forwards;
+      }
+
+      .nbk-macbook__topBord::before {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: 8px;
+        left: 6px;
+        width: 100%;
+        height: 100%;
+        border-radius: 6px;
+        background: #000;
+      }
+
+      .nbk-macbook__topBord::after {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        bottom: -7px;
+        left: 8px;
+        width: 168px;
+        height: 12px;
+        transform-origin: left bottom;
+        transform: rotate(-42deg) skew(-4deg);
+        background: linear-gradient(-135deg, #c8c9c9 52%, #8c8c8c 56%);
+      }
+
+      .nbk-macbook__display {
+        position: absolute;
+        top: 17px;
+        left: 12px;
+        z-index: 2;
+        width: calc(100% - 12px);
+        height: calc(100% - 18px);
+        background: radial-gradient(circle at 50% 20%, #FFFF 10%, #FFFF 72%);
+        overflow: hidden;
+      }
+
+      .nbk-macbook__display::before {
+        content: "";
+        position: absolute;
+        z-index: 5;
+        top: -9px;
+        left: -6px;
+        width: calc(100% + 12px);
+        height: calc(100% + 18px);
+        border-radius: 6px;
+        background: linear-gradient(60deg, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.28) 60%);
+      }
+
+      .nbk-macbook__screenLogo {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 86px;
+        height: 86px;
+        object-fit: contain;
+        opacity: 0;
+        filter: blur(5px);
+        transform: scale(0.88);
+        z-index: 4;
+        animation: nbk-logoIn 0.7s 4.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+
+      .nbk-macbook__load {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: #111827;
+        animation: nbk-display 0.4s 4.3s ease;
+        opacity: 1;
+        animation-fill-mode: forwards;
+        z-index: 6;
+      }
+
+      .nbk-macbook__load::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: auto;
+        width: 80px;
+        height: 6px;
+        border-radius: 3px;
+        box-sizing: border-box;
+        border: solid 1px #fff;
+      }
+
+      .nbk-macbook__load::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 18px;
+        bottom: 0;
+        margin: auto;
+        width: 0;
+        height: 6px;
+        border-radius: 3px;
+        background: #fff;
+        animation: nbk-load 2s 2s ease-out;
+        animation-fill-mode: forwards;
+      }
+
+      .nbk-macbook__underBord {
+        position: relative;
+        left: 42px;
+        bottom: -145px;
+        width: 150px;
+        height: 90px;
+        border-radius: 6px;
+        transform-origin: center;
+        transform: rotate(-30deg) skew(30deg);
+        background: linear-gradient(-45deg, #c8c9c9 61%, #8c8c8c 66%);
+        animation: nbk-modal 0.5s 1s ease-out;
+        opacity: 0;
+        animation-fill-mode: forwards;
+      }
+
+      .nbk-macbook__underBord::before {
+        content: "";
+        position: absolute;
+        z-index: 3;
+        top: -8px;
+        left: 8px;
+        width: 100%;
+        height: 100%;
+        border-radius: 6px;
+        background: #dcdede;
+      }
+
+      .nbk-macbook__underBord::after {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: -8px;
+        left: 12px;
+        width: 170px;
+        height: 15px;
+        transform-origin: top left;
+        background: linear-gradient(-45deg, #c8c9c9 61%, #8c8c8c 66%);
+        transform: rotate(31deg) skew(-16deg);
+      }
+
+      .nbk-macbook__keybord {
+        position: relative;
+        top: 0;
+        left: 16px;
+        z-index: 3;
+        border-radius: 3px;
+        width: calc(100% - 16px);
+        height: 45px;
+        background: #c8c9c9;
+      }
+
+      .nbk-macbook__keybord::before {
+        content: "";
+        position: absolute;
+        bottom: -30px;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        width: 40px;
+        height: 25px;
+        border-radius: 3px;
+        background: #c8c9c9;
+      }
+
+      .nbk-keybord {
+        position: relative;
+        top: 2px;
+        left: 2px;
+        display: flex;
+        flex-direction: column;
+        width: calc(100% - 3px);
+        height: calc(100% - 4px);
+      }
+
+      .nbk-keybord__touchbar {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: #000;
+      }
+
+      .nbk-keybord__keyBox {
+        display: grid;
+        grid-template-rows: 3fr 1fr;
+        grid-template-columns: repeat(11, 1fr);
+        width: 100%;
+        height: 24px;
+        margin: 1px 0 0 0;
+        padding: 0 0 0 1px;
+        box-sizing: border-box;
+        list-style: none;
+      }
+
+      .nbk-keybord__key {
+        position: relative;
+        width: 8px;
+        height: 7px;
+        margin: 1px;
+        background: #000;
+      }
+
+      .nbk-keybord__keyBox .nbk-keybord__key {
+        transform: translate(60px, -60px);
+        animation: nbk-key 0.2s 1.4s ease-out;
+        animation-fill-mode: forwards;
+        opacity: 0;
+      }
+
+      .nbk-keybord__keyBox .nbk-keybord__key::before,
+      .nbk-keybord__keyBox .nbk-keybord__key::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+
+      .nbk-keybord__key::before {
+        top: 8px;
+        transform: translate(20px, -20px);
+        animation: nbk-key1 0.2s 1.5s ease-out;
+        animation-fill-mode: forwards;
+      }
+
+      .nbk-keybord__key::after {
+        top: 16px;
+        transform: translate(40px, -40px);
+        animation: nbk-key2 0.2s 1.6s ease-out;
+        animation-fill-mode: forwards;
+      }
+
+      .nbk-keybord__keyBox .nbk-key--12::before {
+        width: 10px;
+      }
+
+      .nbk-keybord__keyBox .nbk-key--13::before {
+        height: 10px;
+      }
+
+      .nbk-key--01 {
+        grid-row: 1 / 2;
+        grid-column: 1 / 2;
+      }
+
+      .nbk-key--02 {
+        grid-row: 1 / 2;
+        grid-column: 2 / 3;
+      }
+
+      .nbk-key--03 {
+        grid-row: 1 / 2;
+        grid-column: 3 / 4;
+      }
+
+      .nbk-key--04 {
+        grid-row: 1 / 2;
+        grid-column: 4 / 5;
+      }
+
+      .nbk-key--05 {
+        grid-row: 1 / 2;
+        grid-column: 5 / 6;
+      }
+
+      .nbk-key--06 {
+        grid-row: 1 / 2;
+        grid-column: 6 / 7;
+      }
+
+      .nbk-key--07 {
+        grid-row: 1 / 2;
+        grid-column: 7 / 8;
+      }
+
+      .nbk-key--08 {
+        grid-row: 1 / 2;
+        grid-column: 8 / 9;
+      }
+
+      .nbk-key--09 {
+        grid-row: 1 / 2;
+        grid-column: 9 / 10;
+      }
+
+      .nbk-key--10 {
+        grid-row: 1 / 2;
+        grid-column: 10 / 11;
+      }
+
+      .nbk-key--11 {
+        grid-row: 1 / 2;
+        grid-column: 11 / 12;
+      }
+
+      .nbk-key--12 {
+        grid-row: 1 / 2;
+        grid-column: 12 / 13;
+      }
+
+      .nbk-key--13 {
+        grid-row: 1 / 2;
+        grid-column: 13 / 14;
+      }
+
+      .nbk-keybord__keyBox--under {
+        margin: 0;
+        padding: 0 0 0 1px;
+        box-sizing: border-box;
+        list-style: none;
+        display: flex;
+      }
+
+      .nbk-keybord__keyBox--under .nbk-keybord__key {
+        transform: translate(80px, -80px);
+        animation: nbk-key3 0.3s 1.6s linear;
+        animation-fill-mode: forwards;
+        opacity: 0;
+      }
+
+      .nbk-key--19 {
+        width: 28px;
+      }
+
+      @keyframes nbk-topbord {
+        0% {
+          transform: scale(0) skewY(-30deg);
+        }
+        30% {
+          transform: scale(1.1) skewY(-30deg);
+        }
+        45% {
+          transform: scale(0.9) skewY(-30deg);
+        }
+        60% {
+          transform: scale(1.05) skewY(-30deg);
+        }
+        75% {
+          transform: scale(0.95) skewY(-30deg);
+        }
+        90% {
+          transform: scale(1.02) skewY(-30deg);
+        }
+        100% {
+          transform: scale(1) skewY(-30deg);
+        }
+      }
+
+      @keyframes nbk-display {
+        0% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes nbk-load {
+        0% {
+          width: 0;
+        }
+        20% {
+          width: 40px;
+        }
+        30% {
+          width: 40px;
+        }
+        60% {
+          width: 60px;
+        }
+        90% {
+          width: 60px;
+        }
+        100% {
+          width: 80px;
+        }
+      }
+
+      @keyframes nbk-logoIn {
+        0% {
+          opacity: 0;
+          filter: blur(5px);
+          transform: scale(0.88);
+        }
+        100% {
+          opacity: 1;
+          filter: blur(0);
+          transform: scale(1);
+        }
+      }
+
+      @keyframes nbk-modal {
+        0% {
+          transform: scale(0) rotate(-30deg) skew(30deg);
+          opacity: 0;
+        }
+        30% {
+          transform: scale(1.1) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+        45% {
+          transform: scale(0.9) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+        60% {
+          transform: scale(1.05) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+        75% {
+          transform: scale(0.95) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+        90% {
+          transform: scale(1.02) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1) rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+      }
+
+      @keyframes nbk-key {
+        0% {
+          transform: translate(60px, -60px);
+          opacity: 0;
+        }
+        100% {
+          transform: translate(0, 0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes nbk-key1 {
+        0% {
+          transform: translate(20px, -20px);
+          opacity: 0;
+        }
+        100% {
+          transform: translate(0, 0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes nbk-key2 {
+        0% {
+          transform: translate(40px, -40px);
+          opacity: 0;
+        }
+        100% {
+          transform: translate(0, 0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes nbk-key3 {
+        0% {
+          transform: translate(80px, -80px);
+          opacity: 0;
+        }
+        100% {
+          transform: translate(0, 0);
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .nbk-macbook__topBord,
+        .nbk-macbook__load,
+        .nbk-macbook__load::after,
+        .nbk-macbook__underBord,
+        .nbk-keybord__keyBox .nbk-keybord__key,
+        .nbk-keybord__key::before,
+        .nbk-keybord__key::after,
+        .nbk-keybord__keyBox--under .nbk-keybord__key,
+        .nbk-macbook__screenLogo {
+          animation: none !important;
+        }
+
+        .nbk-macbook__topBord {
+          transform: scale(1) skewY(-30deg);
+        }
+
+        .nbk-macbook__underBord {
+          transform: rotate(-30deg) skew(30deg);
+          opacity: 1;
+        }
+
+        .nbk-keybord__keyBox .nbk-keybord__key,
+        .nbk-keybord__key::before,
+        .nbk-keybord__key::after,
+        .nbk-keybord__keyBox--under .nbk-keybord__key {
+          transform: translate(0, 0);
+          opacity: 1;
+        }
+
+        .nbk-macbook__load {
+          opacity: 0;
+        }
+
+        .nbk-macbook__screenLogo {
+          opacity: 1;
+          filter: blur(0);
+          transform: scale(1);
+        }
+      }
+    `}</style>
+
+    <div className="nbk-scale">
+      <div className="nbk-macbook">
+        <div className="nbk-macbook__topBord">
+          <div className="nbk-macbook__display">
+            <img
+              src="/logo-sistema.svg"
+              alt=""
+              className="nbk-macbook__screenLogo"
+              loading="lazy"
+            />
+            <div className="nbk-macbook__load"></div>
+          </div>
+        </div>
+        <div className="nbk-macbook__underBord">
+          <div className="nbk-macbook__keybord">
+            <div className="nbk-keybord">
+              <div className="nbk-keybord__touchbar"></div>
+              <ul className="nbk-keybord__keyBox">
+                <li className="nbk-keybord__key nbk-key--01"></li>
+                <li className="nbk-keybord__key nbk-key--02"></li>
+                <li className="nbk-keybord__key nbk-key--03"></li>
+                <li className="nbk-keybord__key nbk-key--04"></li>
+                <li className="nbk-keybord__key nbk-key--05"></li>
+                <li className="nbk-keybord__key nbk-key--06"></li>
+                <li className="nbk-keybord__key nbk-key--07"></li>
+                <li className="nbk-keybord__key nbk-key--08"></li>
+                <li className="nbk-keybord__key nbk-key--09"></li>
+                <li className="nbk-keybord__key nbk-key--10"></li>
+                <li className="nbk-keybord__key nbk-key--11"></li>
+                <li className="nbk-keybord__key nbk-key--12"></li>
+                <li className="nbk-keybord__key nbk-key--13"></li>
+              </ul>
+              <ul className="nbk-keybord__keyBox--under">
+                <li className="nbk-keybord__key nbk-key--14"></li>
+                <li className="nbk-keybord__key nbk-key--15"></li>
+                <li className="nbk-keybord__key nbk-key--16"></li>
+                <li className="nbk-keybord__key nbk-key--17"></li>
+                <li className="nbk-keybord__key nbk-key--18"></li>
+                <li className="nbk-keybord__key nbk-key--19"></li>
+                <li className="nbk-keybord__key nbk-key--20"></li>
+                <li className="nbk-keybord__key nbk-key--21"></li>
+                <li className="nbk-keybord__key nbk-key--22"></li>
+                <li className="nbk-keybord__key nbk-key--23"></li>
+                <li className="nbk-keybord__key nbk-key--24"></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // --- COMPONENTE PRINCIPAL ---
 
 export default function AuthPage({
@@ -177,6 +780,7 @@ export default function AuthPage({
   handlePasswordReset,
   handleRegister,
   handleGoogleAuth,
+  handleOutlookAuth,
   isMentoriaPerfil,
   setAuthError,
   setAuthNotice,
@@ -328,16 +932,9 @@ export default function AuthPage({
           </div>
 
           {/* Gráficos Sólidos Flutuantes */}
-          <div className="relative hidden lg:block h-[600px] w-full">
-            <div className="absolute bottom-[10%] left-[20%] bg-white rounded-2xl border-4 border-slate-900 p-6 shadow-[12px_12px_0px_0px_#0f172a] z-30 hover:rotate-0 hover:-translate-y-2 transition-all cursor-pointer">
-              <img
-                src="/logo-sistema.svg"
-                alt="SECTI"
-                className="w-[500px] object-contain opacity-95 hover:opacity-100 transition-opacity duration-300"
-                loading="lazy"
-              />
+            <div className="relative hidden lg:flex w-full h-[980px] items-center justify-end pr-16">
+              <HeroNotebook />
             </div>
-          </div>
         </div>
       </section>
 
@@ -727,6 +1324,7 @@ export default function AuthPage({
                         "Entrar na Plataforma"
                       )}
                     </SolidButton>
+
                   </form>
                 )}
 
@@ -988,6 +1586,15 @@ export default function AuthPage({
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-900 stroke-[3] pointer-events-none" />
                       </div>
 
+                      <div className="mb-5">
+                        <SolidInput
+                          icon={Search}
+                          label="Buscar unidade escolar"
+                          type="search"
+                          value={schoolSearchTerm}
+                          onChange={(e) => setSchoolSearchTerm(e.target.value)}
+                        />
+                      </div>
                       <div className="relative">
                         <label
                           className={`absolute left-4 -top-3 px-2 text-xs font-bold rounded-md border-2 border-slate-900 z-10 pointer-events-none ${hasSchoolError ? "bg-red-400 text-slate-900" : "bg-blue-300 text-slate-900"}`}

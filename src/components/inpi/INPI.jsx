@@ -53,7 +53,7 @@ export default function INPI({ clubProjects = [], loggedUser = null }) {
       </header>
 
       {/* NAVEGAÇÃO DE ABAS */}
-      <nav className="bg-white border-b-4 border-slate-900 sticky top-0 z-30">
+      <nav className="bg-white border-b-4 border-slate-900 sticky top-0 z-1">
         <div className="max-w-7xl mx-auto flex neo-scrollbar-x px-4 py-4 md:py-6 gap-4">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -87,7 +87,7 @@ export default function INPI({ clubProjects = [], loggedUser = null }) {
         onClose={() => setIsPesquisaModalOpen(false)}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 relative z-1">
         
         {/* BARRA DE CONTROLES (View Mode & Checklist) */}
         <div className="mb-10 flex justify-end">

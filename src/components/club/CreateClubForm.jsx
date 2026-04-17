@@ -132,14 +132,9 @@ export default function CreateClubForm({
             setIsRefreshingClubistas(true);
 
             try {
-                // Mock da chamada à base de dados para evitar erro de dependência no preview
-                await new Promise((resolve) => setTimeout(resolve, 600));
-                
                 if (!active) return;
-                
-                // Em ambiente real, aqui preencheríamos com a query Firestore.
-                // Utilizamos a lista de utilizadores já passada por prop.
-                setLiveSchoolUsers([]); 
+
+                setLiveSchoolUsers([]);
             } catch (refreshError) {
                 console.error('Erro ao atualizar lista de clubistas por escola:', refreshError);
             } finally {

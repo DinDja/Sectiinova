@@ -4,6 +4,7 @@ import {
     collection,
     deleteDoc,
     doc,
+    getCountFromServer,
     getDocs,
     getDoc,
     onSnapshot,
@@ -76,6 +77,99 @@ const getDataUrlByteSize = (dataUrl) => {
 
 const DIARY_PROJECT_QUERY_CHUNK_SIZE = 10;
 const MAX_PROJECT_IMAGES = 5;
+const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
+const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
+
+const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
+
+const getEmailVerificationResendStorageKey = (email) => {
+    const normalizedEmail = normalizeEmailAddress(email);
+    if (!normalizedEmail) return '';
+    return `${EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX}${normalizedEmail}`;
+};
+
+const readVerificationResendTimestamp = (email) => {
+    if (typeof window === 'undefined') return 0;
+
+    const storageKey = getEmailVerificationResendStorageKey(email);
+    if (!storageKey) return 0;
+
+    const parsed = Number(window.localStorage.getItem(storageKey) || 0);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 0;
+    }
+
+    return parsed;
+};
+
+const saveVerificationResendTimestamp = (email, timestamp = Date.now()) => {
+    if (typeof window === 'undefined') return;
+
+    const storageKey = getEmailVerificationResendStorageKey(email);
+    if (!storageKey) return;
+
+    try {
+        window.localStorage.setItem(storageKey, String(Number(timestamp) || Date.now()));
+    } catch (storageError) {
+        console.warn('Falha ao registrar cooldown de verificacao de e-mail:', storageError);
+    }
+};
+
+const getVerificationResendRemainingMs = (email, now = Date.now()) => {
+    const lastSentAt = readVerificationResendTimestamp(email);
+    if (!lastSentAt) return 0;
+
+    const elapsed = Number(now) - lastSentAt;
+    const remaining = EMAIL_VERIFICATION_RESEND_COOLDOWN_MS - elapsed;
+    return remaining > 0 ? remaining : 0;
+};
+
+const formatVerificationCooldown = (remainingMs) => {
+    const minutes = Math.max(1, Math.ceil(Number(remainingMs || 0) / 60000));
+    return `${minutes} minuto${minutes > 1 ? 's' : ''}`;
+};
+
+const resolveFallbackNameFromEmail = (email) => {
+    const normalizedEmail = normalizeEmailAddress(email);
+    if (!normalizedEmail.includes('@')) {
+        return 'Usuário';
+    }
+
+    return normalizedEmail.split('@')[0] || 'Usuário';
+};
+
+const resolveAuthProvider = (user) => {
+    const providerIds = Array.isArray(user?.providerData)
+        ? user.providerData.map((provider) => String(provider?.providerId || '').trim().toLowerCase())
+        : [];
+
+    if (providerIds.includes('google.com')) return 'google';
+    if (providerIds.includes('microsoft.com')) return 'microsoft';
+    if (providerIds.includes('password')) return 'password';
+    return providerIds[0] || 'password';
+};
+
+const createDefaultProfileFromAuthUser = (user) => {
+    const normalizedEmail = normalizeEmailAddress(user?.email);
+    const fullName = String(user?.displayName || '').trim();
+
+    return {
+        uid: String(user?.uid || '').trim(),
+        nome: fullName || resolveFallbackNameFromEmail(normalizedEmail),
+        email: normalizedEmail,
+        perfil: 'estudante',
+        rede_administrativa: '',
+        escolas_ids: [],
+        clubes_ids: [],
+        escola_id: '',
+        escola_nome: '',
+        escola_municipio: '',
+        escola_uf: 'BA',
+        clube_id: '',
+        auth_provider: resolveAuthProvider(user),
+        createdAt: serverTimestamp()
+    };
+};
 
 function chunkValues(values, size = DIARY_PROJECT_QUERY_CHUNK_SIZE) {
     const items = Array.isArray(values) ? values : [];
@@ -264,6 +358,55 @@ export default function useAppController() {
         const date = new Date(value);
         const millis = date.getTime();
         return Number.isFinite(millis) ? millis : 0;
+    }, []);
+
+    const requestVerificationEmailWithCooldown = useCallback(async (user) => {
+        if (!shouldRequireEmailVerification(user)) {
+            return { status: 'skipped', remainingMs: 0 };
+        }
+
+        const normalizedEmail = normalizeEmailAddress(user?.email);
+        if (!normalizedEmail) {
+            return { status: 'failed', remainingMs: 0 };
+        }
+
+        const remainingMs = getVerificationResendRemainingMs(normalizedEmail);
+        if (remainingMs > 0) {
+            return { status: 'cooldown', remainingMs };
+        }
+
+        try {
+            await sendEmailVerification(user);
+            saveVerificationResendTimestamp(normalizedEmail);
+            return { status: 'sent', remainingMs: 0 };
+        } catch (error) {
+            const errorCode = String(error?.code || '').trim().toLowerCase();
+            if (errorCode === 'auth/too-many-requests') {
+                saveVerificationResendTimestamp(normalizedEmail);
+                return {
+                    status: 'rate-limited',
+                    remainingMs: EMAIL_VERIFICATION_RESEND_COOLDOWN_MS
+                };
+            }
+
+            console.error('Falha ao enviar e-mail de verificacao:', error);
+            return { status: 'failed', remainingMs: 0 };
+        }
+    }, []);
+
+    const buildVerificationPendingNotice = useCallback((resendResult = {}) => {
+        const resendStatus = String(resendResult?.status || '').toLowerCase();
+
+        if (resendStatus === 'sent') {
+            return 'Seu e-mail ainda nao foi verificado. Reenviamos um novo link para voce concluir a validacao.';
+        }
+
+        if (resendStatus === 'cooldown' || resendStatus === 'rate-limited') {
+            const waitTime = formatVerificationCooldown(resendResult?.remainingMs);
+            return `Seu e-mail ainda nao foi verificado. Ja enviamos um link recentemente. Aguarde ${waitTime} antes de tentar novo reenvio.`;
+        }
+
+        return 'Seu e-mail ainda nao foi verificado. Confirme o link enviado para liberar o acesso.';
     }, []);
 
     const normalizedSearchTerm = useMemo(() => normalizeText(searchTerm), [searchTerm]);
@@ -644,26 +787,36 @@ export default function useAppController() {
         let isMounted = true;
 
         const loadCoreCollections = async () => {
+            const loadCollectionFreshFirst = async (collectionName) => {
+                try {
+                    return await cachedDataService.getCollectionList(collectionName, [], false);
+                } catch (freshError) {
+                    console.warn(`Falha ao buscar ${collectionName} direto do Firestore. Usando cache local.`, freshError);
+                    return cachedDataService.getCollectionList(collectionName, [], true);
+                }
+            };
+
             try {
                 setLoading(true);
 
-                const loadedClubsPromise = cachedDataService
-                    .getCollectionList('clubes', [], true)
+                const loadedClubsPromise = loadCollectionFreshFirst('clubes')
                     .then((clubsList) => {
                         if (Array.isArray(clubsList) && clubsList.length > 0) {
                             return clubsList;
                         }
 
-                        return cachedDataService.getCollectionList('clubes_ciencia', [], true);
+                        return loadCollectionFreshFirst('clubes_ciencia');
                     })
-                    .catch(() => cachedDataService.getCollectionList('clubes_ciencia', [], true));
+                    .catch(() => loadCollectionFreshFirst('clubes_ciencia'));
 
-                const [loadedClubs, loadedUsers, loadedSchools, loadedAllProjects] = await Promise.all([
+                const [loadedClubs, loadedUsers, loadedSchools] = await Promise.all([
                     loadedClubsPromise,
-                    cachedDataService.getCollectionList('usuarios', [], true),
-                    cachedDataService.getCollectionList('unidades_escolares', [], true),
-                    cachedDataService.getCollectionList('projetos', [], true)
+                    loadCollectionFreshFirst('usuarios'),
+                    loadCollectionFreshFirst('unidades_escolares')
                 ]);
+
+                const projectsSnapshot = await getDocs(collection(db, 'projetos'));
+                const loadedAllProjects = projectsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 
                 if (!isMounted) {
                     return;
@@ -690,7 +843,7 @@ export default function useAppController() {
                 setDiaryEntries([]);
                 setAllProjects(loadedAllProjects || []);
             } catch (error) {
-                console.error('Erro ao carregar dados iniciais com cache:', error);
+                console.error('Erro ao carregar dados iniciais (Firestore/cache):', error);
                 if (isMounted) {
                     setErrorMessage('Nao foi possivel carregar os dados iniciais. Verifique conexão.');
                 }
@@ -768,8 +921,8 @@ export default function useAppController() {
     useEffect(() => {
         const fetchProjectsTotalCount = async () => {
             try {
-                // 🎯 USAR CACHE DISTRIBUÍDO
-                const count = await cachedDataService.getCountFromCollection('projetos');
+                const countSnapshot = await getCountFromServer(collection(db, 'projetos'));
+                const count = Number(countSnapshot?.data()?.count || 0);
                 setProjectsTotalCount(count || 0);
             } catch (error) {
                 console.error('Erro ao carregar quantitativo total de projetos:', error);
@@ -1008,7 +1161,49 @@ export default function useAppController() {
 
             if (user) {
                 try {
-                    const snap = await getDoc(doc(db, 'usuarios', user.uid));
+                    try {
+                        await reload(user);
+                    } catch (reloadError) {
+                        console.warn('Nao foi possivel atualizar estado de verificacao do e-mail:', reloadError);
+                    }
+
+                    if (shouldRequireEmailVerification(user)) {
+                        const resendResult = await requestVerificationEmailWithCooldown(user);
+
+                        try {
+                            await signOut(auth);
+                        } catch (signOutError) {
+                            console.error('Falha ao encerrar sessao de conta nao verificada:', signOutError);
+                        }
+
+                        setAuthMode('login');
+                        setAuthUser(null);
+                        setLoggedUser(null);
+                        setAuthNotice({
+                            tone: 'warning',
+                            message: buildVerificationPendingNotice(resendResult)
+                        });
+                        setAuthLoading(false);
+                        return;
+                    }
+
+                    const userRef = doc(db, 'usuarios', user.uid);
+                    let snap = await getDoc(userRef);
+
+                    if (!snap.exists()) {
+                        await setDoc(userRef, createDefaultProfileFromAuthUser(user));
+                        await cachedDataService.invalidateCollection('usuarios');
+                        snap = await getDoc(userRef);
+
+                        setAuthNotice({
+                            tone: 'info',
+                            message:
+                                'Seu perfil foi inicializado automaticamente. Revise seus dados em Meu Perfil para concluir a configuracao.'
+                        });
+                    } else {
+                        setAuthNotice(null);
+                    }
+
                     if (snap.exists()) {
                         setAuthUser(user);
                         const userData = snap.data();
@@ -1039,7 +1234,7 @@ export default function useAppController() {
         });
 
         return () => unsubscribe();
-    }, [normalizeUserEntity]);
+    }, [buildVerificationPendingNotice, normalizeUserEntity, requestVerificationEmailWithCooldown]);
 
     useEffect(() => {
         if (!loggedUserId) {
@@ -1205,17 +1400,22 @@ export default function useAppController() {
             await reload(userCredential.user);
 
             if (shouldRequireEmailVerification(userCredential.user)) {
+                const resendResult = await requestVerificationEmailWithCooldown(userCredential.user);
+
                 try {
-                    await sendEmailVerification(userCredential.user);
-                } catch (verificationError) {
-                    console.error('Falha ao reenviar e-mail de verificacao:', verificationError);
+                    await signOut(auth);
+                } catch (signOutError) {
+                    console.error('Falha ao encerrar sessao de conta nao verificada:', signOutError);
                 }
 
-                await signOut(auth);
+                setAuthMode('login');
+                setLoginForm((previous) => ({
+                    ...previous,
+                    senha: ''
+                }));
                 setAuthNotice({
                     tone: 'warning',
-                    message:
-                        'Confirme o link enviado para seu e-mail antes de entrar. Se a conta ainda nao estivesse validada, um novo link foi enviado.'
+                    message: buildVerificationPendingNotice(resendResult)
                 });
                 return;
             }
@@ -1354,6 +1554,7 @@ export default function useAppController() {
 
             try {
                 await sendEmailVerification(userCredential.user);
+                saveVerificationResendTimestamp(normalizedEmail);
                 verificationNotice = {
                     tone: 'success',
                     message:
@@ -2054,46 +2255,36 @@ export default function useAppController() {
             const uploadedDocuments = {};
             const persistedClubistasIds = [...selectedClubistasIds];
 
-            if (isLocalhost && persistedClubistasIds.length < 10) {
-                let paddingIndex = 1;
-                const existingIds = new Set(persistedClubistasIds);
+            for (const requiredDocument of CLUB_REQUIRED_DOCUMENTS) {
+                const file = documentos?.[requiredDocument.key];
 
-                while (persistedClubistasIds.length < 10) {
-                    const mockId = `local-dev-${clubRef.id}-clubista-${paddingIndex}`;
-                    paddingIndex += 1;
-
-                    if (mockId === mentorId || existingIds.has(mockId)) {
+                if (!file) {
+                    if (isLocalhost) {
                         continue;
                     }
 
-                    existingIds.add(mockId);
-                    persistedClubistasIds.push(mockId);
+                    throw new Error(`Documento obrigatório ausente: ${requiredDocument.label}`);
                 }
-            }
-
-            for (const requiredDocument of CLUB_REQUIRED_DOCUMENTS) {
-                const file = documentos?.[requiredDocument.key];
 
                 if (isLocalhost) {
                     uploadedDocuments[requiredDocument.key] = {
                         key: requiredDocument.key,
                         label: requiredDocument.label,
-                        nome_arquivo: sanitizeStorageFileName(file?.name || `${requiredDocument.key}.local`),
+                        nome_arquivo: sanitizeStorageFileName(file.name),
                         caminho_storage: '',
                         url: '',
-                        content_type: String(file?.type || 'application/octet-stream'),
-                        tamanho_bytes: Number(file?.size || 0),
-                        uploaded_at: nowIso,
-                        local_dev_mock: true
+                        content_type: String(file.type || 'application/octet-stream'),
+                        tamanho_bytes: Number(file.size || 0),
+                        uploaded_at: nowIso
                     };
                     continue;
                 }
 
-                const safeFileName = sanitizeStorageFileName(file?.name);
+                const safeFileName = sanitizeStorageFileName(file.name);
                 const filePath = `clubes/${clubRef.id}/documentos/${requiredDocument.key}/${Date.now()}_${safeFileName}`;
                 const fileRef = storageRef(storage, filePath);
                 const uploaded = await uploadBytes(fileRef, file, {
-                    contentType: file?.type || 'application/octet-stream'
+                    contentType: file.type || 'application/octet-stream'
                 });
                 const fileUrl = await getDownloadURL(uploaded.ref);
 

@@ -98,12 +98,6 @@ const getClubMemberCount = (club) => {
   return Number.isFinite(explicitCount) && explicitCount > 0 ? explicitCount : 0;
 };
 
-const FORUM_EXPLORE_BANNER_FALLBACKS = [
-  "/images/BG_1.png",
-  "/images/BG_2.png",
-  "/images/BG_3.png",
-];
-
 const formatSafeDate = (dateObj) => {
   if (!dateObj) return "";
   const date =
@@ -445,26 +439,31 @@ TopicItem.displayName = "TopicItem";
 const ClubExploreCard = memo(({ club, index, onRequestJoin, requesting }) => {
   const logoUrl = getClubLogoUrl(club);
   const bannerUrl = getClubBannerUrl(club);
-  const displayBanner =
-    bannerUrl ||
-    FORUM_EXPLORE_BANNER_FALLBACKS[
-      Number(index || 0) % FORUM_EXPLORE_BANNER_FALLBACKS.length
-    ];
+  const forumTheme = buildForumTheme(club);
   const memberCount = getClubMemberCount(club);
   const schoolLabel = String(club?.escola_nome || club?.escola_id || "").trim();
 
   return (
     <div className="bg-white border-4 border-slate-900 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-[12px_12px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 transition-all group">
       <div className="relative h-36 overflow-visible border-b-4 border-slate-900 bg-slate-100">
-        <img
-          src={displayBanner}
-          alt={`Banner do clube ${club?.nome || ""}`}
-          className="w-full h-full object-cover mix-blend-luminosity opacity-90 group-hover:scale-105 transition-transform duration-500"
-        />
+        {bannerUrl ? (
+          <img
+            src={bannerUrl}
+            alt={`Banner do clube ${club?.nome || ""}`}
+            className="w-full h-full object-cover mix-blend-luminosity opacity-90 group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${withAlpha(forumTheme.primary, 0.92)} 0%, ${withAlpha(forumTheme.secondary, 0.92)} 100%)`,
+            }}
+          />
+        )}
         <div className="absolute inset-0 bg-yellow-300/20 mix-blend-multiply" />
         {!bannerUrl && (
           <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1">
-            Ilustrativo
+            Sem banner
           </span>
         )}
 
@@ -521,11 +520,7 @@ ClubExploreCard.displayName = "ClubExploreCard";
 const AcceptedClubCard = memo(({ club, index, onSelect }) => {
   const logoUrl = getClubLogoUrl(club);
   const bannerUrl = getClubBannerUrl(club);
-  const displayBanner =
-    bannerUrl ||
-    FORUM_EXPLORE_BANNER_FALLBACKS[
-      Number(index || 0) % FORUM_EXPLORE_BANNER_FALLBACKS.length
-    ];
+  const forumTheme = buildForumTheme(club);
   const memberCount = getClubMemberCount(club);
   const schoolLabel = String(club?.escola_nome || club?.escola_id || "").trim();
 
@@ -537,15 +532,24 @@ const AcceptedClubCard = memo(({ club, index, onSelect }) => {
     >
       <div className="relative h-40 overflow-visible border-b-4 border-slate-900 bg-slate-100">
         <div className="absolute inset-0 overflow-hidden">
-          <img
-            src={displayBanner}
-            alt={`Banner do clube ${club?.nome || ""}`}
-            className="w-full h-full object-cover mix-blend-luminosity opacity-90 transition-transform duration-500 group-hover:scale-105"
-          />
+          {bannerUrl ? (
+            <img
+              src={bannerUrl}
+              alt={`Banner do clube ${club?.nome || ""}`}
+              className="w-full h-full object-cover mix-blend-luminosity opacity-90 transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(135deg, ${withAlpha(forumTheme.primary, 0.92)} 0%, ${withAlpha(forumTheme.secondary, 0.92)} 100%)`,
+              }}
+            />
+          )}
           <div className="absolute inset-0 bg-blue-300/30 mix-blend-multiply" />
           {!bannerUrl && (
             <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1">
-              Ilustrativo
+              Sem banner
             </span>
           )}
         </div>

@@ -1,32 +1,15 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { 
     User, School, Lock, Edit2, Copy, Check, 
     LogOut, Mail, Shield, Camera, X, Phone, 
     MapPin, Calendar, Award, Star, TrendingUp, Briefcase, 
     Globe, Users, Heart, BookOpen, Link as LinkIcon, LoaderCircle, RefreshCw
 } from 'lucide-react';
-
-// --- MOCKS E STUBS DE DEPENDÊNCIAS EXTERNAS ---
-// Simulação da função do serviço Lattes para evitar erros de importação no preview.
-const fetchLattesPreviewByLink = async (link) => {
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Delay simulado
-    if (!link.includes('lattes.cnpq.br/')) {
-        return { success: false, message: 'Link do Lattes inválido. Certifique-se que contém lattes.cnpq.br/' };
-    }
-    return {
-        success: true,
-        data: {
-            id_lattes: link.match(/(\d{16})/) ? link.match(/(\d{16})/)[1] : '0000000000000000',
-            nome: 'Pesquisador Exemplo (Mock)',
-            resumo: 'Este é um resumo gerado automaticamente pela simulação de importação do currículo Lattes para fins de teste de interface.',
-            areas_atuacao: ['Ciência da Computação', 'Engenharia de Software', 'Educação Tecnológica'],
-            formacao_academica: ['Doutorado em Ciências Exatas', 'Mestrado em Informática'],
-            ultima_atualizacao: new Date().toLocaleDateString('pt-BR')
-        }
-    };
-};
+import { fetchLattesPreviewByHtml, fetchLattesPreviewByLink } from '../../services/lattesService';
 
 export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfile, onClose }) {
+    const lattesIframeRef = useRef(null);
+
     const [isEditing, setIsEditing] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -45,6 +28,10 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     const [lattesFetchError, setLattesFetchError] = useState('');
     const [lattesImportInfo, setLattesImportInfo] = useState('');
     const [showManualLattesForm, setShowManualLattesForm] = useState(false);
+    const [showLattesIframe, setShowLattesIframe] = useState(false);
+    const [showHtmlPasteForm, setShowHtmlPasteForm] = useState(false);
+    const [iframeLoadError, setIframeLoadError] = useState('');
+    const [htmlPasteValue, setHtmlPasteValue] = useState('');
     const [manualLattesDraft, setManualLattesDraft] = useState({
         nome: '',
         resumo: '',
@@ -85,6 +72,50 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         return matched?.[1] || '';
     };
 
+    const getLattesIframeUrl = () => {
+        const id = extractLattesIdFromLink(formData?.lattesLink || '');
+        return id ? `https://lattes.cnpq.br/${id}` : '';
+    };
+
+    const looksLikeHtmlContent = (value = '') => {
+        const normalized = String(value || '').toLowerCase();
+        return normalized.includes('<html')
+            || normalized.includes('<body')
+            || normalized.includes('<div')
+            || normalized.includes('&lt;html')
+            || normalized.includes('currículo')
+            || normalized.includes('curriculo')
+            || normalized.includes('lattes');
+    };
+
+    const isIframeShellOnly = (value = '') => {
+        const raw = String(value || '');
+        const normalized = raw.toLowerCase();
+        const hasIframeLattes = /<iframe[\s\S]*lattes\.cnpq\.br\/\d{16}[\s\S]*>/i.test(raw);
+        const hasCurriculumMarkers = /curr[ií]culo|resumo informado|áreas de atuação|areas de atuacao|formação acadêmica|formacao academica|ultima atualizacao|id_lattes/i.test(raw);
+        return hasIframeLattes && !hasCurriculumMarkers && normalized.length < 2500;
+    };
+
+    const tryCaptureIframeHtml = () => {
+        try {
+            const iframeDoc = lattesIframeRef.current?.contentWindow?.document;
+            const iframeHtml = iframeDoc?.documentElement?.outerHTML || '';
+            return String(iframeHtml || '').trim();
+        } catch {
+            return '';
+        }
+    };
+
+    const tryReadClipboardHtml = async () => {
+        try {
+            if (!navigator?.clipboard?.readText) return '';
+            const clipboardText = await navigator.clipboard.readText();
+            return String(clipboardText || '').trim();
+        } catch {
+            return '';
+        }
+    };
+
     const resetForm = () => {
         if (loggedUser) {
             const initialLattesData = loggedUser.lattes_data || loggedUser.lattesData || null;
@@ -104,6 +135,10 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
             setLattesFetchError('');
             setLattesImportInfo('');
             setShowManualLattesForm(false);
+            setShowLattesIframe(false);
+            setShowHtmlPasteForm(false);
+            setIframeLoadError('');
+            setHtmlPasteValue('');
             setManualLattesDraft({
                 nome: '',
                 resumo: '',
@@ -225,6 +260,21 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
+    const applyLattesExtractionResult = (result, failureMessage, successMessage) => {
+        const payload = result?.data && typeof result.data === 'object' ? result.data : null;
+
+        setLattesPreview(payload);
+        setLattesImportSelection(buildDefaultLattesSelection(payload));
+
+        if (!result?.success) {
+            setLattesFetchError(result?.message || failureMessage);
+            return false;
+        }
+
+        setLattesImportInfo(successMessage);
+        return true;
+    };
+
     const handleFetchLattesData = async () => {
         const link = String(formData?.lattesLink || '').trim();
         if (!link) {
@@ -239,29 +289,137 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
 
         try {
             const result = await fetchLattesPreviewByLink(link);
-            const payload = result?.data && typeof result.data === 'object' ? result.data : null;
+            const success = applyLattesExtractionResult(
+                result,
+                'Não foi possível extrair os campos do Lattes para esse link.',
+                'Dados do Lattes carregados. Selecione os campos e aplique no formulário.'
+            );
 
-            setLattesPreview(payload);
-            setLattesImportSelection(buildDefaultLattesSelection(payload));
-
-            if (!result?.success) {
-                if (String(result?.message || '').toLowerCase().includes('captcha')) {
+            if (!success) {
+                if (result?.requiresCaptcha || String(result?.message || '').toLowerCase().includes('captcha')) {
                     setShowManualLattesForm(true);
                 }
-                setLattesFetchError(
-                    result?.message
-                    || 'Não foi possível extrair os campos do Lattes para esse link.'
-                );
-                return;
             }
-
-            setLattesImportInfo('Dados do Lattes carregados. Selecione os campos e aplique no formulário.');
         } catch (error) {
             console.error('Erro ao buscar dados do Lattes:', error);
             setLattesFetchError(error?.message || 'Falha ao buscar dados do Lattes.');
         } finally {
             setIsFetchingLattes(false);
         }
+    };
+
+    const handleFetchLattesDataFromHtml = async (rawHtml = null) => {
+        const link = String(formData?.lattesLink || '').trim();
+        const html = String(rawHtml ?? htmlPasteValue ?? '').trim();
+
+        if (!link) {
+            setLattesFetchError('Informe o link do Lattes antes de processar o HTML.');
+            setLattesImportInfo('');
+            return;
+        }
+
+        if (!html) {
+            setLattesFetchError('Cole o HTML da página do currículo para extrair os dados.');
+            setLattesImportInfo('');
+            return;
+        }
+
+        if (isIframeShellOnly(html)) {
+            setIsFetchingLattes(true);
+            setLattesFetchError('');
+            setLattesImportInfo('Você colou apenas a tag do iframe. Tentando extrair automaticamente pelo link...');
+
+            try {
+                const result = await fetchLattesPreviewByLink(link);
+                const success = applyLattesExtractionResult(
+                    result,
+                    'Foi colada apenas a tag do iframe (sem o conteúdo interno do currículo). Abra o conteúdo interno no DevTools e copie o HTML completo da página do currículo.',
+                    'Dados extraídos automaticamente pelo link após detectar iframe.'
+                );
+
+                if (!success) {
+                    setShowHtmlPasteForm(true);
+                }
+            } catch (error) {
+                setLattesFetchError(error?.message || 'Falha ao tentar extrair automaticamente pelo link após detectar iframe.');
+                setShowHtmlPasteForm(true);
+            } finally {
+                setIsFetchingLattes(false);
+            }
+
+            return;
+        }
+
+        setIsFetchingLattes(true);
+        setLattesFetchError('');
+        setLattesImportInfo('');
+
+        try {
+            if (rawHtml !== null) {
+                setHtmlPasteValue(rawHtml);
+            }
+            const result = await fetchLattesPreviewByHtml({ link, html });
+            const success = applyLattesExtractionResult(
+                result,
+                'Não foi possível extrair os campos do HTML informado.',
+                'Dados extraídos do HTML colado. Selecione os campos e aplique no formulário.'
+            );
+            if (success && rawHtml !== null) {
+                setShowHtmlPasteForm(false);
+            }
+        } catch (error) {
+            console.error('Erro ao extrair dados do HTML do Lattes:', error);
+            setLattesFetchError(error?.message || 'Falha ao processar o HTML do Lattes.');
+        } finally {
+            setIsFetchingLattes(false);
+        }
+    };
+
+    const handleProcessPostCaptcha = async () => {
+        const link = String(formData?.lattesLink || '').trim();
+        if (!link) {
+            setLattesFetchError('Informe o link do Lattes antes de processar o pós-CAPTCHA.');
+            setLattesImportInfo('');
+            return;
+        }
+
+        setLattesFetchError('');
+        setLattesImportInfo('Tentando capturar o HTML automaticamente...');
+
+        const iframeHtml = tryCaptureIframeHtml();
+        if (looksLikeHtmlContent(iframeHtml)) {
+            await handleFetchLattesDataFromHtml(iframeHtml);
+            return;
+        }
+
+        const clipboardHtml = await tryReadClipboardHtml();
+        if (looksLikeHtmlContent(clipboardHtml)) {
+            await handleFetchLattesDataFromHtml(clipboardHtml);
+            return;
+        }
+
+        // Tentativa final automática: buscar novamente por link depois do usuário
+        // ter concluído o CAPTCHA no navegador.
+        setIsFetchingLattes(true);
+        try {
+            const result = await fetchLattesPreviewByLink(link);
+            const success = applyLattesExtractionResult(
+                result,
+                'Não foi possível capturar o HTML do iframe nem extrair novamente pelo link após o CAPTCHA.',
+                'Dados extraídos automaticamente após nova tentativa por link.'
+            );
+
+            if (success) {
+                return;
+            }
+        } catch (error) {
+            setLattesFetchError(error?.message || 'Falha ao processar automaticamente o pós-CAPTCHA.');
+        } finally {
+            setIsFetchingLattes(false);
+        }
+
+        setShowHtmlPasteForm(true);
+        setLattesFetchError('Não foi possível ler o HTML direto do iframe (bloqueio de origem cruzada do navegador). Copie o código-fonte da página do currículo e cole no campo abaixo para processar.');
     };
 
     const toggleLattesImportField = (field) => {
@@ -413,10 +571,10 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
             `}</style>
             
-            <div className="w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
+            <div className="overflow-y-scroll  w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
                 
                 {/* HEADER NEO-BRUTALISTA */}
-                <div className="relative z-0 h-36 bg-blue-400 border-b-4 border-slate-900 overflow-hidden flex-shrink-0">
+                <div className="relative z-0 h-36 bg-blue-400 border-b-4 border-slate-900  flex-shrink-0">
                     <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-20"></div>
                     
                     <div className="absolute top-4 left-4 flex gap-3 z-10">
@@ -610,163 +768,6 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                 </div>
                             </div>
 
-                            {/* INTEGRAÇÃO LATTES */}
-                            <div className="bg-pink-300 border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                                    <div>
-                                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-2">
-                                            <Award className="w-6 h-6 stroke-[3]" /> Currículo Lattes
-                                        </h3>
-                                        <p className="text-sm font-bold text-slate-800 mt-1">Busque pelo link informado ou preencha manualmente.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleFetchLattesData}
-                                        disabled={isFetchingLattes}
-                                        className="inline-flex items-center gap-2 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[2px_2px_0px_0px_#0f172a] hover:translate-y-0.5 hover:translate-x-0.5 px-4 py-2 font-black uppercase text-xs text-slate-900 transition-all disabled:opacity-60 disabled:pointer-events-none"
-                                    >
-                                        {isFetchingLattes ? <LoaderCircle className="w-4 h-4 animate-spin stroke-[3]" /> : <RefreshCw className="w-4 h-4 stroke-[3]" />}
-                                        Buscar Dados
-                                    </button>
-                                </div>
-
-                                {lattesFetchError && (
-                                    <div className="mb-4 bg-red-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-3 text-xs font-black uppercase text-slate-900">
-                                        ! {lattesFetchError}
-                                    </div>
-                                )}
-
-                                {lattesImportInfo && (
-                                    <div className="mb-4 bg-teal-400 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] p-3 text-xs font-black uppercase text-slate-900">
-                                        {lattesImportInfo}
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={() => setShowManualLattesForm(!showManualLattesForm)}
-                                    className="text-xs font-black uppercase tracking-widest text-slate-900 underline underline-offset-4 hover:text-white transition-colors mb-4"
-                                >
-                                    {showManualLattesForm ? 'Ocultar preenchimento manual' : 'Preencher dados manualmente'}
-                                </button>
-
-                                {showManualLattesForm && (
-                                    <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl p-5 mb-6 grid gap-4 animate-in fade-in">
-                                        <input
-                                            type="text"
-                                            value={manualLattesDraft.nome}
-                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, nome: e.target.value }))}
-                                            placeholder="Nome do pesquisador"
-                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all"
-                                        />
-                                        <textarea
-                                            value={manualLattesDraft.resumo}
-                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, resumo: e.target.value }))}
-                                            placeholder="Resumo do currículo"
-                                            rows={2}
-                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
-                                        />
-                                        <textarea
-                                            value={manualLattesDraft.areas}
-                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, areas: e.target.value }))}
-                                            placeholder="Áreas de atuação (uma por linha)"
-                                            rows={2}
-                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
-                                        />
-                                        <textarea
-                                            value={manualLattesDraft.formacao}
-                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, formacao: e.target.value }))}
-                                            placeholder="Formação acadêmica (uma por linha)"
-                                            rows={2}
-                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all resize-y"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={manualLattesDraft.ultimaAtualizacao}
-                                            onChange={(e) => setManualLattesDraft((prev) => ({ ...prev, ultimaAtualizacao: e.target.value }))}
-                                            placeholder="Última atualização (Ex: 01/10/2023)"
-                                            className="w-full border-2 border-slate-900 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] transition-all"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleBuildManualLattesPreview}
-                                            className="bg-slate-900 text-white font-black uppercase text-xs tracking-widest px-4 py-3 rounded-lg border-2 border-slate-900 shadow-[4px_4px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all"
-                                        >
-                                            Gerar pré-visualização
-                                        </button>
-                                    </div>
-                                )}
-
-                                {lattesPreview && (
-                                    <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] rounded-xl p-5 space-y-4">
-                                        <label className="flex items-start gap-3 cursor-pointer group">
-                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
-                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.nome} onChange={() => toggleLattesImportField('nome')} />
-                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.nome ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
-                                                    {lattesImportSelection.nome && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Nome Completo</span>
-                                                <span className="block font-bold text-sm text-slate-600">{lattesPreview.nome || 'Sem dado'}</span>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-start gap-3 cursor-pointer group">
-                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
-                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.resumo} onChange={() => toggleLattesImportField('resumo')} />
-                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.resumo ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
-                                                    {lattesImportSelection.resumo && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Resumo (Vai para Biografia)</span>
-                                                <span className="block font-bold text-sm text-slate-600 line-clamp-2">{lattesPreview.resumo || 'Sem dado'}</span>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-start gap-3 cursor-pointer group">
-                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
-                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.areas_atuacao} onChange={() => toggleLattesImportField('areas_atuacao')} />
-                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.areas_atuacao ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
-                                                    {lattesImportSelection.areas_atuacao && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Áreas de Atuação</span>
-                                                <span className="block font-bold text-sm text-slate-600">
-                                                    {Array.isArray(lattesPreview.areas_atuacao) && lattesPreview.areas_atuacao.length > 0 ? formatListPreview(lattesPreview.areas_atuacao) : 'Sem dado'}
-                                                </span>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-start gap-3 cursor-pointer group">
-                                            <div className="relative w-6 h-6 shrink-0 mt-0.5">
-                                                <input type="checkbox" className="sr-only" checked={lattesImportSelection.formacao_academica} onChange={() => toggleLattesImportField('formacao_academica')} />
-                                                <div className={`absolute inset-0 border-2 border-slate-900 rounded flex items-center justify-center transition-all ${lattesImportSelection.formacao_academica ? 'bg-slate-900' : 'bg-white group-hover:bg-slate-100'}`}>
-                                                    {lattesImportSelection.formacao_academica && <Check className="w-4 h-4 text-teal-400 stroke-[3]" />}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span className="block font-black uppercase text-xs tracking-widest text-slate-900">Formação Acadêmica</span>
-                                                <span className="block font-bold text-sm text-slate-600">
-                                                    {Array.isArray(lattesPreview.formacao_academica) && lattesPreview.formacao_academica.length > 0 ? formatListPreview(lattesPreview.formacao_academica) : 'Sem dado'}
-                                                </span>
-                                            </div>
-                                        </label>
-
-                                        <div className="pt-4 border-t-2 border-slate-200">
-                                            <button
-                                                type="button"
-                                                onClick={handleApplySelectedLattesFields}
-                                                className="w-full bg-slate-900 text-white font-black uppercase text-xs tracking-widest px-4 py-3 rounded-lg border-2 border-slate-900 shadow-[4px_4px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <Check className="w-4 h-4 stroke-[3]" /> Aplicar Seleção
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
 
                             <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
                                 <InputGroup 

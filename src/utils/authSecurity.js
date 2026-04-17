@@ -1,4 +1,4 @@
-export const PASSWORD_MIN_LENGTH = 15;
+export const PASSWORD_MIN_LENGTH = 6;
 
 const GENERIC_LOGIN_ERROR =
   "Não foi possível autenticar com os dados informados.";

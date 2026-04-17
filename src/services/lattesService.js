@@ -1,10 +1,10 @@
-export async function fetchLattesPreviewByLink(link) {
+async function requestLattesExtraction(body) {
     const response = await fetch('/api/lattes/extract', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json; charset=utf-8'
         },
-        body: JSON.stringify({ link: String(link || '').trim() })
+        body: JSON.stringify(body)
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -17,5 +17,18 @@ export async function fetchLattesPreviewByLink(link) {
     }
 
     return payload;
+}
+
+export async function fetchLattesPreviewByLink(link) {
+    return requestLattesExtraction({
+        link: String(link || '').trim()
+    });
+}
+
+export async function fetchLattesPreviewByHtml({ link, html }) {
+    return requestLattesExtraction({
+        link: String(link || '').trim(),
+        html: String(html || '')
+    });
 }
 

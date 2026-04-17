@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Heart, MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
 import ModalPerfil from '../club/ModalPerfil';
+import ProjectGallery from './ProjectGallery';
 
 const getUserClubIds = () => [];
 
@@ -438,97 +439,13 @@ export default function ProjectCard({
                 </button>
             </div> 
 
-            {/* GALERIA MODAL REFEITA - 100% Responsiva com Setas */}
-            {isGalleryOpen && (
-                <div
-                    className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md p-2 sm:p-6 lg:p-8 flex items-center justify-center"
-                    onClick={() => setIsGalleryOpen(false)}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Galeria de fotos do projeto"
-                >
-                    <div
-                        className="w-full max-w-6xl h-full max-h-[95vh] lg:max-h-[85vh] flex flex-col gap-4 bg-slate-900 rounded-[2rem] border-4 border-slate-700 p-4 sm:p-6 shadow-2xl overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Cabeçalho Galeria */}
-                        <div className="flex items-center justify-between text-white shrink-0">
-                            <div>
-                                <h3 className="font-black text-lg sm:text-2xl text-teal-400">Mural do Projeto</h3>
-                                <p className="text-slate-300 text-sm sm:text-base font-semibold mt-1">
-                                    Foto {activeGalleryIndex + 1} de {displayImages.length}
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsGalleryOpen(false)}
-                                className="p-2 sm:p-3 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 hover:border-slate-500 transition-all text-white hover:text-red-400"
-                                title="Fechar galeria"
-                            >
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Área Principal Responsiva */}
-                        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4">
-                            
-                            {/* Imagem em Destaque */}
-                            <div className="relative flex-[3] lg:flex-[4] rounded-2xl overflow-hidden bg-black/60 border-2 border-slate-700 flex items-center justify-center group">
-                                <img
-                                    src={displayImages[activeGalleryIndex] || displayImages[0]}
-                                    alt={`${titulo} - destaque`}
-                                    className="max-w-full max-h-full object-contain drop-shadow-2xl"
-                                />
-                                
-                                {/* Setas de Navegação */}
-                                <div className="absolute inset-y-0 left-0 flex items-center px-2 sm:px-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <button 
-                                        onClick={handlePrevImage} 
-                                        className="p-3 sm:p-4 rounded-full bg-slate-900/80 hover:bg-teal-400 text-white hover:text-slate-900 backdrop-blur-md border-2 border-slate-700 hover:border-slate-900 transition-all shadow-[4px_4px_0px_0px_#0f172a] hover:scale-110"
-                                        title="Imagem anterior"
-                                    >
-                                        <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 stroke-[3]" />
-                                    </button>
-                                </div>
-                                <div className="absolute inset-y-0 right-0 flex items-center px-2 sm:px-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <button 
-                                        onClick={handleNextImage} 
-                                        className="p-3 sm:p-4 rounded-full bg-slate-900/80 hover:bg-teal-400 text-white hover:text-slate-900 backdrop-blur-md border-2 border-slate-700 hover:border-slate-900 transition-all shadow-[4px_4px_0px_0px_#0f172a] hover:scale-110"
-                                        title="Próxima imagem"
-                                    >
-                                        <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 stroke-[3]" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Miniaturas (Thumbnails) */}
-                            <div className="flex-none lg:w-72 xl:w-80 rounded-2xl bg-slate-800/80 border-2 border-slate-700 p-4 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto min-h-[120px] lg:min-h-0 custom-scrollbar">
-                                <div className="flex lg:grid lg:grid-cols-2 gap-3 w-max lg:w-full pb-2 lg:pb-0">
-                                    {displayImages.map((imageSrc, index) => (
-                                        <button
-                                            key={`${project?.id || 'project'}-gallery-${index}`}
-                                            type="button"
-                                            onClick={() => setActiveGalleryIndex(index)}
-                                            className={`relative flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 lg:w-auto lg:aspect-square rounded-xl overflow-hidden border-4 transition-all duration-200 ${
-                                                index === activeGalleryIndex
-                                                    ? 'border-yellow-300 scale-95 opacity-100 shadow-[0_0_15px_rgba(253,224,71,0.4)]'
-                                                    : 'border-slate-700 opacity-50 hover:opacity-100 hover:border-slate-500 hover:scale-[1.02]'
-                                            }`}
-                                            title={`Selecionar foto ${index + 1}`}
-                                        >
-                                            <img
-                                                src={imageSrc}
-                                                alt={`${titulo} - miniatura ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ProjectGallery
+                images={displayImages}
+                initialIndex={activeGalleryIndex}
+                isOpen={isGalleryOpen}
+                onClose={() => setIsGalleryOpen(false)}
+                title={titulo}
+            />
 
             {/* MODAL RENDERIZADO AQUI */}
             <ModalPerfil
