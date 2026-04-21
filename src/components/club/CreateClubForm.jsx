@@ -1,14 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, FileText, UploadCloud, Users, X, Check } from 'lucide-react';
+import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 
 // --- MOCKS E STUBS DE DEPENDÊNCIAS EXTERNAS ---
-const CLUB_REQUIRED_DOCUMENTS = [
-    { key: 'ata_fundacao', label: 'Ata de Fundação' },
-    { key: 'regimento_interno', label: 'Regimento Interno' },
-    { key: 'lista_membros', label: 'Lista de Membros Assinada' }
-];
-
 const getUserSchoolIds = (user) => {
     if (!user) return [];
     const ids = new Set();
@@ -37,6 +32,18 @@ const isLocalhostEnvironment = () => {
 };
 
 const normalizeSchoolName = (value) => String(value || '').trim().toLowerCase();
+const isFileLike = (value) => typeof File !== 'undefined' && value instanceof File;
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    if (!isFileLike(file)) {
+        resolve('');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Nao foi possivel processar o documento selecionado.'));
+    reader.readAsDataURL(file);
+});
 
 // --- COMPONENTE PRINCIPAL ---
 export default function CreateClubForm({
@@ -249,7 +256,7 @@ export default function CreateClubForm({
         }
 
         if (!isLocalhost) {
-            const missingDocs = CLUB_REQUIRED_DOCUMENTS.filter((doc) => !(documents[doc.key] instanceof File));
+            const missingDocs = CLUB_REQUIRED_DOCUMENTS.filter((doc) => !isFileLike(documents[doc.key]));
             if (missingDocs.length > 0) {
                 setError(`Anexe todos os documentos obrigatórios. Faltando: ${missingDocs.map((doc) => doc.label).join(', ')}.`);
                 return;
@@ -257,6 +264,30 @@ export default function CreateClubForm({
         }
 
         try {
+            const encodedDocuments = {};
+
+            for (const requiredDocument of CLUB_REQUIRED_DOCUMENTS) {
+                const file = documents?.[requiredDocument.key];
+                if (!isFileLike(file)) {
+                    continue;
+                }
+
+                const dataUrl = await readFileAsDataUrl(file);
+                if (!dataUrl) {
+                    throw new Error(`Nao foi possivel processar o documento: ${requiredDocument.label}.`);
+                }
+
+                encodedDocuments[requiredDocument.key] = {
+                    key: requiredDocument.key,
+                    label: requiredDocument.label,
+                    nome_arquivo: String(file.name || '').trim(),
+                    content_type: String(file.type || 'application/octet-stream'),
+                    tamanho_bytes: Number(file.size || 0),
+                    data_url: dataUrl,
+                    uploaded_at: new Date().toISOString(),
+                };
+            }
+
             await onSubmit?.({
                 nome,
                 descricao,
@@ -264,7 +295,7 @@ export default function CreateClubForm({
                 escola_nome: selectedSchool?.nome || '',
                 periodicidade: String(form.periodicidade || 'Quinzenal').trim() || 'Quinzenal',
                 clubistas_ids: clubistasIds,
-                documentos: documents,
+                documentos: encodedDocuments,
             });
 
             setForm({
@@ -480,7 +511,7 @@ export default function CreateClubForm({
                                             <input
                                                 type="file"
                                                 className="hidden"
-                                                accept=".pdf,.png,.jpg,.jpeg,.webp"
+                                                accept=".pdf,.doc,.docx,.odt,.rtf,.png,.jpg,.jpeg,.webp"
                                                 onChange={(event) => onFileChange(doc.key, event.target.files?.[0] || null)}
                                                 required={!isLocalhost}
                                             />

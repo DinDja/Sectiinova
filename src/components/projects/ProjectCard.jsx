@@ -238,7 +238,7 @@ export default function ProjectCard({
 
     return (
         <article 
-            className="bg-[#FAFAFA] rounded-3xl border-4 border-slate-900 overflow-hidden flex flex-col transition-all duration-200 hover:shadow-[14px_14px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 shadow-[10px_10px_0px_0px_#0f172a] group relative"
+            className="bg-[#FAFAFA] rounded-3xl border-4 border-slate-900 overflow-hidden flex flex-col transition-all duration-200  shadow-[10px_10px_0px_0px_#0f172a] group relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

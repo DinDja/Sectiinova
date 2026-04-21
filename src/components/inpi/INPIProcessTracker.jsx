@@ -161,8 +161,8 @@ function getNotFoundMessage(result, selectedSourceId) {
 
 function ResultInfoCard({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border-4 border-slate-900 bg-white p-6 shadow-[6px_6px_0px_0px_#0f172a] transform hover:-translate-y-1 transition-transform flex flex-col justify-between">
-      <div className="inline-flex items-center gap-2 text-slate-900 text-[10px] font-black uppercase tracking-widest bg-yellow-300 border-2 border-slate-900 px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a] w-fit mb-4 transform -">
+    <div className="flex h-full flex-col justify-between rounded-2xl border-4 border-slate-900 bg-white p-6 shadow-[6px_6px_0px_0px_#0f172a] transition-transform hover:-translate-y-1">
+      <div className="mb-4 inline-flex w-fit items-center gap-2 border-2 border-slate-900 bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
         {icon}
         {label}
       </div>
@@ -170,6 +170,26 @@ function ResultInfoCard({ icon, label, value }) {
         {value || "-"}
       </p>
     </div>
+  );
+}
+
+function MonitoringTabButton({ isActive, icon, label, badge, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-xl border-4 border-slate-900 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a] transition-all ${
+        isActive
+          ? "bg-yellow-300 text-slate-900"
+          : "bg-white text-slate-600 hover:-translate-y-0.5"
+      }`}
+    >
+      {icon}
+      {label}
+      <span className="rounded-md border-2 border-slate-900 bg-white px-2 py-0.5 text-[10px] text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+        {badge}
+      </span>
+    </button>
   );
 }
 
@@ -315,6 +335,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
   const [isRunningWatch, setIsRunningWatch] = useState(false);
   const [lastWatchRunAt, setLastWatchRunAt] = useState("");
   const [lastWatchSummary, setLastWatchSummary] = useState("");
+  const [activeMonitoringTab, setActiveMonitoringTab] = useState("searches");
 
   const firestoreUserId = String(
     loggedUser?.id || loggedUser?.uid || auth.currentUser?.uid || "",
@@ -561,13 +582,23 @@ export default function INPIProcessTracker({ loggedUser = null }) {
     await runSearch(processNumber, selectedSourceId);
   };
 
+  const selectedSourceOption = getSourceOption(selectedSourceId);
+  const watchedSearchCount = savedSearches.filter(
+    (entry) => entry.watchEnabled,
+  ).length;
+  const monitoringTabDescription =
+    activeMonitoringTab === "searches"
+      ? "Visualize tudo que foi salvo e ative alerta apenas no que precisa de monitoramento contínuo."
+      : "Aqui aparecem somente alterações novas detectadas pelo monitoramento automático.";
+  const resultInfoCards = result?.found ? getResultInfoCards(result) : [];
+
   return (
     <div className="space-y-10 animate-in fade-in duration-500 font-sans text-slate-900">
       {/* HEADER DE CONSULTA */}
-      <div className="bg-blue-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[12px_12px_0px_0px_#0f172a] transform  hover:rotate-0 transition-transform">
+      <div className="bg-blue-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[12px_12px_0px_0px_#0f172a]">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-8">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest transform -rotate-2 mb-6">
+            <div className="inline-flex items-center gap-2 bg-white px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest mb-6">
               <Clock3 className="w-5 h-5 stroke-[3] text-slate-900" />
               Agente de acompanhamento
             </div>
@@ -592,14 +623,14 @@ export default function INPIProcessTracker({ loggedUser = null }) {
           </a>
         </div>
 
-        <div className="mt-8 bg-pink-400 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -">
+        <div className="mt-8 bg-pink-400 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
           <AlertCircle className="w-6 h-6 inline-block mr-2 -mt-1 stroke-[3]" />
           O acompanhamento continua sendo oficialmente publicado na RPI. Este
           Agente facilita a leitura do processo, mas não substitui a conferência
           formal no portal do INPI.
         </div>
 
-        <div className="mt-6 bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform ">
+        <div className="mt-6 bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
           <Cloud className="w-6 h-6 inline-block mr-2 -mt-1 stroke-[3]" />
           {firestoreUserId
             ? "As consultas encontradas ficam salvas automaticamente no documento do usuário em usuarios. Você pode ativar o monitoramento automático e o sistema vai verificar mudanças sem precisar consultar manualmente."
@@ -654,10 +685,10 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               type="text"
               value={processNumber}
               onChange={(event) => setProcessNumber(event.target.value)}
-              placeholder={getSourceOption(selectedSourceId).placeholder}
-              className="w-full rounded-2xl border-4 border-slate-900 bg-white px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-900 outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all shadow-[4px_4px_0px_0px_#0f172a] placeholder:text-slate-400 placeholder:font-bold placeholder:normal-case"
-            />
-          </div>
+                placeholder={selectedSourceOption.placeholder}
+                className="w-full rounded-2xl border-4 border-slate-900 bg-white px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-900 outline-none focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all shadow-[4px_4px_0px_0px_#0f172a] placeholder:text-slate-400 placeholder:font-bold placeholder:normal-case"
+              />
+            </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4 lg:pt-0">
             <button
@@ -694,6 +725,10 @@ export default function INPIProcessTracker({ loggedUser = null }) {
           </div>
         </form>
 
+        <p className="mt-4 rounded-xl border-2 border-slate-900 bg-slate-100 p-3 text-sm font-bold text-slate-700">
+          {selectedSourceOption.description}
+        </p>
+
         {!!recentSearches.length && (
           <div className="mt-8 pt-8 border-t-4 border-slate-900 border-dashed">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-4 bg-slate-200 inline-block px-3 py-1 border-2 border-slate-900">
@@ -715,7 +750,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
         )}
 
         {error && (
-          <div className="mt-8 rounded-xl border-4 border-slate-900 bg-red-400 p-5 text-sm font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-3 transform ">
+          <div className="mt-8 rounded-xl border-4 border-slate-900 bg-red-400 p-5 text-sm font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-3">
             <AlertCircle className="w-6 h-6 shrink-0 stroke-[3]" />
             <span className="mt-0.5">{error}</span>
           </div>
@@ -724,7 +759,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
 
       {/* RESULTADO NADA ENCONTRADO */}
       {result && !result.found && !error && (
-        <div className="bg-yellow-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[8px_8px_0px_0px_#0f172a] transform -">
+        <div className="bg-yellow-300 border-4 border-slate-900 rounded-[2rem] p-8 md:p-12 shadow-[8px_8px_0px_0px_#0f172a]">
           <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4 flex items-center gap-3">
              <AlertCircle className="w-8 h-8 stroke-[3]" /> Nenhum processo encontrado
           </h3>
@@ -762,7 +797,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               </p>
             </div>
 
-            <div className="bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#0f172a] shrink-0 text-center transform rotate-2">
+            <div className="bg-yellow-300 border-4 border-slate-900 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#0f172a] shrink-0 text-center">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-2">
                 Número do pedido
               </p>
@@ -772,8 +807,45 @@ export default function INPIProcessTracker({ loggedUser = null }) {
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-            {getResultInfoCards(result).map((item, idx) => (
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border-4 border-slate-900 bg-slate-100 p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Fonte consultada
+              </p>
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {result.sourceLabel}
+              </p>
+            </div>
+            <div className="rounded-xl border-4 border-slate-900 bg-slate-100 p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Situação atual
+              </p>
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {result.status?.label || "Sem status"}
+              </p>
+            </div>
+            <div className="rounded-xl border-4 border-slate-900 bg-slate-100 p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Último despacho
+              </p>
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {result.latestDispatch?.code
+                  ? `Código ${result.latestDispatch.code}`
+                  : "Não identificado"}
+              </p>
+            </div>
+            <div className="rounded-xl border-4 border-slate-900 bg-slate-100 p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Publicação mais recente
+              </p>
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {result.latestDispatch?.rpiDate || "-"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {resultInfoCards.map((item, idx) => (
               <ResultInfoCard
                 key={idx}
                 icon={item.icon}
@@ -784,7 +856,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
           </div>
 
           {result.notice?.message && (
-            <div className="bg-orange-400 border-4 border-slate-900 rounded-2xl p-6 md:p-8 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-4 mb-10 transform -">
+            <div className="bg-orange-400 border-4 border-slate-900 rounded-2xl p-6 md:p-8 font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-start gap-4 mb-10">
               <AlertCircle className="w-8 h-8 shrink-0 stroke-[3]" />
               <div>
                 <p className="text-xl font-black uppercase tracking-tighter mb-2">
@@ -799,7 +871,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
 
           <div className="bg-slate-100 border-4 border-slate-900 rounded-2xl p-6 md:p-8 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-400 border-2 border-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#0f172a] transform rotate-3">
+                <div className="w-12 h-12 bg-blue-400 border-2 border-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#0f172a]">
                     <Cloud className="w-6 h-6 stroke-[3] text-slate-900" />
                 </div>
                 <p className="text-sm font-bold text-slate-800">
@@ -879,11 +951,18 @@ export default function INPIProcessTracker({ loggedUser = null }) {
               </div>
 
               {/* HISTÓRICO DE DESPACHOS */}
-              <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
-                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">
-                  Histórico recente de publicações
-                </h3>
-                <p className="text-sm font-bold text-slate-600 mb-8">
+              <details className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">
+                      Histórico recente de publicações
+                    </h3>
+                    <span className="inline-flex items-center border-2 border-slate-900 bg-blue-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                      {result.dispatches.length} evento(s)
+                    </span>
+                  </div>
+                </summary>
+                <p className="text-sm font-bold text-slate-600 mt-4 mb-8">
                   Últimos eventos públicos identificados na base do INPI para esse pedido.
                 </p>
 
@@ -922,15 +1001,22 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </details>
 
               {/* PETIÇÕES */}
               {!!result.petitions?.length && (
-                <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">
-                    Petições Registradas
-                  </h3>
-                  <p className="text-sm font-bold text-slate-600 mb-8">
+                <details className="bg-white border-4 border-slate-900 rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_0px_#0f172a]">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">
+                        Petições Registradas
+                      </h3>
+                      <span className="inline-flex items-center border-2 border-slate-900 bg-pink-400 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                        {result.petitions.length} petição(ões)
+                      </span>
+                    </div>
+                  </summary>
+                  <p className="text-sm font-bold text-slate-600 mt-4 mb-8">
                     Eventos protocolados identificados no detalhe público do processo.
                   </p>
 
@@ -973,7 +1059,7 @@ export default function INPIProcessTracker({ loggedUser = null }) {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </details>
               )}
             </div>
           )}
@@ -982,24 +1068,49 @@ export default function INPIProcessTracker({ loggedUser = null }) {
 
       {/* ÁREA DO USUÁRIO LOGADO - PESQUISAS SALVAS & ALERTAS */}
       {firestoreUserId && (
-        <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-8 md:p-12 transform  hover:rotate-0 transition-transform mt-16">
+        <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-8 md:p-12 mt-16">
           <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 mb-12 border-b-4 border-slate-900 pb-8">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest transform - mb-4">
+              <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] text-[10px] font-black uppercase tracking-widest mb-4">
                 <HardDrive className="w-5 h-5 stroke-[3] text-slate-900" />
-                Painel do Usuário
+                Central de Acompanhamento
               </div>
               <h3 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter mb-4">
-                Pesquisas Salvas
+                Monitoramento do Seu Processo
               </h3>
               <p className="text-base font-bold text-slate-700 bg-slate-100 p-4 border-2 border-slate-900 rounded-xl leading-relaxed">
-                Cada consulta encontrada é gravada no seu perfil. Ative o sino apenas nos processos que realmente precisam de acompanhamento automático (alertas).
+                Tudo que você consulta fica salvo automaticamente no perfil. Use a aba de alertas apenas para mudanças novas detectadas.
               </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border-2 border-slate-900 bg-white px-3 py-2 shadow-[2px_2px_0px_0px_#0f172a]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">1. Consultar</p>
+                  <p className="text-xs font-black text-slate-900">Busca salva no perfil</p>
+                </div>
+                <div className="rounded-xl border-2 border-slate-900 bg-white px-3 py-2 shadow-[2px_2px_0px_0px_#0f172a]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">2. Monitorar</p>
+                  <p className="text-xs font-black text-slate-900">Ative o sino no processo</p>
+                </div>
+                <div className="rounded-xl border-2 border-slate-900 bg-white px-3 py-2 shadow-[2px_2px_0px_0px_#0f172a]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">3. Agir</p>
+                  <p className="text-xs font-black text-slate-900">Veja alertas quando houver mudança</p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center border-2 border-slate-900 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
+                  Salvas: {savedSearches.length}
+                </span>
+                <span className="inline-flex items-center border-2 border-slate-900 bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
+                  Monitorando: {watchedSearchCount}
+                </span>
+                <span className="inline-flex items-center border-2 border-slate-900 bg-blue-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]">
+                  Alertas: {trackingAlerts.length}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col items-start xl:items-end gap-4 w-full xl:w-auto">
               {lastWatchRunAt && (
-                <div className="rounded-2xl border-4 border-slate-900 bg-teal-400 p-5 shadow-[4px_4px_0px_0px_#0f172a] w-full transform ">
+                <div className="rounded-2xl border-4 border-slate-900 bg-teal-400 p-5 shadow-[4px_4px_0px_0px_#0f172a] w-full">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-1 bg-white px-2 inline-block border-2 border-slate-900">
                     Última varredura do monitoramento
                   </p>
@@ -1026,205 +1137,233 @@ export default function INPIProcessTracker({ loggedUser = null }) {
             </div>
           </div>
 
-          {savedSearches.length ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              {savedSearches.map((entry) => (
-                <div
-                  key={getSavedSearchKey(entry)}
-                  className="rounded-2xl border-4 border-slate-900 bg-white p-6 md:p-8 shadow-[6px_6px_0px_0px_#0f172a] flex flex-col hover:-translate-y-1 transition-transform"
-                >
-                  <div className="flex flex-wrap items-center gap-3 mb-6">
-                    <span className="inline-flex items-center bg-white border-2 border-slate-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                      {entry.sourceLabel}
-                    </span>
-                    <span
-                      className={`inline-flex items-center border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
-                        entry.statusTone,
-                      )}`}
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <MonitoringTabButton
+              isActive={activeMonitoringTab === "searches"}
+              icon={<HardDrive className="h-4 w-4 stroke-[3]" />}
+              label="Processos salvos"
+              badge={savedSearches.length}
+              onClick={() => setActiveMonitoringTab("searches")}
+            />
+            <MonitoringTabButton
+              isActive={activeMonitoringTab === "alerts"}
+              icon={<Cloud className="h-4 w-4 stroke-[3]" />}
+              label="Alertas automáticos"
+              badge={trackingAlerts.length}
+              onClick={() => setActiveMonitoringTab("alerts")}
+            />
+            <span className="inline-flex items-center gap-2 rounded-xl border-4 border-slate-900 bg-teal-400 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">
+              <RefreshCw className="h-4 w-4 animate-spin stroke-[3]" />
+              Auto: 30 mins
+            </span>
+          </div>
+
+          <p className="mb-8 rounded-xl border-2 border-slate-900 bg-slate-100 p-3 text-sm font-bold text-slate-700">
+            {monitoringTabDescription}
+          </p>
+
+          {activeMonitoringTab === "searches" && (
+            <>
+              {savedSearches.length ? (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {savedSearches.map((entry) => (
+                    <div
+                      key={getSavedSearchKey(entry)}
+                      className="rounded-2xl border-4 border-slate-900 bg-white p-6 md:p-8 shadow-[6px_6px_0px_0px_#0f172a] flex flex-col hover:-translate-y-1 transition-transform"
                     >
-                      {entry.statusLabel || "Acompanhando"}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-2 border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${
-                        entry.watchEnabled
-                          ? "border-slate-900 bg-yellow-300 text-slate-900"
-                          : "border-slate-900 bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {entry.watchEnabled ? (
-                        <Bell className="w-4 h-4 stroke-[3]" />
-                      ) : (
-                        <BellOff className="w-4 h-4 stroke-[3]" />
-                      )}
-                      {entry.watchEnabled ? "Monitorando" : "Somente salvo"}
-                    </span>
-                  </div>
-
-                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">
-                    {entry.title || entry.processNumber}
-                  </h4>
-                  <p className="text-base font-bold text-slate-600 bg-slate-100 px-3 py-1 border-2 border-slate-900 w-fit mb-6">
-                    {entry.processNumber}
-                  </p>
-                  
-                  <div className="bg-[#FAFAFA] p-4 border-4 border-slate-900 rounded-xl mb-8 flex-1">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                        Sincronização manual:
-                      </p>
-                      <p className="text-sm font-bold text-slate-900 mb-3">{formatFetchedAt(entry.lastManualSyncAt || entry.updatedAt || entry.fetchedAt)}</p>
-                      
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                        Checagem automática:
-                      </p>
-                      <p className="text-sm font-bold text-slate-900">{formatFetchedAt(entry.lastCheckedAt || entry.updatedAt || entry.fetchedAt)}</p>
-
-                      {entry.lastError && (
-                        <p className="mt-4 text-xs font-black uppercase text-slate-900 bg-red-400 p-2 border-2 border-slate-900">
-                          Erro: {entry.lastError}
-                        </p>
-                      )}
-                  </div>
-
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => runSavedSearch(entry)}
-                      disabled={isLoading || isPersisting}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-blue-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
-                    >
-                      <RefreshCw className="w-4 h-4 stroke-[3]" />
-                      Reconsultar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleWatch(entry, !entry.watchEnabled)}
-                      disabled={isPersisting}
-                      className={`inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50 ${
-                        entry.watchEnabled
-                          ? "bg-orange-400"
-                          : "bg-teal-400"
-                      }`}
-                    >
-                      {entry.watchEnabled ? (
-                        <BellOff className="w-4 h-4 stroke-[3]" />
-                      ) : (
-                        <Bell className="w-4 h-4 stroke-[3]" />
-                      )}
-                      {entry.watchEnabled ? "Pausar Alerta" : "Ativar Alerta"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSavedSearch(entry)}
-                      disabled={isPersisting}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-red-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4 stroke-[3]" />
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-8 text-sm font-bold text-slate-900 bg-yellow-300 p-6 border-4 border-slate-900 rounded-2xl shadow-[4px_4px_0px_0px_#0f172a] transform - text-center">
-              Nenhuma pesquisa foi salva ainda. Faça uma consulta bem-sucedida e ela será gravada automaticamente no seu perfil.
-            </p>
-          )}
-
-          {/* ALERTAS AUTOMÁTICOS */}
-          <div className="mt-16 pt-12 border-t-4 border-slate-900 border-dashed">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
-              <div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-2 flex items-center gap-3">
-                    <Cloud className="w-8 h-8 stroke-[3] text-blue-500" /> Alertas Automáticos
-                </h3>
-                <p className="text-sm font-bold text-slate-700 bg-white border-2 border-slate-900 p-3 rounded-xl shadow-[2px_2px_0px_0px_#cbd5e1] max-w-3xl">
-                  Quando o sistema detectar alteração em uma busca monitorada, o alerta aparecerá aqui sem você precisar consultar manualmente.
-                </p>
-              </div>
-
-              <div className="inline-flex items-center gap-2 rounded-xl border-4 border-slate-900 bg-teal-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-2 shrink-0">
-                <RefreshCw className="w-4 h-4 stroke-[3] animate-spin" />
-                Auto: 30 mins
-              </div>
-            </div>
-
-            {trackingAlerts.length ? (
-              <div className="grid gap-6">
-                {trackingAlerts.map((alertEntry) => (
-                  <div
-                    key={alertEntry.id}
-                    className="rounded-[2rem] border-4 border-slate-900 bg-white p-8 shadow-[8px_8px_0px_0px_#0f172a] transform hover:-translate-y-1 transition-transform"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-3 mb-4">
-                          <span className="inline-flex items-center bg-blue-300 border-2 border-slate-900 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transform -">
-                            {alertEntry.sourceLabel}
-                          </span>
-                          <span
-                            className={`inline-flex items-center border-2 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
-                              alertEntry.statusTone,
-                            )}`}
-                          >
-                            {alertEntry.statusLabel || "Mudança detectada"}
-                          </span>
-                        </div>
-                        
-                        <h4 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">
-                          {alertEntry.title || alertEntry.processNumber}
-                        </h4>
-                        <p className="text-base font-bold text-slate-900 leading-relaxed bg-slate-100 p-5 rounded-2xl border-2 border-slate-900">
-                          {alertEntry.message}
-                        </p>
-                        <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500 bg-white border-2 border-slate-900 px-3 py-1 inline-block shadow-[2px_2px_0px_0px_#0f172a]">
-                          Detectado em {formatFetchedAt(alertEntry.detectedAt)}
-                        </p>
+                      <div className="flex flex-wrap items-center gap-3 mb-6">
+                        <span className="inline-flex items-center bg-white border-2 border-slate-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                          {entry.sourceLabel}
+                        </span>
+                        <span
+                          className={`inline-flex items-center border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
+                            entry.statusTone,
+                          )}`}
+                        >
+                          {entry.statusLabel || "Acompanhando"}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-2 border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${
+                            entry.watchEnabled
+                              ? "border-slate-900 bg-yellow-300 text-slate-900"
+                              : "border-slate-900 bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {entry.watchEnabled ? (
+                            <Bell className="w-4 h-4 stroke-[3]" />
+                          ) : (
+                            <BellOff className="w-4 h-4 stroke-[3]" />
+                          )}
+                          {entry.watchEnabled ? "Monitorando" : "Somente salvo"}
+                        </span>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row lg:flex-col gap-4 shrink-0">
+                      <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">
+                        {entry.title || entry.processNumber}
+                      </h4>
+                      <p className="text-base font-bold text-slate-600 bg-slate-100 px-3 py-1 border-2 border-slate-900 w-fit mb-6">
+                        {entry.processNumber}
+                      </p>
+
+                      <div className="bg-[#FAFAFA] p-4 border-4 border-slate-900 rounded-xl mb-8 flex-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                          Sincronização manual:
+                        </p>
+                        <p className="text-sm font-bold text-slate-900 mb-3">
+                          {formatFetchedAt(
+                            entry.lastManualSyncAt || entry.updatedAt || entry.fetchedAt,
+                          )}
+                        </p>
+
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                          Checagem automática:
+                        </p>
+                        <p className="text-sm font-bold text-slate-900">
+                          {formatFetchedAt(
+                            entry.lastCheckedAt || entry.updatedAt || entry.fetchedAt,
+                          )}
+                        </p>
+
+                        {entry.lastError && (
+                          <p className="mt-4 text-xs font-black uppercase text-slate-900 bg-red-400 p-2 border-2 border-slate-900">
+                            Erro: {entry.lastError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
                         <button
                           type="button"
-                          onClick={() =>
-                            runSavedSearch({
-                              processNumber: alertEntry.processNumber,
-                              sourceId: alertEntry.sourceId,
-                            })
-                          }
-                          disabled={isLoading}
-                          className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-teal-400 px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                          onClick={() => runSavedSearch(entry)}
+                          disabled={isLoading || isPersisting}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-blue-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
                         >
-                          <RefreshCw className="w-5 h-5 stroke-[3]" />
-                          Abrir resultado
+                          <RefreshCw className="w-4 h-4 stroke-[3]" />
+                          Reconsultar
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDismissAlert(alertEntry.id)}
+                          onClick={() => handleToggleWatch(entry, !entry.watchEnabled)}
                           disabled={isPersisting}
-                          className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-white px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                          className={`inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50 ${
+                            entry.watchEnabled
+                              ? "bg-orange-400"
+                              : "bg-teal-400"
+                          }`}
                         >
-                          <Trash2 className="w-5 h-5 stroke-[3]" />
-                          Dispensar
+                          {entry.watchEnabled ? (
+                            <BellOff className="w-4 h-4 stroke-[3]" />
+                          ) : (
+                            <Bell className="w-4 h-4 stroke-[3]" />
+                          )}
+                          {entry.watchEnabled ? "Pausar Alerta" : "Ativar Alerta"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSavedSearch(entry)}
+                          disabled={isPersisting}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-red-400 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4 stroke-[3]" />
+                          Remover
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center bg-[#FAFAFA] border-4 border-dashed border-slate-900 rounded-[2rem] p-12">
-                <BellOff className="w-16 h-16 stroke-[2] text-slate-400 mx-auto mb-4" />
-                <p className="text-lg font-black uppercase tracking-widest text-slate-500">
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center bg-yellow-300 p-8 border-4 border-slate-900 rounded-2xl shadow-[4px_4px_0px_0px_#0f172a]">
+                  <p className="text-sm font-black uppercase tracking-widest text-slate-900">
+                    Nenhum processo salvo ainda.
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-slate-900">
+                    Faça uma consulta no painel acima e ela será gravada automaticamente.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {activeMonitoringTab === "alerts" && (
+            <>
+              {trackingAlerts.length ? (
+                <div className="grid gap-6">
+                  {trackingAlerts.map((alertEntry) => (
+                    <div
+                      key={alertEntry.id}
+                      className="rounded-[2rem] border-4 border-slate-900 bg-white p-8 shadow-[8px_8px_0px_0px_#0f172a] transition-transform hover:-translate-y-1"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <span className="inline-flex items-center bg-blue-300 border-2 border-slate-900 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                              {alertEntry.sourceLabel}
+                            </span>
+                            <span
+                              className={`inline-flex items-center border-2 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a] ${getStatusClassName(
+                                alertEntry.statusTone,
+                              )}`}
+                            >
+                              {alertEntry.statusLabel || "Mudança detectada"}
+                            </span>
+                          </div>
+
+                          <h4 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">
+                            {alertEntry.title || alertEntry.processNumber}
+                          </h4>
+                          <p className="text-base font-bold text-slate-900 leading-relaxed bg-slate-100 p-5 rounded-2xl border-2 border-slate-900">
+                            {alertEntry.message}
+                          </p>
+                          <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500 bg-white border-2 border-slate-900 px-3 py-1 inline-block shadow-[2px_2px_0px_0px_#0f172a]">
+                            Detectado em {formatFetchedAt(alertEntry.detectedAt)}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row lg:flex-col gap-4 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              runSavedSearch({
+                                processNumber: alertEntry.processNumber,
+                                sourceId: alertEntry.sourceId,
+                              })
+                            }
+                            disabled={isLoading}
+                            className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-teal-400 px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                          >
+                            <RefreshCw className="w-5 h-5 stroke-[3]" />
+                            Abrir resultado
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDismissAlert(alertEntry.id)}
+                            disabled={isPersisting}
+                            className="inline-flex items-center justify-center gap-3 rounded-xl border-4 border-slate-900 bg-white px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all disabled:opacity-50"
+                          >
+                            <Trash2 className="w-5 h-5 stroke-[3]" />
+                            Dispensar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center bg-[#FAFAFA] border-4 border-dashed border-slate-900 rounded-[2rem] p-12">
+                  <BellOff className="w-16 h-16 stroke-[2] text-slate-400 mx-auto mb-4" />
+                  <p className="text-lg font-black uppercase tracking-widest text-slate-500">
                     Nenhuma mudança detectada até agora.
-                </p>
-                <p className="text-sm font-bold text-slate-500 mt-2">
+                  </p>
+                  <p className="text-sm font-bold text-slate-500 mt-2">
                     Mantenha o monitoramento automático ligado nas buscas que deseja acompanhar.
-                </p>
-              </div>
-            )}
-          </div>
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
+

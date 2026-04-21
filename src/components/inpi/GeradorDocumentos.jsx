@@ -20,12 +20,104 @@ import {
   X,
   Sparkles
 } from "lucide-react";
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  Header,
+  PageNumber,
+} from "docx";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 import { buildProfessorFolderId, formatDateTimeCompact, sanitizeFilePart } from "./inpiUtils";
+
+const CM_TO_TWIPS = 567;
+
+const INPI_PAGE_MARGINS = {
+  top: Math.round(3 * CM_TO_TWIPS),
+  left: Math.round(3 * CM_TO_TWIPS),
+  bottom: Math.round(2 * CM_TO_TWIPS),
+  right: Math.round(2 * CM_TO_TWIPS),
+};
+
+const RELATORIO_SECTIONS = [
+  { key: "campo", title: "Campo tecnico" },
+  { key: "estadoTecnica", title: "Estado da tecnica" },
+  { key: "problema", title: "Problema tecnico e solucao" },
+  { key: "desenhos", title: "Relacao das figuras" },
+  { key: "descricao", title: "Descricao detalhada" },
+  { key: "exemplos", title: "Exemplos de execucao" },
+];
+
+const REQUIRED_RELATORIO_FIELDS = [
+  "titulo",
+  "campo",
+  "estadoTecnica",
+  "problema",
+  "desenhos",
+  "descricao",
+];
+
+const normalizeLineText = (value) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const splitParagraphs = (value) =>
+  String(value || "")
+    .split(/\r?\n+/)
+    .map((line) => normalizeLineText(line))
+    .filter(Boolean);
+
+const countWords = (value) =>
+  normalizeLineText(value)
+    .split(" ")
+    .filter(Boolean).length;
+
+const parseClaims = (rawValue) =>
+  String(rawValue || "")
+    .split(/\r?\n+/)
+    .map((claim) => claim.replace(/^\s*\d+[\).\-\s]+/, ""))
+    .map((claim) => normalizeLineText(claim))
+    .filter(Boolean)
+    .map((claim) => (claim.endsWith(".") ? claim : `${claim}.`));
+
+const countCaracterizadoPor = (value) =>
+  (String(value || "").toLowerCase().match(/caracterizado por/g) || []).length;
+
+const formatSignatureDate = (value) => {
+  const normalized = normalizeLineText(value);
+  if (!normalized) return "[DD/MM/AAAA]";
+
+  const [year, month, day] = normalized.split("-");
+  if (year && month && day) {
+    return `${day}/${month}/${year}`;
+  }
+
+  return normalized;
+};
+
+const buildTopPageNumberHeader = () =>
+  new Header({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
+        children: [
+          new TextRun({
+            font: "Arial",
+            size: 24,
+            color: "000000",
+            children: [PageNumber.CURRENT, "/", PageNumber.TOTAL_PAGES],
+          }),
+        ],
+      }),
+    ],
+  });
 
 export default function GeradorDocumentos({ loggedUser, viewMode = "leitura_rapida" }) {
   const initialFormData = {
@@ -38,6 +130,13 @@ export default function GeradorDocumentos({ loggedUser, viewMode = "leitura_rapi
     exemplos: "",
     reivindicacao: "",
     resumo: "",
+    assinaturaNome: "",
+    assinaturaCpf: "",
+    assinaturaEmail: "",
+    assinaturaCidadeUf: "",
+    assinaturaData: "",
+    assinaturaHash: "",
+    assinaturaDeclaracao: "",
   };
 
   const [copiedText, setCopiedText] = useState(false);
@@ -50,6 +149,7 @@ export default function GeradorDocumentos({ loggedUser, viewMode = "leitura_rapi
   const [isFolderLoading, setIsFolderLoading] = useState(true);
   const [isFolderSaving, setIsFolderSaving] = useState(false);
   const [folderError, setFolderError] = useState("");
+  const [exportError, setExportError] = useState("");
   const [showFolderExplorer, setShowFolderExplorer] = useState(
     viewMode !== "leitura_rapida",
   );
@@ -88,78 +188,476 @@ export default function GeradorDocumentos({ loggedUser, viewMode = "leitura_rapi
       icon: <AlignLeft className="w-5 h-5 stroke-[3]" />,
       color: "bg-yellow-300"
     },
+    {
+      id: "assinatura",
+      label: "Assinatura Digital",
+      icon: <Pencil className="w-5 h-5 stroke-[3]" />,
+      color: "bg-lime-300"
+    },
   ];
 
   const getGeneratedTextByTab = (tabId, data) => {
     const safeData = data || {};
+    const title =
+      normalizeLineText(safeData.titulo).toUpperCase() ||
+      "[TITULO DO PEDIDO DE PATENTE]";
 
-    const generators = {
-      relatorio: () => `${
-        safeData.titulo?.toUpperCase() || "[TÍTULO DO SEU PEDIDO DE PATENTE]"
+    if (tabId === "relatorio") {
+      const lines = [title];
+
+      RELATORIO_SECTIONS.forEach((section) => {
+        lines.push("");
+        lines.push(section.title);
+        lines.push(
+          normalizeLineText(safeData[section.key]) ||
+            `[Preencha o campo "${section.title}" com texto tecnico.]`,
+        );
+      });
+
+      return lines.join("\n").trim();
+    }
+
+    if (tabId === "reivindicacoes") {
+      const claims = parseClaims(safeData.reivindicacao);
+      const previewClaims = claims.length
+        ? claims
+        : ["[Categoria da invencao] caracterizado por [materia pleiteada]."];
+
+      return [
+        "Reivindicações",
+        "",
+        ...previewClaims.map((claim, index) => `${index + 1}. ${claim}`),
+      ].join("\n");
+    }
+
+    if (tabId === "desenhos") {
+      return [
+        "Documento de desenhos",
+        "",
+        "Este documento deve conter apenas figuras.",
+        "Nao exportamos placeholder textual para evitar nao conformidade formal.",
+        "Monte as figuras finais diretamente em um DOCX/PDF tecnico.",
+      ].join("\n");
+    }
+
+    if (tabId === "resumo") {
+      return [
+        "Resumo",
+        title,
+        "",
+        normalizeLineText(safeData.resumo) ||
+          "[Escreva um resumo tecnico entre 50 e 200 palavras.]",
+      ].join("\n");
+    }
+
+    if (tabId === "assinatura") {
+      const signatureName =
+        normalizeLineText(safeData.assinaturaNome) ||
+        "[Nome completo do assinante]";
+      const signatureCpf =
+        normalizeLineText(safeData.assinaturaCpf) || "[CPF do assinante]";
+      const signatureEmail =
+        normalizeLineText(safeData.assinaturaEmail) || "[email@dominio.com]";
+      const signatureCity =
+        normalizeLineText(safeData.assinaturaCidadeUf) || "[Cidade/UF]";
+      const signatureDate = formatSignatureDate(safeData.assinaturaData);
+      const signatureHash =
+        normalizeLineText(safeData.assinaturaHash) ||
+        "[Codigo/hash de validacao da assinatura digital]";
+      const signatureDeclaration =
+        normalizeLineText(safeData.assinaturaDeclaracao) ||
+        "[Declaro, sob as penas da lei, que as informacoes prestadas neste pedido sao verdadeiras.]";
+
+      return [
+        "Assinatura digital",
+        `Titulo do pedido: ${title}`,
+        "",
+        "Identificacao do assinante",
+        `Nome completo: ${signatureName}`,
+        `CPF: ${signatureCpf}`,
+        `E-mail: ${signatureEmail}`,
+        `Cidade/UF: ${signatureCity}`,
+        `Data da assinatura: ${signatureDate}`,
+        `Codigo/hash da assinatura: ${signatureHash}`,
+        "",
+        "Declaracao",
+        signatureDeclaration,
+      ].join("\n");
+    }
+
+    return "";
+  };
+
+  const validateInpiCompliance = (tabId, data) => {
+    const safeData = data || {};
+    const title = normalizeLineText(safeData.titulo);
+
+    if (tabId !== "desenhos" && !title) {
+      return "Informe o titulo tecnico do pedido antes de gerar o DOCX.";
+    }
+
+    if (title && title.length > 500) {
+      return "O titulo excede 500 caracteres. Ajuste para atender a Portaria INPI/DIRPA n. 14/2024.";
+    }
+
+    if (tabId === "relatorio") {
+      for (const fieldName of REQUIRED_RELATORIO_FIELDS) {
+        if (!normalizeLineText(safeData[fieldName])) {
+          return "Preencha todos os campos obrigatorios do relatorio para gerar o arquivo no padrao INPI.";
+        }
+      }
+    }
+
+    if (tabId === "reivindicacoes") {
+      const claims = parseClaims(safeData.reivindicacao);
+
+      if (!claims.length) {
+        return "Inclua pelo menos uma reivindicacao para gerar o documento.";
       }
 
-Campo da invenção
-${
-  safeData.campo ||
-  "[Descreva aqui o setor técnico ao qual se refere sua invenção.]"
-}
+      for (let index = 0; index < claims.length; index += 1) {
+        if (countCaracterizadoPor(claims[index]) !== 1) {
+          return `A reivindicacao ${index + 1} precisa conter exatamente uma expressao \"caracterizado por\".`;
+        }
+      }
+    }
 
-Fundamentos da invenção
-${
-  safeData.estadoTecnica ||
-  "[Escreva aqui o estado da técnica relacionado à sua invenção.]"
-}
-${
-  safeData.problema ||
-  "[Apresente o problema técnico e como sua invenção resolve esse problema.]"
-}
+    if (tabId === "resumo") {
+      const resumo = normalizeLineText(safeData.resumo);
+      const wordCount = countWords(resumo);
 
-Breve descrição dos desenhos
-${
-  safeData.desenhos ||
-  "[Se o seu pedido tiver desenhos, descreva de forma breve as informações apresentadas em cada um.]"
-}
+      if (!resumo) {
+        return "Preencha o resumo antes de gerar o DOCX.";
+      }
 
-Descrição da invenção
-${
-  safeData.descricao ||
-  "[Apresente de forma detalhada sua invenção nessa seção e inclua todas as suas possibilidades de concretização.]"
-}
+      if (wordCount < 50 || wordCount > 200) {
+        return "O resumo deve ter entre 50 e 200 palavras para manter o padrao recomendado pelo INPI.";
+      }
+    }
 
-Exemplos de concretizações da invenção
-${
-  safeData.exemplos ||
-  "[Apresente exemplos de concretizações da sua invenção. Indique a forma preferida de concretizar.]"
-}`,
+    if (tabId === "desenhos") {
+      return "Para evitar nao conformidade formal, o documento de desenhos nao e gerado automaticamente. Monte as figuras finais em arquivo tecnico proprio.";
+    }
 
-      reivindicacoes: () => `REIVINDICAÇÕES
+    if (tabId === "assinatura") {
+      if (!normalizeLineText(safeData.assinaturaNome)) {
+        return "Preencha o nome completo para gerar a secao de assinatura digital.";
+      }
 
-1. ${
-        safeData.reivindicacao ||
-        "[Preâmbulo] caracterizado por [Matéria Pleiteada]."
-      }`,
+      if (!normalizeLineText(safeData.assinaturaData)) {
+        return "Informe a data da assinatura digital antes de gerar o DOCX.";
+      }
+    }
 
-      desenhos: () => `DESENHOS
+    return "";
+  };
 
-[Insira aqui sua figura - Exclua este texto no Word e cole a imagem]
+  const createRelatorioParagraphs = (data) => {
+    const paragraphs = [];
+    const title = normalizeLineText(data.titulo).toUpperCase();
+    let paragraphCounter = 1;
 
-Figura 1
+    paragraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 },
+        children: [
+          new TextRun({
+            text: title,
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+    );
 
-[Insira aqui sua figura - Exclua este texto no Word e cole a imagem]
+    RELATORIO_SECTIONS.forEach((section) => {
+      const contentParagraphs = splitParagraphs(data[section.key]);
 
-Figura 2`,
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { before: 180, after: 120 },
+          children: [
+            new TextRun({
+              text: section.title.toUpperCase(),
+              font: "Arial",
+              size: 24,
+              bold: true,
+              color: "000000",
+            }),
+          ],
+        }),
+      );
 
-      resumo: () => `RESUMO
-${safeData.titulo?.toUpperCase() || "[TÍTULO DO SEU PEDIDO DE PATENTE]"}
+      contentParagraphs.forEach((contentLine) => {
+        const marker = `[${String(paragraphCounter).padStart(3, "0")}] `;
+        paragraphCounter += 1;
 
-${
-  safeData.resumo ||
-  "[Escreva um resumo da sua invenção aqui em um único parágrafo com 50 a 200 palavras, não excedendo uma página.]"
-}`,
-    };
+        paragraphs.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { line: 360, after: 120 },
+            children: [
+              new TextRun({
+                text: `${marker}${contentLine}`,
+                font: "Arial",
+                size: 24,
+                color: "000000",
+              }),
+            ],
+          }),
+        );
+      });
+    });
 
-    const generator = generators[tabId] || generators.relatorio;
-    return generator().trim();
+    return paragraphs;
+  };
+
+  const createReivindicacoesParagraphs = (data) => {
+    const paragraphs = [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 },
+        children: [
+          new TextRun({
+            text: "Reivindicações",
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+    ];
+
+    parseClaims(data.reivindicacao).forEach((claim, index) => {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 360, after: 120 },
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${claim}`,
+              font: "Arial",
+              size: 24,
+              color: "000000",
+            }),
+          ],
+        }),
+      );
+    });
+
+    return paragraphs;
+  };
+
+  const createResumoParagraphs = (data) => [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 180 },
+      children: [
+        new TextRun({
+          text: "Resumo",
+          font: "Arial",
+          size: 24,
+          bold: true,
+          color: "000000",
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [
+        new TextRun({
+          text: normalizeLineText(data.titulo).toUpperCase(),
+          font: "Arial",
+          size: 24,
+          bold: true,
+          color: "000000",
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { line: 360, after: 120 },
+      children: [
+        new TextRun({
+          text: normalizeLineText(data.resumo),
+          font: "Arial",
+          size: 24,
+          color: "000000",
+        }),
+      ],
+    }),
+  ];
+
+  const createAssinaturaParagraphs = (data) => {
+    const signatureName =
+      normalizeLineText(data.assinaturaNome) || "[Nome completo do assinante]";
+    const signatureCpf =
+      normalizeLineText(data.assinaturaCpf) || "[CPF do assinante]";
+    const signatureEmail =
+      normalizeLineText(data.assinaturaEmail) || "[email@dominio.com]";
+    const signatureCity =
+      normalizeLineText(data.assinaturaCidadeUf) || "[Cidade/UF]";
+    const signatureDate = formatSignatureDate(data.assinaturaData);
+    const signatureHash =
+      normalizeLineText(data.assinaturaHash) ||
+      "[Codigo/hash de validacao da assinatura digital]";
+    const signatureDeclaration =
+      normalizeLineText(data.assinaturaDeclaracao) ||
+      "Declaro, sob as penas da lei, que as informacoes prestadas neste pedido sao verdadeiras.";
+
+    const identityLines = [
+      `Nome completo: ${signatureName}`,
+      `CPF: ${signatureCpf}`,
+      `E-mail: ${signatureEmail}`,
+      `Cidade/UF: ${signatureCity}`,
+      `Data da assinatura: ${signatureDate}`,
+      `Codigo/hash da assinatura: ${signatureHash}`,
+    ];
+
+    return [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 180 },
+        children: [
+          new TextRun({
+            text: "Assinatura digital",
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 },
+        children: [
+          new TextRun({
+            text: normalizeLineText(data.titulo).toUpperCase(),
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: "Identificacao do assinante",
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+      ...identityLines.map(
+        (line) =>
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            spacing: { line: 360, after: 80 },
+            children: [
+              new TextRun({
+                text: line,
+                font: "Arial",
+                size: 24,
+                color: "000000",
+              }),
+            ],
+          }),
+      ),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 180, after: 120 },
+        children: [
+          new TextRun({
+            text: "Declaracao",
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { line: 360, after: 240 },
+        children: [
+          new TextRun({
+            text: signatureDeclaration,
+            font: "Arial",
+            size: 24,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 240, after: 120 },
+        children: [
+          new TextRun({
+            text: "________________________________________",
+            font: "Arial",
+            size: 24,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
+        children: [
+          new TextRun({
+            text: signatureName,
+            font: "Arial",
+            size: 24,
+            bold: true,
+            color: "000000",
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
+        children: [
+          new TextRun({
+            text: "Assinado digitalmente",
+            font: "Arial",
+            size: 24,
+            color: "000000",
+          }),
+        ],
+      }),
+    ];
+  };
+
+  const createDocumentParagraphs = (tabId, data) => {
+    if (tabId === "relatorio") {
+      return createRelatorioParagraphs(data);
+    }
+
+    if (tabId === "reivindicacoes") {
+      return createReivindicacoesParagraphs(data);
+    }
+
+    if (tabId === "resumo") {
+      return createResumoParagraphs(data);
+    }
+
+    if (tabId === "assinatura") {
+      return createAssinaturaParagraphs(data);
+    }
+
+    return [];
   };
 
   const persistDocs = async (docsToPersist) => {
@@ -192,6 +690,7 @@ ${
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setExportError("");
   };
 
   useEffect(() => {
@@ -213,6 +712,14 @@ ${
           exemplos: data.exemplos || prev.exemplos,
           reivindicacao: data.reivindicacao || prev.reivindicacao,
           resumo: data.resumo || prev.resumo,
+          assinaturaNome: data.assinaturaNome || prev.assinaturaNome,
+          assinaturaCpf: data.assinaturaCpf || prev.assinaturaCpf,
+          assinaturaEmail: data.assinaturaEmail || prev.assinaturaEmail,
+          assinaturaCidadeUf: data.assinaturaCidadeUf || prev.assinaturaCidadeUf,
+          assinaturaData: data.assinaturaData || prev.assinaturaData,
+          assinaturaHash: data.assinaturaHash || prev.assinaturaHash,
+          assinaturaDeclaracao:
+            data.assinaturaDeclaracao || prev.assinaturaDeclaracao,
         },
       }));
     } catch (error) {
@@ -292,109 +799,27 @@ ${
   };
 
   const buildDocxBlob = async (tabId, data) => {
-    const textToExport = getGeneratedTextByTab(tabId, data);
-    const lines = textToExport.split("\n");
-    const paragraphs = [];
-
-    let paragraphCounter = 1;
-
-    const subtitulos = [
-      "Campo da invenção",
-      "Fundamentos da invenção",
-      "Breve descrição dos desenhos",
-      "Descrição da invenção",
-      "Exemplos de concretizações da invenção",
-    ];
-
-    for (let line of lines) {
-      const trimmedLine = line.trim();
-
-      if (!trimmedLine) continue;
-
-      const isMainTitle =
-        trimmedLine ===
-          (data.titulo?.toUpperCase() || "[TÍTULO DO SEU PEDIDO DE PATENTE]") ||
-        ["RESUMO", "REIVINDICAÇÕES", "DESENHOS"].includes(trimmedLine);
-
-      if (isMainTitle) {
-        paragraphs.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 240 },
-            children: [
-              new TextRun({
-                text: trimmedLine,
-                font: "Arial",
-                size: 24,
-                bold: true,
-                color: "000000",
-              }),
-            ],
-          }),
-        );
-        continue;
-      }
-
-      if (
-        subtitulos.includes(trimmedLine) ||
-        trimmedLine.startsWith("Figura ")
-      ) {
-        paragraphs.push(
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            spacing: { before: 240, after: 120 },
-            children: [
-              new TextRun({
-                text: trimmedLine,
-                font: "Arial",
-                size: 24,
-                bold: true,
-                color: "000000",
-              }),
-            ],
-          }),
-        );
-        continue;
-      }
-
-      let prefix = "";
-
-      if (tabId === "relatorio") {
-        const paddedCounter = String(paragraphCounter).padStart(4, "0");
-        prefix = `[${paddedCounter}] `;
-        paragraphCounter++;
-      }
-
-      paragraphs.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: {
-            after: 120,
-            line: 360,
-          },
-          children: [
-            new TextRun({
-              text: prefix + trimmedLine,
-              font: "Arial",
-              size: 24,
-              color: "000000",
-            }),
-          ],
-        }),
-      );
+    const complianceError = validateInpiCompliance(tabId, data);
+    if (complianceError) {
+      throw new Error(complianceError);
     }
+
+    const paragraphs = createDocumentParagraphs(tabId, data);
+    if (!paragraphs.length) {
+      throw new Error("Nao foi possivel montar o documento para esta aba.");
+    }
+
+    const pageHeader = buildTopPageNumberHeader();
 
     const doc = new Document({
       sections: [
         {
+          headers: {
+            default: pageHeader,
+          },
           properties: {
             page: {
-              margin: {
-                top: 1701,
-                left: 1701,
-                bottom: 1134,
-                right: 1134,
-              },
+              margin: INPI_PAGE_MARGINS,
             },
           },
           children: paragraphs,
@@ -457,31 +882,63 @@ ${
   };
 
   const exportToDocx = async () => {
-    const blob = await buildDocxBlob(activeTab, formData);
-    const docRecord = saveCurrentDocumentToFolder();
-    const fileName = `${docRecord.fileBaseName}.docx`;
-    saveAs(blob, fileName);
+    setExportError("");
+
+    try {
+      const blob = await buildDocxBlob(activeTab, formData);
+      const docRecord = saveCurrentDocumentToFolder();
+      const fileName = `${docRecord.fileBaseName}.docx`;
+      saveAs(blob, fileName);
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel gerar o DOCX com conformidade INPI.",
+      );
+    }
   };
 
   const downloadSavedDocument = async (docRecord) => {
-    const blob = await buildDocxBlob(docRecord.tabId, docRecord.formData || {});
-    saveAs(blob, `${docRecord.fileBaseName}.docx`);
+    setExportError("");
+
+    try {
+      const blob = await buildDocxBlob(docRecord.tabId, docRecord.formData || {});
+      saveAs(blob, `${docRecord.fileBaseName}.docx`);
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel baixar este documento com conformidade INPI.",
+      );
+    }
   };
 
   const downloadAllSavedDocs = async () => {
     if (!orderedSavedDocs.length) return;
 
+    setExportError("");
     setIsBulkDownloading(true);
 
     try {
       const zip = new JSZip();
+      const skippedDocuments = [];
 
       for (const docRecord of orderedSavedDocs) {
-        const blob = await buildDocxBlob(
-          docRecord.tabId,
-          docRecord.formData || {},
+        try {
+          const blob = await buildDocxBlob(
+            docRecord.tabId,
+            docRecord.formData || {},
+          );
+          zip.file(`${docRecord.fileBaseName}.docx`, blob);
+        } catch {
+          skippedDocuments.push(docRecord.fileBaseName);
+        }
+      }
+
+      if (!Object.keys(zip.files).length) {
+        throw new Error(
+          "Nenhum arquivo elegivel para ZIP. Revise os documentos para conformidade INPI.",
         );
-        zip.file(`${docRecord.fileBaseName}.docx`, blob);
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -490,6 +947,18 @@ ${
       )}.zip`;
 
       saveAs(zipBlob, zipFileName);
+
+      if (skippedDocuments.length) {
+        setExportError(
+          `Alguns arquivos foram ignorados por nao estarem conformes para exportacao automatica: ${skippedDocuments.join(", ")}.`,
+        );
+      }
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel gerar o ZIP de documentos.",
+      );
     } finally {
       setIsBulkDownloading(false);
     }
@@ -531,6 +1000,7 @@ ${
     });
     setEditingDocId(docRecord?.id || null);
     setFolderError("");
+    setExportError("");
   };
 
   return (
@@ -573,7 +1043,10 @@ ${
             return (
                 <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setExportError("");
+                    }}
                     className={`flex items-center gap-3 px-6 py-3 rounded-xl border-4 border-slate-900 font-black uppercase tracking-widest text-xs transition-all ${
                     isActive
                         ? `${tab.color} text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] -translate-y-1`
@@ -734,13 +1207,13 @@ ${
               <div className="bg-white p-8 rounded-2xl border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] text-center transform ">
                 <ImageIcon className="w-16 h-16 stroke-[2] text-slate-300 mx-auto mb-4" />
                 <p className="text-base font-black uppercase tracking-widest text-slate-900 mb-2">
-                  Apenas documento base
+                  Documento tecnico manual
                 </p>
                 <p className="text-sm font-bold text-slate-700 leading-relaxed max-w-sm mx-auto">
-                  Esta seção gera apenas o documento base com a numeração das
-                  figuras. Você deve exportar o documento para o Word (DOCX) e
-                  colar suas imagens diretamente no arquivo final antes de
-                  submeter.
+                  O INPI exige que o arquivo de desenhos contenha somente figuras.
+                  Para evitar recusas formais, esta plataforma nao gera DOCX
+                  automatico dessa parte. Monte e anexe o arquivo tecnico final com
+                  suas figuras numeradas.
                 </p>
               </div>
             )}
@@ -778,6 +1251,121 @@ ${
                 </div>
               </>
             )}
+
+            {activeTab === "assinatura" && (
+              <>
+                <div>
+                  <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                    Titulo da Invencao
+                  </label>
+                  <input
+                    type="text"
+                    name="titulo"
+                    value={formData.titulo}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                  />
+                  <HelpBox text="Use o mesmo titulo tecnico dos demais documentos para manter consistencia no protocolo." />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                    Nome completo do assinante
+                  </label>
+                  <input
+                    type="text"
+                    name="assinaturaNome"
+                    value={formData.assinaturaNome}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                      CPF
+                    </label>
+                    <input
+                      type="text"
+                      name="assinaturaCpf"
+                      value={formData.assinaturaCpf}
+                      onChange={handleChange}
+                      className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                      Data da assinatura
+                    </label>
+                    <input
+                      type="date"
+                      name="assinaturaData"
+                      value={formData.assinaturaData}
+                      onChange={handleChange}
+                      className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                      E-mail do assinante
+                    </label>
+                    <input
+                      type="email"
+                      name="assinaturaEmail"
+                      value={formData.assinaturaEmail}
+                      onChange={handleChange}
+                      className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                      Cidade / UF
+                    </label>
+                    <input
+                      type="text"
+                      name="assinaturaCidadeUf"
+                      value={formData.assinaturaCidadeUf}
+                      onChange={handleChange}
+                      className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                    Codigo ou hash da assinatura digital
+                  </label>
+                  <textarea
+                    name="assinaturaHash"
+                    value={formData.assinaturaHash}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none resize-y"
+                  />
+                  <HelpBox text="Cole o codigo de validacao da assinatura usado no seu certificado ou plataforma de assinatura." />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black uppercase tracking-widest text-slate-900 mb-2">
+                    Declaracao do assinante
+                  </label>
+                  <textarea
+                    name="assinaturaDeclaracao"
+                    value={formData.assinaturaDeclaracao}
+                    onChange={handleChange}
+                    rows="4"
+                    className="w-full p-4 rounded-xl border-4 border-slate-900 font-bold text-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[6px_6px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 transition-all outline-none resize-y"
+                  />
+                  <HelpBox text="Mantenha uma declaracao objetiva confirmando autenticidade da assinatura e veracidade dos dados." />
+                </div>
+              </>
+            )}
           </form>
         </div>
 
@@ -807,7 +1395,7 @@ ${
                   className="flex items-center gap-2 bg-teal-400 text-slate-900 border-4 border-slate-900 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all"
                 >
                   <FileDown className="w-5 h-5 stroke-[3]" />
-                  Gerar DOCX
+                  Gerar DOCX INPI
                 </button>
               </div>
             </div>
@@ -820,12 +1408,44 @@ ${
               <p className="text-xs font-black uppercase tracking-widest text-slate-900 flex items-start gap-3">
                 <Info className="w-6 h-6 flex-shrink-0 stroke-[3] text-blue-500" />
                 <span>
-                  Gere o DOCX para salvar no padrão do e-Patentes. O
-                  arquivo também entra automaticamente na pasta do orientador.
+                  Gere o DOCX com validacao de formato do INPI. O arquivo tambem
+                  entra automaticamente na pasta do orientador.
                 </span>
               </p>
             </div>
+
+            <div className="mt-4 rounded-xl border-4 border-slate-900 bg-white px-5 py-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-3">
+                Referencias oficiais
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://www.gov.br/inpi/pt-br/central-de-conteudo/legislacao/arquivos/documentos/2024dirpa-no-14.pdf/%40%40download/file"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                >
+                  Portaria DIRPA 14/2024
+                </a>
+                <a
+                  href="https://www.gov.br/inpi/pt-br/central-de-conteudo/noticias/inpi-divulga-modelos-para-pedidos-de-patentes"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-teal-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                >
+                  Modelos oficiais
+                </a>
+              </div>
+            </div>
           </div>
+
+          {exportError && (
+            <div className="rounded-xl border-4 border-slate-900 bg-red-400 px-5 py-4 shadow-[4px_4px_0px_0px_#0f172a]">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-900">
+                ! {exportError}
+              </p>
+            </div>
+          )}
 
           {/* EXPLORADOR DE ARQUIVOS */}
           <div className="bg-yellow-300 rounded-[2rem] border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] overflow-hidden flex flex-col">

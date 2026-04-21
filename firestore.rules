@@ -272,6 +272,18 @@ service cloud.firestore {
       allow update, delete: if isMentor() && isClubMentorFromData(resource.data);
     }
 
+    match /clubes/{clubeId}/documentos_chunks/{chunkId} {
+      allow read: if true;
+      allow create: if isMentor()
+        && (
+          !exists(/databases/$(database)/documents/clubes/$(clubeId))
+          || isClubMentorFromData(get(/databases/$(database)/documents/clubes/$(clubeId)).data)
+        );
+      allow update, delete: if isMentor()
+        && exists(/databases/$(database)/documents/clubes/$(clubeId))
+        && isClubMentorFromData(get(/databases/$(database)/documents/clubes/$(clubeId)).data);
+    }
+
     match /clubes_ciencia/{clubeId} {
       allow read: if true;
       allow create, update, delete: if isMyClub(clubeId);

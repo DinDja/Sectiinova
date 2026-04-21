@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle, Trash2, Asterisk } from 'lucide-react';
+import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle, Trash2, Asterisk, FileText, Eye } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
 import CreateClubForm from './CreateClubForm';
 import EditClubForm from './EditClubForm';
 import ModalPerfil from './ModalPerfil'; 
-import { getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
+import { db } from '../../../firebase';
+import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
+import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 
 export default function ClubBoard({
     viewingClub,
@@ -51,6 +54,8 @@ export default function ClubBoard({
     const [deletingProjectIds, setDeletingProjectIds] = useState(new Set());
     const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
     const [projectBeingEdited, setProjectBeingEdited] = useState(null);
+    const [resolvedDocumentUrls, setResolvedDocumentUrls] = useState({});
+    const [loadingDocumentKeys, setLoadingDocumentKeys] = useState(new Set());
     const isMentor = ['orientador', 'coorientador'].includes(String(loggedUser?.perfil || '').trim().toLowerCase());
     const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
     const loggedUserEmail = String(loggedUser?.email || '').toLowerCase().trim();
@@ -79,6 +84,56 @@ export default function ClubBoard({
         });
         return map;
     }, [users]);
+    const clubDescription = String(viewingClub?.descricao || '').trim();
+    const clubDocuments = useMemo(() => {
+        const source = viewingClub?.documentos && typeof viewingClub.documentos === 'object'
+            ? viewingClub.documentos
+            : {};
+
+        return CLUB_REQUIRED_DOCUMENTS.map((requiredDoc) => {
+            const rawDocument = source?.[requiredDoc.key];
+            const dataUrl = typeof rawDocument === 'string'
+                ? String(rawDocument || '').trim()
+                : String(
+                    rawDocument?.data_url
+                    || rawDocument?.dataUrl
+                    || rawDocument?.url
+                    || rawDocument?.base64
+                    || ''
+                ).trim();
+            const storageMode = String(rawDocument?.storage_mode || rawDocument?.storageMode || '').trim();
+            const chunkCount = Math.max(0, Number(rawDocument?.chunk_count || rawDocument?.chunkCount || 0));
+            const contentType = String(
+                rawDocument?.content_type
+                || rawDocument?.mime_type
+                || rawDocument?.mimeType
+                || ''
+            ).trim();
+            const fileName = String(
+                rawDocument?.nome_arquivo
+                || rawDocument?.file_name
+                || rawDocument?.name
+                || `${requiredDoc.key}.pdf`
+            ).trim();
+            const sizeBytes = Number(
+                rawDocument?.tamanho_bytes
+                || rawDocument?.size
+                || 0
+            );
+
+            return {
+                key: requiredDoc.key,
+                label: requiredDoc.label,
+                isAvailable: Boolean(dataUrl) || chunkCount > 0 || storageMode === 'firestore_chunks',
+                url: dataUrl,
+                storageMode,
+                chunkCount,
+                fileName: fileName || `${requiredDoc.key}.pdf`,
+                contentType,
+                sizeBytes: Number.isFinite(sizeBytes) ? sizeBytes : 0,
+            };
+        });
+    }, [viewingClub?.documentos]);
 
     const formatRequestDate = (dateValue) => {
         if (!dateValue) return '';
@@ -96,6 +151,95 @@ export default function ClubBoard({
             month: '2-digit',
             year: 'numeric'
         });
+    };
+
+    const formatFileSize = (sizeBytes) => {
+        const value = Number(sizeBytes || 0);
+        if (!Number.isFinite(value) || value <= 0) {
+            return '';
+        }
+
+        const kb = value / 1024;
+        if (kb < 1024) {
+            return `${kb >= 100 ? kb.toFixed(0) : kb.toFixed(1)} KB`;
+        }
+
+        const mb = kb / 1024;
+        return `${mb.toFixed(2)} MB`;
+    };
+
+    const buildChunkDocId = (documentKey, index) => `${String(documentKey || 'doc').trim()}_${index}`;
+
+    const resolveDocumentUrl = async (documentItem) => {
+        const directUrl = String(documentItem?.url || '').trim();
+        if (directUrl) {
+            return directUrl;
+        }
+
+        const cachedUrl = String(resolvedDocumentUrls?.[documentItem.key] || '').trim();
+        if (cachedUrl) {
+            return cachedUrl;
+        }
+
+        const clubId = String(viewingClub?.id || '').trim();
+        const chunkCount = Math.max(0, Number(documentItem?.chunkCount || 0));
+        if (!clubId || chunkCount <= 0) {
+            return '';
+        }
+
+        setLoadingDocumentKeys((previous) => {
+            const next = new Set(previous);
+            next.add(documentItem.key);
+            return next;
+        });
+
+        try {
+            const chunkSnapshots = await Promise.all(
+                Array.from({ length: chunkCount }, (_, index) => getDoc(
+                    doc(db, 'clubes', clubId, 'documentos_chunks', buildChunkDocId(documentItem.key, index))
+                ))
+            );
+
+            const assembledDataUrl = chunkSnapshots
+                .map((chunkSnap) => String(chunkSnap?.data()?.chunk || ''))
+                .join('');
+
+            if (!assembledDataUrl) {
+                return '';
+            }
+
+            setResolvedDocumentUrls((previous) => ({
+                ...previous,
+                [documentItem.key]: assembledDataUrl
+            }));
+
+            return assembledDataUrl;
+        } finally {
+            setLoadingDocumentKeys((previous) => {
+                const next = new Set(previous);
+                next.delete(documentItem.key);
+                return next;
+            });
+        }
+    };
+
+    const handleOpenDocument = async (documentItem) => {
+        if (!documentItem?.isAvailable) {
+            return;
+        }
+
+        try {
+            const url = await resolveDocumentUrl(documentItem);
+            if (!url) {
+                setMembershipRequestFeedback({ type: 'error', message: 'Nao foi possivel carregar este documento agora.' });
+                return;
+            }
+
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } catch (error) {
+            console.error('Falha ao abrir documento do clube:', error);
+            setMembershipRequestFeedback({ type: 'error', message: 'Falha ao abrir documento do clube.' });
+        }
     };
 
     const resolveMentorNames = (club) => {
@@ -650,6 +794,70 @@ export default function ClubBoard({
                         </div>
                     )}
 
+                    <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                        <div className="xl:col-span-5 bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-6 border-b-4 border-slate-900 pb-4 flex items-center gap-3">
+                                <BookOpen className="w-7 h-7 stroke-[2.5]" /> Descricao do Clube
+                            </h3>
+                            <p className="text-sm md:text-base font-bold text-slate-800 leading-relaxed whitespace-pre-line">
+                                {clubDescription || 'Clube ativo na unidade escolar com foco em pesquisa, inovacao e formacao cientifica.'}
+                            </p>
+                        </div>
+
+                        <div className="xl:col-span-7 bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <div className="flex items-center justify-between gap-4 mb-6 border-b-4 border-slate-900 pb-4">
+                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                                    <FileText className="w-7 h-7 stroke-[2.5]" /> Documentos de Criacao
+                                </h3>
+                                <span className="inline-flex items-center justify-center rounded-lg border-2 border-slate-900 bg-yellow-300 text-slate-900 text-sm font-black px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a]">
+                                    {clubDocuments.filter((item) => item.isAvailable).length}/{clubDocuments.length}
+                                </span>
+                            </div>
+
+                            <div className="space-y-3">
+                                {clubDocuments.map((documentItem) => {
+                                    const sizeLabel = formatFileSize(documentItem.sizeBytes);
+                                    const isLoadingDocument = loadingDocumentKeys.has(documentItem.key);
+                                    return (
+                                        <div
+                                            key={documentItem.key}
+                                            className={`rounded-2xl border-2 border-slate-900 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+                                                documentItem.isAvailable ? 'bg-teal-50' : 'bg-slate-100'
+                                            }`}
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-black text-slate-900 uppercase">{documentItem.label}</p>
+                                                <p className="text-xs font-bold text-slate-700 mt-1 truncate">
+                                                    {documentItem.isAvailable ? documentItem.fileName : 'Documento ainda nao enviado'}
+                                                </p>
+                                                {(sizeLabel || documentItem.contentType) && documentItem.isAvailable && (
+                                                    <p className="text-[11px] font-black text-slate-700 mt-2 uppercase tracking-wider">
+                                                        {[sizeLabel, documentItem.contentType].filter(Boolean).join(' - ')}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {documentItem.isAvailable ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleOpenDocument(documentItem)}
+                                                    disabled={isLoadingDocument}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all"
+                                                >
+                                                    <Eye className="w-4 h-4 stroke-[3]" /> {isLoadingDocument ? 'Carregando...' : 'Visualizar'}
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center justify-center rounded-xl border-2 border-slate-900 bg-red-300 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                                                    Pendente
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </section>
+
                     {canSwitchManagedClubs && (
                         <div className="bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">
                             <div className="flex items-center justify-between gap-4 mb-6 border-b-4 border-slate-900 pb-4">
@@ -791,8 +999,16 @@ export default function ClubBoard({
                                         >
                                             <div className="flex items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-pink-400 text-slate-900 flex items-center justify-center text-lg font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                                                        {getInitials(person.nome)}
+                                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-pink-400 text-slate-900 flex items-center justify-center text-lg font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                                                        {getAvatarSrc(person) ? (
+                                                            <img
+                                                                src={getAvatarSrc(person)}
+                                                                alt={person.nome || 'Mentor'}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span>{getInitials(person.nome)}</span>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-base font-black text-slate-900 uppercase truncate max-w-[150px]">{person.nome.split(' ').slice(0, 2).join(' ')}</p>
@@ -853,8 +1069,16 @@ export default function ClubBoard({
                                             className="p-4 rounded-2xl bg-white border-2 border-slate-900 hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all cursor-pointer group flex items-center justify-between gap-4"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-teal-400 text-slate-900 flex items-center justify-center text-lg font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                                                    {getInitials(person.nome)}
+                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-teal-400 text-slate-900 flex items-center justify-center text-lg font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+                                                    {getAvatarSrc(person) ? (
+                                                        <img
+                                                            src={getAvatarSrc(person)}
+                                                            alt={person.nome || 'Clubista'}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span>{getInitials(person.nome)}</span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className="text-base font-black text-slate-900 uppercase truncate max-w-[150px]">{person.nome.split(' ').slice(0, 2).join(' ')}</p>

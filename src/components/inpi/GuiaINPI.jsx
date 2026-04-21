@@ -287,7 +287,7 @@ export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }
             </span>
           </h2>
           <p className="text-base md:text-lg font-bold text-slate-800 bg-slate-100 border-2 border-slate-900 p-4 rounded-xl shadow-[4px_4px_0px_0px_#cbd5e1] inline-block mt-4">
-            Roteiro executivo para sair da ideia ao protocolo sem se perder.
+            Roteiro para sair da ideia ao protocolo sem se perder.
           </p>
           
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -914,7 +914,7 @@ export default function GuiaINPI({ onOpenPesquisa, viewMode = "leitura_rapida" }
       </div>
 
       <RealModalPI isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <RealModalMU isOpen={isModalMUOpen} onClose={() => setIsModalOpen(false)} />
+      <RealModalMU isOpen={isModalMUOpen} onClose={() => setIsModalMUOpen(false)} />
       <RealModalLogin
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}

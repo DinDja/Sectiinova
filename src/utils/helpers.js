@@ -11,6 +11,24 @@ export function getInitials(name) {
         .join('');
 }
 
+export function getAvatarSrc(user) {
+    if (!user || typeof user !== 'object') {
+        return '';
+    }
+
+    return String(
+        user.fotoBase64 ||
+        user.fotoUrl ||
+        user.foto ||
+        user.photoUrl ||
+        user.photo ||
+        user.profilePhoto ||
+        user.imagemPerfil ||
+        user.avatar ||
+        ''
+    ).trim();
+}
+
 export function formatFirestoreDate(timestamp) {
     if (!timestamp?.toDate) {
         return 'Agora';

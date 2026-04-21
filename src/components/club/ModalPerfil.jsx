@@ -60,7 +60,7 @@ export default function ModalPerfil({ isOpen, onClose, usuario, club = null, clu
             onClick={handleBackdropClick}
         >
             <div 
-                className="relative w-full max-w-2xl bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] overflow-hidden animate-in zoom-in-[0.95] duration-200 transform -rotate-1 hover:rotate-0 transition-transform"
+                className="relative w-full max-w-2xl bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] rounded-[2rem] overflow-hidden animate-in zoom-in-[0.95] duration-200 transform --1 hover:-0 transition-transform"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Vibrante do Cartão */}
@@ -78,7 +78,7 @@ export default function ModalPerfil({ isOpen, onClose, usuario, club = null, clu
                 <div className="px-6 md:px-10 pb-10 relative z-10">
                     <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8">
                         {/* Avatar Brutalista */}
-                        <div className="w-32 h-32 bg-white border-4 border-slate-900 rounded-3xl shadow-[6px_6px_0px_0px_#0f172a] flex items-center justify-center overflow-hidden transform rotate-2 z-10">
+                        <div className="w-32 h-32 bg-white border-4 border-slate-900 rounded-3xl shadow-[6px_6px_0px_0px_#0f172a] flex items-center justify-center overflow-hidden transform -2 z-10">
                             {avatarSrc ? (
                                 <img src={avatarSrc} alt={nome} className="w-full h-full object-cover" />
                             ) : (
@@ -93,21 +93,21 @@ export default function ModalPerfil({ isOpen, onClose, usuario, club = null, clu
                         </h1>
                         
                         <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-                            <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-widest transform -rotate-1">
+                            <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-widest transform --1">
                                 <Mail className="w-4 h-4 stroke-[3]" /> {email}
                             </span>
                         </div>
 
                         {bio && (
-                            <p className="mt-6 text-slate-800 font-bold text-center max-w-md bg-white border-2 border-slate-900 p-5 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-1 text-sm leading-relaxed">
+                            <p className="mt-6 text-slate-800 font-bold text-center max-w-md bg-white border-2 border-slate-900 p-5 shadow-[4px_4px_0px_0px_#0f172a] transform -1 text-sm leading-relaxed">
                                 "{bio}"
                             </p>
                         )}
                     </div>
 
                     {/* Card do Clube (Identidade Neo-Brutalista) */}
-                    <div className="mb-8 w-full bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-6 md:p-8 text-center transform -rotate-1 hover:rotate-0 transition-transform">
-                        <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform -rotate-3">
+                    <div className="mb-8 w-full bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-6 md:p-8 text-center transform --1 hover:-0 transition-transform">
+                        <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform --3">
                             <School className="w-6 h-6 stroke-[3] text-slate-900" />
                         </div>
                         <p className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-tight">

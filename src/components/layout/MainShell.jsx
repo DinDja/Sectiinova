@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
@@ -37,6 +37,7 @@ export default function MainShell({
   };
 
   const effectiveFontSize = fontSizeMap[fontSizeLevel] || fontSizeMap[2];
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -45,6 +46,21 @@ export default function MainShell({
       root.style.fontSize = "";
     };
   }, [effectiveFontSize]);
+
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [currentView]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize, { passive: true });
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const containerStyle = {
     fontSize: effectiveFontSize,
@@ -56,13 +72,11 @@ export default function MainShell({
   const isTrilha = currentView === "trilha";
 
   const containerClasses = isHighContrast
-    ? "app-shell h-screen bg-black text-white flex flex-col relative"
-    : "app-shell h-screen flex flex-col relative";
+    ? "app-shell h-screen bg-black text-white flex flex-col relative overflow-hidden"
+    : "app-shell h-screen flex flex-col relative overflow-hidden";
 
   return (
     <div className={containerClasses} style={containerStyle}>
-      <div className=" flex justify-between items-center z-20 relative"></div>
-
       <div className="flex flex-1 overflow-hidden z-10 min-h-0">
         <Sidebar
           currentView={currentView}
@@ -75,9 +89,11 @@ export default function MainShell({
           sidebarOrder={sidebarOrder}
           setSidebarOrder={setSidebarOrder}
           saveSidebarOrder={saveSidebarOrder}
+          isMobileOpen={isMobileSidebarOpen}
+          setIsMobileOpen={setIsMobileSidebarOpen}
         />
 
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <TopBar
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -90,19 +106,23 @@ export default function MainShell({
             onSaveProfile={onSaveProfile}
             currentView={currentView}
             setCurrentView={setCurrentView}
+            onToggleSidebar={() => setIsMobileSidebarOpen((open) => !open)}
+            isSidebarOpen={isMobileSidebarOpen}
           />
 
-          <main className="flex-1 overflow-y-auto relative studio-main">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden relative studio-main">
             {isINPIView ? (
-              <div className="mx-auto w-full max-w-[85rem] px-2 py-4 md:px-4">
+              <div className="mx-auto w-full max-w-[85rem] px-3 py-4 sm:px-4 md:px-6">
                 {children}
               </div>
             ) : isForum || isClub ? (
-               <div className="w-full">{children}</div>
+               <div className="w-full px-3 py-3 sm:px-4 md:px-6">{children}</div>
             ):  isTrilha ? (
-              <div className="w-full">{children}</div>
+              <div className="w-full px-3 py-3 sm:px-4 md:px-6">{children}</div>
             ) : (
-              <div className="max-w-[85rem] mx-auto w-full py-4">{children}</div>
+              <div className="mx-auto w-full max-w-[85rem] px-3 py-4 sm:px-4 md:px-6">
+                {children}
+              </div>
             )}
           </main>
         </div>

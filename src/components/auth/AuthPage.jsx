@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import lottie from "lottie-web/build/player/esm/lottie.min.js";
 import {
   Microscope,
   User,
@@ -791,12 +792,102 @@ export default function AuthPage({
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768;
+  });
+  const lottieBgRef = useRef(null);
+  const cycleLottieRefs = useRef([]);
+  const cycleAnimations = [
+    {
+      path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
+      className:
+        "absolute top-8 right-0 w-64 h-64 sm:w-80 sm:h-80 pointer-events-none opacity-95 z-0",
+    },
+    {
+      path: "/lottieAnimated/Writing - Blue BG.json",
+      className:
+        "absolute top-14 left-0 w-56 h-56 sm:w-72 sm:h-72 pointer-events-none opacity-95 z-0",
+    },
+    {
+      path: "/lottieAnimated/Industrial automatic Robot arms.json",
+      className:
+        "absolute bottom-16 right-24 w-64 h-64 sm:w-80 sm:h-80 pointer-events-none opacity-95 z-0",
+    },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+
+    const handleViewportChange = (event) => {
+      setIsMobileViewport(event.matches);
+    };
+
+    setIsMobileViewport(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleViewportChange);
+      return () => mediaQuery.removeEventListener("change", handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  const shouldShowDecorativeLotties = !isMobileViewport;
+
+  useEffect(() => {
+    if (!shouldShowDecorativeLotties) return undefined;
+
+    let animation;
+    if (lottieBgRef.current) {
+      animation = lottie.loadAnimation({
+        container: lottieBgRef.current,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        path: encodeURI("/lottieAnimated/Global Network.json"),
+        rendererSettings: {
+          preserveAspectRatio: "xMidYMid slice",
+        },
+      });
+    }
+
+    return () => {
+      if (animation) animation.destroy();
+    };
+  }, [shouldShowDecorativeLotties]);
+
+  useEffect(() => {
+    if (!shouldShowDecorativeLotties) return undefined;
+
+    const animations = [];
+    cycleAnimations.forEach((item, index) => {
+      const container = cycleLottieRefs.current[index];
+      if (container) {
+        animations.push(
+          lottie.loadAnimation({
+            container,
+            renderer: "svg",
+            loop: true,
+            autoplay: true,
+            path: encodeURI(item.path),
+            rendererSettings: {
+              preserveAspectRatio: "xMidYMid slice",
+            },
+          }),
+        );
+      }
+    });
+
+    return () => animations.forEach((animation) => animation.destroy());
+  }, [shouldShowDecorativeLotties]);
 
   const openAuthModal = (mode) => {
     setAuthMode(mode);
@@ -939,7 +1030,7 @@ export default function AuthPage({
       </section>
 
       {/* SEÇÃO DE FERRAMENTAS */}
-      <section className="py-24 px-6 lg:px-8 relative z-10  border-y-4 border-slate-900 overflow-hidden">
+      <section className="py-24 px-6 lg:px-8 relative z-10 border-y-4 border-slate-900 overflow-hidden">
         <div
           className="absolute inset-0 opacity-35"
           style={{
@@ -948,6 +1039,17 @@ export default function AuthPage({
             backgroundSize: "18px 18px",
           }}
         ></div>
+        {shouldShowDecorativeLotties &&
+          cycleAnimations.map((item, index) => (
+            <div key={item.path} className={item.className} aria-hidden="true">
+              <div
+                ref={(el) => {
+                  cycleLottieRefs.current[index] = el;
+                }}
+                className="absolute inset-0 w-full h-full"
+              />
+            </div>
+          ))}
         <div className="max-w-7xl mx-auto relative z-10">
           <Reveal>
             <div className="flex flex-col lg:flex-row justify-between items-end mb-16 border-b-4 border-slate-900 pb-8 gap-8">
@@ -1030,8 +1132,7 @@ export default function AuthPage({
       </section>
 
       {/* CTA FINAL */}
-      <section className="py-24 px-6 lg:px-8 relative z-10  border-y-4 border-slate-900 overflow-hidden">
-        {/* Padrão de Fundo Pontilhado */}
+      <section className="py-24 px-6 lg:px-8 relative z-10 border-y-4 border-slate-900 overflow-hidden">
         <div
           className="absolute inset-0 opacity-35"
           style={{
@@ -1041,12 +1142,18 @@ export default function AuthPage({
           }}
         ></div>
 
+        {shouldShowDecorativeLotties && (
+          <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] sm:w-[36rem] sm:h-[36rem] pointer-events-none opacity-100 overflow-hidden z-20">
+            <div ref={lottieBgRef} className="absolute inset-0 w-full h-full" />
+          </div>
+        )}
+
         <div className="max-w-6xl mx-auto relative z-10">
           <Reveal>
-            <div className="bg-yellow-300 border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] p-10 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-12 transform -rotate-1 hover:rotate-0 hover:-translate-y-2 hover:shadow-[24px_24px_0px_0px_#0f172a] transition-all duration-300">
+            <div className="bg-yellow-300 border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] p-10 md:p-16 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-12 transform hover:rotate-0 hover:-translate-y-2 hover:shadow-[24px_24px_0px_0px_#0f172a] transition-all duration-300">
               {/* Conteúdo Esquerda */}
               <div className="flex-1 text-center md:text-left space-y-6">
-                <div className="inline-flex items-center gap-2 bg-white px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-2">
+                <div className="inline-flex items-center gap-2 bg-white px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform ">
                   <Asterisk className="w-5 h-5 text-slate-900 stroke-[3]" />
                   <span className="font-black uppercase tracking-widest text-sm text-slate-900">
                     O Futuro Começa Aqui

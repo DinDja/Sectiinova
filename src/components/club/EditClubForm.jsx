@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, Camera, FileText, ImagePlus, UploadCloud, Users, X, Check } from 'lucide-react';
+import { Building2, Camera, FileText, ImagePlus, UploadCloud, Users, X, Check, Trash2, RotateCcw } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 import { db } from '../../../firebase';
 import { getInitials } from '../../utils/helpers';
+import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 import { getUserSchoolIds, normalizeIdList, normalizePerfil } from '../../services/projectService';
 
 const STUDENT_PROFILES = new Set(['estudante', 'investigador', 'aluno']);
@@ -53,6 +54,7 @@ export default function EditClubForm({
     const [bannerPreview, setBannerPreview] = useState('');
     const [logoPreview, setLogoPreview] = useState('');
     const [bannerWarning, setBannerWarning] = useState('');
+    const [documentChanges, setDocumentChanges] = useState({});
     const [error, setError] = useState('');
     const [liveSchoolUsers, setLiveSchoolUsers] = useState([]);
     const [isRefreshingClubistas, setIsRefreshingClubistas] = useState(false);
@@ -146,6 +148,7 @@ export default function EditClubForm({
         setBannerPreview(getClubBannerUrl(viewingClub));
         setLogoPreview(getClubLogoUrl(viewingClub));
         setBannerWarning('');
+        setDocumentChanges({});
     }, [isOpen, viewingClub, mentorSchoolIds]);
 
     useEffect(() => {
@@ -256,6 +259,63 @@ export default function EditClubForm({
         }
     };
 
+    const resolveExistingDocumentData = (documentKey) => {
+        const rawDocument = viewingClub?.documentos?.[documentKey];
+        const url = typeof rawDocument === 'string'
+            ? String(rawDocument || '').trim()
+            : String(
+                rawDocument?.data_url
+                || rawDocument?.dataUrl
+                || rawDocument?.url
+                || rawDocument?.base64
+                || ''
+            ).trim();
+        const storageMode = String(rawDocument?.storage_mode || rawDocument?.storageMode || '').trim();
+        const chunkCount = Math.max(0, Number(rawDocument?.chunk_count || rawDocument?.chunkCount || 0));
+        const fileName = typeof rawDocument === 'string'
+            ? ''
+            : String(
+                rawDocument?.nome_arquivo
+                || rawDocument?.file_name
+                || rawDocument?.name
+                || ''
+            ).trim();
+
+        return {
+            hasDocument: Boolean(url) || storageMode === 'firestore_chunks' || chunkCount > 0,
+            url,
+            fileName,
+        };
+    };
+
+    const handleDocumentFileChange = (documentKey, file) => {
+        setDocumentChanges((prev) => {
+            const next = { ...prev };
+            if (!file) {
+                delete next[documentKey];
+                return next;
+            }
+
+            next[documentKey] = file;
+            return next;
+        });
+    };
+
+    const handleMarkDocumentForRemoval = (documentKey) => {
+        setDocumentChanges((prev) => ({
+            ...prev,
+            [documentKey]: null,
+        }));
+    };
+
+    const handleResetDocumentChange = (documentKey) => {
+        setDocumentChanges((prev) => {
+            const next = { ...prev };
+            delete next[documentKey];
+            return next;
+        });
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError('');
@@ -283,7 +343,8 @@ export default function EditClubForm({
                 periodicidade,
                 clubistas_ids: clubistasIds,
                 banner_file: bannerFile,
-                logo_file: logoFile
+                logo_file: logoFile,
+                documentos: documentChanges
             });
 
             onClose?.();
@@ -453,6 +514,100 @@ export default function EditClubForm({
                                         </p>
                                     )}
                                 </div>
+                            </div>
+                        </section>
+
+                        {/* DOCUMENTOS DE CRIACAO */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-lime-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <h3 className={sectionTitleClasses}>
+                                <FileText className="w-7 h-7 stroke-[3]" /> Documentos de Criacao
+                            </h3>
+
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-900 bg-white inline-block px-3 py-2 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] mb-6">
+                                Voce pode anexar novos arquivos, substituir ou remover documentos existentes.
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {CLUB_REQUIRED_DOCUMENTS.map((requiredDocument) => {
+                                    const existingDocument = resolveExistingDocumentData(requiredDocument.key);
+                                    const hasPendingChange = Object.prototype.hasOwnProperty.call(documentChanges, requiredDocument.key);
+                                    const pendingValue = hasPendingChange ? documentChanges[requiredDocument.key] : undefined;
+                                    const pendingFile = pendingValue instanceof File ? pendingValue : null;
+                                    const isMarkedForRemoval = hasPendingChange && pendingValue === null;
+                                    const fileName = pendingFile?.name
+                                        || (!isMarkedForRemoval && existingDocument.fileName)
+                                        || '';
+
+                                    return (
+                                        <div
+                                            key={requiredDocument.key}
+                                            className={`rounded-2xl border-2 border-slate-900 p-5 shadow-[4px_4px_0px_0px_#0f172a] ${
+                                                isMarkedForRemoval ? 'bg-red-200' : 'bg-white'
+                                            }`}
+                                        >
+                                            <p className="text-sm font-black text-slate-900 uppercase mb-3">{requiredDocument.label}</p>
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-slate-900 mb-3">
+                                                {pendingFile
+                                                    ? 'Novo arquivo selecionado'
+                                                    : isMarkedForRemoval
+                                                        ? 'Marcado para remover'
+                                                        : existingDocument.hasDocument
+                                                            ? 'Documento atual'
+                                                            : 'Documento nao enviado'}
+                                            </p>
+
+                                            {fileName && (
+                                                <p className="text-[10px] font-bold text-slate-700 truncate bg-slate-100 p-2 border border-slate-900 rounded-lg mb-3">
+                                                    {fileName}
+                                                </p>
+                                            )}
+
+                                            {!pendingFile && !isMarkedForRemoval && existingDocument.hasDocument && (
+                                                <a
+                                                    href={existingDocument.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-900 bg-blue-300 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] mb-3"
+                                                >
+                                                    Ver atual
+                                                </a>
+                                            )}
+
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-100 border-2 border-slate-900 text-[10px] font-black text-slate-900 uppercase tracking-widest cursor-pointer hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#0f172a] transition-all">
+                                                    <UploadCloud className="w-4 h-4 stroke-[3]" />
+                                                    <span>{existingDocument.hasDocument ? 'Substituir' : 'Anexar'}</span>
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".pdf,.doc,.docx,.odt,.rtf,.png,.jpg,.jpeg,.webp"
+                                                        onChange={(event) => handleDocumentFileChange(requiredDocument.key, event.target.files?.[0] || null)}
+                                                    />
+                                                </label>
+
+                                                {hasPendingChange ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleResetDocumentChange(requiredDocument.key)}
+                                                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border-2 border-slate-900 text-[10px] font-black text-slate-900 uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#0f172a] transition-all"
+                                                    >
+                                                        <RotateCcw className="w-4 h-4 stroke-[3]" /> Desfazer
+                                                    </button>
+                                                ) : (
+                                                    existingDocument.hasDocument && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleMarkDocumentForRemoval(requiredDocument.key)}
+                                                            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-300 border-2 border-slate-900 text-[10px] font-black text-slate-900 uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#0f172a] transition-all"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 stroke-[3]" /> Remover
+                                                        </button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </section>
 
