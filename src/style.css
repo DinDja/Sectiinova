@@ -33,6 +33,7 @@
 
   html,
   body,
+  #__next,
   #root,
   #app {
     min-height: 100%;

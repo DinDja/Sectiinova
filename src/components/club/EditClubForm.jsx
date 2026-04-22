@@ -9,14 +9,9 @@ import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 import { getUserSchoolIds, normalizeIdList, normalizePerfil } from '../../services/projectService';
 
 const STUDENT_PROFILES = new Set(['estudante', 'investigador', 'aluno']);
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+const MENTOR_PROFILES = new Set(['orientador', 'coorientador']);
 
 const normalizeSchoolName = (value) => String(value || '').trim().toLowerCase();
-
-const isLocalhostEnvironment = () => {
-    if (typeof window === 'undefined') return false;
-    return LOCAL_HOSTNAMES.has(String(window.location?.hostname || '').toLowerCase());
-};
 
 const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -38,7 +33,6 @@ export default function EditClubForm({
     isSubmitting = false,
     onSubmit
 }) {
-    const isLocalhost = isLocalhostEnvironment();
     const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
 
     const [form, setForm] = useState({
@@ -48,6 +42,8 @@ export default function EditClubForm({
         escola_id: ''
     });
     const [membersSearch, setMembersSearch] = useState('');
+    const [mentorSearch, setMentorSearch] = useState('');
+    const [selectedMentors, setSelectedMentors] = useState([]);
     const [selectedClubistas, setSelectedClubistas] = useState([]);
     const [bannerFile, setBannerFile] = useState(null);
     const [logoFile, setLogoFile] = useState(null);
@@ -82,6 +78,42 @@ export default function EditClubForm({
     }, [schools, form.escola_id]);
 
     const mentorSchoolIds = useMemo(() => getUserSchoolIds(loggedUser), [loggedUser]);
+
+    const availableMentors = useMemo(() => {
+        if (!form.escola_id) return [];
+
+        const selectedSchoolId = String(form.escola_id || '').trim();
+        const selectedSchoolName = normalizeSchoolName(selectedSchool?.nome);
+        const queryText = String(mentorSearch || '').trim().toLowerCase();
+        const selectedMentorIds = new Set(selectedMentors.map((id) => String(id || '').trim()));
+
+        return mergedUsers
+            .filter((user) => {
+                const userId = String(user?.id || user?.uid || '').trim();
+                if (!user || !userId || userId === loggedUserId) return false;
+                if (!MENTOR_PROFILES.has(normalizePerfil(user.perfil))) return false;
+
+                const userSchoolIds = normalizeIdList([...(user?.escolas_ids || []), user?.escola_id]);
+                const hasSchoolIdMatch = userSchoolIds.includes(selectedSchoolId);
+                const hasSchoolNameMatch = selectedSchoolName
+                    && normalizeSchoolName(user?.escola_nome) === selectedSchoolName;
+                const isSelected = selectedMentorIds.has(userId);
+                if (!hasSchoolIdMatch && !hasSchoolNameMatch && !isSelected) return false;
+
+                if (!queryText) return true;
+
+                const text = [
+                    user.nome,
+                    user.email,
+                    user.matricula,
+                ]
+                    .map((value) => String(value || '').toLowerCase())
+                    .join(' ');
+
+                return text.includes(queryText);
+            })
+            .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+    }, [form.escola_id, selectedSchool?.nome, mentorSearch, mergedUsers, selectedMentors, loggedUserId]);
 
     const availableClubistas = useMemo(() => {
         if (!form.escola_id) return [];
@@ -122,6 +154,11 @@ export default function EditClubForm({
         [selectedClubistas]
     );
 
+    const selectedMentorsSet = useMemo(
+        () => new Set(selectedMentors.map((id) => String(id || '').trim())),
+        [selectedMentors]
+    );
+
     useEffect(() => {
         if (!isOpen || !viewingClub) return;
 
@@ -141,7 +178,14 @@ export default function EditClubForm({
             escola_id: normalizedSchoolIds[0] || schoolId
         });
 
+        setSelectedMentors(
+            normalizeIdList([
+                ...(viewingClub?.coorientador_ids || []),
+                ...(viewingClub?.coorientadores_ids || [])
+            ]).filter((id) => id !== loggedUserId)
+        );
         setSelectedClubistas(normalizeIdList(viewingClub?.clubistas_ids || []));
+        setMentorSearch('');
         setMembersSearch('');
         setBannerFile(null);
         setLogoFile(null);
@@ -149,7 +193,7 @@ export default function EditClubForm({
         setLogoPreview(getClubLogoUrl(viewingClub));
         setBannerWarning('');
         setDocumentChanges({});
-    }, [isOpen, viewingClub, mentorSchoolIds]);
+    }, [isOpen, viewingClub, mentorSchoolIds, loggedUserId]);
 
     useEffect(() => {
         if (!isOpen || !form.escola_id) {
@@ -212,6 +256,18 @@ export default function EditClubForm({
         if (!normalizedId) return;
 
         setSelectedClubistas((prev) => {
+            if (prev.includes(normalizedId)) {
+                return prev.filter((id) => id !== normalizedId);
+            }
+            return [...prev, normalizedId];
+        });
+    };
+
+    const toggleMentor = (userId) => {
+        const normalizedId = String(userId || '').trim();
+        if (!normalizedId) return;
+
+        setSelectedMentors((prev) => {
             if (prev.includes(normalizedId)) {
                 return prev.filter((id) => id !== normalizedId);
             }
@@ -323,15 +379,11 @@ export default function EditClubForm({
         const nome = String(form.nome || '').trim();
         const descricao = String(form.descricao || '').trim();
         const periodicidade = String(form.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+        const coorientadoresIds = normalizeIdList(selectedMentors);
         const clubistasIds = normalizeIdList(selectedClubistas);
 
         if (!nome) {
             setError('Informe o nome do clube.');
-            return;
-        }
-
-        if (!isLocalhost && clubistasIds.length < 10) {
-            setError('O clube precisa de no mínimo 10 clubistas.');
             return;
         }
 
@@ -341,6 +393,7 @@ export default function EditClubForm({
                 nome,
                 descricao,
                 periodicidade,
+                coorientador_ids: coorientadoresIds,
                 clubistas_ids: clubistasIds,
                 banner_file: bannerFile,
                 logo_file: logoFile,
@@ -376,7 +429,7 @@ export default function EditClubForm({
                             <Building2 className="w-8 h-8 stroke-[3]" /> Editar Clube
                         </h2>
                         <p className="text-sm font-bold text-slate-900 mt-2 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transform -rotate-1">
-                            Atualize nome, identidade visual e equipe de clubistas.
+                            Atualize nome, identidade visual e equipe de mentores e clubistas.
                         </p>
                     </div>
                     <button
@@ -611,15 +664,76 @@ export default function EditClubForm({
                             </div>
                         </section>
 
+                        {/* LISTA DE CO-MENTORES */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-lime-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                                <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
+                                    <Users className="w-7 h-7 stroke-[3]" />
+                                    Co-mentores 
+                                </h3>
+                                <span className="text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white text-slate-900">
+                                    {`${selectedMentors.length} selecionados`}
+                                </span>
+                            </div>
+
+                            <p className="text-xs font-bold text-slate-900 mb-4 bg-white/70 border-2 border-slate-900 rounded-xl px-3 py-2">
+                                O mentor responsavel permanece no clube. Aqui voce pode adicionar ou remover co-mentores da unidade.
+                            </p>
+
+                            <input
+                                type="text"
+                                value={mentorSearch}
+                                onChange={(event) => setMentorSearch(event.target.value)}
+                                placeholder="FILTRAR MENTORES DA UNIDADE..."
+                                className="w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-4 text-sm font-black text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all uppercase placeholder:text-slate-400 mb-6"
+                            />
+
+                            <div className="max-h-52 overflow-y-auto neo-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pr-2">
+                                {availableMentors.length === 0 ? (
+                                    <p className="text-sm font-bold text-slate-800 md:col-span-2 bg-white/50 p-4 rounded-xl border-2 border-slate-900 border-dashed">
+                                        Nenhum mentor elegivel encontrado para a unidade selecionada.
+                                    </p>
+                                ) : (
+                                    availableMentors.map((mentor) => {
+                                        const isSelected = selectedMentorsSet.has(String(mentor.id));
+                                        return (
+                                            <label
+                                                key={mentor.id}
+                                                className={`flex items-center gap-4 rounded-2xl border-2 border-slate-900 px-4 py-3 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a] ${
+                                                    isSelected ? 'bg-teal-400 shadow-[4px_4px_0px_0px_#0f172a]' : 'bg-white shadow-[2px_2px_0px_0px_#0f172a]'
+                                                }`}
+                                            >
+                                                <div className="relative w-8 h-8 shrink-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleMentor(mentor.id)}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`absolute inset-0 rounded-lg border-2 border-slate-900 flex items-center justify-center transition-colors ${isSelected ? 'bg-slate-900' : 'bg-white'}`}>
+                                                        {isSelected && <Check className="w-5 h-5 text-teal-400 stroke-[3]" />}
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="block text-sm font-black text-slate-900 uppercase truncate">{mentor.nome}</span>
+                                                    <span className="block text-[10px] font-bold text-slate-700 truncate">{mentor.email || mentor.matricula || 'SEM CONTATO'}</span>
+                                                </div>
+                                            </label>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </section>
+
                         {/* LISTA DE CLUBISTAS */}
                         <section className="rounded-3xl border-4 border-slate-900 p-6 bg-yellow-300 shadow-[8px_8px_0px_0px_#0f172a]">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                                 <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
                                     <Users className="w-7 h-7 stroke-[3]" />
-                                    {isLocalhost ? 'Clubistas' : 'Clubistas (Mínimo 10)'}
+                                    {'Clubistas'}
                                 </h3>
-                                <span className={`text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] ${isLocalhost ? 'bg-white text-slate-900' : selectedClubistas.length >= 10 ? 'bg-teal-400 text-slate-900' : 'bg-red-400 text-white'}`}>
-                                    {isLocalhost ? `${selectedClubistas.length} selecionados` : `${selectedClubistas.length} de 10 obrigatórios`}
+                                <span className="text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white text-slate-900">
+                                    {`${selectedClubistas.length} selecionados`}
                                 </span>
                             </div>
 

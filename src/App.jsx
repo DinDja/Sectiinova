@@ -28,6 +28,8 @@ export default function App() {
         authLoading,
         authUser,
         loggedUser,
+        profileCompletionContext,
+        isCompletingSocialProfile,
         authMode,
         setAuthMode,
         authError,
@@ -152,6 +154,10 @@ export default function App() {
                 handleRegister={handleRegister}
                 handleGoogleAuth={handleGoogleAuth}
                 handleOutlookAuth={handleOutlookAuth}
+                handleLogout={handleLogout}
+                isCompletingSocialProfile={isCompletingSocialProfile}
+                forceOpenRegister={isCompletingSocialProfile}
+                socialCompletionProvider={String(profileCompletionContext?.provider || '').trim().toLowerCase()}
                 isMentoriaPerfil={isMentoriaPerfil}
                 setAuthError={setAuthError}
                 setAuthNotice={setAuthNotice}

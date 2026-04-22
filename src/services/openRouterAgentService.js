@@ -52,7 +52,7 @@ function getApiKey() {
     const apiKey =  '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';
 
     if (!apiKey) {
-        throw new Error('A chave da OpenRouter não foi configurada. Defina VITE_OPENROUTER_API_KEY no arquivo .env.local.');
+        throw new Error('A chave da OpenRouter não foi configurada. Defina NEXT_PUBLIC_OPENROUTER_API_KEY no arquivo .env.local.');
     }
 
     return apiKey;
@@ -209,3 +209,4 @@ const PRESET_PROJECTS = [
 ];
 
 export { AGENT_PHASES, DEFAULT_MODEL, PRESET_PROJECTS };
+

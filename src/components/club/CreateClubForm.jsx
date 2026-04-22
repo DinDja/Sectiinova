@@ -22,14 +22,9 @@ const normalizeIdList = (list) => {
 const normalizePerfil = (perfil) => String(perfil || '').trim().toLowerCase();
 
 const STUDENT_PROFILES = new Set(['estudante', 'investigador', 'aluno']);
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+const MENTOR_PROFILES = new Set(['orientador', 'coorientador']);
 
 const resolveSchoolId = (school) => String(school?.escola_id || school?.id || '').trim();
-
-const isLocalhostEnvironment = () => {
-    if (typeof window === 'undefined') return false;
-    return LOCAL_HOSTNAMES.has(String(window.location?.hostname || '').toLowerCase());
-};
 
 const normalizeSchoolName = (value) => String(value || '').trim().toLowerCase();
 const isFileLike = (value) => typeof File !== 'undefined' && value instanceof File;
@@ -78,6 +73,8 @@ export default function CreateClubForm({
         periodicidade: 'Quinzenal'
     });
     const [membersSearch, setMembersSearch] = useState('');
+    const [mentorSearch, setMentorSearch] = useState('');
+    const [selectedMentors, setSelectedMentors] = useState([]);
     const [selectedClubistas, setSelectedClubistas] = useState([]);
     const [documents, setDocuments] = useState({});
     const [error, setError] = useState('');
@@ -85,7 +82,6 @@ export default function CreateClubForm({
     const [isRefreshingClubistas, setIsRefreshingClubistas] = useState(false);
 
     const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
-    const isLocalhost = isLocalhostEnvironment();
 
     const mergedUsers = useMemo(() => {
         const usersById = new Map();
@@ -158,6 +154,43 @@ export default function CreateClubForm({
         };
     }, [isOpen, form.escola_id]);
 
+    const availableMentors = useMemo(() => {
+        if (!form.escola_id) return [];
+
+        const selectedSchoolId = String(form.escola_id);
+        const selectedSchoolName = normalizeSchoolName(
+            schools.find((school) => resolveSchoolId(school) === selectedSchoolId)?.nome
+        );
+        const queryText = String(mentorSearch || '').trim().toLowerCase();
+
+        return mergedUsers
+            .filter((user) => {
+                const userId = String(user?.id || user?.uid || '').trim();
+                if (!user || !userId || userId === loggedUserId) return false;
+                if (!MENTOR_PROFILES.has(normalizePerfil(user.perfil))) return false;
+
+                const escolasIds = Array.isArray(user.escolas_ids) ? user.escolas_ids : [];
+                const userSchoolIds = normalizeIdList([...escolasIds, user.escola_id]);
+                const hasSchoolIdMatch = userSchoolIds.includes(selectedSchoolId);
+                const hasSchoolNameMatch = selectedSchoolName
+                    && normalizeSchoolName(user?.escola_nome) === selectedSchoolName;
+                if (!hasSchoolIdMatch && !hasSchoolNameMatch) return false;
+
+                if (!queryText) return true;
+
+                const text = [
+                    user.nome,
+                    user.email,
+                    user.matricula,
+                ]
+                    .map((value) => String(value || '').toLowerCase())
+                    .join(' ');
+
+                return text.includes(queryText);
+            })
+            .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+    }, [mergedUsers, form.escola_id, mentorSearch, loggedUserId, schools]);
+
     const availableClubistas = useMemo(() => {
         if (!form.escola_id) return [];
 
@@ -195,6 +228,24 @@ export default function CreateClubForm({
             .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
     }, [mergedUsers, form.escola_id, membersSearch, loggedUserId, schools]);
 
+    useEffect(() => {
+        const availableMentorIds = new Set(
+            availableMentors
+                .map((mentor) => String(mentor?.id || '').trim())
+                .filter(Boolean)
+        );
+
+        setSelectedMentors((prev) => {
+            const next = prev.filter((id) => availableMentorIds.has(String(id || '').trim()));
+            return next.length === prev.length ? prev : next;
+        });
+    }, [availableMentors]);
+
+    const selectedMentorsSet = useMemo(
+        () => new Set(selectedMentors.map((id) => String(id))),
+        [selectedMentors],
+    );
+
     const selectedClubistasSet = useMemo(
         () => new Set(selectedClubistas.map((id) => String(id))),
         [selectedClubistas],
@@ -224,6 +275,19 @@ export default function CreateClubForm({
         });
     };
 
+    const toggleMentor = (userId) => {
+        const normalizedId = String(userId || '').trim();
+        if (!normalizedId) return;
+
+        setSelectedMentors((prev) => {
+            if (prev.includes(normalizedId)) {
+                return prev.filter((id) => id !== normalizedId);
+            }
+
+            return [...prev, normalizedId];
+        });
+    };
+
     const onFileChange = (documentKey, file) => {
         setDocuments((prev) => ({
             ...prev,
@@ -238,6 +302,7 @@ export default function CreateClubForm({
         const nome = String(form.nome || '').trim();
         const descricao = String(form.descricao || '').trim();
         const escolaId = String(form.escola_id || '').trim();
+        const coorientadoresIds = normalizeIdList(selectedMentors);
         const clubistasIds = normalizeIdList(selectedClubistas);
 
         if (!nome) {
@@ -248,19 +313,6 @@ export default function CreateClubForm({
         if (!escolaId) {
             setError('Selecione uma unidade escolar.');
             return;
-        }
-
-        if (!isLocalhost && clubistasIds.length < 10) {
-            setError('O clube precisa de no mínimo 10 clubistas.');
-            return;
-        }
-
-        if (!isLocalhost) {
-            const missingDocs = CLUB_REQUIRED_DOCUMENTS.filter((doc) => !isFileLike(documents[doc.key]));
-            if (missingDocs.length > 0) {
-                setError(`Anexe todos os documentos obrigatórios. Faltando: ${missingDocs.map((doc) => doc.label).join(', ')}.`);
-                return;
-            }
         }
 
         try {
@@ -294,6 +346,7 @@ export default function CreateClubForm({
                 escola_id: escolaId,
                 escola_nome: selectedSchool?.nome || '',
                 periodicidade: String(form.periodicidade || 'Quinzenal').trim() || 'Quinzenal',
+                coorientador_ids: coorientadoresIds,
                 clubistas_ids: clubistasIds,
                 documentos: encodedDocuments,
             });
@@ -304,6 +357,8 @@ export default function CreateClubForm({
                 escola_id: resolveSchoolId(mentorSchoolOptions[0]) || '',
                 periodicidade: 'Quinzenal',
             });
+            setMentorSearch('');
+            setSelectedMentors([]);
             setMembersSearch('');
             setSelectedClubistas([]);
             setDocuments({});
@@ -336,9 +391,7 @@ export default function CreateClubForm({
                             <Building2 className="w-8 h-8 stroke-[3]" /> Criar Clube de Ciências
                         </h2>
                         <p className="text-sm font-bold text-slate-800 mt-2 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                            {isLocalhost
-                                ? 'MODO LOCALHOST: SEM REGRAS RÍGIDAS'
-                                : 'REGRAS: 1 MENTOR RESPONSÁVEL E MÍNIMO 10 CLUBISTAS.'}
+                            {'REGRAS: 1 MENTOR RESPONSÁVEL.'}
                         </p>
                     </div>
                     <button
@@ -428,15 +481,76 @@ export default function CreateClubForm({
                             />
                         </div>
 
+                        {/* LISTA DE CO-MENTORES */}
+                        <section className="rounded-3xl border-4 border-slate-900 p-6 bg-lime-300 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                                <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
+                                    <Users className="w-7 h-7 stroke-[3]" />
+                                    Co-mentores 
+                                </h3>
+                                <span className="text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white text-slate-900">
+                                    {selectedMentors.length} selecionados
+                                </span>
+                            </div>
+
+                            <p className="text-xs font-bold text-slate-900 mb-4 bg-white/70 border-2 border-slate-900 rounded-xl px-3 py-2">
+                                O mentor responsavel sera voce. Aqui voce pode vincular outros mentores da unidade.
+                            </p>
+
+                            <input
+                                type="text"
+                                value={mentorSearch}
+                                onChange={(event) => setMentorSearch(event.target.value)}
+                                placeholder="FILTRAR MENTORES DA UNIDADE..."
+                                className="w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-4 text-sm font-black text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all uppercase placeholder:text-slate-400 mb-6"
+                            />
+
+                            <div className="max-h-52 overflow-y-auto neo-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pr-2">
+                                {availableMentors.length === 0 ? (
+                                    <p className="text-sm font-bold text-slate-800 md:col-span-2 bg-white/50 p-4 rounded-xl border-2 border-slate-900 border-dashed">
+                                        Nenhum mentor elegivel encontrado para a unidade selecionada.
+                                    </p>
+                                ) : (
+                                    availableMentors.map((mentor) => {
+                                        const isSelected = selectedMentorsSet.has(String(mentor.id));
+                                        return (
+                                            <label
+                                                key={mentor.id}
+                                                className={`flex items-center gap-4 rounded-2xl border-2 border-slate-900 px-4 py-3 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a] ${
+                                                    isSelected ? 'bg-teal-400 shadow-[4px_4px_0px_0px_#0f172a]' : 'bg-white shadow-[2px_2px_0px_0px_#0f172a]'
+                                                }`}
+                                            >
+                                                <div className="relative w-8 h-8 shrink-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleMentor(mentor.id)}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`absolute inset-0 rounded-lg border-2 border-slate-900 flex items-center justify-center transition-colors ${isSelected ? 'bg-slate-900' : 'bg-white'}`}>
+                                                        {isSelected && <Check className="w-5 h-5 text-teal-400 stroke-[3]" />}
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="block text-sm font-black text-slate-900 uppercase truncate">{mentor.nome}</span>
+                                                    <span className="block text-[10px] font-bold text-slate-700 truncate">{mentor.email || mentor.matricula || 'SEM CONTATO'}</span>
+                                                </div>
+                                            </label>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </section>
+
                         {/* LISTA DE CLUBISTAS (ESTILO NEO-BRUTALISTA) */}
                         <section className="rounded-3xl border-4 border-slate-900 p-6 bg-blue-300 shadow-[8px_8px_0px_0px_#0f172a]">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                                 <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
                                     <Users className="w-7 h-7 stroke-[3]" />
-                                    {isLocalhost ? 'Vincular Clubistas' : 'Clubistas (Mínimo 10)'}
+                                    {'Clubistas '}
                                 </h3>
-                                <span className={`text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] ${isLocalhost ? 'bg-white text-slate-900' : selectedClubistas.length >= 10 ? 'bg-teal-400 text-slate-900' : 'bg-red-400 text-white'}`}>
-                                    {isLocalhost ? `${selectedClubistas.length} selecionados` : `${selectedClubistas.length} de 10 obrigatórios`}
+                                <span className="text-sm font-black px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white text-slate-900">
+                                    {`${selectedClubistas.length} selecionados`}
                                 </span>
                             </div>
 
@@ -491,11 +605,10 @@ export default function CreateClubForm({
                             </div>
                         </section>
 
-                        {/* DOCUMENTOS OBRIGATÓRIOS */}
                         <section className="rounded-3xl border-4 border-slate-900 p-6 bg-pink-300 shadow-[8px_8px_0px_0px_#0f172a]">
                             <h3 className="text-xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter mb-6">
                                 <FileText className="w-7 h-7 stroke-[3]" />
-                                {isLocalhost ? 'Documentos (Opcional)' : 'Documentos Obrigatórios'}
+                                Documentos 
                             </h3>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -513,7 +626,6 @@ export default function CreateClubForm({
                                                 className="hidden"
                                                 accept=".pdf,.doc,.docx,.odt,.rtf,.png,.jpg,.jpeg,.webp"
                                                 onChange={(event) => onFileChange(doc.key, event.target.files?.[0] || null)}
-                                                required={!isLocalhost}
                                             />
                                         </label>
                                         {documents[doc.key] && (

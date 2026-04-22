@@ -765,7 +765,7 @@ export async function fetchInpiProcessByNumber(processNumber, sourceId = "automa
   if (!response.ok) {
     if (response.status === 404 || response.status === 405) {
       throw new Error(
-        "O endpoint /api/inpi/process não está disponível. Em local, use o servidor Vite. Em produção na Netlify, confirme se a Function inpi-process foi publicada corretamente.",
+        "O endpoint /api/inpi/process não está disponível. Em local, rode o Next.js com npm run dev. Em produção na Netlify, confirme se a Function inpi-process foi publicada corretamente.",
       );
     }
 
@@ -784,3 +784,4 @@ export async function fetchInpiProcessByNumber(processNumber, sourceId = "automa
 }
 
 export { OFFICIAL_SEARCH_URL, OFFICIAL_SEARCH_URLS };
+

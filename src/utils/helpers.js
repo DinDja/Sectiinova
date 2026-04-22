@@ -212,7 +212,7 @@ export function normalizeNetworkErrorMessage(error, fallbackMessage, context = '
 
     if (isFailedToFetchError(error)) {
         if (context === 'inpi-tracker') {
-            return 'Não foi possível alcançar a consulta do agente no endpoint /api/inpi/process. Em ambiente local, rode o projeto pelo servidor Vite com npm run dev ou npm run preview. Em produção na Netlify, verifique se a Function inpi-process foi publicada e se o redirect do netlify.toml está ativo.';
+            return 'Não foi possível alcançar a consulta do agente no endpoint /api/inpi/process. Em ambiente local, rode o projeto Next.js com npm run dev. Em produção na Netlify, verifique se a Function inpi-process foi publicada e se o redirect do netlify.toml está ativo.';
         }
 
         if (context === 'openrouter-agent') {
@@ -228,4 +228,6 @@ export function normalizeNetworkErrorMessage(error, fallbackMessage, context = '
 
     return fallbackMessage;
 }
+
+
 

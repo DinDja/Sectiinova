@@ -159,6 +159,24 @@ const SolidButton = ({
   </button>
 );
 
+const GoogleIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5">
+    <path fill="#4285F4" d="M21.35 11.1h-9.2v2.8h5.26c-.23 1.3-1.02 2.4-2.18 3.13v2.6h3.54c2.07-1.9 3.26-4.73 3.26-8.33 0-.56-.05-1.1-.15-1.6z" />
+    <path fill="#34A853" d="M12.15 22.01c2.96 0 5.44-.98 7.25-2.64l-3.54-2.6c-.98.66-2.24 1.05-3.71 1.05-2.85 0-5.27-1.92-6.14-4.5H2.24v2.82c1.79 3.53 5.48 6.87 9.91 6.87z" />
+    <path fill="#FBBC05" d="M6.01 13.32c-.22-.66-.35-1.35-.35-2.07s.13-1.41.35-2.07V6.36H2.24A10.91 10.91 0 0 0 1 11.25c0 1.76.42 3.42 1.24 4.89l3.77-2.82z" />
+    <path fill="#EA4335" d="M12.15 5.58c1.61 0 3.06.55 4.2 1.64l3.15-3.15C17.6 2.18 15.12 1.2 12.15 1.2 7.72 1.2 3.99 4.54 2.24 8.95l3.77 2.82c.87-2.58 3.29-4.5 6.14-4.5z" />
+  </svg>
+);
+
+const MicrosoftIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5">
+    <rect x="3" y="3" width="8" height="8" fill="#F35325" />
+    <rect x="13" y="3" width="8" height="8" fill="#81BC06" />
+    <rect x="3" y="13" width="8" height="8" fill="#05A6F0" />
+    <rect x="13" y="13" width="8" height="8" fill="#FFBA08" />
+  </svg>
+);
+
 const HeroNotebook = () => (
   <div className="nbk-container" aria-hidden="true">
     <style>{`
@@ -782,12 +800,16 @@ export default function AuthPage({
   handleRegister,
   handleGoogleAuth,
   handleOutlookAuth,
+  handleLogout,
+  isCompletingSocialProfile = false,
+  forceOpenRegister = false,
+  socialCompletionProvider = "",
   isMentoriaPerfil,
   setAuthError,
   setAuthNotice,
   PERFIS_LOGIN,
 }) {
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
@@ -843,6 +865,14 @@ export default function AuthPage({
   const shouldShowDecorativeLotties = !isMobileViewport;
 
   useEffect(() => {
+    if (!forceOpenRegister) return;
+
+    setAuthMode("register");
+    setShowAuthModal(true);
+    document.body.style.overflow = "hidden";
+  }, [forceOpenRegister, setAuthMode]);
+
+  useEffect(() => {
     if (!shouldShowDecorativeLotties) return undefined;
 
     let animation;
@@ -890,7 +920,8 @@ export default function AuthPage({
   }, [shouldShowDecorativeLotties]);
 
   const openAuthModal = (mode) => {
-    setAuthMode(mode);
+    const nextMode = forceOpenRegister ? "register" : mode;
+    setAuthMode(nextMode);
     setAuthError("");
     setAuthNotice(null);
     setShowAuthModal(true);
@@ -934,6 +965,33 @@ export default function AuthPage({
       : authNotice?.tone === "warning"
         ? "bg-yellow-300"
         : "bg-sky-300";
+  const normalizedRegisterEmail = String(registerForm.email || "")
+    .trim()
+    .toLowerCase();
+  const canUseMentorProfile = /@enova\.educacao\.ba\.gov\.br$/.test(
+    normalizedRegisterEmail,
+  );
+  const socialProviderLabel =
+    String(socialCompletionProvider || "").toLowerCase() === "google"
+      ? "Google"
+      : String(socialCompletionProvider || "").toLowerCase() === "microsoft"
+        ? "Microsoft"
+        : "conta social";
+  useEffect(() => {
+    if (typeof isMentoriaPerfil !== "function") return;
+    if (canUseMentorProfile) return;
+    if (!isMentoriaPerfil(registerForm.perfil)) return;
+
+    setRegisterForm((prev) => ({
+      ...prev,
+      perfil: "estudante",
+    }));
+  }, [
+    canUseMentorProfile,
+    isMentoriaPerfil,
+    registerForm.perfil,
+    setRegisterForm,
+  ]);
 
   return (
     <div className="relative min-h-screen w-full font-sans text-slate-900 bg-home bg-cover selection:bg-teal-400 selection:text-slate-900 overflow-x-hidden">
@@ -1275,6 +1333,7 @@ export default function AuthPage({
             <div className="md:w-7/12 h-full overflow-y-auto bg-[#FAFAFA] p-8 sm:p-12">
               <div className="max-w-[480px] mx-auto">
                 {/* Abas Estilo Botão Sólido */}
+                {!isCompletingSocialProfile ? (
                 <div className="flex gap-4 mb-10">
                   <button
                     type="button"
@@ -1307,15 +1366,38 @@ export default function AuthPage({
                     Criar Conta
                   </button>
                 </div>
+                ) : (
+                  <div className="mb-10 rounded-xl border-2 border-slate-900 bg-yellow-300 p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-900">
+                      Cadastro Pendente
+                    </p>
+                    <p className="text-sm font-bold text-slate-900 mt-2">
+                      Você entrou com {socialProviderLabel}. Complete os dados para finalizar seu cadastro.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="mt-3 text-xs font-black uppercase tracking-wider underline underline-offset-4 text-slate-900 hover:text-teal-700"
+                    >
+                      Sair desta conta
+                    </button>
+                  </div>
+                )}
 
                 <div className="mb-8">
                   <h3 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">
-                    {authMode === "login" ? "Olá de novo!" : "Vamos nessa!"}
+                    {isCompletingSocialProfile
+                      ? "Quase lá!"
+                      : authMode === "login"
+                        ? "Olá de novo!"
+                        : "Vamos nessa!"}
                   </h3>
                   <p className="text-slate-600 font-bold">
-                    {authMode === "login"
-                      ? "Pronto para continuar pesquisando?"
-                      : "Crie sua credencial em segundos."}
+                    {isCompletingSocialProfile
+                      ? "Preencha os dados de cadastro para liberar seu acesso."
+                      : authMode === "login"
+                        ? "Pronto para continuar pesquisando?"
+                        : "Crie sua credencial em segundos."}
                   </p>
                 </div>
 
@@ -1335,15 +1417,32 @@ export default function AuthPage({
                   </div>
                 )}
 
-                <div className="mb-8">
-                  <div className="flex items-center gap-4 my-8">
-                    <div className="flex-1 border-t-2 border-slate-900"></div>
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-900">
-                      Login
-                    </span>
-                    <div className="flex-1 border-t-2 border-slate-900"></div>
+                {!isCompletingSocialProfile && (
+                  <div className="space-y-3 mb-6">
+                    <SolidButton
+                      type="button"
+                      onClick={handleGoogleAuth}
+                      disabled={isSubmitting}
+                      color="bg-white"
+                      className="w-full"
+                    >
+                      <GoogleIcon />
+                      Continuar com Google
+                    </SolidButton>
                   </div>
-                </div>
+                )}
+
+                {!isCompletingSocialProfile && (
+                  <div className="mb-8">
+                    <div className="flex items-center gap-4 my-8">
+                      <div className="flex-1 border-t-2 border-slate-900"></div>
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                        Ou
+                      </span>
+                      <div className="flex-1 border-t-2 border-slate-900"></div>
+                    </div>
+                  </div>
+                )}
 
                 {/* === FORM DE LOGIN === */}
                 {authMode === "login" && (
@@ -1469,8 +1568,14 @@ export default function AuthPage({
                           email: e.target.value,
                         }))
                       }
+                      readOnly={isCompletingSocialProfile}
                       required
                     />
+                    {isCompletingSocialProfile && (
+                      <p className="mb-4 mt-[-8px] text-xs font-bold text-slate-700">
+                        O e-mail segue o mesmo da conta {socialProviderLabel}.
+                      </p>
+                    )}
 
                     {/* Select Sólido */}
                     <div className="relative mb-5 group">
@@ -1504,14 +1609,35 @@ export default function AuthPage({
                         <option value="" disabled>
                           Selecione seu perfil
                         </option>
-                        {safePerfisLogin.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
+                        {safePerfisLogin.map((opt) => {
+                          const isMentorOption =
+                            typeof isMentoriaPerfil === "function" &&
+                            isMentoriaPerfil(opt.value);
+                          const shouldDisableMentorOption =
+                            isMentorOption && !canUseMentorProfile;
+
+                          return (
+                            <option
+                              key={opt.value}
+                              value={opt.value}
+                              disabled={shouldDisableMentorOption}
+                            >
+                              {opt.label}
+                              {shouldDisableMentorOption
+                                ? " (exige e-mail Enova)"
+                                : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-900 stroke-[3] pointer-events-none z-10" />
                     </div>
+                    {!canUseMentorProfile && (
+                      <p className="mb-4 mt-[-8px] text-xs font-bold text-slate-700">
+                        Perfis orientador e coorientador exigem e-mail
+                        @enova.educacao.ba.gov.br.
+                      </p>
+                    )}
 
                     <div className="space-y-2 mb-6 p-4 border-2 border-slate-900 bg-white rounded-xl shadow-[4px_4px_0px_0px_#0f172a]">
                       <SolidCheckbox
@@ -1536,7 +1662,9 @@ export default function AuthPage({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div
+                      className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isCompletingSocialProfile ? "hidden" : ""}`}
+                    >
                       <div className="relative">
                         <SolidInput
                           icon={Lock}
@@ -1551,7 +1679,7 @@ export default function AuthPage({
                               senha: e.target.value,
                             }))
                           }
-                          required
+                          required={!isCompletingSocialProfile}
                         />
                       </div>
                       <div className="relative">
@@ -1567,12 +1695,14 @@ export default function AuthPage({
                               confirmarSenha: e.target.value,
                             }))
                           }
-                          required
+                          required={!isCompletingSocialProfile}
                         />
                       </div>
                     </div>
 
-                    <div className="mb-6 mt-3 rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+                    <div
+                      className={`mb-6 mt-3 rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a] ${isCompletingSocialProfile ? "hidden" : ""}`}
+                    >
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <span className="text-xs font-black uppercase tracking-widest text-slate-900">
                           Segurança da senha
@@ -1611,6 +1741,13 @@ export default function AuthPage({
                         outro serviço.
                       </p>
                     </div>
+                    {isCompletingSocialProfile && (
+                      <div className="mb-6 mt-3 rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a]">
+                        <p className="text-xs font-bold text-slate-700">
+                          Sua senha é gerenciada pela conta {socialProviderLabel}.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Dados Acadêmicos Adicionais */}
                     {((typeof isMentoriaPerfil === "function"
@@ -1781,3 +1918,5 @@ export default function AuthPage({
     </div>
   );
 }
+
+

@@ -67,14 +67,13 @@ export default function CreateProjectModal({
   };
 
   const normalizeText = (value) => String(value || '').trim().toLowerCase();
+  const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
   const isMentorProfile = ['orientador', 'coorientador'].includes(normalizeText(loggedUser?.perfil));
   const isEditing = mode === 'edit' || Boolean(projectToEdit?.id);
   const modalTitle = isEditing ? 'Editar Projeto' : 'Criar Novo Projeto';
   const modalSubtitle = isEditing
     ? 'Atualize os detalhes do projeto publicado no ecossistema'
     : 'Registre uma nova investigação científica para este clube';
-  const selectedSchoolId = String(viewingClub?.escola_id || '').trim();
-  const selectedSchoolName = normalizeText(viewingClub?.escola_nome);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -87,40 +86,17 @@ export default function CreateProjectModal({
     setFileInputKey(Date.now());
   }, [isOpen, projectToEdit]);
 
-  const isSameSchoolUser = (person) => {
-    if (!selectedSchoolId && !selectedSchoolName) return true;
-
-    const schoolIds = [
-      ...(Array.isArray(person?.escolas_ids) ? person.escolas_ids : []),
-      person?.escola_id
-    ]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-
-    const hasSchoolId = selectedSchoolId ? schoolIds.includes(selectedSchoolId) : false;
-    const hasSchoolName = selectedSchoolName
-      ? normalizeText(person?.escola_nome) === selectedSchoolName
-      : false;
-
-    return hasSchoolId || hasSchoolName;
-  };
-
   const mentorCandidates = useMemo(() => {
     const byId = new Map();
 
-    const schoolMentors = (users || []).filter((person) => {
-      const perfil = normalizeText(person?.perfil);
-      return ['orientador', 'coorientador'].includes(perfil) && isSameSchoolUser(person);
-    });
-
-    [...viewingClubCoorientadores, ...viewingClubOrientadores, ...schoolMentors].forEach((person) => {
+    [...viewingClubOrientadores, ...viewingClubCoorientadores].forEach((person) => {
       const personId = String(person?.id || person?.uid || '').trim();
-      if (!personId) return;
+      if (!personId || personId === loggedUserId) return;
       byId.set(personId, { ...person, id: personId });
     });
 
     return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
-  }, [viewingClubCoorientadores, viewingClubOrientadores, users, selectedSchoolId, selectedSchoolName]);
+  }, [viewingClubOrientadores, viewingClubCoorientadores, loggedUserId]);
 
   const filteredMentorCandidates = useMemo(() => {
     const term = String(searchCoorientador || '').trim().toLowerCase();
@@ -138,19 +114,36 @@ export default function CreateProjectModal({
   const investigadorCandidates = useMemo(() => {
     const byId = new Map();
 
-    const schoolStudents = (users || []).filter((person) => {
+    const clubMemberIds = new Set(
+      normalizeIdArray([
+        ...(viewingClub?.clubistas_ids || []),
+        ...(viewingClub?.membros_ids || [])
+      ])
+    );
+
+    const clubStudentsFromUsers = (users || []).filter((person) => {
       const perfil = normalizeText(person?.perfil);
-      return ['estudante', 'investigador', 'aluno'].includes(perfil) && isSameSchoolUser(person);
+      if (!['estudante', 'investigador', 'aluno'].includes(perfil)) return false;
+
+      const personId = String(person?.id || person?.uid || '').trim();
+      if (!personId) return false;
+
+      if (clubMemberIds.size === 0) {
+        const currentClubId = String(viewingClub?.id || '').trim();
+        const personClubId = String(person?.clube_id || person?.club_id || person?.active_club_id || '').trim();
+        return Boolean(currentClubId && personClubId && personClubId === currentClubId);
+      }
+      return clubMemberIds.has(personId);
     });
 
-    [...(viewingClubInvestigadores || []), ...schoolStudents].forEach((person) => {
+    [...(viewingClubInvestigadores || []), ...clubStudentsFromUsers].forEach((person) => {
       const personId = String(person?.id || person?.uid || '').trim();
-      if (!personId) return;
+      if (!personId || personId === loggedUserId) return;
       byId.set(personId, { ...person, id: personId });
     });
 
     return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
-  }, [viewingClubInvestigadores, users, selectedSchoolId, selectedSchoolName]);
+  }, [viewingClubInvestigadores, users, viewingClub, loggedUserId]);
 
   const filteredInvestigadorCandidates = useMemo(() => {
     const term = String(searchInvestigador || '').trim().toLowerCase();
@@ -346,23 +339,32 @@ export default function CreateProjectModal({
   const handleSubmitProject = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    if (!isEditing && isMentorProfile && !projectForm.termo_aceite_criacao) {
-      setProjectMessage('Para criar o projeto, é obrigatório ler e aceitar o termo de criação de projetos.');
-      setIsSubmitting(false);
-      return;
-    }
+    const debugForm = {
+      ...projectForm,
+      imagens: Array.isArray(projectForm?.imagens)
+        ? ('[' + projectForm.imagens.length + ' imagens]')
+        : '[0 imagens]'
+    };
+    console.groupCollapsed('[CreateProjectForm] submit mode=' + (isEditing ? 'edit' : 'create'));
 
     try {
+      if (!isEditing && isMentorProfile && !projectForm.termo_aceite_criacao) {
+        setProjectMessage('Você precisa aceitar os termos antes de criar o projeto.');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (isEditing) {
         const projectId = String(projectToEdit?.id || '').trim();
 
         if (!projectId) {
+          console.warn('[CreateProjectForm] projeto invalido para edicao.');
           setProjectMessage('Projeto inválido para edição.');
           return;
         }
 
         if (!handleUpdateProject) {
+          console.warn('[CreateProjectForm] handleUpdateProject ausente.');
           setProjectMessage('Função de edição não disponível.');
           return;
         }
@@ -371,6 +373,7 @@ export default function CreateProjectModal({
         setProjectMessage('Projeto atualizado com sucesso!');
       } else {
         if (!handleCreateProject) {
+          console.warn('[CreateProjectForm] handleCreateProject ausente.');
           setProjectMessage('Função de criação não disponível.');
           return;
         }
@@ -391,8 +394,17 @@ export default function CreateProjectModal({
     } catch (error) {
       const actionLabel = isEditing ? 'atualizar' : 'criar';
       console.error(`Erro ao ${actionLabel} projeto:`, error);
+      console.error('[CreateProjectForm] detalhes do erro:', {
+        action: actionLabel,
+        code: error?.code,
+        name: error?.name,
+        message: error?.message,
+        customData: error?.customData,
+        stage: error?.customData?.stage
+      });
       setProjectMessage(String(error?.message || '').trim() || `Erro ao ${actionLabel} projeto. Verifique os dados e tente novamente.`);
     } finally {
+      console.groupEnd();
       setIsSubmitting(false);
     }
   };
@@ -576,10 +588,10 @@ export default function CreateProjectModal({
               
               <div className="grid md:grid-cols-2 gap-8">
                 
-                {/* Co-mentores */}
+                {/* Mentores */}
                 <div className="bg-white p-5 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col h-[350px]">
                   <div className="mb-4">
-                    <label className={labelClasses}>Buscar Co-Mentores</label>
+                    <label className={labelClasses}>Buscar Mentores</label>
                     <div className="relative">
                       <input
                         type="search"
@@ -594,7 +606,7 @@ export default function CreateProjectModal({
 
                   <div className="flex-1 overflow-auto neo-scrollbar pr-2 space-y-3">
                     {filteredMentorCandidates.length === 0 ? (
-                      <p className="text-xs font-bold text-slate-500 border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">Nenhum co-mentor encontrado.</p>
+                      <p className="text-xs font-bold text-slate-500 border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">Nenhum mentor encontrado.</p>
                     ) : (
                       filteredMentorCandidates.map((person) => {
                         const checked = projectForm.coorientador_ids.includes(String(person.id));
@@ -672,7 +684,7 @@ export default function CreateProjectModal({
             {isMentorProfile && !isEditing && (
               <section className="rounded-3xl border-4 border-slate-900 p-6 bg-slate-100 shadow-[8px_8px_0px_0px_#0f172a]">
                 <h3 className={sectionTitleClasses}>
-                  <CheckCircle className="w-7 h-7 stroke-[3]" /> Termo de Aceite
+                  <CheckCircle className="w-7 h-7 stroke-[3]" /> Termo de Aceite (Obrigatório)
                 </h3>
 
                 <div className="bg-white border-4 border-slate-900 rounded-2xl overflow-hidden flex flex-col mb-6">
@@ -738,7 +750,7 @@ export default function CreateProjectModal({
           <button
             type="submit"
             form="project-form"
-            disabled={(!isEditing && isMentorProfile && !projectForm.termo_aceite_criacao) || isSubmitting}
+            disabled={isSubmitting}
             className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl border-2 border-slate-900 bg-teal-400 text-slate-900 font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] active:shadow-none active:translate-y-0 transition-all disabled:opacity-50 disabled:pointer-events-none"
           >
             <Target className="w-5 h-5 stroke-[3]" />

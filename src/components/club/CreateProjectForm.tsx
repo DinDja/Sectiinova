@@ -1,3 +1,3 @@
-import CreateProjectModal from './CreateProjectForm';
+import CreateProjectModal from './CreateProjectForm.jsx';
 
 export default CreateProjectModal;

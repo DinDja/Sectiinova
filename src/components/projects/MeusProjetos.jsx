@@ -14,7 +14,7 @@ export default function MeusProjetos({
   getInvestigatorDisplayNames = () => [],
   ...props
 }) {
-  const projetosSource = (clubProjects && clubProjects.length > 0) ? clubProjects : feedProjects;
+  const projetosSource = Array.isArray(clubProjects) ? clubProjects : feedProjects;
 
   const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
   const loggedUserPerfil = String(loggedUser?.perfil || '').trim().toLowerCase();
@@ -36,11 +36,6 @@ export default function MeusProjetos({
   const meusProjetos = useMemo(() => {
     return (projetosSource || []).filter((proj) => {
       if (!loggedUserId) return false;
-
-      if (isMentorProfile) {
-        const projectClubId = String(proj?.clube_id || '').trim();
-        return projectClubId ? mentorClubIdSet.has(projectClubId) : false;
-      }
 
       const equipeIds = Array.isArray(proj?.equipe)
         ? proj.equipe.map((e) => (typeof e === 'object' ? String(e.id || e.uid || e) : String(e)))
@@ -69,7 +64,7 @@ export default function MeusProjetos({
 
       return projetoUserIds.has(loggedUserId);
     });
-  }, [projetosSource, loggedUserId, isMentorProfile, mentorClubIdSet]);
+  }, [projetosSource, loggedUserId]);
 
   const mentorClubs = useMemo(() => {
     if (!isMentorProfile) return [];
@@ -113,7 +108,7 @@ export default function MeusProjetos({
       );
 
       return { club, projects: clubProjectsList };
-    });
+    }).filter((group) => group.projects.length > 0);
 
     if (groups.length > 0) {
       return groups;
@@ -153,7 +148,7 @@ export default function MeusProjetos({
       {isMentorProfile ? (
         mentorProjectsByClub.length === 0 ? (
           <div className="premium-card p-8 text-center text-slate-500 font-medium">
-            Nenhum projeto encontrado nos seus clubes.
+            Voce ainda nao participa de nenhum projeto.
           </div>
         ) : (
           <div className="space-y-8">

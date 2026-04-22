@@ -97,6 +97,7 @@ const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
 
 const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
+const isEnovaMentorEmail = (email) => /@enova\.educacao\.ba\.gov\.br$/.test(normalizeEmailAddress(email));
 
 const getEmailVerificationResendStorageKey = (email) => {
     const normalizedEmail = normalizeEmailAddress(email);
@@ -234,6 +235,7 @@ export default function useAppController() {
     const [myClubProjects, setMyClubProjects] = useState([]);
     const [authUser, setAuthUser] = useState(null);
     const [loggedUser, setLoggedUser] = useState(null);
+    const [profileCompletionContext, setProfileCompletionContext] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
     const [authMode, setAuthMode] = useState('login');
     const [authError, setAuthError] = useState('');
@@ -578,7 +580,9 @@ export default function useAppController() {
                         ...(club?.membros_ids || []),
                         ...(club?.clubistas_ids || []),
                         ...(club?.orientador_ids || []),
+                        ...(club?.orientadores_ids || []),
                         ...(club?.coorientador_ids || []),
+                        ...(club?.coorientadores_ids || []),
                         club?.mentor_id
                     ]);
 
@@ -597,7 +601,9 @@ export default function useAppController() {
                 ...(club?.membros_ids || []),
                 ...(club?.clubistas_ids || []),
                 ...(club?.orientador_ids || []),
+                ...(club?.orientadores_ids || []),
                 ...(club?.coorientador_ids || []),
+                ...(club?.coorientadores_ids || []),
                 club?.mentor_id
             ]);
 
@@ -644,7 +650,9 @@ export default function useAppController() {
                 const mentorIds = normalizeIdList([
                     club?.mentor_id,
                     ...(club?.orientador_ids || []),
-                    ...(club?.coorientador_ids || [])
+                    ...(club?.orientadores_ids || []),
+                    ...(club?.coorientador_ids || []),
+                    ...(club?.coorientadores_ids || [])
                 ]);
 
                 return mentorIds.includes(loggedUserId) || loggedUserClubIds.has(clubId);
@@ -664,17 +672,21 @@ export default function useAppController() {
         if (!viewedClub) {
             return false;
         }
+        const viewedClubId = String(viewedClub?.id || '').trim();
 
         const mentorIds = new Set(
             normalizeIdList([
                 viewedClub?.mentor_id,
                 ...(viewedClub?.orientador_ids || []),
-                ...(viewedClub?.coorientador_ids || [])
+                ...(viewedClub?.orientadores_ids || []),
+                ...(viewedClub?.coorientador_ids || []),
+                ...(viewedClub?.coorientadores_ids || [])
             ])
         );
 
-        return mentorIds.has(loggedUserId);
-    }, [loggedUserId, viewingClubId, loggedUser, clubs]);
+        const canManageByProfileMembership = myClubIds.includes(viewedClubId);
+        return mentorIds.has(loggedUserId) || canManageByProfileMembership;
+    }, [loggedUserId, viewingClubId, loggedUser, clubs, myClubIds]);
 
     const userSchoolIds = useMemo(() => {
         return normalizeIdList(getUserSchoolIds(loggedUser));
@@ -744,6 +756,11 @@ export default function useAppController() {
             }))
             .filter((group) => (group.units || []).length > 0);
     }, [selectedSchoolGroups, schoolSearchTerm]);
+
+    const isCompletingSocialProfile = useMemo(
+        () => Boolean(profileCompletionContext && authUser && !loggedUser),
+        [profileCompletionContext, authUser, loggedUser]
+    );
 
     // 🚀 Inicializar cache IndexedDB automaticamente
     useEffect(() => {
@@ -1480,7 +1497,9 @@ export default function useAppController() {
         ...(viewingClub?.membros_ids || []),
         ...(viewingClub?.clubistas_ids || []),
         ...(viewingClub?.orientador_ids || []),
+        ...(viewingClub?.orientadores_ids || []),
         ...(viewingClub?.coorientador_ids || []),
+        ...(viewingClub?.coorientadores_ids || []),
         viewingClub?.mentor_id
     ]);
     const viewingClubClubistaIds = normalizeIdList(viewingClub?.clubistas_ids || []);
@@ -1606,6 +1625,7 @@ export default function useAppController() {
                         setAuthMode('login');
                         setAuthUser(null);
                         setLoggedUser(null);
+                        setProfileCompletionContext(null);
                         setAuthNotice({
                             tone: 'warning',
                             message: buildVerificationPendingNotice(resendResult)
@@ -1616,8 +1636,38 @@ export default function useAppController() {
 
                     const userRef = doc(db, 'usuarios', user.uid);
                     let snap = await getDoc(userRef);
+                    const authProvider = resolveAuthProvider(user);
 
                     if (!snap.exists()) {
+                        if (authProvider === 'google' || authProvider === 'microsoft') {
+                            const normalizedEmail = normalizeEmailAddress(user?.email);
+                            const fallbackName = String(user?.displayName || '').trim()
+                                || resolveFallbackNameFromEmail(normalizedEmail);
+
+                            setAuthUser(user);
+                            setLoggedUser(null);
+                            setProfileCompletionContext({
+                                uid: String(user.uid || '').trim(),
+                                provider: authProvider,
+                                email: normalizedEmail,
+                                nome: fallbackName
+                            });
+                            setRegisterForm((previous) => ({
+                                ...previous,
+                                nome: String(previous?.nome || '').trim() || fallbackName,
+                                email: normalizedEmail || String(previous?.email || '').trim(),
+                                senha: '',
+                                confirmarSenha: ''
+                            }));
+                            setAuthMode('register');
+                            setAuthNotice({
+                                tone: 'info',
+                                message: 'Complete seu cadastro para continuar usando a plataforma.'
+                            });
+                            setAuthLoading(false);
+                            return;
+                        }
+
                         await setDoc(userRef, createDefaultProfileFromAuthUser(user));
                         await cachedDataService.invalidateCollection('usuarios');
                         snap = await getDoc(userRef);
@@ -1632,8 +1682,31 @@ export default function useAppController() {
                     }
 
                     if (snap.exists()) {
-                        setAuthUser(user);
                         const userData = snap.data();
+                        const profileEmail = normalizeEmailAddress(userData?.email || user?.email);
+                        if (
+                            authProvider === 'google'
+                            && isMentoriaPerfil(userData?.perfil)
+                            && !isEnovaMentorEmail(profileEmail)
+                        ) {
+                            try {
+                                await signOut(auth);
+                            } catch (signOutError) {
+                                console.error('Falha ao encerrar sessao de mentor fora do dominio Enova:', signOutError);
+                            }
+
+                            setAuthMode('login');
+                            setAuthUser(null);
+                            setLoggedUser(null);
+                            setProfileCompletionContext(null);
+                            setAuthNotice(null);
+                            setAuthError('Orientadores e coorientadores so podem entrar com Google usando e-mail @enova.educacao.ba.gov.br.');
+                            setAuthLoading(false);
+                            return;
+                        }
+
+                        setProfileCompletionContext(null);
+                        setAuthUser(user);
                         setLoggedUser(normalizeUserEntity(userData, snap.id));
                         
                         // Carregar ordem do sidebar se existir
@@ -1651,10 +1724,12 @@ export default function useAppController() {
                     console.error('Erro ao carregar perfil:', error);
                     setAuthUser(null);
                     setLoggedUser(null);
+                    setProfileCompletionContext(null);
                 }
             } else {
                 setAuthUser(null);
                 setLoggedUser(null);
+                setProfileCompletionContext(null);
             }
 
             setAuthLoading(false);
@@ -1888,23 +1963,32 @@ export default function useAppController() {
         event.preventDefault();
         setAuthError('');
         setAuthNotice(null);
+        const socialProviderFromContext = String(profileCompletionContext?.provider || '').trim().toLowerCase();
+        const isSocialCompletionFlow = Boolean(
+            profileCompletionContext
+            && authUser
+            && String(profileCompletionContext?.uid || '').trim() === String(authUser?.uid || '').trim()
+            && (socialProviderFromContext === 'google' || socialProviderFromContext === 'microsoft')
+        );
 
         const escolaUnit = allSchoolUnits.find((unit) => unit.escola_id === registerForm.escola_id);
         if (!escolaUnit) {
             setAuthError('Selecione uma unidade escolar válida.');
             return;
         }
-        if (registerForm.senha !== registerForm.confirmarSenha) {
-            setAuthError('As senhas não coincidem.');
-            return;
-        }
-        const passwordValidationError = validateRegistrationPassword(registerForm.senha, {
-            email: registerForm.email,
-            fullName: registerForm.nome
-        });
-        if (passwordValidationError) {
-            setAuthError(passwordValidationError);
-            return;
+        if (!isSocialCompletionFlow) {
+            if (registerForm.senha !== registerForm.confirmarSenha) {
+                setAuthError('As senhas não coincidem.');
+                return;
+            }
+            const passwordValidationError = validateRegistrationPassword(registerForm.senha, {
+                email: registerForm.email,
+                fullName: registerForm.nome
+            });
+            if (passwordValidationError) {
+                setAuthError(passwordValidationError);
+                return;
+            }
         }
         if (isMentoriaPerfil(registerForm.perfil) && !registerForm.matricula.trim()) {
             setAuthError('Informe a matrícula.');
@@ -1916,20 +2000,90 @@ export default function useAppController() {
         }
 
         if (isMentoriaPerfil(registerForm.perfil)) {
-            const emailNormalized = String(registerForm.email || '').trim().toLowerCase();
-            if (!/@enova\.educacao\.ba\.gov\.br$/.test(emailNormalized)) {
+            const emailNormalized = normalizeEmailAddress(registerForm.email);
+            if (!isEnovaMentorEmail(emailNormalized)) {
                 setAuthError('Orientadores e coorientadores devem usar e-mail @enova.educacao.ba.gov.br.');
                 return;
             }
         }
 
         setIsSubmitting(true);
-        isRegisteringRef.current = true;
+        isRegisteringRef.current = !isSocialCompletionFlow;
 
         try {
             await setPersistence(auth, browserSessionPersistence);
 
-            const normalizedEmail = String(registerForm.email || '').trim().toLowerCase();
+            const normalizedEmail = normalizeEmailAddress(registerForm.email);
+            if (isSocialCompletionFlow) {
+                const activeSocialUser = auth.currentUser || authUser;
+                const activeSocialUserId = String(activeSocialUser?.uid || '').trim();
+                const activeSocialUserEmail = normalizeEmailAddress(activeSocialUser?.email);
+
+                if (!activeSocialUserId) {
+                    throw new Error('Sessao social expirada. Entre com Google ou Microsoft novamente.');
+                }
+
+                if (!activeSocialUserEmail || normalizedEmail !== activeSocialUserEmail) {
+                    setAuthError('O e-mail do cadastro deve ser o mesmo da conta social usada no acesso.');
+                    return;
+                }
+
+                const userRef = doc(db, 'usuarios', activeSocialUserId);
+                const existingProfileSnap = await getDoc(userRef);
+
+                if (existingProfileSnap.exists()) {
+                    setProfileCompletionContext(null);
+                    setAuthUser(activeSocialUser);
+                    setLoggedUser(normalizeUserEntity(existingProfileSnap.data(), existingProfileSnap.id));
+                    setAuthNotice({
+                        tone: 'success',
+                        message: 'Cadastro concluido com sucesso.'
+                    });
+                    return;
+                }
+
+                const resolvedEscolasIds = normalizeIdList([escolaUnit.escola_id]);
+                const profileData = {
+                    uid: activeSocialUserId,
+                    nome: registerForm.nome.trim(),
+                    email: normalizedEmail,
+                    perfil: registerForm.perfil,
+                    rede_administrativa: registerForm.rede_administrativa === 'municipal' ? 'municipal' : 'estadual',
+                    escolas_ids: resolvedEscolasIds,
+                    clubes_ids: [],
+                    escola_id: escolaUnit.escola_id,
+                    escola_nome: escolaUnit.nome,
+                    escola_municipio: String(escolaUnit.municipio || '').trim(),
+                    escola_uf: String(escolaUnit.uf || 'BA').trim() || 'BA',
+                    clube_id: '',
+                    auth_provider: resolveAuthProvider(activeSocialUser),
+                    createdAt: serverTimestamp()
+                };
+
+                if (isMentoriaPerfil(registerForm.perfil)) {
+                    profileData.matricula = registerForm.matricula.trim();
+                    profileData.lattes = registerForm.lattes.trim();
+                }
+
+                await setDoc(userRef, profileData);
+                await cachedDataService.invalidateCollection('usuarios');
+
+                const refreshedProfileSnap = await getDoc(userRef);
+                setProfileCompletionContext(null);
+                setAuthMode('login');
+                setAuthNotice({
+                    tone: 'success',
+                    message: 'Cadastro concluido com sucesso. Bem-vindo(a)!'
+                });
+
+                if (refreshedProfileSnap.exists()) {
+                    setAuthUser(activeSocialUser);
+                    setLoggedUser(normalizeUserEntity(refreshedProfileSnap.data(), refreshedProfileSnap.id));
+                }
+
+                return;
+            }
+
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
                 normalizedEmail,
@@ -2016,6 +2170,7 @@ export default function useAppController() {
         setAuthError('');
         setAuthNotice(null);
         setIsSubmitting(true);
+        setProfileCompletionContext(null);
 
         try {
             const normalizedProvider = String(providerName || '').trim().toLowerCase();
@@ -2027,37 +2182,38 @@ export default function useAppController() {
 
             const userCredential = await signInWithPopup(auth, provider);
             const user = userCredential.user;
-            const userRef = doc(db, 'usuarios', user.uid);
-            const userSnap = await getDoc(userRef);
+            const normalizedEmail = normalizeEmailAddress(user?.email);
 
-            if (!userSnap.exists()) {
-                const fullName = String(user.displayName || '').trim();
-                const userEmail = String(user.email || '').trim();
-                const fallbackName = userEmail.includes('@') ? userEmail.split('@')[0] : 'Usuário';
-
-                await setDoc(userRef, {
-                    uid: user.uid,
-                    nome: fullName || fallbackName,
-                    email: userEmail,
-                    perfil: 'estudante',
-                    rede_administrativa: '',
-                    escolas_ids: [],
-                    clubes_ids: [],
-                    escola_id: '',
-                    escola_nome: '',
-                    escola_municipio: '',
-                    escola_uf: '',
-                    clube_id: '',
-                    auth_provider: normalizedProvider === 'google' ? 'google' : 'microsoft',
-                    createdAt: serverTimestamp()
-                });
-
-                await cachedDataService.invalidateCollection('usuarios');
+            if (!normalizedEmail) {
+                try {
+                    await signOut(auth);
+                } catch (signOutError) {
+                    console.error('Falha ao encerrar sessao social sem e-mail:', signOutError);
+                }
+                setAuthError('Nao foi possivel obter o e-mail da conta social selecionada.');
+                return;
             }
 
-            const refreshedUserSnap = await getDoc(userRef);
-            setAuthUser(user);
-            setLoggedUser(normalizeUserEntity(refreshedUserSnap.data(), refreshedUserSnap.id));
+            if (normalizedProvider === 'google') {
+                const userRef = doc(db, 'usuarios', user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const existingProfile = userSnap.data() || {};
+                    const existingPerfil = String(existingProfile?.perfil || '').trim().toLowerCase();
+                    const existingEmail = normalizeEmailAddress(existingProfile?.email || normalizedEmail);
+
+                    if (isMentoriaPerfil(existingPerfil) && !isEnovaMentorEmail(existingEmail)) {
+                        try {
+                            await signOut(auth);
+                        } catch (signOutError) {
+                            console.error('Falha ao encerrar sessao de mentor fora do dominio Enova:', signOutError);
+                        }
+
+                        setAuthError('Orientadores e coorientadores so podem entrar com Google usando e-mail @enova.educacao.ba.gov.br.');
+                        return;
+                    }
+                }
+            }
         } catch (error) {
             console.error(`Erro no login social (${providerName}):`, error);
             setAuthError(
@@ -2089,6 +2245,7 @@ export default function useAppController() {
         setViewingClubId('');
         setClubProjects([]);
         setMyClubProjects([]);
+        setProfileCompletionContext(null);
         setCurrentView('Projetos');
     };
 
@@ -2123,6 +2280,11 @@ export default function useAppController() {
         const currentUserId = String(loggedUser?.id || authUser?.uid || '').trim();
         if (!currentUserId || !isMentoriaPerfil(loggedUser?.perfil)) {
             return false;
+        }
+
+        const projectClubId = String(project?.clube_id || '').trim();
+        if (projectClubId && myClubIds.includes(projectClubId)) {
+            return true;
         }
 
         const loggedUserEmail = String(loggedUser?.email || '').toLowerCase().trim();
@@ -2195,42 +2357,211 @@ export default function useAppController() {
         termo_aceite_criacao = false
     }) => {
         if (!viewingClub) {
+            console.warn('[PROJECT_CREATE] bloqueado: viewingClub ausente.');
             setErrorMessage('Selecione um clube para registrar o projeto.');
             return;
         }
 
-        const creatorId = String(loggedUser?.id || authUser?.uid || '').trim();
+        const authUid = String(authUser?.uid || '').trim();
+        const creatorId = String(loggedUser?.id || authUid || '').trim();
 
         if (!creatorId) {
+            console.warn('[PROJECT_CREATE] bloqueado: creatorId ausente.', {
+                loggedUserId: String(loggedUser?.id || '').trim(),
+                authUserUid: authUid
+            });
             setErrorMessage('Usuário não autenticado para criação de projeto.');
             return;
         }
 
         if (!titulo || !String(titulo).trim()) {
+            console.warn('[PROJECT_CREATE] bloqueado: titulo ausente.');
             setErrorMessage('Informe o título do projeto.');
             return;
         }
+
         const isCreatorMentor = isMentoriaPerfil(loggedUser?.perfil);
         if (isCreatorMentor && !termo_aceite_criacao) {
-            setErrorMessage('Para criar o projeto, o mentor precisa aceitar o termo de criacao de projetos.');
+            console.warn('[PROJECT_CREATE] bloqueado: termo de aceite nao marcado.');
+            setErrorMessage('Aceite os termos de criação antes de criar o projeto.');
             return;
         }
+
+        const createProjectTimerLabel = '[PROJECT_CREATE] addDoc projetos';
+        let addDocTimerStarted = false;
+        let authTokenClaimsDebug = null;
+        let projectCreateStage = 'start';
+
+        const incomingPayloadDebug = {
+            titulo: String(titulo || '').trim(),
+            descricaoLength: String(descricao || '').trim().length,
+            area_tematica: String(area_tematica || '').trim(),
+            status: String(status || '').trim(),
+            tipo: String(tipo || '').trim(),
+            coorientador_ids: normalizeIdList(Array.isArray(coorientador_ids) ? coorientador_ids : []),
+            investigadores_ids: normalizeIdList(Array.isArray(investigadores_ids) ? investigadores_ids : []),
+            imagensCount: Array.isArray(imagens) ? imagens.filter((img) => typeof img === 'string' && img.trim()).length : 0,
+            termo_aceite_criacao: Boolean(termo_aceite_criacao)
+        };
+
+        console.groupCollapsed('[PROJECT_CREATE] inicio');
+        console.log('[PROJECT_CREATE] payload de entrada:', incomingPayloadDebug);
+        console.log('[PROJECT_CREATE] contexto auth/perfil:', {
+            creatorId,
+            authUid,
+            loggedUserId: String(loggedUser?.id || '').trim(),
+            perfil: String(loggedUser?.perfil || '').trim(),
+            email: String(loggedUser?.email || '').trim(),
+            clube_id: String(loggedUser?.clube_id || '').trim(),
+            clubes_ids: normalizeIdList(Array.isArray(loggedUser?.clubes_ids) ? loggedUser.clubes_ids : []),
+            myClubIds
+        });
+        console.log('[PROJECT_CREATE] contexto clube atual:', {
+            viewingClubId: String(viewingClub?.id || '').trim(),
+            viewingClubNome: String(viewingClub?.nome || '').trim(),
+            escola_id: String(viewingClub?.escola_id || '').trim(),
+            mentor_id: String(viewingClub?.mentor_id || '').trim(),
+            orientador_ids: normalizeIdList(Array.isArray(viewingClub?.orientador_ids) ? viewingClub.orientador_ids : []),
+            orientadores_ids: normalizeIdList(Array.isArray(viewingClub?.orientadores_ids) ? viewingClub.orientadores_ids : []),
+            coorientador_ids: normalizeIdList(Array.isArray(viewingClub?.coorientador_ids) ? viewingClub.coorientador_ids : []),
+            coorientadores_ids: normalizeIdList(Array.isArray(viewingClub?.coorientadores_ids) ? viewingClub.coorientadores_ids : []),
+            membrosCount: normalizeIdList(Array.isArray(viewingClub?.membros_ids) ? viewingClub.membros_ids : []).length
+        });
 
         try {
             setErrorMessage('');
             setIsFetchingProjects(true);
+            projectCreateStage = 'normalize-input';
 
+            const normalizedViewingClubId = String(viewingClub?.id || '').trim();
+            const normalizedViewingSchoolId = String(viewingClub?.escola_id || '').trim();
+            let authProfileProbe = {
+                loaded: false,
+                exists: false,
+                perfil: '',
+                email: '',
+                clube_id: '',
+                clubes_ids: []
+            };
+
+            try {
+                projectCreateStage = 'read-token-claims';
+                const tokenResult = typeof authUser?.getIdTokenResult === 'function'
+                    ? await authUser.getIdTokenResult()
+                    : null;
+
+                authTokenClaimsDebug = {
+                    tokenUid: String(tokenResult?.claims?.user_id || authUid || '').trim(),
+                    tokenEmail: String(tokenResult?.claims?.email || authUser?.email || '').trim(),
+                    tokenEmailVerified: Boolean(tokenResult?.claims?.email_verified),
+                    signInProvider: String(tokenResult?.signInProvider || '').trim(),
+                    claimsKeys: Object.keys(tokenResult?.claims || {}).slice(0, 20)
+                };
+
+                console.log('[PROJECT_CREATE] token claims:', authTokenClaimsDebug);
+            } catch (tokenDebugError) {
+                console.warn('[PROJECT_CREATE] falha ao ler token claims:', {
+                    code: tokenDebugError?.code,
+                    message: String(tokenDebugError?.message || '').trim()
+                });
+            }
+
+            if (!normalizedViewingClubId) {
+                throw new Error('Nao foi possivel identificar o clube para criacao do projeto. Recarregue a pagina e tente novamente.');
+            }
+
+            if (!normalizedViewingSchoolId) {
+                throw new Error('O clube selecionado nao possui escola vinculada. Atualize os dados do clube e tente novamente.');
+            }
+
+            try {
+                projectCreateStage = 'rule-probe';
+                const viewingClubIdForProbe = normalizedViewingClubId;
+                const [authProfileSnap, viewingClubSnap] = await Promise.all([
+                    authUid
+                        ? getDoc(doc(db, 'usuarios', authUid))
+                        : Promise.resolve(null),
+                    viewingClubIdForProbe
+                        ? getDoc(doc(db, 'clubes', viewingClubIdForProbe))
+                        : Promise.resolve(null)
+                ]);
+
+                const authProfileData = authProfileSnap?.exists() ? authProfileSnap.data() : null;
+                const viewingClubData = viewingClubSnap?.exists() ? viewingClubSnap.data() : null;
+                authProfileProbe = {
+                    loaded: true,
+                    exists: Boolean(authProfileSnap?.exists?.()),
+                    perfil: String(authProfileData?.perfil || '').trim(),
+                    email: String(authProfileData?.email || '').trim(),
+                    clube_id: String(authProfileData?.clube_id || '').trim(),
+                    clubes_ids: normalizeIdList(Array.isArray(authProfileData?.clubes_ids) ? authProfileData.clubes_ids : [])
+                };
+                const clubMentorIdsFromFirestore = normalizeIdList([
+                    viewingClubData?.mentor_id,
+                    ...(viewingClubData?.orientador_ids || []),
+                    ...(viewingClubData?.orientadores_ids || []),
+                    ...(viewingClubData?.coorientador_ids || []),
+                    ...(viewingClubData?.coorientadores_ids || [])
+                ]);
+                const clubMemberIdsFromFirestore = normalizeIdList([
+                    ...(viewingClubData?.membros_ids || []),
+                    ...(viewingClubData?.clubistas_ids || []),
+                    ...(viewingClubData?.investigadores_ids || [])
+                ]);
+
+                console.log('[PROJECT_CREATE] rule probe firestore:', {
+                    authUid,
+                    authProfileDocExists: Boolean(authProfileSnap?.exists?.()),
+                    authProfilePerfil: String(authProfileData?.perfil || '').trim(),
+                    authProfileEmail: String(authProfileData?.email || '').trim(),
+                    authProfileClubeId: String(authProfileData?.clube_id || '').trim(),
+                    authProfileClubesIds: normalizeIdList(Array.isArray(authProfileData?.clubes_ids) ? authProfileData.clubes_ids : []),
+                    viewingClubDocExists: Boolean(viewingClubSnap?.exists?.()),
+                    viewingClubId: viewingClubIdForProbe,
+                    clubMentorIdsFromFirestore,
+                    clubMemberIdsCountFromFirestore: clubMemberIdsFromFirestore.length,
+                    authUidInClubMentorIds: authUid ? clubMentorIdsFromFirestore.includes(authUid) : false,
+                    authUidInClubMemberIds: authUid ? clubMemberIdsFromFirestore.includes(authUid) : false
+                });
+            } catch (ruleProbeError) {
+                console.warn('[PROJECT_CREATE] falha no rule probe firestore:', {
+                    message: String(ruleProbeError?.message || '').trim(),
+                    code: ruleProbeError?.code
+                });
+            }
+
+            if (authUid && creatorId && authUid !== creatorId) {
+                throw new Error('Sessao inconsistente detectada (auth.uid diferente do perfil carregado). Faca logout e login novamente antes de criar o projeto.');
+            }
+
+            if (authUid && authProfileProbe.loaded && !authProfileProbe.exists) {
+                throw new Error('Perfil autenticado nao encontrado em usuarios/{uid}. Finalize o cadastro novamente e tente criar o projeto.');
+            }
+
+            if (authProfileProbe.loaded && authProfileProbe.exists) {
+                const authProfilePerfil = normalizePerfil(authProfileProbe.perfil);
+                const authProfileEmail = normalizeEmailAddress(authProfileProbe.email);
+                const authTokenEmail = normalizeEmailAddress(authTokenClaimsDebug?.tokenEmail || '');
+                const isMentorByProfile = isMentoriaPerfil(authProfilePerfil);
+                const isMentorByEmail = isEnovaMentorEmail(authProfileEmail) || isEnovaMentorEmail(authTokenEmail);
+
+                if (!isMentorByProfile && !isMentorByEmail) {
+                    throw new Error('Seu perfil autenticado nao possui permissao de mentor para criar projetos.');
+                }
+            }
+
+            projectCreateStage = 'build-payload';
             const newProjectData = {
                 titulo: String(titulo).trim(),
                 descricao: String(descricao || '').trim(),
                 area_tematica: String(area_tematica || '').trim(),
                 status: String(status || 'Em andamento').trim(),
                 tipo: String(tipo || 'Projeto Científico').trim(),
-                clube_id: viewingClub.id,
-                escola_id: viewingClub.escola_id || '',
+                clube_id: normalizedViewingClubId,
+                escola_id: normalizedViewingSchoolId,
                 createdAt: serverTimestamp()
             };
-            if (isCreatorMentor) {
+            if (isCreatorMentor && termo_aceite_criacao) {
                 newProjectData.termo_aceite_criacao = {
                     aceito: true,
                     versao: '2026-04-15',
@@ -2243,59 +2574,85 @@ export default function useAppController() {
                 };
             }
 
-            const clubSchoolId = String(viewingClub?.escola_id || '').trim();
-            const clubSchoolName = normalizeSchoolName(viewingClub?.escola_nome);
-            const isSameSchoolUser = (person) => {
-                if (!clubSchoolId && !clubSchoolName) return true;
+            const clubMentorIds = normalizeIdList([
+                viewingClub?.mentor_id,
+                ...(viewingClub?.orientador_ids || []),
+                ...(viewingClub?.orientadores_ids || []),
+                ...(viewingClub?.coorientador_ids || []),
+                ...(viewingClub?.coorientadores_ids || [])
+            ]);
 
-                const personSchoolIds = getUserSchoolIds(person);
-                const hasSchoolId = clubSchoolId ? personSchoolIds.includes(clubSchoolId) : false;
-                const hasSchoolName = clubSchoolName
-                    ? normalizeSchoolName(person?.escola_nome) === clubSchoolName
-                    : false;
+            const clubMemberIds = normalizeIdList([
+                ...(viewingClub?.membros_ids || []),
+                ...(viewingClub?.clubistas_ids || []),
+                ...(viewingClub?.investigadores_ids || [])
+            ]);
 
-                return hasSchoolId || hasSchoolName;
-            };
+            const allowedMentorIds = new Set(clubMentorIds);
+            const allowedInvestigadorIds = new Set(
+                clubMemberIds.filter((id) => !allowedMentorIds.has(id))
+            );
 
-            const schoolMentorIds = users
-                .filter((person) => person && isMentoriaPerfil(person?.perfil) && isSameSchoolUser(person))
-                .map((person) => String(person?.id || '').trim())
-                .filter(Boolean);
+            const loggedUserIdForCheck = String(loggedUser?.id || '').trim();
+            const viewingClubId = normalizedViewingClubId;
+            const creatorIsInClubMentorList = allowedMentorIds.has(creatorId);
+            const creatorIsInClubMemberList = clubMemberIds.includes(creatorId);
+            const creatorHasProfileClubLink = myClubIds.includes(viewingClubId);
+            const creatorHasAuthUidInMentorList = authUid ? allowedMentorIds.has(authUid) : false;
+            const creatorHasAuthUidInMemberList = authUid ? clubMemberIds.includes(authUid) : false;
 
-            const schoolInvestigadorIds = users
-                .filter((person) => person && ['estudante', 'investigador', 'aluno'].includes(normalizePerfil(person?.perfil)) && isSameSchoolUser(person))
-                .map((person) => String(person?.id || '').trim())
-                .filter(Boolean);
-
-            const allowedMentorIds = new Set([
+            console.log('[PROJECT_CREATE] simulacao local das regras de create:', {
+                authUid,
+                loggedUserId: loggedUserIdForCheck,
                 creatorId,
-                ...[...viewingClubOrientadores, ...viewingClubCoorientadores]
-                    .map((person) => String(person?.id || '').trim())
-                    .filter(Boolean),
-                ...schoolMentorIds
-            ]);
-            const allowedInvestigadorIds = new Set([
-                ...viewingClubInvestigadores
-                    .map((person) => String(person?.id || '').trim())
-                    .filter(Boolean),
-                ...schoolInvestigadorIds
-            ]);
+                authUidMatchesCreatorId: authUid && creatorId ? authUid === creatorId : false,
+                authUidMatchesLoggedUserId: authUid && loggedUserIdForCheck ? authUid === loggedUserIdForCheck : false,
+                profileMentor: isCreatorMentor,
+                creatorIsInClubMentorList,
+                creatorIsInClubMemberList,
+                creatorHasProfileClubLink,
+                creatorHasAuthUidInMentorList,
+                creatorHasAuthUidInMemberList,
+                firestoreRulePathsApprox: {
+                    isMentor: isCreatorMentor,
+                    isMyClub: creatorHasProfileClubLink || creatorIsInClubMemberList || creatorIsInClubMentorList,
+                    canCreateProjectInClub: creatorIsInClubMentorList
+                },
+                requiredFieldsPresent: {
+                    titulo: Boolean(String(titulo || '').trim()),
+                    clube_id: Boolean(viewingClubId),
+                    escola_id: Boolean(String(viewingClub?.escola_id || '').trim())
+                }
+            });
 
-            const requestedCoorientadores = [...new Set((coorientador_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-            const requestedInvestigadores = [...new Set((investigadores_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            const requestedCoorientadores = normalizeIdList(Array.isArray(coorientador_ids) ? coorientador_ids : []);
+            const requestedInvestigadores = normalizeIdList(Array.isArray(investigadores_ids) ? investigadores_ids : []);
 
-            const invalidCoorientadores = requestedCoorientadores.filter((id) => !allowedMentorIds.has(id));
             const invalidInvestigadores = requestedInvestigadores.filter((id) => !allowedInvestigadorIds.has(id));
-
-            if (invalidCoorientadores.length > 0) {
-                throw new Error('Um ou mais co-mentores selecionados não pertencem ao clube. Atualize a tela e tente novamente.');
-            }
+            console.log('[PROJECT_CREATE] elegibilidade:', {
+                clubMentorIdsCount: clubMentorIds.length,
+                clubMemberIdsCount: clubMemberIds.length,
+                allowedMentorIdsCount: allowedMentorIds.size,
+                allowedInvestigadorIdsCount: allowedInvestigadorIds.size,
+                requestedCoorientadoresCount: requestedCoorientadores.length,
+                requestedInvestigadoresCount: requestedInvestigadores.length,
+                invalidInvestigadores
+            });
 
             if (invalidInvestigadores.length > 0) {
-                throw new Error('Um ou mais clubistas selecionados não pertencem ao clube. Atualize a tela e tente novamente.');
+                throw new Error('Um ou mais clubistas selecionados nao pertencem ao clube. Atualize a tela e tente novamente.');
             }
 
-            const normalizedCoorientadores = requestedCoorientadores.filter((id) => id !== creatorId);
+            const ignoredCoorientadores = requestedCoorientadores.filter(
+                (id) => id !== creatorId && !allowedMentorIds.has(id)
+            );
+            if (ignoredCoorientadores.length > 0) {
+                console.warn('Co-mentores ignorados durante a criacao do projeto por nao estarem elegiveis:', ignoredCoorientadores);
+            }
+
+            const normalizedCoorientadores = requestedCoorientadores.filter(
+                (id) => id !== creatorId && allowedMentorIds.has(id)
+            );
             const normalizedInvestigadores = requestedInvestigadores.filter((id) => id !== creatorId);
             const normalizedOrientadores = [...new Set([creatorId])];
 
@@ -2324,19 +2681,52 @@ export default function useAppController() {
                 newProjectData.imagens = normalizedImagens;
             }
 
-            const projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
+            const newProjectDataDebug = {
+                ...newProjectData,
+                createdAt: '<serverTimestamp>',
+                imagens: Array.isArray(newProjectData.imagens) ? `[${newProjectData.imagens.length} imagens]` : '[0 imagens]'
+            };
+            console.log('[PROJECT_CREATE] payload final para Firestore:', newProjectDataDebug);
+            let projectRef = null;
+            addDocTimerStarted = true;
+            console.time(createProjectTimerLabel);
+            try {
+                projectCreateStage = 'adddoc-first-attempt';
+                projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
+            } catch (createError) {
+                if (createError?.code !== 'permission-denied') {
+                    throw createError;
+                }
+
+                console.warn('[PROJECT_CREATE] permission-denied no primeiro addDoc; tentando refresh de token e nova tentativa...');
+                if (typeof authUser?.getIdToken === 'function') {
+                    projectCreateStage = 'refresh-token';
+                    await authUser.getIdToken(true);
+                }
+
+                projectCreateStage = 'adddoc-retry';
+                projectRef = await addDoc(collection(db, 'projetos'), newProjectData);
+            } finally {
+                console.timeEnd(createProjectTimerLabel);
+                addDocTimerStarted = false;
+            }
+            console.log('[PROJECT_CREATE] projeto criado com sucesso:', {
+                projectId: String(projectRef?.id || '').trim(),
+                clube_id: String(newProjectData?.clube_id || '').trim()
+            });
 
             const successfulInvestigadorLinks = [];
             if (normalizedInvestigadores.length > 0) {
+                projectCreateStage = 'link-investigadores';
                 const investigatorLinkResults = await Promise.allSettled(
                     normalizedInvestigadores.map(async (investigatorId) => {
                         const existingInvestigator = users.find((person) => String(person?.id || '').trim() === investigatorId) || null;
                         const existingClubesIds = getUserClubIds(existingInvestigator || {});
                         const currentPrimaryClubId = String(existingInvestigator?.clube_id || '').trim();
-                        const updatedClubesIds = normalizeIdList([viewingClub.id, currentPrimaryClubId, ...existingClubesIds]);
+                        const updatedClubesIds = normalizeIdList([normalizedViewingClubId, currentPrimaryClubId, ...existingClubesIds]);
                         const nextPrimaryClubId = updatedClubesIds.includes(currentPrimaryClubId)
                             ? currentPrimaryClubId
-                            : viewingClub.id;
+                            : normalizedViewingClubId;
 
                         const investigatorUpdates = {
                             clube_id: nextPrimaryClubId,
@@ -2358,6 +2748,7 @@ export default function useAppController() {
                 });
             }
 
+            projectCreateStage = 'invalidate-cache';
             await cachedDataService.invalidateCollection('projetos');
 
             if (successfulInvestigadorLinks.length > 0) {
@@ -2375,6 +2766,7 @@ export default function useAppController() {
 
             setSelectedProjectId(projectRef.id);
             setCurrentView('clube');
+            projectCreateStage = 'finalize-success';
 
             const missingInvestigatorLinksCount = normalizedInvestigadores.length - successfulInvestigadorLinks.length;
             if (missingInvestigatorLinksCount > 0) {
@@ -2390,11 +2782,49 @@ export default function useAppController() {
             return projectRef.id;
         } catch (error) {
             console.error('Erro ao criar projeto:', error);
+            if (addDocTimerStarted) {
+                console.timeEnd(createProjectTimerLabel);
+            }
+            console.error('[PROJECT_CREATE] detalhes do erro:', {
+                code: error?.code,
+                name: error?.name,
+                message: error?.message,
+                customData: error?.customData,
+                stackTop: String(error?.stack || '').split('\n').slice(0, 8).join('\n')
+            });
+            console.error('[PROJECT_CREATE] diagnostico de permissao/contexto:', {
+                stage: projectCreateStage,
+                creatorId,
+                perfil: String(loggedUser?.perfil || '').trim(),
+                email: String(loggedUser?.email || '').trim(),
+                authTokenClaimsDebug,
+                loggedUserClubesIds: normalizeIdList(Array.isArray(loggedUser?.clubes_ids) ? loggedUser.clubes_ids : []),
+                loggedUserClubeId: String(loggedUser?.clube_id || '').trim(),
+                viewingClubId: String(viewingClub?.id || '').trim(),
+                viewingClubMentorId: String(viewingClub?.mentor_id || '').trim(),
+                viewingClubOrientadorIds: normalizeIdList(Array.isArray(viewingClub?.orientador_ids) ? viewingClub.orientador_ids : []),
+                viewingClubCoorientadorIds: normalizeIdList(Array.isArray(viewingClub?.coorientador_ids) ? viewingClub.coorientador_ids : [])
+            });
             const fallbackMessage = 'Falha ao criar projeto. Tente novamente.';
-            const resolvedMessage = String(error?.message || '').trim() || fallbackMessage;
+            const isPermissionDenied = String(error?.code || '').trim() === 'permission-denied';
+            const permissionHint = isPermissionDenied
+                ? `Permissao negada na etapa ${projectCreateStage}. `
+                : '';
+            const rawMessage = String(error?.message || '').trim();
+            const resolvedMessage = isPermissionDenied
+                ? [permissionHint, rawMessage].filter(Boolean).join(' Detalhe original: ')
+                : (rawMessage || fallbackMessage);
             setErrorMessage(resolvedMessage);
-            throw new Error(resolvedMessage);
+            const wrappedError = new Error(resolvedMessage);
+            wrappedError.code = error?.code;
+            wrappedError.name = error?.name || wrappedError.name;
+            wrappedError.customData = {
+                ...(error?.customData || {}),
+                stage: projectCreateStage
+            };
+            throw wrappedError;
         } finally {
+            console.groupEnd();
             setIsFetchingProjects(false);
         }
     };
@@ -2569,6 +2999,7 @@ export default function useAppController() {
         escola_id,
         escola_nome = '',
         periodicidade = 'Quinzenal',
+        coorientador_ids = [],
         clubistas_ids = [],
         documentos = {}
     }) => {
@@ -2605,9 +3036,65 @@ export default function useAppController() {
             throw new Error('Voce so pode criar clube em unidade vinculada ao seu perfil.');
         }
 
-        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => id !== mentorId);
-        if (!isLocalhost && selectedClubistasIds.length < 10) {
-            throw new Error('O clube precisa de no minimo 10 clubistas.');
+        const selectedCoorientadoresIds = normalizeIdList(coorientador_ids).filter((id) => id !== mentorId);
+        const selectedClubistasIds = normalizeIdList(clubistas_ids)
+            .filter((id) => id !== mentorId && !selectedCoorientadoresIds.includes(id));
+
+        const mentorProfiles = new Set(['orientador', 'coorientador']);
+        const coorientadoresById = new Map(
+            users
+                .map((person) => ({
+                    ...(person || {}),
+                    id: String(person?.id || '').trim()
+                }))
+                .filter((person) => person.id && mentorProfiles.has(normalizePerfil(person?.perfil)))
+                .map((person) => [person.id, person])
+        );
+
+        const unresolvedCoorientadoresIds = selectedCoorientadoresIds.filter((id) => !coorientadoresById.has(id));
+
+        if (unresolvedCoorientadoresIds.length > 0) {
+            const resolvedCoorientadores = await Promise.all(
+                unresolvedCoorientadoresIds.map(async (id) => {
+                    try {
+                        const coorientadorRef = doc(db, 'usuarios', id);
+                        const coorientadorSnap = await getDoc(coorientadorRef);
+
+                        if (!coorientadorSnap.exists()) {
+                            return null;
+                        }
+
+                        return { id: coorientadorSnap.id, ...coorientadorSnap.data() };
+                    } catch (coorientadorError) {
+                        console.warn('Falha ao validar co-mentor selecionado:', id, coorientadorError);
+                        return null;
+                    }
+                })
+            );
+
+            resolvedCoorientadores
+                .filter((person) => person && mentorProfiles.has(normalizePerfil(person?.perfil)))
+                .forEach((person) => {
+                    const resolvedId = String(person.id || '').trim();
+                    if (!resolvedId) return;
+                    coorientadoresById.set(resolvedId, person);
+                });
+        }
+
+        const invalidCoorientadores = selectedCoorientadoresIds.filter((id) => {
+            const selectedUser = coorientadoresById.get(id);
+            if (!selectedUser) return true;
+
+            const selectedUserSchoolIds = getUserSchoolIds(selectedUser);
+            const hasSchoolIdMatch = selectedUserSchoolIds.includes(schoolId);
+            const hasSchoolNameMatch = normalizedSchoolName
+                && normalizeSchoolName(selectedUser?.escola_nome) === normalizedSchoolName;
+
+            return !hasSchoolIdMatch && !hasSchoolNameMatch;
+        });
+
+        if (!isLocalhost && invalidCoorientadores.length > 0) {
+            throw new Error('Todos os co-mentores devem ser da unidade escolar selecionada.');
         }
 
         const allowedProfiles = new Set(['estudante', 'investigador', 'aluno']);
@@ -2666,13 +3153,6 @@ export default function useAppController() {
             throw new Error('Todos os clubistas devem ser estudantes da unidade escolar selecionada.');
         }
 
-        if (!isLocalhost) {
-            const missingDocuments = CLUB_REQUIRED_DOCUMENTS.filter((item) => !hasProvidedClubDocument(documentos?.[item.key]));
-            if (missingDocuments.length > 0) {
-                throw new Error(`Documentos obrigatorios pendentes: ${missingDocuments.map((item) => item.label).join(', ')}.`);
-            }
-        }
-
         try {
             setCreatingClub(true);
             setErrorMessage('');
@@ -2680,17 +3160,14 @@ export default function useAppController() {
             const clubRef = doc(collection(db, 'clubes'));
             const nowIso = new Date().toISOString();
             const uploadedDocuments = {};
+            const persistedCoorientadoresIds = [...selectedCoorientadoresIds];
             const persistedClubistasIds = [...selectedClubistasIds];
 
             for (const requiredDocument of CLUB_REQUIRED_DOCUMENTS) {
                 const rawDocument = documentos?.[requiredDocument.key];
 
                 if (!hasProvidedClubDocument(rawDocument)) {
-                    if (isLocalhost) {
-                        continue;
-                    }
-
-                    throw new Error(`Documento obrigatorio ausente: ${requiredDocument.label}`);
+                    continue;
                 }
 
                 const normalizedDocument = await normalizeClubDocumentPayload({
@@ -2730,9 +3207,9 @@ export default function useAppController() {
                 mentor_nome: mentorName,
                 mentor_email: mentorEmail,
                 orientador_ids: [mentorId],
-                coorientador_ids: [],
+                coorientador_ids: persistedCoorientadoresIds,
                 clubistas_ids: persistedClubistasIds,
-                membros_ids: normalizeIdList([mentorId, ...persistedClubistasIds]),
+                membros_ids: normalizeIdList([mentorId, ...persistedCoorientadoresIds, ...persistedClubistasIds]),
                 documentos: normalizedClubDocuments,
                 status: 'ativo',
                 createdBy: mentorId,
@@ -2741,13 +3218,17 @@ export default function useAppController() {
 
             await setDoc(clubRef, clubData);
 
-            const mentorRef = doc(db, 'usuarios', mentorId);
-            await updateDoc(mentorRef, {
-                clube_id: clubRef.id,
-                clubes_ids: mentorClubIds,
-                escola_id: mentorSchoolIdsUpdated[0] || schoolId,
-                escolas_ids: mentorSchoolIdsUpdated
-            });
+            try {
+                const mentorRef = doc(db, 'usuarios', mentorId);
+                await updateDoc(mentorRef, {
+                    clube_id: clubRef.id,
+                    clubes_ids: mentorClubIds,
+                    escola_id: mentorSchoolIdsUpdated[0] || schoolId,
+                    escolas_ids: mentorSchoolIdsUpdated
+                });
+            } catch (mentorUpdateError) {
+                console.warn('Nao foi possivel atualizar o vinculo do mentor no perfil:', mentorUpdateError);
+            }
 
             const selectedRealClubistasIds = selectedClubistasIds.filter((id) => Boolean(String(id || '').trim()));
             const successfulClubistaUpdates = [];
@@ -2851,8 +3332,16 @@ export default function useAppController() {
             return clubRef.id;
         } catch (error) {
             console.error('Erro ao criar clube:', error);
-            const fallbackMessage = 'Falha ao criar clube. Verifique os dados e tente novamente.';
-            const resolvedMessage = String(error?.message || '').trim() || fallbackMessage;
+            const errorCode = String(error?.code || '').trim().toLowerCase();
+            const rawMessage = String(error?.message || '').trim();
+            const isPermissionDenied = errorCode === 'permission-denied'
+                || /missing or insufficient permissions|insufficient permissions|permiss/i.test(rawMessage);
+            const fallbackMessage = isPermissionDenied
+                ? 'Permissao negada ao criar clube. Verifique se seu perfil de mentor esta vinculado a unidade escolar selecionada e se o clube atende aos requisitos minimos.'
+                : 'Falha ao criar clube. Verifique os dados e tente novamente.';
+            const resolvedMessage = isPermissionDenied
+                ? fallbackMessage
+                : (rawMessage || fallbackMessage);
             setErrorMessage(resolvedMessage);
             throw new Error(resolvedMessage);
         } finally {
@@ -2865,6 +3354,7 @@ export default function useAppController() {
         nome,
         descricao = '',
         periodicidade = 'Quinzenal',
+        coorientador_ids = [],
         clubistas_ids = [],
         banner_file = null,
         logo_file = null,
@@ -2898,10 +3388,13 @@ export default function useAppController() {
         const mentorIds = normalizeIdList([
             currentClub?.mentor_id,
             ...(currentClub?.orientador_ids || []),
-            ...(currentClub?.coorientador_ids || [])
+            ...(currentClub?.orientadores_ids || []),
+            ...(currentClub?.coorientador_ids || []),
+            ...(currentClub?.coorientadores_ids || [])
         ]);
+        const canManageByProfileMembership = myClubIds.includes(clubId);
 
-        if (!mentorIds.includes(mentorId)) {
+        if (!mentorIds.includes(mentorId) && !canManageByProfileMembership) {
             throw new Error('Voce nao possui permissao para editar este clube.');
         }
 
@@ -2914,10 +3407,81 @@ export default function useAppController() {
         const normalizedSchoolName = normalizeSchoolName(currentClub?.escola_nome);
         const periodicidadeNormalizada = String(periodicidade || currentClub?.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
 
-        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => !mentorIds.includes(id));
-        if (!isLocalhost && selectedClubistasIds.length < 10) {
-            throw new Error('O clube precisa de no minimo 10 clubistas.');
+        const selectedCoorientadoresIds = normalizeIdList(coorientador_ids).filter((id) => id !== mentorId);
+        const currentCoorientadoresIds = normalizeIdList([
+            ...(currentClub?.coorientador_ids || []),
+            ...(currentClub?.coorientadores_ids || [])
+        ]);
+        const addedCoorientadoresIds = selectedCoorientadoresIds.filter((id) => !currentCoorientadoresIds.includes(id));
+
+        const mentorProfiles = new Set(['orientador', 'coorientador']);
+        const coorientadoresById = new Map(
+            users
+                .map((person) => ({
+                    ...(person || {}),
+                    id: String(person?.id || '').trim()
+                }))
+                .filter((person) => person.id && mentorProfiles.has(normalizePerfil(person?.perfil)))
+                .map((person) => [person.id, person])
+        );
+
+        const unresolvedCoorientadoresIds = addedCoorientadoresIds.filter((id) => !coorientadoresById.has(id));
+        if (unresolvedCoorientadoresIds.length > 0) {
+            const resolvedCoorientadores = await Promise.all(
+                unresolvedCoorientadoresIds.map(async (id) => {
+                    try {
+                        const userSnap = await getDoc(doc(db, 'usuarios', id));
+                        if (!userSnap.exists()) {
+                            return null;
+                        }
+
+                        return { id: userSnap.id, ...userSnap.data() };
+                    } catch (resolveError) {
+                        console.warn('Falha ao carregar co-mentor para edicao:', id, resolveError);
+                        return null;
+                    }
+                })
+            );
+
+            resolvedCoorientadores
+                .filter((person) => person && mentorProfiles.has(normalizePerfil(person?.perfil)))
+                .forEach((person) => {
+                    const personId = String(person?.id || '').trim();
+                    if (!personId) return;
+                    coorientadoresById.set(personId, person);
+                });
         }
+
+        const invalidCoorientadores = addedCoorientadoresIds.filter((id) => {
+            const selectedUser = coorientadoresById.get(id);
+            if (!selectedUser) return true;
+
+            const selectedUserSchoolIds = getUserSchoolIds(selectedUser);
+            const hasSchoolIdMatch = schoolId && selectedUserSchoolIds.includes(schoolId);
+            const hasSchoolNameMatch = normalizedSchoolName
+                && normalizeSchoolName(selectedUser?.escola_nome) === normalizedSchoolName;
+
+            return !hasSchoolIdMatch && !hasSchoolNameMatch;
+        });
+
+        if (!isLocalhost && invalidCoorientadores.length > 0) {
+            throw new Error('Todos os co-mentores devem ser da unidade escolar do clube.');
+        }
+
+        const currentOrientadoresIds = normalizeIdList(
+            Array.isArray(currentClub?.orientador_ids) && currentClub.orientador_ids.length > 0
+                ? currentClub.orientador_ids
+                : [currentClub?.mentor_id || mentorId]
+        );
+
+        const nextMentorIds = normalizeIdList([
+            mentorId,
+            currentClub?.mentor_id,
+            ...currentOrientadoresIds,
+            ...selectedCoorientadoresIds
+        ]);
+
+        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => !nextMentorIds.includes(id));
 
         const allowedProfiles = new Set(['estudante', 'investigador', 'aluno']);
         const usersById = new Map(
@@ -3057,8 +3621,11 @@ export default function useAppController() {
                 nome: clubName,
                 descricao: String(descricao || '').trim(),
                 periodicidade: periodicidadeNormalizada,
+                orientador_ids: currentOrientadoresIds,
+                coorientador_ids: selectedCoorientadoresIds,
+                coorientadores_ids: selectedCoorientadoresIds,
                 clubistas_ids: selectedClubistasIds,
-                membros_ids: normalizeIdList([...mentorIds, ...selectedClubistasIds]),
+                membros_ids: normalizeIdList([...nextMentorIds, ...selectedClubistasIds]),
                 updatedBy: mentorId,
                 updatedAt: serverTimestamp()
             };
@@ -3523,6 +4090,8 @@ export default function useAppController() {
         authLoading,
         authUser,
         loggedUser,
+        profileCompletionContext,
+        isCompletingSocialProfile,
         authMode,
         setAuthMode,
         authError,
@@ -3760,6 +4329,8 @@ function getAuthErrorMessage(code, fallbackMessage = '') {
 
     return 'Ocorreu um erro. Tente novamente.';
 }
+
+
 
 
 

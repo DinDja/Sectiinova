@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { User, Map as MapIcon, FolderKanban, Users, BookOpen, Microscope, ExternalLink, Target, GraduationCap, PlusCircle, Sparkles, Zap, Building2, Pencil, Clock3, CheckCircle2, XCircle, Trash2, Asterisk, FileText, Eye } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import EmptyState from '../shared/EmptyState';
@@ -63,9 +63,30 @@ export default function ClubBoard({
     const mentorIds = new Set([
         String(viewingClub?.mentor_id || '').trim(),
         ...(viewingClub?.orientador_ids || []).map((id) => String(id || '').trim()),
-        ...(viewingClub?.coorientador_ids || []).map((id) => String(id || '').trim())
+        ...(viewingClub?.orientadores_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.coorientador_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.coorientadores_ids || []).map((id) => String(id || '').trim())
     ].filter(Boolean));
-    const canManageClub = isMentor && loggedUserId && mentorIds.has(loggedUserId);
+    const viewingClubMemberIds = new Set([
+        ...(viewingClub?.membros_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.clubistas_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.orientador_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.orientadores_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.coorientador_ids || []).map((id) => String(id || '').trim()),
+        ...(viewingClub?.coorientadores_ids || []).map((id) => String(id || '').trim()),
+        String(viewingClub?.mentor_id || '').trim()
+    ].filter(Boolean));
+    const loggedUserClubIds = new Set([
+        String(loggedUser?.clube_id || '').trim(),
+        ...(Array.isArray(loggedUser?.clubes_ids) ? loggedUser.clubes_ids : []).map((id) => String(id || '').trim())
+    ].filter(Boolean));
+    const viewingClubId = String(viewingClub?.id || '').trim();
+    const canManageClub = isMentor && loggedUserId && (
+        mentorIds.has(loggedUserId)
+        || viewingClubMemberIds.has(loggedUserId)
+        || (viewingClubId && loggedUserClubIds.has(viewingClubId))
+    );
+    const canCreateProject = canManageClub;
     const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
     const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
     const shouldShowSchoolClubDiscovery = !isMentor && hasNoClubMembership;
@@ -74,6 +95,12 @@ export default function ClubBoard({
         [mentorManagedClubs]
     );
     const canSwitchManagedClubs = isMentor && managedClubs.length > 1;
+
+    useEffect(() => {
+        if (!canCreateProject && isCreateOpen) {
+            setIsCreateOpen(false);
+        }
+    }, [canCreateProject, isCreateOpen]);
 
     const usersById = useMemo(() => {
         const map = new Map();
@@ -246,7 +273,9 @@ export default function ClubBoard({
         const clubMentorIds = [
             String(club?.mentor_id || '').trim(),
             ...(club?.orientador_ids || []).map((id) => String(id || '').trim()),
-            ...(club?.coorientador_ids || []).map((id) => String(id || '').trim())
+            ...(club?.orientadores_ids || []).map((id) => String(id || '').trim()),
+            ...(club?.coorientador_ids || []).map((id) => String(id || '').trim()),
+            ...(club?.coorientadores_ids || []).map((id) => String(id || '').trim())
         ].filter(Boolean);
 
         const mentorNames = [...new Set(clubMentorIds)]
@@ -289,6 +318,10 @@ export default function ClubBoard({
     const canMentorDeleteProject = (project) => {
         if (!isMentor || !loggedUserId || !project) {
             return false;
+        }
+        const projectClubId = String(project?.clube_id || '').trim();
+        if (canManageClub && viewingClubId && projectClubId && projectClubId === viewingClubId) {
+            return true;
         }
 
         const projectMentorReferences = new Set(
@@ -430,7 +463,7 @@ export default function ClubBoard({
                     
                     <div className="relative max-w-6xl mx-auto space-y-8">
                         <div className="rounded-[2rem] border-4 border-slate-900 bg-white shadow-[12px_12px_0px_0px_#0f172a] p-8 md:p-12 mb-10">
-                            <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-1 mb-6">
+                            <div className="inline-flex items-center gap-2 bg-yellow-300 px-4 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform mb-6">
                                 <Asterisk className="w-5 h-5 text-slate-900 stroke-[3]" />
                                 <span className="font-black uppercase tracking-widest text-sm text-slate-900">Explore o Ecossistema</span>
                             </div>
@@ -513,14 +546,18 @@ export default function ClubBoard({
                                         ...(club?.membros_ids || []),
                                         ...(club?.clubistas_ids || []),
                                         ...(club?.orientador_ids || []),
+                                        ...(club?.orientadores_ids || []),
                                         ...(club?.coorientador_ids || []),
+                                        ...(club?.coorientadores_ids || []),
                                         club?.mentor_id
                                     ].map((value) => String(value || '').trim()).filter(Boolean)).size;
 
                                     const mentorCount = new Set([
                                         club?.mentor_id,
                                         ...(club?.orientador_ids || []),
-                                        ...(club?.coorientador_ids || [])
+                                        ...(club?.orientadores_ids || []),
+                                        ...(club?.coorientador_ids || []),
+                                        ...(club?.coorientadores_ids || [])
                                     ].map((value) => String(value || '').trim()).filter(Boolean)).size;
 
                                     const clubistasCount = new Set(
@@ -637,7 +674,7 @@ export default function ClubBoard({
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a15_2px,transparent_2px),linear-gradient(to_bottom,#0f172a15_2px,transparent_2px)] bg-[size:40px_40px]"></div>
                 </div>
 
-                <div className="relative  bg-white p-12 md:p-16 rounded-[2rem] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] text-center max-w-2xl transform -rotate-1 hover:rotate-0 transition-transform">
+                <div className="relative  bg-white p-12 md:p-16 rounded-[2rem] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] text-center max-w-2xl transform --1 hover:-0 transition-transform">
                     <Building2 className="w-20 h-20 text-slate-900 mx-auto mb-8 stroke-[2]" />
                     <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter mb-4">Selecione um <span className="bg-yellow-300 px-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">Ecossistema</span></h2>
                     <p className="text-slate-800 font-bold text-lg mb-8">Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.</p>
@@ -760,18 +797,21 @@ export default function ClubBoard({
                                     </button>
                                 )}
 
-                                <button 
-                                    onClick={() => setIsCreateOpen(!isCreateOpen)} 
-                                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-teal-400 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] text-slate-900 font-black uppercase text-sm tracking-wider transition-all"
-                                >
-                                    <Zap className={`w-5 h-5 stroke-[2.5] transition-transform ${isCreateOpen ? 'rotate-45' : ''}`} />
-                                    {isCreateOpen ? 'Cancelar Criação' : 'Novo Projeto'}
-                                </button>
+                                {canCreateProject && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateOpen((previous) => !previous)}
+                                        className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-teal-400 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] text-slate-900 font-black uppercase text-sm tracking-wider transition-all"
+                                    >
+                                        <Zap className={`w-5 h-5 stroke-[2.5] transition-transform ${isCreateOpen ? '-45' : ''}`} />
+                                        {isCreateOpen ? 'Cancelar Criação' : 'Novo Projeto'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {isCreateOpen && (
+                    {isCreateOpen && canCreateProject && (
                         <CreateProjectForm
                             isOpen={isCreateOpen}
                             onClose={() => setIsCreateOpen(false)}
@@ -1109,14 +1149,14 @@ export default function ClubBoard({
                     {/* PROJECTS GRID */}
                     <div className="pt-16 relative ">
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div className="inline-flex items-center gap-4 bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] px-6 py-4 rounded-2xl transform -rotate-1">
+                            <div className="inline-flex items-center gap-4 bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] px-6 py-4 rounded-2xl transform --1">
                                 <div className="w-4 h-8 bg-teal-400 border-2 border-slate-900"></div>
                                 <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Projetos Ativos</h3>
                             </div>
                         </div>
 
                         {viewingClubProjects.length === 0 ? (
-                            <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-16 text-center transform hover:rotate-1 transition-transform">
+                            <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-16 text-center transform hover:-1 transition-transform">
                                 <EmptyState icon={Asterisk} title="NENHUM PROJETO DETECTADO" description="O radar deste clube está limpo. Que tal iniciar a primeira onda de inovação?" />
                             </div>
                         ) : (
