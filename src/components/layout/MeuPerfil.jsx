@@ -571,7 +571,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
             `}</style>
             
-            <div className="overflow-y-scroll  w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
+            <div className="w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
                 
                 {/* HEADER NEO-BRUTALISTA */}
                 <div className="relative z-0 h-36 bg-blue-400 border-b-4 border-slate-900  flex-shrink-0">
@@ -608,10 +608,10 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 </div>
 
                 {/* CORPO DO MODAL */}
-                <div className="flex-1  neo-scrollbar px-6 sm:px-10 pb-10 relative z-10">
+                <div className="flex-1 overflow-y-scroll neo-scrollbar px-6 sm:px-10 pb-10 relative z-10">       
                     
                     {/* INFO PRINCIPAL DO UTILIZADOR */}
-                    <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8 isolate">
+                    <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8 isolate mt-10">
                         <div className="relative group z-50">
                             <div className="relative z-20 w-32 h-32 rounded-3xl border-4 border-slate-900 bg-yellow-300 flex items-center justify-center overflow-hidden shadow-[6px_6px_0px_0px_#0f172a] transform rotate-2">
                                 {avatarSrc ? (
