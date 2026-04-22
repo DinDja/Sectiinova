@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const NETLIFY_ADAPTER_LOG_TAG = "[netlify-adapter]";
+
 function getQueryStringParameters(url) {
   const params = {};
 
@@ -50,13 +52,31 @@ function toNextResponse(result) {
 }
 
 export async function runNetlifyHandler(request, handler) {
+  const startedAt = Date.now();
   const body = await getRequestBody(request);
   const event = toNetlifyEvent(request, body);
 
+  console.log(NETLIFY_ADAPTER_LOG_TAG, "runNetlifyHandler:start", {
+    method: String(event?.httpMethod || ""),
+    path: String(event?.path || ""),
+    bodyLength: String(body || "").length,
+    hasQueryParams: Boolean(event?.queryStringParameters && Object.keys(event.queryStringParameters).length),
+  });
+
   try {
     const result = await handler(event, {});
+    console.log(NETLIFY_ADAPTER_LOG_TAG, "runNetlifyHandler:handler_result", {
+      statusCode: Number(result?.statusCode || 0),
+      elapsedMs: Date.now() - startedAt,
+      path: String(event?.path || ""),
+    });
     return toNextResponse(result);
   } catch (error) {
+    console.error(NETLIFY_ADAPTER_LOG_TAG, "runNetlifyHandler:error", {
+      path: String(event?.path || ""),
+      elapsedMs: Date.now() - startedAt,
+      error,
+    });
     return NextResponse.json(
       {
         error:

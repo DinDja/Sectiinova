@@ -124,6 +124,15 @@ const FORUM_TOPIC_CATEGORIES = [
 const FORUM_MODERATION_ENDPOINT = '/api/forum/moderate';
 const FORUM_MODERATION_ALERTS_ENDPOINT = '/api/forum/alerts';
 const FORUM_BLOCK_REVIEW_CONTENT = true;
+const FORUM_MODERATION_CLIENT_LOG_TAG = '[forum-moderation-client]';
+
+function summarizeModerationText(value) {
+    const text = String(value || '');
+    return {
+        length: text.length,
+        preview: text.slice(0, 140),
+    };
+}
 
 // --- Moderacao automatica ---
 
@@ -236,56 +245,112 @@ export async function runSmartModeration({
         throw new Error('Dados incompletos para moderacao inteligente.');
     }
 
+    const payload = {
+        text: sanitizedText,
+        clubeId: String(clubeId),
+        actor: {
+            id: String(actor.id || ''),
+            nome: String(actor.nome || ''),
+            perfil: String(actor.perfil || ''),
+            email: String(actor.email || ''),
+        },
+        source: String(source || 'message').slice(0, 40),
+        topicId: String(topicId || '').slice(0, 120),
+        topicTitle: String(topicTitle || '').slice(0, 200),
+    };
+
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:start', {
+        enforceAction,
+        endpoint: FORUM_MODERATION_ENDPOINT,
+        actorId: payload.actor.id,
+        clubeId: payload.clubeId,
+        source: payload.source,
+        topicId: payload.topicId,
+        text: summarizeModerationText(payload.text),
+    });
+
     try {
         const response = await fetch(FORUM_MODERATION_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                text: sanitizedText,
-                clubeId: String(clubeId),
-                actor: {
-                    id: String(actor.id || ''),
-                    nome: String(actor.nome || ''),
-                    perfil: String(actor.perfil || ''),
-                    email: String(actor.email || ''),
-                },
-                source: String(source || 'message').slice(0, 40),
-                topicId: String(topicId || '').slice(0, 120),
-                topicTitle: String(topicTitle || '').slice(0, 200),
-            }),
+            body: JSON.stringify(payload),
+        });
+
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:response', {
+            status: response.status,
+            ok: response.ok,
+            endpoint: FORUM_MODERATION_ENDPOINT,
+            source: payload.source,
+            topicId: payload.topicId,
         });
 
         if (!response.ok) {
             const payload = await response.json().catch(() => ({}));
             const apiError = String(payload?.error || '').trim();
 
+            console.error(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:http_error', {
+                status: response.status,
+                payload,
+            });
+
             throw new Error(apiError || 'Moderacao inteligente indisponivel no momento. Tente novamente em instantes.');
         }
 
         const result = await response.json().catch(() => null);
         if (!result || typeof result !== 'object') {
+            console.error(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:invalid_json', {
+                result,
+            });
             throw new Error('Resposta invalida da moderacao inteligente.');
         }
 
         const decision = String(result?.decision || '').trim().toLowerCase();
         if (!['allow', 'review', 'block'].includes(decision)) {
+            console.error(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:invalid_decision', {
+                decision,
+                result,
+            });
             throw new Error('Resposta invalida da moderacao inteligente.');
         }
         const shouldBlock = shouldModerationHoldContent(decision);
 
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:success', {
+            decision,
+            shouldBlock,
+            enforceAction,
+            provider: String(result?.provider || ''),
+            model: String(result?.model || ''),
+            fallbackUsed: Boolean(result?.fallbackUsed),
+            primaryProvider: String(result?.primaryProvider || ''),
+            riskScore: Number(result?.riskScore),
+        });
+
         if (shouldBlock && enforceAction) {
+            console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:blocking_content', {
+                decision,
+                reason: String(result?.reason || ''),
+            });
             throw new Error(buildSmartModerationMessage(result));
         }
 
         return result;
     } catch (error) {
         if (error instanceof Error && /moderacao inteligente|revisao de seguranca|conteudo bloqueado/i.test(error.message)) {
+            console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:handled_error', {
+                message: error.message,
+                source,
+                topicId,
+            });
             throw error;
         }
 
-        console.error('Falha ao consultar API de moderacao inteligente.', error);
+        console.error(FORUM_MODERATION_CLIENT_LOG_TAG, 'runSmartModeration:unexpected_error', {
+            source,
+            topicId,
+            error,
+        });
         throw new Error('Nao foi possivel validar o conteudo com a moderacao inteligente. Tente novamente em instantes.');
     }
 }
@@ -300,6 +365,14 @@ async function runPostSendModeration({
     onModerationResult,
 }) {
     try {
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runPostSendModeration:start', {
+            source,
+            clubeId: String(clubeId || ''),
+            actorId: String(actor?.id || ''),
+            topicId: String(topicId || ''),
+            text: summarizeModerationText(text),
+        });
+
         const moderation = await runSmartModeration({
             text,
             clubeId,
@@ -310,11 +383,27 @@ async function runPostSendModeration({
             enforceAction: false,
         });
 
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runPostSendModeration:result', {
+            source,
+            topicId: String(topicId || ''),
+            decision: String(moderation?.decision || ''),
+            provider: String(moderation?.provider || ''),
+            model: String(moderation?.model || ''),
+        });
+
         if (typeof onModerationResult === 'function') {
             await onModerationResult(moderation);
+            console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'runPostSendModeration:onModerationResult:done', {
+                source,
+                topicId: String(topicId || ''),
+            });
         }
     } catch (error) {
-        console.error('Falha ao executar moderacao pos-envio.', error);
+        console.error(FORUM_MODERATION_CLIENT_LOG_TAG, 'runPostSendModeration:error', {
+            source,
+            topicId: String(topicId || ''),
+            error,
+        });
     }
 }
 
@@ -422,6 +511,12 @@ export function subscribeToTopics(clubeId, callback) {
 export async function createTopic({ clubeId, titulo, descricao, autor, categoria = 'geral', tags = [] }) {
     if (!clubeId || !titulo?.trim() || !autor?.id) return null;
 
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'createTopic:start', {
+        clubeId: String(clubeId || ''),
+        actorId: String(autor?.id || ''),
+        title: String(titulo || '').slice(0, 140),
+    });
+
     ensureClearTitle(titulo);
 
     const normalizedCategory = String(categoria || 'geral').trim().toLowerCase();
@@ -461,6 +556,11 @@ export async function createTopic({ clubeId, titulo, descricao, autor, categoria
     });
 
     const topicModerationText = [titulo, descricao].filter(Boolean).join('\n\n');
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'createTopic:published', {
+        topicId: ref.id,
+        clubeId: String(clubeId || ''),
+    });
+
     void runPostSendModeration({
         text: topicModerationText,
         clubeId,
@@ -473,6 +573,11 @@ export async function createTopic({ clubeId, titulo, descricao, autor, categoria
             if (!metadata) return;
 
             await updateDoc(doc(db, 'forum_topicos', ref.id), metadata);
+            console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'createTopic:moderation_metadata_saved', {
+                topicId: ref.id,
+                moderationStatus: String(metadata.moderation_status || ''),
+                moderationRequiresAction: Boolean(metadata.moderation_requires_action),
+            });
         },
     });
 
@@ -667,6 +772,14 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
     if (!topicId || !conteudo?.trim() || !autor?.id) return null;
 
     try {
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:start', {
+            topicId: String(topicId || ''),
+            clubeId: String(clubeId || ''),
+            actorId: String(autor?.id || ''),
+            hasImage: Boolean(imagemBase64),
+            text: summarizeModerationText(conteudo),
+        });
+
         const topicRef = doc(db, 'forum_topicos', topicId);
         const topicSnap = await getDoc(topicRef);
         if (!topicSnap.exists()) {
@@ -715,6 +828,11 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
 
         const ref = await addDoc(collection(db, 'forum_mensagens'), messageData);
 
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:published', {
+            messageId: ref.id,
+            topicId: String(topicId || ''),
+        });
+
         await updateDoc(topicRef, {
             mensagens_count: increment(1),
             lastActivityAt: serverTimestamp(),
@@ -732,6 +850,11 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
                 if (!metadata) return;
 
                 await updateDoc(doc(db, 'forum_mensagens', ref.id), metadata);
+                console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:moderation_metadata_saved', {
+                    messageId: ref.id,
+                    moderationStatus: String(metadata.moderation_status || ''),
+                    moderationRequiresAction: Boolean(metadata.moderation_requires_action),
+                });
             },
         });
 
@@ -744,6 +867,12 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
 
 export async function editMessage(messageId, newContent, editor = {}) {
     if (!messageId || !String(newContent || '').trim()) return;
+
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:start', {
+        messageId: String(messageId || ''),
+        editorId: String(editor?.id || ''),
+        text: summarizeModerationText(newContent),
+    });
 
     const msgRef = doc(db, 'forum_mensagens', messageId);
     const msgSnap = await getDoc(msgRef);
@@ -775,6 +904,11 @@ export async function editMessage(messageId, newContent, editor = {}) {
         action: 'message.edit',
     });
 
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:content_saved', {
+        messageId: String(messageId || ''),
+        topicId: String(msgData?.topico_id || ''),
+    });
+
     void runPostSendModeration({
         text: newContent,
         clubeId: msgData.clube_id,
@@ -786,6 +920,11 @@ export async function editMessage(messageId, newContent, editor = {}) {
             if (!metadata) return;
 
             await updateDoc(msgRef, metadata);
+            console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:moderation_metadata_saved', {
+                messageId: String(messageId || ''),
+                moderationStatus: String(metadata.moderation_status || ''),
+                moderationRequiresAction: Boolean(metadata.moderation_requires_action),
+            });
         },
     });
 }

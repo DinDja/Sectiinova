@@ -1,6 +1,8 @@
 import { handler as runForumModerationHandler } from "../netlify/functions/forum-moderate.js";
 import { handler as runForumAlertsHandler } from "../netlify/functions/forum-alerts.js";
 
+const FORUM_MODERATION_PROXY_LOG_TAG = "[forum-moderation-proxy]";
+
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -19,9 +21,19 @@ function readRawBody(request) {
 
 function createForumModerationMiddleware() {
   return async (request, response, next) => {
+    const startedAt = Date.now();
     const requestUrl = String(request.url || "");
     const isModerationRoute = requestUrl.startsWith("/api/forum/moderate");
     const isAlertsRoute = requestUrl.startsWith("/api/forum/alerts");
+
+    if (isModerationRoute || isAlertsRoute) {
+      console.log(FORUM_MODERATION_PROXY_LOG_TAG, "middleware:intercept", {
+        method: String(request.method || ""),
+        url: requestUrl,
+        isModerationRoute,
+        isAlertsRoute,
+      });
+    }
 
     if (!isModerationRoute && !isAlertsRoute) {
       next();
@@ -56,6 +68,13 @@ function createForumModerationMiddleware() {
       const rawBody =
         isModerationRoute || request.method === "DELETE" ? await readRawBody(request) : "";
 
+      console.log(FORUM_MODERATION_PROXY_LOG_TAG, "middleware:dispatch", {
+        routeType: isModerationRoute ? "moderate" : "alerts",
+        method: String(request.method || ""),
+        url: requestUrl,
+        bodyLength: String(rawBody || "").length,
+      });
+
       const result = isModerationRoute
         ? await runForumModerationHandler({
             httpMethod: "POST",
@@ -71,6 +90,12 @@ function createForumModerationMiddleware() {
             isBase64Encoded: false,
           });
 
+      console.log(FORUM_MODERATION_PROXY_LOG_TAG, "middleware:result", {
+        routeType: isModerationRoute ? "moderate" : "alerts",
+        statusCode: Number(result?.statusCode || 0),
+        elapsedMs: Date.now() - startedAt,
+      });
+
       response.statusCode = result.statusCode || 200;
 
       Object.entries(result.headers || {}).forEach(([key, value]) => {
@@ -79,6 +104,12 @@ function createForumModerationMiddleware() {
 
       response.end(result.body || "");
     } catch (error) {
+      console.error(FORUM_MODERATION_PROXY_LOG_TAG, "middleware:error", {
+        method: String(request.method || ""),
+        url: requestUrl,
+        elapsedMs: Date.now() - startedAt,
+        error,
+      });
       sendJson(response, 500, {
         error:
           error instanceof Error

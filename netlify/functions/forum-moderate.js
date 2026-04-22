@@ -7,6 +7,7 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "openai/gpt-4o-mini";
 const OPENROUTER_TIMEOUT_MS = 12000;
 const MAX_TEXT_LENGTH = 2000;
+const FORUM_MODERATION_SERVER_LOG_TAG = "[forum-moderation-server]";
 
 // Chaves embutidas em codigo, conforme solicitado.
 const PERSPECTIVE_API_KEY_HARDCODED = "AIzaSyBGJRi5h4j9jjH1uQEDaQPabq3iE0C39Bg";
@@ -75,6 +76,14 @@ function parseBody(event) {
   } catch {
     return {};
   }
+}
+
+function summarizeTextForLog(value) {
+  const text = String(value || "");
+  return {
+    length: text.length,
+    preview: text.slice(0, 160),
+  };
 }
 
 function normalizeProfile(profile) {
@@ -308,6 +317,11 @@ async function runPerspectiveModeration(text) {
 
   const snippet = String(text || "").slice(0, MAX_TEXT_LENGTH);
 
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runPerspectiveModeration:start", {
+    text: summarizeTextForLog(snippet),
+    thresholds,
+  });
+
   const response = await fetch(`${PERSPECTIVE_API_URL}?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: {
@@ -323,6 +337,10 @@ async function runPerspectiveModeration(text) {
 
   if (!response.ok) {
     const body = await response.text();
+    console.error(FORUM_MODERATION_SERVER_LOG_TAG, "runPerspectiveModeration:http_error", {
+      status: response.status,
+      body: String(body || "").slice(0, 500),
+    });
     throw new Error(
       `Falha na Perspective API (${response.status}): ${String(body || "").slice(0, 500)}`,
     );
@@ -343,11 +361,19 @@ async function runPerspectiveModeration(text) {
   const digitalCrimeCategories = detectDigitalCrimeSignals(text);
   const categories = mergeCategories(perspectiveCategories, digitalCrimeCategories);
 
-  return {
+  const moderation = {
     ...buildModerationDecision(categories, thresholds),
     provider: "perspective",
     model: "google-perspective",
   };
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runPerspectiveModeration:success", {
+    decision: moderation.decision,
+    riskScore: moderation.riskScore,
+    categoriesCount: moderation.categories.length,
+  });
+
+  return moderation;
 }
 
 async function runOpenRouterModeration(text) {
@@ -357,6 +383,12 @@ async function runOpenRouterModeration(text) {
   );
   const thresholds = getDecisionThresholds();
   const snippet = String(text || "").slice(0, MAX_TEXT_LENGTH);
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runOpenRouterModeration:start", {
+    text: summarizeTextForLog(snippet),
+    thresholds,
+    timeoutMs: OPENROUTER_TIMEOUT_MS,
+  });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
@@ -401,6 +433,10 @@ async function runOpenRouterModeration(text) {
 
   if (!response.ok) {
     const body = await response.text();
+    console.error(FORUM_MODERATION_SERVER_LOG_TAG, "runOpenRouterModeration:http_error", {
+      status: response.status,
+      body: String(body || "").slice(0, 500),
+    });
     throw new Error(
       `Falha na OpenRouter (${response.status}): ${String(body || "").slice(0, 500)}`,
     );
@@ -435,7 +471,7 @@ async function runOpenRouterModeration(text) {
 
   const reason = String(modelReason || thresholdDecision.reason || "").slice(0, 500);
 
-  return {
+  const moderation = {
     decision: finalDecision,
     riskScore: finalRiskScore,
     reason,
@@ -443,6 +479,16 @@ async function runOpenRouterModeration(text) {
     provider: "openrouter",
     model: OPENROUTER_MODEL,
   };
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runOpenRouterModeration:success", {
+    decision: moderation.decision,
+    riskScore: moderation.riskScore,
+    categoriesCount: moderation.categories.length,
+    modelDecision,
+    thresholdDecision: thresholdDecision.decision,
+  });
+
+  return moderation;
 }
 
 function combineModerationResults(results) {
@@ -490,7 +536,17 @@ async function notifyMentors({
   topicTitle,
   text,
 }) {
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:start", {
+    clubeId: String(clubeId || ""),
+    actorId: String(actor?.id || ""),
+    source: String(source || ""),
+    decision: String(moderation?.decision || ""),
+  });
+
   if (!clubeId || !actor?.id || !isStudentProfile(actor?.perfil)) {
+    console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:skip", {
+      reason: "invalid_context_or_non_student",
+    });
     return 0;
   }
 
@@ -515,6 +571,9 @@ async function notifyMentors({
   }
 
   if (usersById.size === 0) {
+    console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:skip", {
+      reason: "no_users_found",
+    });
     return 0;
   }
 
@@ -525,6 +584,9 @@ async function notifyMentors({
   });
 
   if (!mentorDocs.length) {
+    console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:skip", {
+      reason: "no_mentor_profiles",
+    });
     return 0;
   }
 
@@ -585,10 +647,20 @@ async function notifyMentors({
   );
 
   await Promise.all(writes);
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:done", {
+    notifiedMentorsCount,
+    writesCount: writes.length,
+  });
   return notifiedMentorsCount;
 }
 
 export async function handler(event) {
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:start", {
+    httpMethod: String(event?.httpMethod || ""),
+    hasBody: Boolean(event?.body),
+    bodyLength: String(event?.body || "").length,
+  });
+
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Metodo nao suportado. Use POST." });
   }
@@ -600,6 +672,15 @@ export async function handler(event) {
   const source = String(payload.source || "message").trim();
   const topicId = String(payload.topicId || "").trim();
   const topicTitle = String(payload.topicTitle || "").trim();
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:payload", {
+    clubeId,
+    actorId: String(actor?.id || ""),
+    source,
+    topicId,
+    topicTitle: topicTitle.slice(0, 140),
+    text: summarizeTextForLog(text),
+  });
 
   if (!text) {
     return json(400, { error: "Campo text obrigatorio." });
@@ -617,6 +698,9 @@ export async function handler(event) {
   let moderation = null;
 
   try {
+    console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:trying_primary_provider", {
+      provider: "perspective",
+    });
     moderation = await runPerspectiveModeration(text);
   } catch (perspectiveError) {
     const perspectiveMessage =
@@ -625,7 +709,15 @@ export async function handler(event) {
         : String(perspectiveError || "falha desconhecida");
     providerErrors.push(`perspective: ${perspectiveMessage}`);
 
+    console.warn(FORUM_MODERATION_SERVER_LOG_TAG, "handler:primary_provider_failed", {
+      provider: "perspective",
+      message: perspectiveMessage,
+    });
+
     try {
+      console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:trying_fallback_provider", {
+        provider: "openrouter",
+      });
       moderation = await runOpenRouterModeration(text);
     } catch (openRouterError) {
       const openRouterMessage =
@@ -633,6 +725,11 @@ export async function handler(event) {
           ? openRouterError.message
           : String(openRouterError || "falha desconhecida");
       providerErrors.push(`openrouter: ${openRouterMessage}`);
+
+      console.error(FORUM_MODERATION_SERVER_LOG_TAG, "handler:fallback_provider_failed", {
+        provider: "openrouter",
+        message: openRouterMessage,
+      });
     }
   }
 
@@ -646,6 +743,15 @@ export async function handler(event) {
   }
 
   const shouldNotify = moderation.decision === "block" || moderation.decision === "review";
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:moderation_decision", {
+    decision: moderation.decision,
+    riskScore: moderation.riskScore,
+    provider: String(moderation.provider || ""),
+    model: String(moderation.model || ""),
+    shouldNotify,
+    providerErrors,
+  });
+
   const notifiedMentors = shouldNotify
     ? await notifyMentors({
         clubeId,
@@ -657,6 +763,13 @@ export async function handler(event) {
         text,
       })
     : 0;
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:done", {
+    decision: moderation.decision,
+    provider: String(moderation.provider || ""),
+    notifiedMentors,
+    fallbackUsed: String(moderation.provider || "") === "openrouter",
+  });
 
   return json(200, {
     allowed: moderation.decision === "allow",
