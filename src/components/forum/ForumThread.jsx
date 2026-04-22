@@ -7,6 +7,7 @@ import {
     deleteMessage,
     editMessage,
     togglePinMessage,
+    FORUM_MESSAGE_AUTO_REMOVED_EVENT,
 } from '../../services/forumService';
 import { compressImageToBase64, validateImageFile, getBase64Size } from '../../utils/imageCompression';
 import Toast from './Toast';
@@ -146,6 +147,7 @@ MessageItem.displayName = "MessageItem";
 
 
 export default function ForumThread({ topic, clubeId, forumTheme = null, loggedUser, users = [], canParticipate = true, isModerator = true, onBack }) {
+    const topicId = String(topic?.id || '');
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [imagemBase64, setImagemBase64] = useState(null);
@@ -174,7 +176,7 @@ export default function ForumThread({ topic, clubeId, forumTheme = null, loggedU
     const loadInitial = useCallback(async () => {
         setLoadingInitial(true);
         try {
-            const { docs, lastDoc, hasMore } = await fetchMessagesPage(topic?.id, 25);
+            const { docs, lastDoc, hasMore } = await fetchMessagesPage(topicId, 25);
             const ordered = docs
                 .reverse()
                 .sort((a, b) => {
@@ -192,31 +194,56 @@ export default function ForumThread({ topic, clubeId, forumTheme = null, loggedU
         } finally {
             setLoadingInitial(false);
         }
-    }, [topic?.id]);
+    }, [topicId]);
 
     useEffect(() => {
-        if(!topic) return;
+        if (!topicId) return;
         setMessages([]);
         setEditingMessage(null);
         setEditingText('');
         loadInitial();
-    }, [loadInitial, topic]);
+    }, [loadInitial, topicId]);
 
     useEffect(() => {
-        if(!topic) return;
-        const unsubscribe = subscribeToMessages(topic.id, (liveMessages) => {
+        if (!topicId) return;
+        const unsubscribe = subscribeToMessages(topicId, (liveMessages) => {
             setMessages(liveMessages);
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
         });
 
         return () => unsubscribe();
-    }, [topic]);
+    }, [topicId]);
+
+    useEffect(() => {
+        if (!topicId || typeof window === 'undefined') return;
+
+        const handleAutoRemovedMessage = (event) => {
+            const detail = event?.detail || {};
+            const eventTopicId = String(detail?.topicId || '');
+            if (!eventTopicId || eventTopicId !== topicId) {
+                return;
+            }
+
+            const toastMessage = String(detail?.message || '').trim()
+                || 'Sua mensagem foi removida automaticamente pela moderacao.';
+
+            setToast({
+                message: toastMessage,
+                type: 'warning',
+            });
+        };
+
+        window.addEventListener(FORUM_MESSAGE_AUTO_REMOVED_EVENT, handleAutoRemovedMessage);
+        return () => {
+            window.removeEventListener(FORUM_MESSAGE_AUTO_REMOVED_EVENT, handleAutoRemovedMessage);
+        };
+    }, [topicId]);
 
     const handleLoadOlder = useCallback(async () => {
         if (loadingMore || !hasMoreOlder || !oldestMessageDoc) return;
         setLoadingMore(true);
         try {
-            const { docs, lastDoc, hasMore } = await fetchMessagesPage(topic?.id, 25, oldestMessageDoc);
+            const { docs, lastDoc, hasMore } = await fetchMessagesPage(topicId, 25, oldestMessageDoc);
             const older = docs.reverse();
             setMessages((prev) => {
                 const merged = [...older, ...prev];
@@ -234,7 +261,7 @@ export default function ForumThread({ topic, clubeId, forumTheme = null, loggedU
         } finally {
             setLoadingMore(false);
         }
-    }, [loadingMore, hasMoreOlder, oldestMessageDoc, topic?.id]);
+    }, [loadingMore, hasMoreOlder, oldestMessageDoc, topicId]);
 
     const handleSend = useCallback(async (e) => {
         e?.preventDefault();
@@ -244,7 +271,7 @@ export default function ForumThread({ topic, clubeId, forumTheme = null, loggedU
         setSending(true);
         try {
             await postMessage({ 
-                topicId: topic?.id, 
+                topicId, 
                 clubeId, 
                 autor: loggedUser, 
                 conteudo: text,
@@ -257,18 +284,18 @@ export default function ForumThread({ topic, clubeId, forumTheme = null, loggedU
         } finally {
             setSending(false);
         }
-    }, [newMessage, sending, canWrite, topic?.id, clubeId, loggedUser, imagemBase64]);
+    }, [newMessage, sending, canWrite, topicId, clubeId, loggedUser, imagemBase64]);
 
     const handleDelete = useCallback(async (messageId) => {
         try {
-            await deleteMessage(messageId, topic?.id, {
+            await deleteMessage(messageId, topicId, {
                 moderatorId: loggedUser?.id || '',
                 reason: 'Remocao manual pelo moderador',
             });
         } catch (error) {
             setToast({ message: error?.message || 'Erro ao excluir mensagem.', type: 'error' });
         }
-    }, [topic?.id, loggedUser?.id]);
+    }, [topicId, loggedUser?.id]);
 
     const handleTogglePin = useCallback(async (messageId, currentPinned) => {
         try {

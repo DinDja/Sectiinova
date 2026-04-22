@@ -124,7 +124,46 @@ const FORUM_TOPIC_CATEGORIES = [
 const FORUM_MODERATION_ENDPOINT = '/api/forum/moderate';
 const FORUM_MODERATION_ALERTS_ENDPOINT = '/api/forum/alerts';
 const FORUM_BLOCK_REVIEW_CONTENT = true;
+const FORUM_AUTO_DELETE_BLOCKED_MESSAGES = true;
 const FORUM_MODERATION_CLIENT_LOG_TAG = '[forum-moderation-client]';
+export const FORUM_MESSAGE_AUTO_REMOVED_EVENT = 'forum:message-auto-removed';
+
+function dispatchAutoRemovedMessageEvent({
+    topicId = '',
+    messageId = '',
+    moderationStatus = 'block',
+    moderationReason = '',
+    source = 'message_postsend',
+}) {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+        return;
+    }
+
+    const statusLabel = String(moderationStatus || '').trim().toLowerCase() === 'review'
+        ? 'retida para revisao'
+        : 'removida pela moderacao';
+
+    const reasonSuffix = String(moderationReason || '').trim()
+        ? ` Motivo: ${String(moderationReason || '').trim().slice(0, 180)}.`
+        : '';
+
+    const detail = {
+        topicId: String(topicId || ''),
+        messageId: String(messageId || ''),
+        moderationStatus: String(moderationStatus || '').trim().toLowerCase(),
+        moderationReason: String(moderationReason || '').trim(),
+        source: String(source || '').trim(),
+        message: `Sua mensagem foi ${statusLabel}.${reasonSuffix}`,
+    };
+
+    window.dispatchEvent(new CustomEvent(FORUM_MESSAGE_AUTO_REMOVED_EVENT, { detail }));
+    console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'auto_remove:event_dispatched', {
+        topicId: detail.topicId,
+        messageId: detail.messageId,
+        moderationStatus: detail.moderationStatus,
+        source: detail.source,
+    });
+}
 
 function summarizeModerationText(value) {
     const text = String(value || '');
@@ -676,6 +715,29 @@ export async function deleteTopic(topicId, moderatorId = '') {
 
 // --- Mensagens ---
 
+function shouldHideMessageByModeration(message = {}) {
+    const status = String(message?.moderation_status || '').trim().toLowerCase();
+    const requiresAction = Boolean(message?.moderation_requires_action);
+
+    if (!requiresAction) {
+        return false;
+    }
+
+    if (!status) {
+        return true;
+    }
+
+    if (status === 'block') {
+        return true;
+    }
+
+    if (status === 'review' && FORUM_BLOCK_REVIEW_CONTENT) {
+        return true;
+    }
+
+    return false;
+}
+
 export function subscribeToMessages(topicId, callback) {
     if (!topicId) {
         callback([]);
@@ -695,7 +757,18 @@ export function subscribeToMessages(topicId, callback) {
             const tb = b.createdAt?.toMillis?.() ?? 0;
             return ta - tb;
         });
-        callback(docs);
+
+        const visibleDocs = docs.filter((message) => !shouldHideMessageByModeration(message));
+        const hiddenCount = docs.length - visibleDocs.length;
+        if (hiddenCount > 0) {
+            console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'subscribeToMessages:hidden_by_moderation', {
+                topicId: String(topicId || ''),
+                hiddenCount,
+                visibleCount: visibleDocs.length,
+            });
+        }
+
+        callback(visibleDocs);
     });
 }
 
@@ -717,10 +790,20 @@ export async function fetchMessagesPage(topicId, pageSize = 30, startAfterDoc = 
 
     const snap = await getDocs(baseQuery);
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const visibleDocs = docs.filter((message) => !shouldHideMessageByModeration(message));
+    const hiddenCount = docs.length - visibleDocs.length;
+    if (hiddenCount > 0) {
+        console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'fetchMessagesPage:hidden_by_moderation', {
+            topicId: String(topicId || ''),
+            hiddenCount,
+            visibleCount: visibleDocs.length,
+        });
+    }
+
     const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
     const hasMore = snap.docs.length === pageSize;
 
-    return { docs, lastDoc, hasMore };
+    return { docs: visibleDocs, lastDoc, hasMore };
 }
 
 export async function getUserModerationState(clubeId, userId) {
@@ -849,6 +932,31 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
                 const metadata = buildModerationMetadata(moderation);
                 if (!metadata) return;
 
+                if (metadata.moderation_requires_action && FORUM_AUTO_DELETE_BLOCKED_MESSAGES) {
+                    console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:auto_remove_triggered', {
+                        messageId: ref.id,
+                        moderationStatus: String(metadata.moderation_status || ''),
+                    });
+
+                    await deleteMessage(ref.id, topicId, {
+                        actorId: 'system:auto-moderation',
+                        reason: `Remocao automatica por moderacao (${String(metadata.moderation_status || 'unknown')}).`,
+                    });
+
+                    console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:auto_remove_done', {
+                        messageId: ref.id,
+                    });
+
+                    dispatchAutoRemovedMessageEvent({
+                        topicId,
+                        messageId: ref.id,
+                        moderationStatus: String(metadata.moderation_status || ''),
+                        moderationReason: String(metadata.moderation_reason || ''),
+                        source: 'message_postsend',
+                    });
+                    return;
+                }
+
                 await updateDoc(doc(db, 'forum_mensagens', ref.id), metadata);
                 console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'postMessage:moderation_metadata_saved', {
                     messageId: ref.id,
@@ -918,6 +1026,31 @@ export async function editMessage(messageId, newContent, editor = {}) {
         onModerationResult: async (moderation) => {
             const metadata = buildModerationMetadata(moderation);
             if (!metadata) return;
+
+            if (metadata.moderation_requires_action && FORUM_AUTO_DELETE_BLOCKED_MESSAGES) {
+                console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:auto_remove_triggered', {
+                    messageId: String(messageId || ''),
+                    moderationStatus: String(metadata.moderation_status || ''),
+                });
+
+                await deleteMessage(messageId, msgData.topico_id, {
+                    actorId: 'system:auto-moderation',
+                    reason: `Remocao automatica por moderacao apos edicao (${String(metadata.moderation_status || 'unknown')}).`,
+                });
+
+                console.warn(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:auto_remove_done', {
+                    messageId: String(messageId || ''),
+                });
+
+                dispatchAutoRemovedMessageEvent({
+                    topicId: msgData.topico_id,
+                    messageId: String(messageId || ''),
+                    moderationStatus: String(metadata.moderation_status || ''),
+                    moderationReason: String(metadata.moderation_reason || ''),
+                    source: 'message_edit_postsend',
+                });
+                return;
+            }
 
             await updateDoc(msgRef, metadata);
             console.log(FORUM_MODERATION_CLIENT_LOG_TAG, 'editMessage:moderation_metadata_saved', {
