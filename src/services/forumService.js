@@ -199,6 +199,28 @@ function buildSmartModerationMessage(payload = {}) {
         : 'Conteudo bloqueado pela moderacao inteligente.';
 }
 
+function shouldModerationHoldContent(decision = '') {
+    const normalizedDecision = String(decision || '').trim().toLowerCase();
+    return normalizedDecision === 'block'
+        || (normalizedDecision === 'review' && FORUM_BLOCK_REVIEW_CONTENT);
+}
+
+function buildModerationMetadata(result = {}) {
+    const decision = String(result?.decision || '').trim().toLowerCase();
+    if (!['allow', 'review', 'block'].includes(decision)) {
+        return null;
+    }
+
+    return {
+        moderation_status: decision,
+        moderation_requires_action: shouldModerationHoldContent(decision),
+        moderation_reason: String(result?.reason || '').slice(0, 500),
+        moderation_provider: String(result?.provider || '').slice(0, 120),
+        moderation_model: String(result?.model || '').slice(0, 180),
+        moderation_reviewedAt: serverTimestamp(),
+    };
+}
+
 export async function runSmartModeration({
     text,
     clubeId,
@@ -206,6 +228,7 @@ export async function runSmartModeration({
     source = 'message',
     topicId = '',
     topicTitle = '',
+    enforceAction = true,
 }) {
     const sanitizedText = String(text || '').trim();
     if (!sanitizedText) return null;
@@ -250,9 +273,9 @@ export async function runSmartModeration({
         if (!['allow', 'review', 'block'].includes(decision)) {
             throw new Error('Resposta invalida da moderacao inteligente.');
         }
-        const shouldBlock = decision === 'block' || (decision === 'review' && FORUM_BLOCK_REVIEW_CONTENT);
+        const shouldBlock = shouldModerationHoldContent(decision);
 
-        if (shouldBlock) {
+        if (shouldBlock && enforceAction) {
             throw new Error(buildSmartModerationMessage(result));
         }
 
@@ -264,6 +287,34 @@ export async function runSmartModeration({
 
         console.error('Falha ao consultar API de moderacao inteligente.', error);
         throw new Error('Nao foi possivel validar o conteudo com a moderacao inteligente. Tente novamente em instantes.');
+    }
+}
+
+async function runPostSendModeration({
+    text,
+    clubeId,
+    actor,
+    source,
+    topicId = '',
+    topicTitle = '',
+    onModerationResult,
+}) {
+    try {
+        const moderation = await runSmartModeration({
+            text,
+            clubeId,
+            actor,
+            source,
+            topicId,
+            topicTitle,
+            enforceAction: false,
+        });
+
+        if (typeof onModerationResult === 'function') {
+            await onModerationResult(moderation);
+        }
+    } catch (error) {
+        console.error('Falha ao executar moderacao pos-envio.', error);
     }
 }
 
@@ -372,13 +423,6 @@ export async function createTopic({ clubeId, titulo, descricao, autor, categoria
     if (!clubeId || !titulo?.trim() || !autor?.id) return null;
 
     ensureClearTitle(titulo);
-    await runSmartModeration({
-        text: [titulo, descricao].filter(Boolean).join('\n\n'),
-        clubeId,
-        actor: autor,
-        source: 'topic',
-        topicTitle: titulo,
-    });
 
     const normalizedCategory = String(categoria || 'geral').trim().toLowerCase();
     const safeCategory = FORUM_TOPIC_CATEGORIES.includes(normalizedCategory)
@@ -414,6 +458,22 @@ export async function createTopic({ clubeId, titulo, descricao, autor, categoria
         actorId: autor.id,
         action: 'topic.create',
         details: { categoria: safeCategory, tagsCount: safeTags.length },
+    });
+
+    const topicModerationText = [titulo, descricao].filter(Boolean).join('\n\n');
+    void runPostSendModeration({
+        text: topicModerationText,
+        clubeId,
+        actor: autor,
+        source: 'topic_postsend',
+        topicId: ref.id,
+        topicTitle: titulo,
+        onModerationResult: async (moderation) => {
+            const metadata = buildModerationMetadata(moderation);
+            if (!metadata) return;
+
+            await updateDoc(doc(db, 'forum_topicos', ref.id), metadata);
+        },
     });
 
     return ref.id;
@@ -636,15 +696,6 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
             throw new Error(`Voce esta silenciado neste topico ate ${when}.`);
         }
 
-        await runSmartModeration({
-            text: conteudo,
-            clubeId,
-            actor: autor,
-            source: 'message',
-            topicId,
-            topicTitle: topicData.titulo || '',
-        });
-
         const messageData = {
             topico_id: topicId,
             clube_id: clubeId,
@@ -669,6 +720,21 @@ export async function postMessage({ topicId, clubeId, autor, conteudo, imagemBas
             lastActivityAt: serverTimestamp(),
         });
 
+        void runPostSendModeration({
+            text: conteudo,
+            clubeId,
+            actor: autor,
+            source: 'message_postsend',
+            topicId,
+            topicTitle: topicData.titulo || '',
+            onModerationResult: async (moderation) => {
+                const metadata = buildModerationMetadata(moderation);
+                if (!metadata) return;
+
+                await updateDoc(doc(db, 'forum_mensagens', ref.id), metadata);
+            },
+        });
+
         return ref.id;
     } catch (error) {
         console.error('Erro ao postMessage:', error);
@@ -686,18 +752,13 @@ export async function editMessage(messageId, newContent, editor = {}) {
     }
 
     const msgData = msgSnap.data();
-    await runSmartModeration({
-        text: newContent,
-        clubeId: msgData.clube_id,
-        actor: {
-            id: editor.id || msgData.autor_id,
-            nome: editor.nome || msgData.autor_nome || '',
-            perfil: editor.perfil || '',
-            email: editor.email || '',
-        },
-        source: 'message_edit',
-        topicId: msgData.topico_id,
-    });
+
+    const moderationActor = {
+        id: editor.id || msgData.autor_id,
+        nome: editor.nome || msgData.autor_nome || '',
+        perfil: editor.perfil || '',
+        email: editor.email || '',
+    };
 
     await updateDoc(msgRef, {
         conteudo: String(newContent).trim(),
@@ -712,6 +773,20 @@ export async function editMessage(messageId, newContent, editor = {}) {
         messageId,
         actorId: editor.id || '',
         action: 'message.edit',
+    });
+
+    void runPostSendModeration({
+        text: newContent,
+        clubeId: msgData.clube_id,
+        actor: moderationActor,
+        source: 'message_edit_postsend',
+        topicId: msgData.topico_id,
+        onModerationResult: async (moderation) => {
+            const metadata = buildModerationMetadata(moderation);
+            if (!metadata) return;
+
+            await updateDoc(msgRef, metadata);
+        },
     });
 }
 

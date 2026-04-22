@@ -7,33 +7,3 @@
 
 [functions."inpi-watch"]
   schedule = "*/30 * * * *"
-
-[[redirects]]
-  from = "/api/inpi/process"
-  to = "/.netlify/functions/inpi-process"
-  status = 200
-
-[[redirects]]
-  from = "/api/inpi/watch"
-  to = "/.netlify/functions/inpi-watch-run"
-  status = 200
-
-[[redirects]]
-  from = "/api/forum/moderate"
-  to = "/.netlify/functions/forum-moderate"
-  status = 200
-
-[[redirects]]
-  from = "/api/forum/alerts"
-  to = "/.netlify/functions/forum-alerts"
-  status = 200
-
-[[redirects]]
-  from = "/api/teacher/verify"
-  to = "/.netlify/functions/teacher-verify"
-  status = 200
-
-[[redirects]]
-  from = "/api/lattes/extract"
-  to = "/.netlify/functions/lattes-extract"
-  status = 200

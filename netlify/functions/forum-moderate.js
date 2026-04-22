@@ -613,24 +613,28 @@ export async function handler(event) {
     return json(400, { error: "Campo actor.id obrigatorio." });
   }
 
-  const providerResults = await Promise.allSettled([
-    runPerspectiveModeration(text),
-    runOpenRouterModeration(text),
-  ]);
+  const providerErrors = [];
+  let moderation = null;
 
-  const moderationCandidates = providerResults
-    .filter((result) => result.status === "fulfilled")
-    .map((result) => result.value);
+  try {
+    moderation = await runPerspectiveModeration(text);
+  } catch (perspectiveError) {
+    const perspectiveMessage =
+      perspectiveError instanceof Error
+        ? perspectiveError.message
+        : String(perspectiveError || "falha desconhecida");
+    providerErrors.push(`perspective: ${perspectiveMessage}`);
 
-  const providerErrors = providerResults
-    .filter((result) => result.status === "rejected")
-    .map((result) =>
-      result.reason instanceof Error
-        ? result.reason.message
-        : String(result.reason || "falha desconhecida"),
-    );
-
-  const moderation = combineModerationResults(moderationCandidates);
+    try {
+      moderation = await runOpenRouterModeration(text);
+    } catch (openRouterError) {
+      const openRouterMessage =
+        openRouterError instanceof Error
+          ? openRouterError.message
+          : String(openRouterError || "falha desconhecida");
+      providerErrors.push(`openrouter: ${openRouterMessage}`);
+    }
+  }
 
   if (!moderation) {
     console.error("Falha ao usar provedores de moderacao:", providerErrors);
@@ -660,10 +664,12 @@ export async function handler(event) {
     riskScore: moderation.riskScore,
     reason: moderation.reason,
     categories: moderation.categories,
-    provider: moderation.providers.join("+"),
-    model: moderation.models.join("+"),
-    providers: moderation.providers,
-    models: moderation.models,
+    provider: String(moderation.provider || ""),
+    model: String(moderation.model || ""),
+    providers: [String(moderation.provider || "")].filter(Boolean),
+    models: [String(moderation.model || "")].filter(Boolean),
+    fallbackUsed: String(moderation.provider || "") === "openrouter",
+    primaryProvider: "perspective",
     providerErrors,
     notifiedMentors,
   });
