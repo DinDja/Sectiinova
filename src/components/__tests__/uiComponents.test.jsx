@@ -33,6 +33,35 @@ describe('ProjectCard', () => {
     expect(screen.getByText('Em andamento')).toBeInTheDocument();
     expect(screen.getByText('Robótica')).toBeInTheDocument();
   });
+
+  it('does not duplicate the same user when they are in multiple roles', () => {
+    const project = { id: 'p2', titulo: 'Teste 2', descricao: 'Desc 2', status: 'Pendente', area_tematica: 'STEAM', clube_id: 'c2' };
+    const club = { id: 'c2', nome: 'Clube B' };
+    const school = { id: 's2', nome: 'Escola Y' };
+    const duplicateUser = { id: 'u1', nome: 'Prof B', avatar: 'https://example.com/avatar.png' };
+    const team = {
+      orientadores: [duplicateUser],
+      coorientadores: [duplicateUser],
+      investigadores: [duplicateUser],
+      membros: [duplicateUser]
+    };
+
+    render(
+      <ProjectCard
+        project={project}
+        club={club}
+        school={school}
+        isCompleted={false}
+        team={team}
+        investigatorNames={[ 'Aluno 2' ]}
+        onClubClick={vi.fn()}
+        onDiaryClick={vi.fn()}
+      />
+    );
+
+    const teamAvatars = screen.getAllByTitle(/Prof B -/);
+    expect(teamAvatars).toHaveLength(1);
+  });
 });
 
 describe('DiaryBoard', () => {

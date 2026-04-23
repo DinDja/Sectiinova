@@ -204,14 +204,36 @@ export default function ProjectCard({
         return 'bg-orange-300';
     };
 
-    const teamMembers = [
-        ...(team?.orientadores?.map(o => ({ ...o, type: 'orientador' })) || []),
-        ...(team?.coorientadores?.map(c => ({ ...c, type: 'coorientador' })) || []),
-        ...(team?.membros?.map(m => ({ ...m, type: 'membro' })) || [])
-    ];
+    const teamMembers = useMemo(() => {
+        const normalizeKey = (member) => {
+            if (!member || typeof member !== 'object') return '';
+            return String(member.id || member.matricula || member.email || member.nome || member.uid || '')
+                .trim()
+                .toLowerCase();
+        };
+
+        const uniqueMembers = new Map();
+
+        const addMembers = (members, type) => {
+            (Array.isArray(members) ? members : []).forEach((member) => {
+                const key = normalizeKey(member);
+                if (!key) return;
+                if (!uniqueMembers.has(key)) {
+                    uniqueMembers.set(key, { ...member, type });
+                }
+            });
+        };
+
+        addMembers(team?.orientadores, 'orientador');
+        addMembers(team?.coorientadores, 'coorientador');
+        addMembers(team?.investigadores, 'investigador');
+        addMembers(team?.membros, 'membro');
+
+        return Array.from(uniqueMembers.values());
+    }, [team?.orientadores, team?.coorientadores, team?.investigadores, team?.membros]);
     
     const displayTeam = teamMembers.slice(0, 5);
-    const remainingMembers = teamMembers.length - 5;
+    const remainingMembers = Math.max(0, teamMembers.length - 5);
 
     const handleLike = () => {
         if (!isLiked) {
