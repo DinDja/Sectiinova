@@ -10,6 +10,8 @@ import { db } from '../../../firebase';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
 export default function ClubBoard({
     viewingClub,
     viewingClubSchool,
@@ -38,6 +40,7 @@ export default function ClubBoard({
     loggedUser,
     schools,
     users,
+    clubs = [],
     handleCreateClub,
     creatingClub,
     handleUpdateClub,
@@ -95,6 +98,134 @@ export default function ClubBoard({
         [mentorManagedClubs]
     );
     const canSwitchManagedClubs = isMentor && managedClubs.length > 1;
+    const schoolOverview = useMemo(() => {
+        const schoolId = String(
+            viewingClubSchool?.id
+            || viewingClubSchool?.escola_id
+            || viewingClub?.escola_id
+            || loggedUser?.escola_id
+            || ''
+        ).trim();
+        const schoolName = normalizeText(
+            viewingClubSchool?.nome
+            || viewingClub?.escola_nome
+            || loggedUser?.escola_nome
+            || ''
+        );
+
+        const schoolById = new Map(
+            (schools || [])
+                .map((school) => [String(school?.id || school?.escola_id || '').trim(), school])
+                .filter(([id]) => Boolean(id))
+        );
+        const school = schoolById.get(schoolId)
+            || (schools || []).find((item) => normalizeText(item?.nome) === schoolName)
+            || viewingClubSchool
+            || null;
+
+        const knownClubsById = new Map();
+        [...(clubs || []), ...(schoolClubDiscoveryList || []), viewingClub]
+            .filter(Boolean)
+            .forEach((club) => {
+                const clubId = String(club?.id || '').trim();
+                if (!clubId) return;
+                knownClubsById.set(clubId, club);
+            });
+
+        const schoolClubs = [...knownClubsById.values()].filter((club) => {
+            const clubSchoolId = String(club?.escola_id || '').trim();
+            const clubSchoolName = normalizeText(club?.escola_nome);
+
+            if (schoolId && clubSchoolId && clubSchoolId === schoolId) return true;
+            if (schoolName && clubSchoolName && clubSchoolName === schoolName) return true;
+            return false;
+        });
+
+        const schoolClubIds = new Set(
+            schoolClubs
+                .map((club) => String(club?.id || '').trim())
+                .filter(Boolean)
+        );
+
+        const schoolMembers = (users || []).filter((person) => {
+            const personSchoolIds = new Set(
+                [
+                    person?.escola_id,
+                    ...(Array.isArray(person?.escolas_ids) ? person.escolas_ids : [])
+                ]
+                    .map((value) => String(value || '').trim())
+                    .filter(Boolean)
+            );
+            const personSchoolName = normalizeText(person?.escola_nome);
+            const personClubIds = new Set(
+                [
+                    person?.clube_id,
+                    ...(Array.isArray(person?.clubes_ids) ? person.clubes_ids : [])
+                ]
+                    .map((value) => String(value || '').trim())
+                    .filter(Boolean)
+            );
+
+            const hasSchoolIdMatch = schoolId ? personSchoolIds.has(schoolId) : false;
+            const hasSchoolNameMatch = schoolName ? personSchoolName === schoolName : false;
+            const hasClubMatch = [...personClubIds].some((clubId) => schoolClubIds.has(clubId));
+
+            return hasSchoolIdMatch || hasSchoolNameMatch || hasClubMatch;
+        });
+
+        const mentorsCount = schoolMembers.filter((person) => {
+            const perfil = normalizeText(person?.perfil);
+            return ['orientador', 'coorientador'].includes(perfil);
+        }).length;
+        const studentsCount = schoolMembers.filter((person) => {
+            const perfil = normalizeText(person?.perfil);
+            return ['estudante', 'investigador', 'aluno', 'clubista'].includes(perfil);
+        }).length;
+        const projectsCount = schoolClubs.reduce((total, club) => {
+            const clubProjectsCount = Number(
+                club?.projetosCount
+                ?? club?.projetos?.length
+                ?? club?.projetos_ids?.length
+                ?? 0
+            );
+            return total + (Number.isFinite(clubProjectsCount) ? clubProjectsCount : 0);
+        }, 0);
+
+        const schoolMeta = [
+            { label: 'Codigo INEP', value: String(school?.cod_inep || '').trim() },
+            { label: 'Municipio', value: String(school?.municipio || '').trim() },
+            { label: 'UF', value: String(school?.uf || '').trim() },
+            { label: 'Tipo', value: String(school?.tipo_unidade || '').trim() }
+        ].filter((item) => Boolean(item.value));
+
+        const schoolLabel = String(
+            school?.nome
+            || viewingClubSchool?.nome
+            || viewingClub?.escola_nome
+            || loggedUser?.escola_nome
+            || 'Unidade escolar'
+        ).trim();
+
+        return {
+            schoolLabel,
+            schoolMeta,
+            clubs: schoolClubs,
+            clubsCount: schoolClubs.length,
+            membersCount: schoolMembers.length,
+            mentorsCount,
+            studentsCount,
+            projectsCount
+        };
+    }, [clubs, loggedUser?.escola_id, loggedUser?.escola_nome, schoolClubDiscoveryList, schools, users, viewingClub, viewingClubSchool]);
+    const schoolOverviewHighlights = useMemo(() => {
+        return [
+            { key: 'clubs', label: 'Clubes', value: schoolOverview.clubsCount, color: 'bg-blue-400' },
+            { key: 'members', label: 'Membros', value: schoolOverview.membersCount, color: 'bg-yellow-300' },
+            { key: 'mentors', label: 'Mentores', value: schoolOverview.mentorsCount, color: 'bg-pink-400' },
+            { key: 'students', label: 'Clubistas', value: schoolOverview.studentsCount, color: 'bg-teal-400' },
+            { key: 'projects', label: 'Projetos', value: schoolOverview.projectsCount, color: 'bg-lime-300' }
+        ];
+    }, [schoolOverview.clubsCount, schoolOverview.membersCount, schoolOverview.mentorsCount, schoolOverview.projectsCount, schoolOverview.studentsCount]);
 
     useEffect(() => {
         if (!canCreateProject && isCreateOpen) {
@@ -488,6 +619,65 @@ export default function ClubBoard({
                             </div>
                         </div>
 
+                        <section className="bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 border-b-4 border-slate-900 pb-4">
+                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                                    <Building2 className="w-7 h-7 stroke-[2.5]" /> Minha Unidade Escolar
+                                </h3>
+                                <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-xs font-black text-slate-900 uppercase tracking-widest">
+                                    <MapIcon className="w-4 h-4 stroke-[3]" /> {schoolOverview.schoolLabel}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                {schoolOverviewHighlights.map((item) => (
+                                    <div key={item.key} className={`rounded-xl border-2 border-slate-900 p-3 text-center shadow-[2px_2px_0px_0px_#0f172a] ${item.color}`}>
+                                        <p className="text-2xl font-black text-slate-900 leading-none">{item.value}</p>
+                                        <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mt-1">{item.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {schoolOverview.schoolMeta.length > 0 && (
+                                <div className="mt-6 flex flex-wrap gap-3">
+                                    {schoolOverview.schoolMeta.map((metaItem) => (
+                                        <span
+                                            key={`${metaItem.label}:${metaItem.value}`}
+                                            className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-black text-slate-900 uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]"
+                                        >
+                                            <span>{metaItem.label}</span>
+                                            <span className="bg-slate-900 text-white px-2 py-0.5 rounded">{metaItem.value}</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="mt-6">
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-3">Clubes da unidade</p>
+                                {schoolOverview.clubs.length === 0 ? (
+                                    <p className="text-sm font-bold text-slate-700 bg-slate-100 border-2 border-dashed border-slate-900 rounded-xl px-4 py-3">
+                                        Nenhum clube da unidade foi encontrado no momento.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {schoolOverview.clubs.slice(0, 6).map((club) => (
+                                            <span
+                                                key={String(club?.id || '').trim()}
+                                                className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-teal-400 px-3 py-1.5 text-xs font-black text-slate-900 uppercase tracking-wider shadow-[2px_2px_0px_0px_#0f172a]"
+                                            >
+                                                {club?.nome || 'Clube'}
+                                            </span>
+                                        ))}
+                                        {schoolOverview.clubs.length > 6 && (
+                                            <span className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 uppercase tracking-wider shadow-[2px_2px_0px_0px_#0f172a]">
+                                                +{schoolOverview.clubs.length - 6} clubes
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
                         {membershipRequestFeedback.message && (
                             <div
                                 className={`rounded-xl border-4 p-4 text-sm font-black uppercase shadow-[6px_6px_0px_0px_#0f172a] ${
@@ -833,6 +1023,65 @@ export default function ClubBoard({
                             {membershipRequestFeedback.message}
                         </div>
                     )}
+
+                    <section className="bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 border-b-4 border-slate-900 pb-4">
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                                <Building2 className="w-7 h-7 stroke-[2.5]" /> Minha Unidade Escolar
+                            </h3>
+                            <span className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] px-3 py-1 text-xs font-black text-slate-900 uppercase tracking-widest">
+                                <MapIcon className="w-4 h-4 stroke-[3]" /> {schoolOverview.schoolLabel}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {schoolOverviewHighlights.map((item) => (
+                                <div key={item.key} className={`rounded-xl border-2 border-slate-900 p-3 text-center shadow-[2px_2px_0px_0px_#0f172a] ${item.color}`}>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{item.value}</p>
+                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mt-1">{item.label}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {schoolOverview.schoolMeta.length > 0 && (
+                            <div className="mt-6 flex flex-wrap gap-3">
+                                {schoolOverview.schoolMeta.map((metaItem) => (
+                                    <span
+                                        key={`${metaItem.label}:${metaItem.value}`}
+                                        className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-black text-slate-900 uppercase tracking-widest shadow-[2px_2px_0px_0px_#0f172a]"
+                                    >
+                                        <span>{metaItem.label}</span>
+                                        <span className="bg-slate-900 text-white px-2 py-0.5 rounded">{metaItem.value}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="mt-6">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-3">Clubes da unidade</p>
+                            {schoolOverview.clubs.length === 0 ? (
+                                <p className="text-sm font-bold text-slate-700 bg-slate-100 border-2 border-dashed border-slate-900 rounded-xl px-4 py-3">
+                                    Nenhum clube da unidade foi encontrado no momento.
+                                </p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {schoolOverview.clubs.slice(0, 6).map((club) => (
+                                        <span
+                                            key={String(club?.id || '').trim()}
+                                            className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-teal-400 px-3 py-1.5 text-xs font-black text-slate-900 uppercase tracking-wider shadow-[2px_2px_0px_0px_#0f172a]"
+                                        >
+                                            {club?.nome || 'Clube'}
+                                        </span>
+                                    ))}
+                                    {schoolOverview.clubs.length > 6 && (
+                                        <span className="inline-flex items-center rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 uppercase tracking-wider shadow-[2px_2px_0px_0px_#0f172a]">
+                                            +{schoolOverview.clubs.length - 6} clubes
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </section>
 
                     <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                         <div className="xl:col-span-5 bg-white border-4 border-slate-900 rounded-3xl p-8 shadow-[8px_8px_0px_0px_#0f172a]">

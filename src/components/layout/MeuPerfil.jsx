@@ -156,7 +156,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
     if (!loggedUser) {
         return (
             <div className="flex flex-col items-center justify-center p-12 rounded-3xl border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a] text-center max-w-md mx-auto mt-20">
-                <div className="w-24 h-24 rounded-2xl bg-yellow-300 border-4 border-slate-900 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-3">
+                <div className="w-24 h-24 rounded-2xl bg-yellow-300 border-4 border-slate-900 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#0f172a] transform --3">
                     <User className="w-12 h-12 text-slate-900 stroke-[3]" />
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 uppercase">Nenhum utilizador conectado</h3>
@@ -613,11 +613,11 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                     {/* INFO PRINCIPAL DO UTILIZADOR */}
                     <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8 isolate mt-10">
                         <div className="relative group z-50">
-                            <div className="relative z-20 w-32 h-32 rounded-3xl border-4 border-slate-900 bg-yellow-300 flex items-center justify-center overflow-hidden shadow-[6px_6px_0px_0px_#0f172a] transform rotate-2">
+                            <div className="relative z-20 w-32 h-32 rounded-3xl border-4 border-slate-900 bg-yellow-300 flex items-center justify-center overflow-hidden shadow-[6px_6px_0px_0px_#0f172a] transform -2">
                                 {avatarSrc ? (
-                                    <img src={avatarSrc} alt={loggedUser.nome} className="relative z-10 w-full h-full object-cover transform -rotate-2" />
+                                    <img src={avatarSrc} alt={loggedUser.nome} className="relative z-10 w-full h-full object-cover transform --2" />
                                 ) : (
-                                    <span className="text-5xl font-black text-slate-900 transform -rotate-2">
+                                    <span className="text-5xl font-black text-slate-900 transform --2">
                                         {getInitials(loggedUser.nome)}
                                     </span>
                                 )}
@@ -668,7 +668,7 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                         </div>
 
                         {formData && formData.bio && !isEditing && (
-                            <p className="mt-6 text-slate-800 font-bold text-center max-w-lg bg-white border-2 border-slate-900 p-4 shadow-[4px_4px_0px_0px_#0f172a] transform rotate-1 text-sm leading-relaxed">
+                            <p className="mt-6 text-slate-800 font-bold text-center max-w-lg bg-white border-2 border-slate-900 p-4 shadow-[4px_4px_0px_0px_#0f172a] transform -1 text-sm leading-relaxed">
                                 "{formData.bio}"
                             </p>
                         )}
@@ -680,8 +680,8 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                             
                             {/* Card do Clube */}
                             <div className="flex justify-center mb-8">
-                                <div className="p-6 rounded-2xl bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] text-center w-full transform -rotate-1 hover:rotate-0 transition-transform">
-                                    <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform -rotate-3">
+                                <div className="p-6 rounded-2xl bg-teal-400 border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] text-center w-full transform --1 hover:-0 transition-transform">
+                                    <div className="w-14 h-14 rounded-xl bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex items-center justify-center mx-auto mb-4 transform --3">
                                         <School className="w-6 h-6 stroke-[3] text-slate-900" />
                                     </div>
                                     <p className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-tight break-words">

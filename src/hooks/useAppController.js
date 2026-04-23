@@ -4329,8 +4329,3 @@ function getAuthErrorMessage(code, fallbackMessage = '') {
 
     return 'Ocorreu um erro. Tente novamente.';
 }
-
-
-
-
-

@@ -267,6 +267,7 @@ export default function App() {
                         loggedUser={loggedUser}
                         schools={schools}
                         users={users}
+                        clubs={clubs}
                         handleCreateClub={handleCreateClub}
                         creatingClub={creatingClub}
                         handleUpdateClub={handleUpdateClub}

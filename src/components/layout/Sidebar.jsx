@@ -212,7 +212,7 @@ export default function Sidebar({
 
   const renderSidebarContent = (isMobile) => (
     <>
-      <div className={`w-full ${isMobile ? "p-4 pb-3" : "px-4 pb-6"} flex items-center justify-between`}>
+      <div className={`w-full ${isMobile ? "p-4 pb-3" : "px-4 pb-6"} flex items-center ${isMobile ? "justify-between" : "justify-center"}`}>
         {isMobile && (
           <div className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
             Navegação

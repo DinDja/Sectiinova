@@ -12,6 +12,28 @@ const STUDENT_PROFILES = new Set(['estudante', 'investigador', 'aluno']);
 const MENTOR_PROFILES = new Set(['orientador', 'coorientador']);
 
 const normalizeSchoolName = (value) => String(value || '').trim().toLowerCase();
+const normalizeIdentityValue = (value) => String(value || '').trim().toLowerCase();
+const buildUserIdentityKeys = (user = {}) => {
+    const keys = new Set();
+    const addKey = (prefix, value) => {
+        const normalized = normalizeIdentityValue(value);
+        if (!normalized) return;
+        keys.add(`${prefix}:${normalized}`);
+    };
+
+    addKey('uid', user?.uid);
+    addKey('email', user?.email || user?.emailPrincipal || user?.email_usuario);
+    addKey('matricula', user?.matricula || user?.codigo);
+    addKey('id', user?.id);
+
+    const normalizedName = normalizeIdentityValue(user?.nome);
+    const normalizedSchoolId = normalizeIdentityValue(user?.escola_id);
+    if (normalizedName) {
+        keys.add(`nome:${normalizedName}|escola:${normalizedSchoolId}`);
+    }
+
+    return [...keys];
+};
 
 const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -57,16 +79,32 @@ export default function EditClubForm({
 
     const mergedUsers = useMemo(() => {
         const usersById = new Map();
+        const identityKeyToUserId = new Map();
 
         [...users, ...liveSchoolUsers].forEach((user) => {
             if (!user) return;
             const userId = String(user.id || user.uid || '').trim();
             if (!userId) return;
 
-            usersById.set(userId, {
+            const normalizedUser = {
                 ...user,
                 id: userId,
+            };
+            const identityKeys = buildUserIdentityKeys(normalizedUser);
+            const existingUserId = identityKeys
+                .map((key) => identityKeyToUserId.get(key))
+                .find(Boolean);
+            const resolvedUserId = existingUserId || userId;
+            const previousUser = usersById.get(resolvedUserId) || {};
+
+            usersById.set(resolvedUserId, {
+                ...previousUser,
+                ...normalizedUser,
+                id: resolvedUserId,
             });
+
+            identityKeys.forEach((key) => identityKeyToUserId.set(key, resolvedUserId));
+            identityKeyToUserId.set(`id:${normalizeIdentityValue(userId)}`, resolvedUserId);
         });
 
         return [...usersById.values()];
