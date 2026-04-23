@@ -101,6 +101,7 @@ export default function App() {
         viewingClubCoorientadores,
         viewingClubInvestigadores,
         viewingClubDiaryCount,
+        projectsCatalog,
         schoolClubDiscoveryList,
         latestMyClubJoinRequestByClubId,
         requestingClubIds,
@@ -248,6 +249,7 @@ export default function App() {
                         viewingClubCoorientadores={viewingClubCoorientadores}
                         viewingClubInvestigadores={viewingClubInvestigadores}
                         viewingClubDiaryCount={viewingClubDiaryCount}
+                        projectsCatalog={projectsCatalog}
                         hasNoClubMembership={myClubIds.length === 0}
                         schoolClubDiscoveryList={schoolClubDiscoveryList}
                         latestMyClubJoinRequestByClubId={latestMyClubJoinRequestByClubId}

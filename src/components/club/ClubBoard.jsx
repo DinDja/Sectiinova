@@ -21,6 +21,7 @@ export default function ClubBoard({
     viewingClubCoorientadores,
     viewingClubInvestigadores,
     viewingClubDiaryCount,
+    projectsCatalog = [],
     hasNoClubMembership = false,
     schoolClubDiscoveryList = [],
     latestMyClubJoinRequestByClubId = new Map(),
@@ -83,6 +84,29 @@ export default function ClubBoard({
         String(loggedUser?.clube_id || '').trim(),
         ...(Array.isArray(loggedUser?.clubes_ids) ? loggedUser.clubes_ids : []).map((id) => String(id || '').trim())
     ].filter(Boolean));
+    const resolveProjectClubId = (project) => {
+        if (!project || typeof project !== 'object') return '';
+        return String(
+            project.clube_id ||
+            project.clubeId ||
+            project.club_id ||
+            project.clubId ||
+            project.clube?.id ||
+            project.club?.id ||
+            ''
+        ).trim();
+    };
+
+    const projectsByClubId = useMemo(() => {
+        const counts = new Map();
+        (Array.isArray(projectsCatalog) ? projectsCatalog : []).forEach((project) => {
+            const clubId = resolveProjectClubId(project);
+            if (!clubId) return;
+            counts.set(clubId, (counts.get(clubId) || 0) + 1);
+        });
+        return counts;
+    }, [projectsCatalog]);
+
     const viewingClubId = String(viewingClub?.id || '').trim();
     const canManageClub = isMentor && loggedUserId && (
         mentorIds.has(loggedUserId)
@@ -182,12 +206,15 @@ export default function ClubBoard({
             return ['estudante', 'investigador', 'aluno', 'clubista'].includes(perfil);
         }).length;
         const projectsCount = schoolClubs.reduce((total, club) => {
-            const clubProjectsCount = Number(
-                club?.projetosCount
-                ?? club?.projetos?.length
-                ?? club?.projetos_ids?.length
-                ?? 0
-            );
+            const clubId = String(club?.id || '').trim();
+            const clubProjectsCount = projectsByClubId.has(clubId)
+                ? projectsByClubId.get(clubId)
+                : Number(
+                    club?.projetosCount
+                    ?? club?.projetos?.length
+                    ?? club?.projetos_ids?.length
+                    ?? 0
+                );
             return total + (Number.isFinite(clubProjectsCount) ? clubProjectsCount : 0);
         }, 0);
 
@@ -754,12 +781,15 @@ export default function ClubBoard({
                                         (club?.clubistas_ids || []).map((value) => String(value || '').trim()).filter(Boolean)
                                     ).size;
 
-                                    const projectsCount = Number(
-                                        club?.projetosCount
-                                        ?? club?.projetos?.length
-                                        ?? club?.projetos_ids?.length
-                                        ?? 0
-                                    );
+                                    const projectClubCount = projectsByClubId.get(clubId);
+                                    const projectsCount = typeof projectClubCount === 'number'
+                                        ? projectClubCount
+                                        : Number(
+                                            club?.projetosCount
+                                            ?? club?.projetos?.length
+                                            ?? club?.projetos_ids?.length
+                                            ?? 0
+                                        );
 
                                     return (
                                         <article key={clubId} className="group bg-white border-4 border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0px_0px_#0f172a] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[12px_12px_0px_0px_#0f172a] transition-all duration-300">

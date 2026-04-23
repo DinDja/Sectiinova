@@ -99,6 +99,19 @@ const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
 const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
 const isEnovaMentorEmail = (email) => /@enova\.educacao\.ba\.gov\.br$/.test(normalizeEmailAddress(email));
 
+const resolveProjectClubId = (project) => {
+    if (!project || typeof project !== 'object') return '';
+    return String(
+        project.clube_id ||
+        project.clubeId ||
+        project.club_id ||
+        project.clubId ||
+        project.clube?.id ||
+        project.club?.id ||
+        ''
+    ).trim();
+};
+
 const getEmailVerificationResendStorageKey = (email) => {
     const normalizedEmail = normalizeEmailAddress(email);
     if (!normalizedEmail) return '';
@@ -523,7 +536,7 @@ export default function useAppController() {
 
     const searchableProjects = useMemo(() => {
         return projectsCatalog.map((project) => {
-            const club = clubsById.get(String(project.clube_id || ''));
+            const club = clubsById.get(resolveProjectClubId(project));
             const schoolId = String(project.escola_id || club?.escola_id || '');
             const school = schoolsById.get(schoolId);
 
@@ -1461,7 +1474,7 @@ export default function useAppController() {
     const selectedProject = projectsCatalog.find((project) => String(project.id) === String(selectedProjectId)) ?? null;
     const selectedClub =
         clubs.find((club) => String(club.id) === String(selectedClubId))
-        ?? clubs.find((club) => String(club.id) === String(selectedProject?.clube_id || ''))
+        ?? clubs.find((club) => String(club.id) === resolveProjectClubId(selectedProject))
         ?? null;
     const selectedSchool = schools.find(
         (school) => String(school?.id || school?.escola_id || '').trim() === String(selectedClub?.escola_id || '').trim()
@@ -1859,7 +1872,7 @@ export default function useAppController() {
         }
 
         setClubProjects(
-            projectsCatalog.filter((project) => String(project.clube_id || '') === String(viewingClubId))
+            projectsCatalog.filter((project) => resolveProjectClubId(project) === String(viewingClubId))
         );
     }, [projectsCatalog, viewingClubId]);
 
@@ -1876,7 +1889,7 @@ export default function useAppController() {
         );
 
         setMyClubProjects(
-            projectsCatalog.filter((project) => myClubIdSet.has(String(project?.clube_id || '').trim()))
+            projectsCatalog.filter((project) => myClubIdSet.has(resolveProjectClubId(project)))
         );
     }, [projectsCatalog, myClubIds]);
 
@@ -4138,6 +4151,7 @@ export default function useAppController() {
         loadMoreProjectsRef,
         setSelectedClubId,
         setSelectedProjectId,
+        projectsCatalog,
         getProjectTeam,
         getInvestigatorDisplayNames,
         selectedProject,
