@@ -70,7 +70,8 @@ export default function useAppControllerState() {
         discoveries: '',
         obstacles: '',
         nextSteps: '',
-        tags: ''
+        tags: '',
+        images: []
     });
     const [sidebarOrder, setSidebarOrder] = useState(DEFAULT_SIDEBAR_ORDER);
 

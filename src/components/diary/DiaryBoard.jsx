@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
-    BookOpen, Target, User, Users, Map, Database, 
+    BookOpen, Target, User, Users, Map as MapIcon, Database, 
     CheckCircle, Calendar, Clock, Lightbulb, AlertCircle, 
-    ArrowRight, Plus, ExternalLink, GraduationCap, 
+    ArrowRight, Plus, ExternalLink, GraduationCap, Download,
     FileText, Sparkles, LayoutDashboard, Flag 
 } from 'lucide-react';
 
@@ -18,6 +18,69 @@ const getLattesAreas = (person) => person?.lattes_areas || [];
 const getLattesEducation = (person) => person?.lattes_education || [];
 const getLattesSummary = (person) => person?.lattes_summary || person?.resumo_lattes || null;
 const getLattesUpdatedAt = (person) => person?.lattes_updated_at || null;
+const SEC_LOGO_PATH = '/images/Secti_Vertical.png';
+
+const normalizeText = (value, fallback = 'Nao informado') => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text || fallback;
+};
+
+const slugifyFileName = (value, fallback = 'documento') => {
+    const normalized = normalizeText(value, fallback)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    return normalized || fallback;
+};
+
+const extractProjectImages = (project) => {
+    const candidates = [];
+
+    if (Array.isArray(project?.imagens)) {
+        candidates.push(...project.imagens);
+    }
+
+    if (typeof project?.imagem === 'string') {
+        candidates.push(project.imagem);
+    }
+
+    return [...new Set(candidates.map((item) => String(item || '').trim()).filter(Boolean))];
+};
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+});
+
+const toPdfImageDataUrl = async (source) => {
+    const normalizedSource = String(source || '').trim();
+    if (!normalizedSource) return '';
+
+    if (/^data:image\//i.test(normalizedSource)) {
+        return normalizedSource;
+    }
+
+    const response = await fetch(normalizedSource, { mode: 'cors' });
+    if (!response.ok) {
+        throw new Error(`Falha ao carregar imagem (${response.status}).`);
+    }
+
+    const blob = await response.blob();
+    return blobToDataUrl(blob);
+};
+
+const getPdfImageFormat = (dataUrl) => {
+    if (/^data:image\/png/i.test(String(dataUrl || ''))) {
+        return 'PNG';
+    }
+
+    return 'JPEG';
+};
 
 const EmptyState = ({ icon: Icon, title, description }) => (
     <div className="flex flex-col items-center justify-center p-12 text-center max-w-xl mx-auto">
@@ -144,6 +207,18 @@ const DiaryEntryCard = ({ entry }) => (
 
         {/* Corpo do Cartão de Diário */}
         <div className="p-6 sm:p-8 space-y-6">
+            {entry.images?.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {entry.images.map((imageSrc, index) => (
+                        <img
+                            key={index}
+                            src={imageSrc}
+                            alt={`Foto do diário ${index + 1}`}
+                            className="h-52 w-full rounded-[2rem] border-4 border-slate-900 object-cover shadow-[4px_4px_0px_0px_#0f172a]"
+                        />
+                    ))}
+                </div>
+            )}
             
             <div className="bg-teal-400 border-4 border-slate-900 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#0f172a]">
                 <h5 className="flex items-center text-sm font-black text-slate-900 uppercase tracking-widest mb-3">
@@ -210,6 +285,8 @@ export default function DiaryBoard({
     getInvestigatorDisplayNames = () => [],
     getLattesLink = () => ''
 }) {
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
+    const [pdfExportError, setPdfExportError] = useState('');
     
     const uniqueMentors = useMemo(() => {
         if (!selectedTeam) return [];
@@ -220,6 +297,353 @@ export default function DiaryBoard({
     const investigatorNames = useMemo(() => {
         return getInvestigatorDisplayNames(selectedProject, selectedTeam, derivedDiaryEntries).join(', ');
     }, [getInvestigatorDisplayNames, selectedProject, selectedTeam, derivedDiaryEntries]);
+
+    const clubLogoUrl = useMemo(() => {
+        return String(selectedClub?.logo_url || selectedClub?.logo || '').trim();
+    }, [selectedClub]);
+
+    const projectImageUrls = useMemo(() => {
+        return extractProjectImages(selectedProject);
+    }, [selectedProject]);
+
+    const diaryEntriesForExport = useMemo(() => {
+        const nonSummaryEntries = derivedDiaryEntries.filter((entry) => !String(entry?.id || '').endsWith('-summary'));
+        return nonSummaryEntries.length > 0 ? nonSummaryEntries : derivedDiaryEntries;
+    }, [derivedDiaryEntries]);
+
+const handleExportProjectDiaryPdf = async () => {
+        if (isExportingPdf) return;
+
+        setIsExportingPdf(true);
+        setPdfExportError('');
+
+        try {
+            const { jsPDF } = await import('jspdf');
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            // Margem aumentada para padrão editorial (15mm)
+            const margin = 15; 
+            const contentWidth = pageWidth - (margin * 2);
+            let cursorY = margin;
+
+            // Paleta Institucional (Padrão Gov Bahia / SEC)
+            const colors = {
+                baBlue: [14, 61, 137],     // Azul institucional escuro
+                baRed: [226, 24, 54],      // Vermelho baiano (destaque)
+                textMain: [30, 41, 59],    // Slate 800 (Títulos e labels)
+                textMuted: [71, 85, 105],  // Slate 600 (Corpo de texto)
+                border: [203, 213, 225],   // Slate 300 (Linhas divisórias)
+                bgLight: [248, 250, 252]   // Slate 50 (Fundo de cards)
+            };
+
+            const safeLoadImage = async (source) => {
+                try {
+                    return await toPdfImageDataUrl(source);
+                } catch (error) {
+                    console.warn('Imagem ignorada na exportacao PDF:', error);
+                    return '';
+                }
+            };
+
+            const addNewPage = () => {
+                doc.addPage();
+                cursorY = margin + 5; // Respiro maior no topo de novas páginas
+                
+                // Barra de topo institucional em todas as páginas
+                doc.setFillColor(...colors.baRed);
+                doc.rect(0, 0, pageWidth, 3, 'F');
+            };
+
+            const ensureSpace = (heightNeeded = 20) => {
+                if (cursorY + heightNeeded > pageHeight - margin - 15) { // -15 reserva espaço pro rodapé
+                    addNewPage();
+                }
+            };
+
+            // Título de Seção Padrão Relatório Executivo
+            const addSectionTitle = (title) => {
+                ensureSpace(18);
+                doc.setFillColor(...colors.baBlue);
+                doc.rect(margin, cursorY, 2, 7, 'F'); // Barra lateral de destaque
+                
+                doc.setTextColor(...colors.baBlue);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.text(title.toUpperCase(), margin + 5, cursorY + 5.5);
+                
+                // Linha fina abaixo do título
+                doc.setDrawColor(...colors.border);
+                doc.setLineWidth(0.2);
+                doc.line(margin, cursorY + 9, pageWidth - margin, cursorY + 9);
+                
+                cursorY += 16;
+            };
+
+            const addParagraph = (title, body, bodyFallback = 'Não informado') => {
+                const resolvedBody = normalizeText(body, bodyFallback);
+                ensureSpace(14);
+
+                doc.setTextColor(...colors.textMain);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.text(title + ':', margin, cursorY);
+
+                doc.setTextColor(...colors.textMuted);
+                doc.setFont('helvetica', 'normal');
+                
+                // Indentação e quebra do texto
+                const textIndent = margin + doc.getTextWidth(title + ': ') + 1;
+                const availableTextWidth = contentWidth - (textIndent - margin);
+                
+                const lines = doc.splitTextToSize(resolvedBody, availableTextWidth);
+                const lineHeight = 4.5;
+                const blockHeight = (lines.length * lineHeight);
+                
+                ensureSpace(blockHeight);
+                doc.text(lines, textIndent, cursorY);
+                cursorY += Math.max(blockHeight + 3, 7); // Avança com respiro
+            };
+
+            const addImageWithinBox = (imageData, x, y, width, height) => {
+                if (!imageData) return;
+                try {
+                    const props = doc.getImageProperties(imageData);
+                    const ratio = Math.min(width / props.width, height / props.height);
+                    const renderWidth = Math.max(1, props.width * ratio);
+                    const renderHeight = Math.max(1, props.height * ratio);
+                    const renderX = x + ((width - renderWidth) / 2);
+                    const renderY = y + ((height - renderHeight) / 2);
+
+                    doc.addImage(
+                        imageData,
+                        getPdfImageFormat(imageData),
+                        renderX, renderY, renderWidth, renderHeight, undefined, 'FAST'
+                    );
+                } catch (error) {
+                    console.warn('Falha ao desenhar imagem:', error);
+                }
+            };
+
+            const addImageGallery = (title, images = []) => {
+                const filteredImages = images.filter(Boolean);
+                if (filteredImages.length === 0) return;
+
+                addSectionTitle(title);
+                const gap = 5;
+                const imageBoxWidth = (contentWidth - gap) / 2;
+                const imageBoxHeight = 55;
+
+                for (let i = 0; i < filteredImages.length; i += 2) {
+                    ensureSpace(imageBoxHeight + 8);
+
+                    const leftImage = filteredImages[i];
+                    const rightImage = filteredImages[i + 1];
+
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.3);
+                    
+                    doc.roundedRect(margin, cursorY, imageBoxWidth, imageBoxHeight, 1, 1, 'S');
+                    addImageWithinBox(leftImage, margin + 1.5, cursorY + 1.5, imageBoxWidth - 3, imageBoxHeight - 3);
+
+                    if (rightImage) {
+                        const rightX = margin + imageBoxWidth + gap;
+                        doc.roundedRect(rightX, cursorY, imageBoxWidth, imageBoxHeight, 1, 1, 'S');
+                        addImageWithinBox(rightImage, rightX + 1.5, cursorY + 1.5, imageBoxWidth - 3, imageBoxHeight - 3);
+                    }
+
+                    cursorY += imageBoxHeight + 6;
+                }
+            };
+
+            // --- CARREGAMENTO DE DADOS ---
+            const [secLogoDataUrl, clubLogoDataUrl] = await Promise.all([
+                safeLoadImage(SEC_LOGO_PATH),
+                safeLoadImage(clubLogoUrl)
+            ]);
+
+            const loadedProjectImages = [];
+            for (const imageUrl of projectImageUrls.slice(0, 20)) {
+                const imageData = await safeLoadImage(imageUrl);
+                if (imageData) loadedProjectImages.push(imageData);
+            }
+
+            const diaryImagesByEntry = new Map();
+            for (const entry of diaryEntriesForExport) {
+                const loadedImages = [];
+                const entryImages = Array.isArray(entry?.images) ? entry.images : [];
+                for (const imageUrl of entryImages.slice(0, 8)) {
+                    const imageData = await safeLoadImage(imageUrl);
+                    if (imageData) loadedImages.push(imageData);
+                }
+                diaryImagesByEntry.set(String(entry?.id || ''), loadedImages);
+            }
+
+            // --- HEADER INSTITUCIONAL ---
+            // Barra vermelha no topo
+            doc.setFillColor(...colors.baRed);
+            doc.rect(0, 0, pageWidth, 3, 'F');
+            
+            cursorY += 5;
+
+            if (secLogoDataUrl) {
+                addImageWithinBox(secLogoDataUrl, margin, cursorY, 30, 18);
+            }
+            if (clubLogoDataUrl) {
+                addImageWithinBox(clubLogoDataUrl, pageWidth - margin - 18, cursorY, 18, 18);
+            }
+
+            doc.setTextColor(...colors.baBlue);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('Relatório Integrado', margin + 35, cursorY + 6);
+            
+            doc.setTextColor(...colors.textMuted);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.text('Projeto de Investigação e Diário de Bordo', margin + 35, cursorY + 12);
+            doc.text(normalizeText(selectedClub?.nome, 'Clube não identificado'), margin + 35, cursorY + 17);
+            
+            cursorY += 24;
+            
+            // Linha divisória do header
+            doc.setDrawColor(...colors.border);
+            doc.setLineWidth(0.5);
+            doc.line(margin, cursorY, pageWidth - margin, cursorY);
+            cursorY += 8;
+
+            // --- CORPO DO DOCUMENTO ---
+            addSectionTitle('Resumo do Projeto');
+            addParagraph('Título', selectedProject?.titulo, 'Projeto sem título');
+            addParagraph('Área Temática', selectedProject?.area_tematica || selectedProject?.tipo, 'Área não informada');
+            addParagraph('Status', selectedProject?.status, 'Status não informado');
+            addParagraph('Unidade Escolar', selectedSchool?.nome, 'Unidade não informada');
+            addParagraph('Equipe Investigadora', investigatorNames, 'Equipe em formação');
+            
+            // Para introdução e descrição, deixamos bloco de texto inteiro em vez de inline
+            const addTextBlock = (title, body) => {
+                ensureSpace(20);
+                doc.setTextColor(...colors.textMain);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.text(title + ':', margin, cursorY);
+                cursorY += 5;
+                
+                doc.setTextColor(...colors.textMuted);
+                doc.setFont('helvetica', 'normal');
+                const lines = doc.splitTextToSize(normalizeText(body, 'Sem registro.'), contentWidth);
+                const blockHeight = lines.length * 4.5;
+                ensureSpace(blockHeight + 5);
+                doc.text(lines, margin, cursorY);
+                cursorY += blockHeight + 6;
+            };
+
+            addTextBlock('Introdução', selectedProject?.introducao);
+            addTextBlock('Descrição', selectedProject?.descricao);
+
+            addImageGallery('Galeria do Projeto', loadedProjectImages);
+
+            // --- DIÁRIO DE BORDO ---
+            addSectionTitle(`Diário de Bordo (${diaryEntriesForExport.length} registros)`);
+
+            if (diaryEntriesForExport.length === 0) {
+                addTextBlock('Registros', 'Ainda não há registros no diário para este projeto.');
+            } else {
+                diaryEntriesForExport.forEach((entry, index) => {
+                    ensureSpace(40);
+
+                    // Fundo leve para separar cada registro do diário
+                    doc.setFillColor(...colors.bgLight);
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.2);
+                    doc.roundedRect(margin, cursorY, contentWidth, 16, 1, 1, 'FD');
+                    
+                    // Barra azul esquerda do card
+                    doc.setFillColor(...colors.baBlue);
+                    doc.path([
+                        {op: 'm', c: [margin, cursorY + 1]},
+                        {op: 'l', c: [margin + 1.5, cursorY]},
+                        {op: 'l', c: [margin + 1.5, cursorY + 16]},
+                        {op: 'l', c: [margin, cursorY + 15]}
+                    ]);
+                    doc.rect(margin, cursorY, 1.5, 16, 'F');
+
+                    doc.setTextColor(...colors.textMain);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    const entryTitle = normalizeText(entry?.title, `Registro ${index + 1}`);
+                    doc.text(`Registro #${index + 1} — ${entryTitle}`, margin + 4, cursorY + 6);
+
+                    // Metadados em formato tabular limpo
+                    doc.setTextColor(...colors.textMuted);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                    
+                    const col1 = `Data: ${normalizeText(entry?.date, '--')}    |    Duração: ${normalizeText(entry?.duration, '--')}`;
+                    const col2 = `Etapa: ${normalizeText(entry?.stage, '--')}`;
+                    const col3 = `Autor: ${normalizeText(entry?.author, '--')}`;
+                    
+                    doc.text(col1, margin + 4, cursorY + 10.5);
+                    doc.text(col2, margin + 4, cursorY + 14);
+                    doc.text(col3, margin + contentWidth / 2, cursorY + 14);
+
+                    cursorY += 22;
+
+                    addTextBlock('O que foi construído', entry?.whatWasDone);
+                    addTextBlock('Descobertas', entry?.discoveries);
+                    addTextBlock('Obstáculos', entry?.obstacles);
+                    addTextBlock('Próximos passos', entry?.nextSteps);
+
+                    const tags = Array.isArray(entry?.tags) ? entry.tags.filter(Boolean).join(', ') : '';
+                    if (tags) {
+                        addParagraph('Tags', tags);
+                    }
+
+                    const entryImages = diaryImagesByEntry.get(String(entry?.id || '')) || [];
+                    if (entryImages.length > 0) {
+                        addImageGallery(`Anexos do Registro #${index + 1}`, entryImages);
+                    }
+
+                    // Espaço extra entre registros
+                    cursorY += 8; 
+                });
+            }
+
+            // --- RODAPÉ OFICIAL (TODAS AS PÁGINAS) ---
+            const totalPages = doc.getNumberOfPages();
+            const dateStr = new Date().toLocaleDateString('pt-BR');
+            
+            for (let page = 1; page <= totalPages; page += 1) {
+                doc.setPage(page);
+                
+                // Linha do rodapé
+                doc.setDrawColor(...colors.border);
+                doc.setLineWidth(0.3);
+                doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(...colors.textMuted);
+                
+                // Texto Oficial à esquerda
+                doc.text('Governo do Estado da Bahia — Secretaria da Educação', margin, pageHeight - 7);
+                // Data de geração no meio
+                doc.text(`Gerado em: ${dateStr}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+                // Paginação à direita
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Página ${page} de ${totalPages}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+            }
+
+            const fileName = `relatorio-integrado-${slugifyFileName(selectedProject?.titulo, 'projeto')}.pdf`;
+            doc.save(fileName);
+        } catch (error) {
+            console.error('Erro ao exportar PDF do projeto e diario:', error);
+            setPdfExportError('Não foi possível gerar o PDF agora. Verifique se as imagens do projeto/diário estão carregadas e tente novamente.');
+        } finally {
+            setIsExportingPdf(false);
+        }
+    };
 
     if (!selectedProject) {
         return (
@@ -289,7 +713,7 @@ export default function DiaryBoard({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10">
                         <div className="bg-pink-400 border-4 border-slate-900 rounded-2xl p-5 flex flex-col justify-center shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all transform ">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-2 flex items-center gap-2 bg-white px-2 py-1 border-2 border-slate-900 w-max"><Map className="w-4 h-4 stroke-[3]"/> Unidade</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-2 flex items-center gap-2 bg-white px-2 py-1 border-2 border-slate-900 w-max"><MapIcon className="w-4 h-4 stroke-[3]"/> Unidade</span>
                             <span className="text-base font-black text-slate-900 line-clamp-2 uppercase">{selectedSchool?.nome || 'Não informada'}</span>
                         </div>
                         <div className="bg-teal-400 border-4 border-slate-900 rounded-2xl p-5 flex flex-col justify-center shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a] transition-all transform -">
@@ -344,15 +768,32 @@ export default function DiaryBoard({
                             <p className="text-base font-bold text-slate-600 max-w-xl bg-white p-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]">Modo leitura ativado. Somente a equipe vinculada ao projeto possui credenciais para documentar novos avanços.</p>
                         )}
                     </div>
-                    
-                    <button 
-                        onClick={() => setIsModalOpen(true)} 
-                        disabled={!canEditDiary}
-                        className="inline-flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-teal-400 border-4 border-slate-900 text-slate-900 font-black text-base uppercase tracking-widest shadow-[6px_6px_0px_0px_#0f172a] hover:shadow-[10px_10px_0px_0px_#0f172a] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0px_0px_#0f172a] shrink-0 transform -" 
-                    >
-                        <Plus className="w-6 h-6 stroke-[3]" /> Novo Registro
-                    </button>
+
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <button
+                            type="button"
+                            onClick={handleExportProjectDiaryPdf}
+                            disabled={isExportingPdf}
+                            className="inline-flex items-center justify-center gap-3 px-7 py-4 rounded-2xl bg-slate-900 border-4 border-slate-900 text-white font-black text-sm uppercase tracking-widest shadow-[6px_6px_0px_0px_#0f172a] hover:bg-slate-700 hover:shadow-[10px_10px_0px_0px_#0f172a] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0px_0px_#0f172a] shrink-0"
+                        >
+                            <Download className="w-5 h-5 stroke-[3]" />
+                            {isExportingPdf ? 'Gerando PDF...' : 'Baixar PDF Projeto + Diario'}
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            disabled={!canEditDiary}
+                            className="inline-flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-teal-400 border-4 border-slate-900 text-slate-900 font-black text-base uppercase tracking-widest shadow-[6px_6px_0px_0px_#0f172a] hover:shadow-[10px_10px_0px_0px_#0f172a] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0px_0px_#0f172a] shrink-0 transform -"
+                        >
+                            <Plus className="w-6 h-6 stroke-[3]" /> Novo Registro
+                        </button>
+                    </div>
                 </div>
+
+                {pdfExportError && (
+                    <div className="mb-8 rounded-2xl border-4 border-red-700 bg-red-100 px-5 py-4 text-sm font-black text-red-800 uppercase tracking-wider shadow-[4px_4px_0px_0px_#7f1d1d]">
+                        {pdfExportError}
+                    </div>
+                )}
 
                 <div className="space-y-8">
                     {derivedDiaryEntries.length === 0 ? (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     addDoc,
     collection,
@@ -78,9 +78,15 @@ const getDataUrlByteSize = (dataUrl) => {
 
 const DIARY_PROJECT_QUERY_CHUNK_SIZE = 10;
 const MAX_PROJECT_IMAGES = 5;
+const CLUB_CARD_TEMPLATE_IDS = new Set(['neo', 'classic', 'tech']);
 const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
 const MAX_SELF_SCHOOL_CHANGES = 1;
+
+const normalizeClubCardTemplate = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return CLUB_CARD_TEMPLATE_IDS.has(normalized) ? normalized : 'neo';
+};
 
 const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
 const isEnovaMentorEmail = (email) => /@enova\.educacao\.ba\.gov\.br$/.test(normalizeEmailAddress(email));
@@ -203,6 +209,7 @@ function chunkValues(values, size = DIARY_PROJECT_QUERY_CHUNK_SIZE) {
 }
 
 export default function useAppController() {
+    const handledClubDeepLinkRef = useRef(false);
     const {
         currentView,
         setCurrentView,
@@ -706,6 +713,20 @@ export default function useAppController() {
         ]);
     }, [myClubIds, schoolClubDiscoveryList]);
 
+    const initialClubDeepLinkId = useMemo(() => {
+        if (typeof window === 'undefined') return '';
+
+        const params = new URLSearchParams(window.location.search);
+        const requestedView = String(params.get('view') || '').trim().toLowerCase();
+        const requestedClubId = String(params.get('clubId') || params.get('clubeId') || '').trim();
+
+        if (requestedView !== 'clube' || !requestedClubId) {
+            return '';
+        }
+
+        return requestedClubId;
+    }, []);
+
     const latestMyClubJoinRequestByClubId = useMemo(() => {
         const byClubId = new Map();
 
@@ -988,9 +1009,13 @@ export default function useAppController() {
         return scopedProjects.filter((project) => Boolean(String(project?.id || '').trim()));
     }, [scopedProjects]);
 
-    const selectedProject = projectsCatalog.find((project) => String(project.id) === String(selectedProjectId)) ?? null;
+    const normalizedSelectedProjectId = String(selectedProjectId || '').trim();
+    const selectedProject = projectsCatalog.find((project) => String(project.id).trim() === normalizedSelectedProjectId)
+        || myClubProjects.find((project) => String(project.id || '').trim() === normalizedSelectedProjectId)
+        || clubProjects.find((project) => String(project.id || '').trim() === normalizedSelectedProjectId)
+        || null;
     const selectedClub =
-        clubs.find((club) => String(club.id) === String(selectedClubId))
+        clubs.find((club) => String(club.id) === String(selectedClubId).trim())
         ?? clubs.find((club) => String(club.id) === resolveProjectClubId(selectedProject))
         ?? null;
     const selectedSchool = schools.find(
@@ -1089,6 +1114,7 @@ export default function useAppController() {
                 tags: newEntry.tags
                     ? newEntry.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
                     : ['Geral'],
+                images: Array.isArray(newEntry.images) ? newEntry.images : [],
                 author: leadUser?.nome || 'Registro manual',
                 mediator: composeMentoriaLabel(selectedTeam.orientadores, selectedTeam.coorientadores),
                 clube_id: selectedClub.id,
@@ -1100,7 +1126,7 @@ export default function useAppController() {
             // 🎯 INVALIDAR CACHE para forçar refetch
             await cachedDataService.invalidateCollection('diario_bordo');
 
-            setNewEntry({ title: '', duration: '', stage: STAGES[0], whatWasDone: '', discoveries: '', obstacles: '', nextSteps: '', tags: '' });
+            setNewEntry({ title: '', duration: '', stage: STAGES[0], whatWasDone: '', discoveries: '', obstacles: '', nextSteps: '', tags: '', images: [] });
             setIsModalOpen(false);
             setCurrentView('diario');
         } catch (error) {
@@ -1381,6 +1407,25 @@ export default function useAppController() {
             setSelectedClubId(fallbackClubId);
         }
     }, [currentView, clubViewSelectableClubIds, viewingClubId, selectedClubId]);
+
+    useEffect(() => {
+        if (handledClubDeepLinkRef.current || !initialClubDeepLinkId || !authUser || !loggedUser || clubs.length === 0) {
+            return;
+        }
+
+        const targetClubId = String(initialClubDeepLinkId || '').trim();
+        const targetClubExists = clubs.some((club) => String(club?.id || '').trim() === targetClubId);
+
+        if (!targetClubExists) {
+            handledClubDeepLinkRef.current = true;
+            return;
+        }
+
+        handledClubDeepLinkRef.current = true;
+        setCurrentView('clube');
+        setSelectedClubId(targetClubId);
+        setViewingClubId(targetClubId);
+    }, [initialClubDeepLinkId, authUser, loggedUser, clubs, setCurrentView, setSelectedClubId, setViewingClubId]);
 
     useEffect(() => {
         if (!viewingClubId) {
@@ -3406,6 +3451,70 @@ export default function useAppController() {
         }
     };
 
+    const handleUpdateClubCardTemplate = async (clubId, templateId) => {
+        const mentorId = String(loggedUser?.id || authUser?.uid || '').trim();
+        const normalizedClubId = String(clubId || '').trim();
+        const normalizedTemplateId = normalizeClubCardTemplate(templateId);
+
+        if (!mentorId) {
+            throw new Error('Usuario nao autenticado.');
+        }
+
+        if (!normalizedClubId) {
+            throw new Error('Clube nao informado.');
+        }
+
+        if (!isMentoriaPerfil(loggedUser?.perfil)) {
+            throw new Error('Apenas mentor ou co-mentor pode definir o modelo da carteirinha.');
+        }
+
+        let currentClub = clubs.find((club) => String(club?.id || '').trim() === normalizedClubId) || null;
+        if (!currentClub) {
+            const clubSnap = await getDoc(doc(db, 'clubes', normalizedClubId));
+            if (!clubSnap.exists()) {
+                throw new Error('Clube nao encontrado.');
+            }
+            currentClub = { id: clubSnap.id, ...clubSnap.data() };
+        }
+
+        const mentorIds = normalizeIdList([
+            currentClub?.mentor_id,
+            ...(currentClub?.orientador_ids || []),
+            ...(currentClub?.orientadores_ids || []),
+            ...(currentClub?.coorientador_ids || []),
+            ...(currentClub?.coorientadores_ids || [])
+        ]);
+        const canManageByProfileMembership = myClubIds.includes(normalizedClubId);
+
+        if (!mentorIds.includes(mentorId) && !canManageByProfileMembership) {
+            throw new Error('Voce nao possui permissao para alterar o modelo da carteirinha deste clube.');
+        }
+
+        await updateDoc(doc(db, 'clubes', normalizedClubId), {
+            carteirinha_modelo: normalizedTemplateId,
+            updatedBy: mentorId,
+            updatedAt: serverTimestamp()
+        });
+
+        await cachedDataService.invalidateCollection('clubes');
+
+        setClubs((previousClubs) => previousClubs.map((club) => {
+            if (String(club?.id || '').trim() !== normalizedClubId) {
+                return club;
+            }
+
+            return {
+                ...club,
+                carteirinha_modelo: normalizedTemplateId,
+                updatedBy: mentorId,
+                updatedAt: new Date().toISOString()
+            };
+        }));
+
+        setErrorMessage('Modelo da carteirinha atualizado com sucesso.');
+        return normalizedTemplateId;
+    };
+
     const handleRequestClubEntry = async (clubId) => {
         if (!loggedUser || !loggedUserId) {
             throw new Error('Usuario nao autenticado.');
@@ -3797,6 +3906,7 @@ export default function useAppController() {
         handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,
+        handleUpdateClubCardTemplate,
         creatingClub,
         updatingClub,
         newEntry,

@@ -13,6 +13,7 @@ export function buildProjectEntries(project, diaryEntries, projectTeam) {
             discoveries: entry.discoveries || 'Nenhuma descoberta registrada nesta sessao.',
             obstacles: entry.obstacles || 'Nenhum obstaculo registrado.',
             nextSteps: entry.nextSteps || 'A definir.',
+            images: Array.isArray(entry.images) ? entry.images : [],
             tags: Array.isArray(entry.tags) && entry.tags.length > 0 ? entry.tags : ['Geral'],
             author: entry.author || projectTeam.investigadores[0]?.nome || 'Autor nao informado',
             mediator: entry.mediator || composeMentoriaLabel(projectTeam.orientadores, projectTeam.coorientadores)

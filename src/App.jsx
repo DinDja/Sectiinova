@@ -114,6 +114,7 @@ export default function App() {
         handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,
+        handleUpdateClubCardTemplate,
         creatingClub,
         updatingClub,
         handleSaveProfile,
@@ -274,6 +275,7 @@ export default function App() {
                         handleCreateClub={handleCreateClub}
                         creatingClub={creatingClub}
                         handleUpdateClub={handleUpdateClub}
+                        handleUpdateClubCardTemplate={handleUpdateClubCardTemplate}
                         updatingClub={updatingClub}
                     />
                 )}
@@ -314,7 +316,7 @@ export default function App() {
                                 setSelectedClubId(resolvedClubId);
                             }
 
-                            setSelectedProjectId(String(project?.id || ''));
+                            setSelectedProjectId(String(project?.id || '').trim());
                             setCurrentView('diario');
                         }}
                         onClubClick={(project) => {

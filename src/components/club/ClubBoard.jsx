@@ -5,6 +5,7 @@ import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
 import CreateClubForm from './CreateClubForm';
 import EditClubForm from './EditClubForm';
+import MembershipCardGenerator from './MembershipCardGenerator';
 import ModalPerfil from './ModalPerfil'; 
 import { db } from '../../../firebase';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
@@ -58,6 +59,7 @@ export default function ClubBoard({
     handleCreateClub,
     creatingClub,
     handleUpdateClub,
+    handleUpdateClubCardTemplate = async () => {},
     updatingClub
 }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -441,7 +443,7 @@ export default function ClubBoard({
                     
                     <div className="relative max-w-6xl mx-auto space-y-10 z-10">
                         <div className="rounded-[3rem] border-[3px] border-slate-900 bg-white shadow-xl p-8 md:p-12 mb-10 transition-transform hover:-translate-y-1">
-                            <div className="inline-flex items-center gap-2 bg-yellow-400 px-5 py-2.5 rounded-full border-[3px] border-slate-900 shadow-sm mb-6 transform -rotate-2">
+                            <div className="inline-flex items-center gap-2 bg-yellow-400 px-5 py-2.5 rounded-full border-[3px] border-slate-900 shadow-sm mb-6 transform --2">
                                 <Sparkles className="w-5 h-5 text-slate-900 stroke-[2.5]" />
                                 <span className="font-black uppercase tracking-widest text-sm text-slate-900">Explore o Ecossistema</span>
                             </div>
@@ -689,7 +691,7 @@ export default function ClubBoard({
                     <div className="bg-white p-12 md:p-16 rounded-[3rem] border-[3px] border-slate-900 shadow-2xl text-center transform transition-transform hover:-translate-y-2">
                         <Building2 className="w-20 h-20 text-cyan-400 mx-auto mb-8 stroke-[1.5]" />
                         <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tight mb-6">
-                            Selecione um <span className="bg-yellow-400 px-3 py-1 rounded-full border-[3px] border-slate-900 shadow-sm inline-block transform rotate-2">Ecossistema</span>
+                            Selecione um <span className="bg-yellow-400 px-3 py-1 rounded-full border-[3px] border-slate-900 shadow-sm inline-block transform -2">Ecossistema</span>
                         </h2>
                         <p className="text-slate-600 font-bold text-lg mb-10 leading-relaxed">
                             Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.
@@ -795,7 +797,7 @@ export default function ClubBoard({
                                                 <Microscope className="w-4 h-4 stroke-[3]" />
                                                 {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
                                             </span>
-                                            <span className="text-xs font-black text-white bg-pink-500 rounded-full px-4 py-2.5 uppercase tracking-widest border-[3px] border-slate-900 shadow-sm transform rotate-2">
+                                            <span className="text-xs font-black text-white bg-pink-500 rounded-full px-4 py-2.5 uppercase tracking-widest border-[3px] border-slate-900 shadow-sm transform -2">
                                                 {investigatorRatio}% da equipe
                                             </span>
                                         </div>
@@ -840,7 +842,7 @@ export default function ClubBoard({
                                             onClick={() => setIsCreateOpen((previous) => !previous)}
                                             className="inline-flex items-center justify-center gap-3 rounded-full px-8 py-3.5 bg-cyan-300 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-sm tracking-wider transition-transform"
                                         >
-                                            <Zap className={`w-5 h-5 stroke-[2.5] transition-transform ${isCreateOpen ? '-rotate-45' : ''}`} />
+                                            <Zap className={`w-5 h-5 stroke-[2.5] transition-transform ${isCreateOpen ? '--45' : ''}`} />
                                             {isCreateOpen ? 'Cancelar Criação' : 'Novo Projeto'}
                                         </button>
                                     )}
@@ -934,6 +936,18 @@ export default function ClubBoard({
                             )}
                         </div>
                     </section>
+
+                    <MembershipCardGenerator
+                        viewingClub={viewingClub}
+                        viewingClubSchool={viewingClubSchool}
+                        mentors={[...viewingClubOrientadores, ...viewingClubCoorientadores]}
+                        students={viewingClubInvestigadores}
+                        clubBannerUrl={clubBannerUrl}
+                        clubLogoUrl={clubLogoUrl}
+                        loggedUser={loggedUser}
+                        canManageTemplate={canManageClub}
+                        onChangeTemplate={(templateId) => handleUpdateClubCardTemplate(viewingClubId, templateId)}
+                    />
 
                     <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                         <div className="xl:col-span-5 bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
@@ -1048,7 +1062,7 @@ export default function ClubBoard({
                                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                     <Users className="w-7 h-7 stroke-[2.5] text-yellow-500" /> Solicitações de Entrada
                                 </h3>
-                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-pink-400 text-white text-lg font-black px-5 py-1.5 shadow-sm transform rotate-2">
+                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-pink-400 text-white text-lg font-black px-5 py-1.5 shadow-sm transform -2">
                                     {clubJoinRequests.length}
                                 </span>
                             </div>
@@ -1258,7 +1272,7 @@ export default function ClubBoard({
                     {/* PROJECTS GRID */}
                     <div className="pt-16 relative z-10">
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div className="inline-flex items-center gap-4 bg-white border-[3px] border-slate-900 shadow-md px-8 py-5 rounded-[3rem] transform -rotate-1">
+                            <div className="inline-flex items-center gap-4 bg-white border-[3px] border-slate-900 shadow-md px-8 py-5 rounded-[3rem] transform --1">
                                 <div className="w-5 h-10 bg-cyan-300 border-[3px] border-slate-900 rounded-full"></div>
                                 <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Projetos Ativos</h3>
                             </div>
@@ -1329,7 +1343,7 @@ export default function ClubBoard({
 
                                                     <div className={`grid ${actionGridClass} gap-3`}>
                                                         <button
-                                                            onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(project.id); setCurrentView('diario'); }}
+                                                            onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(String(project.id || '').trim()); setCurrentView('diario'); }}
                                                             className="w-full text-center bg-cyan-300 text-slate-900 px-4 py-3.5 rounded-full border-[3px] border-slate-900 font-black text-xs uppercase tracking-widest transition-transform shadow-sm hover:scale-105 active:scale-95"
                                                         >
                                                             Acessar Diário

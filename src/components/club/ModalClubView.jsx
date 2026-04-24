@@ -57,7 +57,7 @@ export default function ModalClubView({
     const handleAcessarDiario = (projectId) => {
         onClose();
         setSelectedClubId(viewingClub.id);
-        setSelectedProjectId(projectId);
+        setSelectedProjectId(String(projectId || '').trim());
         setCurrentView('diario');
     };
 

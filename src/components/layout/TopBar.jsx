@@ -160,7 +160,7 @@ export default function TopBar({
   const renderSearchForm = (isMobile = false) => (
     <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full group">
       <Search
-        className={`absolute left-5 h-5 w-5 stroke-[3] transition-colors duration-300 z-10 ${
+        className={`absolute left-4 h-4 w-4 stroke-[3] transition-colors duration-300 z-10 2xl:left-5 2xl:h-5 2xl:w-5 ${
           isSearchDisabled ? "text-slate-400" : "text-cyan-500 group-focus-within:text-pink-500"
         }`}
       />
@@ -176,7 +176,7 @@ export default function TopBar({
         className={`w-full rounded-full border-[3px] outline-none transition-all duration-300 ${
           isMobile
             ? "py-3 pl-14 pr-24 text-xs"
-            : "py-3.5 pl-14 pr-28 text-xs sm:text-sm"
+            : "py-2.5 pl-12 pr-24 text-[11px] 2xl:py-3.5 2xl:pl-14 2xl:pr-28 2xl:text-sm"
         } font-black uppercase tracking-widest ${
           isSearchDisabled
             ? "cursor-not-allowed border-slate-300 bg-slate-100 text-slate-500"
@@ -191,7 +191,7 @@ export default function TopBar({
         }
       />
 
-      <div className="absolute right-2 flex items-center gap-2">
+      <div className="absolute right-2 flex items-center gap-1.5 2xl:gap-2">
         {searchInputValue && !isSearchDisabled && (
           <button
             type="button"
@@ -206,7 +206,7 @@ export default function TopBar({
         <button
           type="submit"
           disabled={isSearchDisabled}
-          className={`rounded-full border-[3px] px-4 py-2 text-xs font-black uppercase tracking-widest transition-transform ${
+          className={`rounded-full border-[3px] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest transition-transform 2xl:px-4 2xl:py-2 2xl:text-xs ${
             isSearchDisabled
               ? "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-400"
               : "border-slate-900 bg-cyan-400 text-slate-900 shadow-sm hover:scale-105 hover:bg-cyan-300 active:scale-95"
@@ -226,10 +226,10 @@ export default function TopBar({
           isScrolled ? "shadow-md bg-white/95 backdrop-blur-sm" : ""
         }`}
       >
-        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[92rem] px-3 sm:px-4 lg:px-5 2xl:px-8">
           <div
-            className={`flex items-center justify-between gap-3 transition-all duration-300 ${
-              isScrolled ? "py-2" : "py-3 sm:py-4"
+            className={`flex items-center justify-between gap-2 transition-all duration-300 2xl:gap-3 ${
+              isScrolled ? "py-2" : "py-2.5 sm:py-3 2xl:py-4"
             }`}
           >
             <div className="flex min-w-0 items-center gap-3">
@@ -256,19 +256,19 @@ export default function TopBar({
                 <img
                   src="/logo-sistema.svg"
                   alt="Logo do sistema"
-                  className="w-[112px] shrink-0 object-contain sm:w-[150px] lg:w-[160px] transform hover:rotate-2 transition-transform duration-300 origin-left"
+                  className="w-[112px] shrink-0 object-contain sm:w-[132px] lg:w-[128px] xl:w-[140px] 2xl:w-[160px] transform hover:rotate-2 transition-transform duration-300 origin-left"
                   loading="lazy"
                 />
               </div>
             </div>
 
-            <div className="hidden flex-1 max-w-2xl sm:block mx-4">
+            <div className="hidden min-w-0 flex-1 max-w-xl sm:block mx-2 lg:mx-3 2xl:mx-4 2xl:max-w-2xl">
               {renderSearchForm(false)}
             </div>
 
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 2xl:gap-3">
               {contextName && (
-                <div className="hidden items-center gap-3 rounded-full border-[3px] border-slate-900 bg-pink-500 px-3 py-1.5 shadow-sm xl:flex transform hover:scale-105 transition-transform duration-300 cursor-default">
+                <div className="hidden items-center gap-3 rounded-full border-[3px] border-slate-900 bg-pink-500 px-3 py-1.5 shadow-sm 2xl:flex transform hover:scale-105 transition-transform duration-300 cursor-default">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-900 bg-white">
                     {contextClubLogoUrl ? (
                       <img
@@ -314,7 +314,7 @@ export default function TopBar({
                   onClick={() => setShowUserMenu((open) => !open)}
                   aria-expanded={showUserMenu}
                   aria-haspopup="true"
-                  className={`group flex items-center gap-2 rounded-full border-[3px] p-1 pr-2 transition-all duration-300 sm:gap-3 sm:p-1.5 sm:pr-4 ${
+                  className={`group flex items-center gap-2 rounded-full border-[3px] p-1 pr-2 transition-all duration-300 sm:gap-2 sm:pr-3 2xl:gap-3 2xl:p-1.5 2xl:pr-4 ${
                     showUserMenu
                       ? "border-slate-900 bg-yellow-400 shadow-md scale-105"
                       : "border-slate-900 bg-slate-50 shadow-sm hover:scale-105 hover:bg-yellow-100"
@@ -325,23 +325,23 @@ export default function TopBar({
                       <img
                         src={userAvatar}
                         alt={`Avatar de ${userName}`}
-                        className="h-10 w-10 rounded-full border-[3px] border-slate-900 object-cover bg-white"
+                        className="h-9 w-9 rounded-full border-[3px] border-slate-900 object-cover bg-white 2xl:h-10 2xl:w-10"
                       />
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-300 text-sm font-black text-slate-900">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-300 text-sm font-black text-slate-900 2xl:h-10 2xl:w-10">
                         {getInitials(userName)}
                       </div>
                     )}
                   </div>
 
-                  <div className="hidden text-left md:flex md:flex-col md:items-start">
+                  <div className="hidden text-left xl:flex xl:flex-col xl:items-start">
                     <span className="text-xs font-black uppercase tracking-widest text-slate-900 leading-tight">
                       {userName.split(" ")[0]}
                     </span>
                   </div>
 
                   <ChevronDown
-                    className={`hidden h-4 w-4 stroke-[3] text-slate-900 transition-transform duration-300 md:block ${
+                    className={`hidden h-4 w-4 stroke-[3] text-slate-900 transition-transform duration-300 xl:block ${
                       showUserMenu ? "rotate-180" : ""
                     }`}
                   />

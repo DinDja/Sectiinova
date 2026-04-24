@@ -73,8 +73,13 @@ export default function MainShell({
   const isTrilha = currentView === "trilha";
 
   const containerClasses = isHighContrast
-    ? "app-shell h-screen bg-black text-white flex flex-col relative overflow-hidden"
-    : "app-shell h-screen flex flex-col relative overflow-hidden";
+    ? "app-shell h-dvh bg-black text-white flex flex-col relative overflow-hidden"
+    : "app-shell h-dvh flex flex-col relative overflow-hidden";
+
+  const constrainedContentClasses =
+    "mx-auto w-full max-w-[85rem] px-3 py-3 sm:px-4 md:px-6 lg:px-4 lg:py-3 2xl:px-6 2xl:py-4";
+  const fullContentClasses =
+    "w-full px-3 py-3 sm:px-4 md:px-6 lg:px-4 2xl:px-6";
 
   return (
     <div className={containerClasses} style={containerStyle}>
@@ -112,17 +117,17 @@ export default function MainShell({
             isSidebarOpen={isMobileSidebarOpen}
           />
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden relative studio-main">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden relative studio-main min-w-0">
             {isINPIView ? (
-              <div className="mx-auto w-full max-w-[85rem] px-3 py-4 sm:px-4 md:px-6">
+              <div className={constrainedContentClasses}>
                 {children}
               </div>
             ) : isForum || isClub ? (
-               <div className="w-full px-3 py-3 sm:px-4 md:px-6">{children}</div>
+               <div className={fullContentClasses}>{children}</div>
             ):  isTrilha ? (
-              <div className="w-full px-3 py-3 sm:px-4 md:px-6">{children}</div>
+              <div className={fullContentClasses}>{children}</div>
             ) : (
-              <div className="mx-auto w-full max-w-[85rem] px-3 py-4 sm:px-4 md:px-6">
+              <div className={constrainedContentClasses}>
                 {children}
               </div>
             )}

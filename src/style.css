@@ -75,6 +75,7 @@
 @layer components {
   .app-shell {
     @apply min-h-screen text-slate-800;
+    min-height: 100dvh;
     font-family: var(--font-primary);
   }
 
@@ -446,4 +447,162 @@
 
 .animated-card:hover .inner-content {
   opacity: 0;
+}
+
+@media (min-width: 1024px) and (max-width: 1599px),
+  (min-width: 1024px) and (max-height: 900px) {
+  .app-shell .studio-main {
+    scroll-padding-top: 1rem;
+  }
+
+  .app-shell .studio-main > div {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .app-shell .studio-main [class~="min-h-screen"] {
+    min-height: calc(100dvh - 5.5rem) !important;
+  }
+
+  .app-shell .studio-main [class~="min-h-[80vh]"] {
+    min-height: min(72vh, calc(100dvh - 6rem)) !important;
+  }
+
+  .app-shell .studio-main [class~="space-y-16"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2.5rem !important;
+  }
+
+  .app-shell .studio-main [class~="space-y-12"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="space-y-10"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.75rem !important;
+  }
+
+  .app-shell .studio-main [class~="space-y-8"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem !important;
+  }
+
+  .app-shell .studio-main [class~="gap-16"] {
+    gap: 2.25rem !important;
+  }
+
+  .app-shell .studio-main [class~="gap-12"] {
+    gap: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="gap-10"] {
+    gap: 1.75rem !important;
+  }
+
+  .app-shell .studio-main [class~="gap-8"] {
+    gap: 1.5rem !important;
+  }
+
+  .app-shell .studio-main [class~="p-16"],
+  .app-shell .studio-main [class~="sm:p-16"],
+  .app-shell .studio-main [class~="md:p-16"] {
+    padding: 2.5rem !important;
+  }
+
+  .app-shell .studio-main [class~="p-12"],
+  .app-shell .studio-main [class~="sm:p-12"],
+  .app-shell .studio-main [class~="md:p-12"] {
+    padding: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="p-10"],
+  .app-shell .studio-main [class~="sm:p-10"],
+  .app-shell .studio-main [class~="md:p-10"] {
+    padding: 1.75rem !important;
+  }
+
+  .app-shell .studio-main [class~="p-8"],
+  .app-shell .studio-main [class~="sm:p-8"],
+  .app-shell .studio-main [class~="md:p-8"] {
+    padding: 1.5rem !important;
+  }
+
+  .app-shell .studio-main [class~="pt-12"],
+  .app-shell .studio-main [class~="md:pt-12"] {
+    padding-top: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="pb-20"],
+  .app-shell .studio-main [class~="pb-16"] {
+    padding-bottom: 3rem !important;
+  }
+
+  .app-shell .studio-main [class~="mb-16"],
+  .app-shell .studio-main [class~="mb-12"] {
+    margin-bottom: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="mt-16"],
+  .app-shell .studio-main [class~="mt-12"] {
+    margin-top: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="rounded-[4rem]"],
+  .app-shell .studio-main [class~="rounded-[3rem]"] {
+    border-radius: 2rem !important;
+  }
+
+  .app-shell .studio-main [class~="rounded-[2.5rem]"] {
+    border-radius: 1.75rem !important;
+  }
+
+  .app-shell .studio-main [class~="text-7xl"],
+  .app-shell .studio-main [class~="md:text-7xl"] {
+    font-size: 3.75rem !important;
+    line-height: 0.95 !important;
+  }
+
+  .app-shell .studio-main [class~="text-6xl"],
+  .app-shell .studio-main [class~="md:text-6xl"] {
+    font-size: 3.25rem !important;
+    line-height: 1 !important;
+  }
+
+  .app-shell .studio-main [class~="text-5xl"],
+  .app-shell .studio-main [class~="md:text-5xl"] {
+    font-size: 2.75rem !important;
+    line-height: 1.02 !important;
+  }
+
+  .app-shell .studio-main [class~="text-4xl"],
+  .app-shell .studio-main [class~="md:text-4xl"] {
+    font-size: 2.15rem !important;
+    line-height: 1.08 !important;
+  }
+
+  .app-shell .studio-main [class~="h-[420px]"] {
+    height: 360px !important;
+  }
+
+  .app-shell .studio-main [class~="h-[340px]"] {
+    height: 300px !important;
+  }
+
+  .app-shell .studio-main [class~="h-[800px]"] {
+    height: min(760px, calc(100dvh - 3rem)) !important;
+  }
+
+  .app-shell .studio-main [class~="min-h-[480px]"],
+  .app-shell .studio-main [class~="min-h-[460px]"] {
+    min-height: 400px !important;
+  }
+
+  .app-shell .studio-main [class~="shadow-[16px_16px_0px_0px_#0f172a]"] {
+    box-shadow: 10px 10px 0 0 #0f172a !important;
+  }
+
+  .app-shell .studio-main [class~="shadow-[12px_12px_0px_0px_#0f172a]"] {
+    box-shadow: 8px 8px 0 0 #0f172a !important;
+  }
+
+  .app-shell .studio-main [class~="shadow-[8px_8px_0px_0px_#0f172a]"] {
+    box-shadow: 6px 6px 0 0 #0f172a !important;
+  }
 }

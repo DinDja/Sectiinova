@@ -1,5 +1,6 @@
-import React from 'react';
-import { Map, BookOpen, Wrench, X, ChevronDown, LoaderCircle, PenTool } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Map as MapIcon, BookOpen, Wrench, X, ChevronDown, LoaderCircle, PenTool } from 'lucide-react';
+import { compressImageFile } from '../../utils/helpers';
 
 export default function DiaryModal({
     isModalOpen,
@@ -15,6 +16,76 @@ export default function DiaryModal({
     const inputClasses = "w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-3 text-sm font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all placeholder:text-slate-400";
     const labelClasses = "text-xs font-black uppercase tracking-widest text-slate-900 mb-2 block";
     const sectionTitleClasses = "text-2xl font-black text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3";
+    const fileInputRef = useRef(null);
+
+    const getDataUrlByteSize = (dataUrl) => {
+        const base64 = String(dataUrl || '').split(',')[1] || '';
+        return Math.ceil((base64.length * 3) / 4);
+    };
+
+    const compressSelectedImage = async (file) => {
+        let quality = 0.75;
+        let maxDimension = 1024;
+        let dataUrl = await compressImageFile(file, {
+            maxWidth: maxDimension,
+            maxHeight: maxDimension,
+            quality,
+            outputType: 'image/jpeg'
+        });
+
+        let sizeBytes = getDataUrlByteSize(dataUrl);
+        while (sizeBytes > 180000 && quality > 0.35) {
+            quality -= 0.1;
+            dataUrl = await compressImageFile(file, {
+                maxWidth: maxDimension,
+                maxHeight: maxDimension,
+                quality,
+                outputType: 'image/jpeg'
+            });
+            sizeBytes = getDataUrlByteSize(dataUrl);
+        }
+
+        while (sizeBytes > 220000 && maxDimension > 600) {
+            maxDimension -= 200;
+            dataUrl = await compressImageFile(file, {
+                maxWidth: maxDimension,
+                maxHeight: maxDimension,
+                quality: Math.max(0.35, quality - 0.1),
+                outputType: 'image/jpeg'
+            });
+            sizeBytes = getDataUrlByteSize(dataUrl);
+        }
+
+        return dataUrl;
+    };
+
+    const handleImagesChange = async (event) => {
+        const files = Array.from(event.target.files || []).slice(0, 4);
+        if (!files.length) return;
+
+        const compressedImages = [];
+        for (const file of files) {
+            try {
+                const imageDataUrl = await compressSelectedImage(file);
+                if (imageDataUrl) compressedImages.push(imageDataUrl);
+            } catch (err) {
+                console.error('Falha ao comprimir imagem do diário:', err);
+            }
+        }
+
+        setNewEntry({
+            ...newEntry,
+            images: [...(newEntry.images || []), ...compressedImages].slice(0, 4)
+        });
+        event.target.value = '';
+    };
+
+    const handleRemoveImage = (index) => {
+        setNewEntry({
+            ...newEntry,
+            images: (newEntry.images || []).filter((_, idx) => idx !== index)
+        });
+    };
 
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
@@ -52,7 +123,7 @@ export default function DiaryModal({
                         {/* SECÇÃO 1: Contexto */}
                         <div className="bg-yellow-300 border-4 border-slate-900 rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
                             <h3 className={sectionTitleClasses}>
-                                <Map className="w-7 h-7 stroke-[3]" /> 1. Contexto da Sessão
+                                <MapIcon className="w-7 h-7 stroke-[3]" /> 1. Contexto da Sessão
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="md:col-span-2">
@@ -129,10 +200,61 @@ export default function DiaryModal({
                             </div>
                         </div>
 
-                        {/* SECÇÃO 3: Gestão */}
+                        <div className="bg-slate-100 border-4 border-slate-900 rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                            <h3 className={sectionTitleClasses}>
+                                <MapIcon className="w-7 h-7 stroke-[3]" /> 3. Fotos e Evidências
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className={labelClasses}>Imagens do registro</label>
+                                    <p className="text-xs font-bold text-slate-800 mb-3 bg-white/50 inline-block px-2 py-1 rounded-md border-2 border-slate-900 border-dashed">
+                                        Anexe fotos do experimento, protótipo ou resultado do dia.
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="inline-flex items-center justify-center rounded-full border-2 border-slate-900 bg-slate-900 px-6 py-3 text-sm font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-700 transition-colors"
+                                        >
+                                            Adicionar fotos
+                                        </button>
+                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-900">
+                                            {newEntry.images?.length || 0} imagem(s) selecionada(s)
+                                        </span>
+                                    </div>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImagesChange}
+                                        className="sr-only"
+                                    />
+                                </div>
+
+                                {newEntry.images?.length > 0 && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {newEntry.images.map((imageSrc, index) => (
+                                            <div key={index} className="relative overflow-hidden rounded-3xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] bg-slate-900">
+                                                <img src={imageSrc} alt={`Preview ${index + 1}`} className="h-44 w-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(index)}
+                                                    className="absolute right-3 top-3 h-8 w-8 rounded-full border-2 border-white bg-slate-900/90 text-white flex items-center justify-center text-lg leading-none"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* SECÇÃO 4: Gestão */}
                         <div className="bg-blue-300 border-4 border-slate-900 rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
                             <h3 className={sectionTitleClasses}>
-                                <Wrench className="w-7 h-7 stroke-[3]" /> 3. Gestão e Planeamento
+                                <Wrench className="w-7 h-7 stroke-[3]" /> 4. Gestão e Planeamento
                             </h3>
                             <div className="space-y-6">
                                 <div>

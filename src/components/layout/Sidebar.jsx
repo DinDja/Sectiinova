@@ -50,12 +50,12 @@ export default function Sidebar({
       iconSrc: "/iconesSidebar/trilha.svg",
       tooltip: "Planejar trilha CT&I",
     },
-    {
-      id: "inpi",
-      label: "PatentesLab",
-      icon: FcIdea,
-      tooltip: "Propriedade intelectual",
-    },
+    // {
+    //   id: "inpi",
+    //   label: "PatentesLab",
+    //   icon: FcIdea,
+    //   tooltip: "Propriedade intelectual",
+    // },
     {
       id: "forum",
       label: "POP Café",
@@ -212,7 +212,7 @@ export default function Sidebar({
 
   const renderSidebarContent = (isMobile) => (
     <>
-      <div className={`w-full relative z-10 ${isMobile ? "p-5 pb-4" : "px-4 pb-6 pt-2"} flex items-center ${isMobile ? "justify-between" : "justify-center"}`}>
+      <div className={`w-full relative z-10 ${isMobile ? "p-5 pb-4" : "px-3 pb-3 pt-1 2xl:px-4 2xl:pb-6 2xl:pt-2"} flex items-center ${isMobile ? "justify-between" : "justify-center"}`}>
         {isMobile && (
           <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm">
             Navegação
@@ -223,7 +223,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={toggleEditMode}
-            className={`group inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 p-3 transition-transform duration-300 hover:scale-110 active:scale-95 shadow-sm ${
+            className={`group inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 ${isMobile ? "p-3" : "p-2.5 2xl:p-3"} transition-transform duration-300 hover:scale-110 active:scale-95 shadow-sm ${
               isEditing
                 ? "bg-pink-400 scale-105"
                 : "bg-yellow-400"
@@ -232,9 +232,9 @@ export default function Sidebar({
             aria-pressed={isEditing}
           >
             {isEditing ? (
-              <Check className="h-5 w-5 stroke-[3] text-white" />
+              <Check className={`${isMobile ? "h-5 w-5" : "h-4 w-4 2xl:h-5 2xl:w-5"} stroke-[3] text-white`} />
             ) : (
-              <Settings2 className="h-5 w-5 stroke-[3] text-slate-900 transition-transform group-hover:rotate-90 duration-500" />
+              <Settings2 className={`${isMobile ? "h-5 w-5" : "h-4 w-4 2xl:h-5 2xl:w-5"} stroke-[3] text-slate-900 transition-transform group-hover:rotate-90 duration-500`} />
             )}
           </button>
 
@@ -252,7 +252,7 @@ export default function Sidebar({
       </div>
 
       <nav
-        className={`pt-2 relative z-10 flex w-full flex-1 flex-col ${isMobile ? "gap-3 px-5 pb-6 pt-2" : "gap-4 px-3 sm:px-4"} overflow-y-auto no-scrollbar`}
+        className={`pt-2 relative z-10 flex w-full flex-1 flex-col ${isMobile ? "gap-3 px-5 pb-6 pt-2" : "gap-2 px-2 2xl:gap-4 2xl:px-4"} overflow-y-auto no-scrollbar`}
         aria-label="Navegação"
       >
         {navItems.map((item, index) => {
@@ -285,7 +285,7 @@ export default function Sidebar({
                 className={`group relative flex w-full items-center border-[3px] border-slate-900 transition-all duration-300 outline-none ${
                   isMobile
                     ? "rounded-full gap-4 px-5 py-3.5"
-                    : "rounded-[1.5rem] flex-col justify-center px-2 py-4"
+                    : "rounded-[1.25rem] flex-col justify-center px-1.5 py-2.5 xl:py-3 2xl:rounded-[1.5rem] 2xl:px-2 2xl:py-4"
                 } ${
                   isEditing
                     ? "cursor-grab bg-slate-50 shadow-sm hover:scale-105 hover:bg-white active:cursor-grabbing active:scale-95"
@@ -312,7 +312,7 @@ export default function Sidebar({
 
                 <div
                   className={`flex items-center justify-center transition-transform duration-500 ease-out ${
-                    isMobile ? "h-10 w-10" : "mb-2 h-10 w-10 group-hover:scale-110 group-hover:rotate-3"
+                    isMobile ? "h-10 w-10" : "mb-1 h-8 w-8 xl:h-9 xl:w-9 2xl:mb-2 2xl:h-10 2xl:w-10 group-hover:scale-110 group-hover:rotate-3"
                   }`}
                 >
                   {item.iconSrc ? (
@@ -321,14 +321,14 @@ export default function Sidebar({
                       alt=""
                       aria-hidden="true"
                       className={`transition-all duration-300 ${
-                        isMobile ? "h-9 w-9" : "h-9 w-9 sm:h-10 sm:w-10"
+                        isMobile ? "h-9 w-9" : "h-8 w-8 xl:h-9 xl:w-9 2xl:h-10 2xl:w-10"
                       }`}
                       loading="lazy"
                     />
                   ) : (
                     <Icon
                       className={`transition-all duration-300 ${
-                        isMobile ? "h-9 w-9" : "h-9 w-9 sm:h-10 sm:w-10"
+                        isMobile ? "h-9 w-9" : "h-8 w-8 xl:h-9 xl:w-9 2xl:h-10 2xl:w-10"
                       }`}
                     />
                   )}
@@ -339,7 +339,7 @@ export default function Sidebar({
                     {item.label}
                   </span>
                 ) : (
-                  <span className={`text-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest leading-tight transition-colors ${isActive ? "text-slate-900" : "text-slate-700"}`}>
+                  <span className={`text-center text-[8px] 2xl:text-[10px] font-black uppercase tracking-widest leading-tight transition-colors ${isActive ? "text-slate-900" : "text-slate-700"}`}>
                     {item.id === "clube" ? (
                       <>Meu<br />Clube</>
                     ) : (
@@ -354,11 +354,11 @@ export default function Sidebar({
       </nav>
 
       {!isMobile && (
-        <div className="mt-auto flex w-full shrink-0 justify-center px-4 pb-4 pt-6 relative z-10">
+        <div className="mt-auto flex w-full shrink-0 justify-center px-3 pb-3 pt-3 2xl:px-4 2xl:pb-4 2xl:pt-6 relative z-10">
           <img
             src="images/Secti_Vertical.png"
             alt="Logo do sistema"
-            className="w-16 object-contain transition-transform duration-500 hover:scale-110 hover:-rotate-2 sm:w-20"
+            className="w-14 object-contain transition-transform duration-500 hover:scale-110 hover:-rotate-2 2xl:w-20"
             loading="lazy"
           />
         </div>
@@ -388,7 +388,7 @@ export default function Sidebar({
       )}
 
       <aside
-        className="hidden h-full min-h-screen w-28 shrink-0 flex-col border-r-[3px] border-slate-900 bg-white py-6 transition-all duration-300 lg:flex xl:w-32 relative z-30 overflow-hidden"
+        className="hidden h-full min-h-0 w-24 shrink-0 flex-col border-r-[3px] border-slate-900 bg-white py-3 transition-all duration-300 lg:flex xl:w-28 2xl:w-32 2xl:py-6 relative z-30 overflow-hidden"
         aria-label="Menu principal desktop"
       >
         {/* Halftone Pattern Desktop */}

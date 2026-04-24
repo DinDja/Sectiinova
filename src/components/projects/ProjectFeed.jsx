@@ -5,7 +5,9 @@ import {
   LoaderCircle,
   AlertCircle,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Building2,
+  MapPin
 } from "lucide-react";
 import EmptyState from "../shared/EmptyState";
 import ProjectCard from "./ProjectCard";
@@ -54,6 +56,16 @@ const ProjectCardSkeleton = () => (
   </div>
 );
 
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+const countUniqueIds = (values = []) => (
+  new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  ).size
+);
+
 export default function ProjectFeed({
   feedProjects,
   clubs,
@@ -73,6 +85,7 @@ export default function ProjectFeed({
   getInvestigatorDisplayNames,
 }) {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [feedMode, setFeedMode] = useState("projects");
   const [isClubModalOpen, setIsClubModalOpen] = useState(false);
   const [modalClubData, setModalClubData] = useState({
     club: null,
@@ -91,15 +104,22 @@ export default function ProjectFeed({
     }
   }, [feedProjects, isFetchingProjects]);
 
+  const isClubMode = feedMode === "clubs";
   const isSearchActive = Boolean(String(searchTerm || "").trim());
-  const showSkeletons = isInitialLoading && isFetchingProjects && feedProjects.length === 0;
-  const isNoResults = feedProjects.length === 0;
-  const showEmptyState = !isFetchingProjects && !isInitialLoading && isNoResults && !hasMoreProjects;
-  const showNoMoreProjects = !isFetchingProjects && !isInitialLoading && !hasMoreProjects && !isNoResults;
-  const showLoadMoreSentinel = !isFetchingProjects && hasMoreProjects && !isInitialLoading && !isSearchActive;
+  const normalizedSearchTerm = normalizeText(searchTerm);
+  const showProjectSkeletons = !isClubMode && isInitialLoading && isFetchingProjects && feedProjects.length === 0;
+  const showNoMoreProjects = !isClubMode && !isFetchingProjects && !isInitialLoading && !hasMoreProjects;
+  const showLoadMoreSentinel = !isClubMode && !isFetchingProjects && hasMoreProjects && !isInitialLoading && !isSearchActive;
 
   const clubsById = useMemo(() => new Map(clubs.map((club) => [String(club.id), club])), [clubs]);
   const schoolsById = useMemo(() => new Map(schools.map((school) => [String(school.id), school])), [schools]);
+  const schoolsByName = useMemo(() => (
+    new Map(
+      schools
+        .map((school) => [normalizeText(school?.nome), school])
+        .filter(([name]) => Boolean(name))
+    )
+  ), [schools]);
 
   const diaryEntriesByProjectId = useMemo(() => {
     const entriesMap = new Map();
@@ -124,6 +144,84 @@ export default function ProjectFeed({
       return { project, club, school, isCompleted, team, investigatorNames };
     });
   }, [feedProjects, clubsById, schoolsById, getProjectTeam, users, diaryEntriesByProjectId, getInvestigatorDisplayNames]);
+
+  const renderedClubs = useMemo(() => {
+    const projectsByClubId = new Map();
+    feedProjects.forEach((project) => {
+      const clubId = String(project?.clube_id || "").trim();
+      if (!clubId) return;
+      projectsByClubId.set(clubId, (projectsByClubId.get(clubId) || 0) + 1);
+    });
+
+    return clubs
+      .map((club) => {
+        const clubId = String(club?.id || "").trim();
+        const clubSchoolId = String(club?.escola_id || "").trim();
+        const clubSchoolName = normalizeText(club?.escola_nome);
+        const school = schoolsById.get(clubSchoolId) || schoolsByName.get(clubSchoolName) || null;
+
+        const schoolName = String(school?.nome || club?.escola_nome || "Unidade escolar nao informada").trim();
+        const schoolSec = String(school?.cod_sec || school?.sec || school?.codigo_sec || "").trim();
+        const schoolInep = String(school?.cod_inep || school?.inep || "").trim();
+        const clubBannerUrl = String(club?.banner_url || club?.banner || club?.cover || "").trim();
+        const clubLogoUrl = String(club?.logo_url || club?.logo || club?.emblem || "").trim();
+
+        const memberCount = countUniqueIds([
+          ...(club?.membros_ids || []),
+          ...(club?.clubistas_ids || []),
+          ...(club?.orientador_ids || []),
+          ...(club?.orientadores_ids || []),
+          ...(club?.coorientador_ids || []),
+          ...(club?.coorientadores_ids || []),
+          club?.mentor_id,
+        ]);
+
+        const mentorCount = countUniqueIds([
+          club?.mentor_id,
+          ...(club?.orientador_ids || []),
+          ...(club?.orientadores_ids || []),
+          ...(club?.coorientador_ids || []),
+          ...(club?.coorientadores_ids || []),
+        ]);
+
+        const projectCountFromFeed = projectsByClubId.get(clubId);
+        const fallbackProjectCount = Number(club?.projetosCount ?? club?.projetos?.length ?? club?.projetos_ids?.length ?? 0);
+        const projectsCount = Number.isFinite(projectCountFromFeed)
+          ? projectCountFromFeed
+          : (Number.isFinite(fallbackProjectCount) ? fallbackProjectCount : 0);
+
+        const searchText = normalizeText([
+          club?.nome,
+          club?.descricao,
+          schoolName,
+          schoolSec,
+          schoolInep,
+          clubSchoolId,
+        ].join(" "));
+
+        return {
+          club,
+          school,
+          schoolName,
+          schoolSec,
+          schoolInep,
+          clubBannerUrl,
+          clubLogoUrl,
+          memberCount,
+          mentorCount,
+          projectsCount,
+          searchText,
+        };
+      })
+      .filter((item) => {
+        if (!normalizedSearchTerm) return true;
+        return item.searchText.includes(normalizedSearchTerm);
+      })
+      .sort((a, b) => String(a?.club?.nome || "").localeCompare(String(b?.club?.nome || ""), "pt-BR"));
+  }, [clubs, feedProjects, schoolsById, schoolsByName, normalizedSearchTerm]);
+
+  const isNoResults = isClubMode ? renderedClubs.length === 0 : renderedProjects.length === 0;
+  const showEmptyState = !isFetchingProjects && !isInitialLoading && isNoResults && (isClubMode || !hasMoreProjects);
 
   const handleOpenClubModal = (club, school) => {
     if (!club) return;
@@ -150,6 +248,14 @@ export default function ProjectFeed({
       club, school, projects: clubProjects, users: clubUsers, orientadores, coorientadores, investigadores, diaryCount: clubDiaryCount,
     });
     setIsClubModalOpen(true);
+  };
+
+  const handleOpenClubBoard = (clubId) => {
+    const normalizedClubId = String(clubId || "").trim();
+    if (!normalizedClubId) return;
+    setSelectedClubId(normalizedClubId);
+    setViewingClubId(normalizedClubId);
+    setCurrentView("clube");
   };
 
   return (
@@ -231,6 +337,34 @@ export default function ProjectFeed({
               </div>
 
             </div>
+
+            <div className="mt-8 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-700 bg-white border-[3px] border-slate-900 rounded-full px-4 py-2 inline-flex items-center gap-2 w-fit">
+                <MapPin className="w-4 h-4 stroke-[3]" />
+                Exibindo: {isClubMode ? "Feed de Clubes" : "Feed de Projetos"}
+              </p>
+
+              <div className="inline-flex items-center rounded-[1.5rem] border-[3px] border-slate-900 bg-white p-1.5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setFeedMode("projects")}
+                  className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
+                    !isClubMode ? "bg-pink-400 text-white" : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  Ver projetos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedMode("clubs")}
+                  className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
+                    isClubMode ? "bg-cyan-300 text-slate-900" : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  Ver clubes
+                </button>
+              </div>
+            </div>
           </div>
           {/* Rabicho do Header Principal */}
         </div>
@@ -239,10 +373,10 @@ export default function ProjectFeed({
         <div
           className="grid grid-cols-1 gap-10"
           role="feed"
-          aria-busy={isFetchingProjects}
-          aria-label="Lista de projetos de inovação"
+          aria-busy={!isClubMode && isFetchingProjects}
+          aria-label={isClubMode ? "Lista de clubes de inovacao" : "Lista de projetos de inovacao"}
         >
-          {isFetchingProjects && !isInitialLoading && (
+          {!isClubMode && isFetchingProjects && !isInitialLoading && (
             <div className="flex justify-center mb-6 relative">
               <div className="flex items-center gap-3 text-sm text-slate-700 font-bold bg-white border-[3px] border-slate-900 px-6 py-3 rounded-[2rem] shadow-sm relative z-10">
                 <LoaderCircle className="w-5 h-5 animate-spin text-pink-500" />
@@ -254,7 +388,7 @@ export default function ProjectFeed({
             </div>
           )}
 
-          {showSkeletons && (
+          {showProjectSkeletons && (
             <>
               {[...Array(3)].map((_, i) => (
                 <ProjectCardSkeleton key={`skeleton-${i}`} />
@@ -262,7 +396,7 @@ export default function ProjectFeed({
             </>
           )}
 
-          {!showSkeletons &&
+          {!isClubMode && !showProjectSkeletons &&
             renderedProjects.map(
               ({ project, club, school, isCompleted, team, investigatorNames }, index) => {
                 return (
@@ -284,7 +418,7 @@ export default function ProjectFeed({
                       onDiaryClick={() => {
                         const resolvedClubId = String(club?.id || project?.clube_id || "").trim();
                         if (resolvedClubId) setSelectedClubId(resolvedClubId);
-                        setSelectedProjectId(project.id);
+                        setSelectedProjectId(String(project.id || '').trim());
                         setCurrentView("diario");
                       }}
                     />
@@ -293,16 +427,117 @@ export default function ProjectFeed({
               }
             )}
 
+          {isClubMode &&
+             renderedClubs.map(({ club, school, schoolName, schoolSec, schoolInep, clubBannerUrl, clubLogoUrl, memberCount, mentorCount, projectsCount }, index) => (
+               <article
+                 key={String(club?.id || index)}
+                 className="bg-white rounded-[2.5rem] border-[3px] border-slate-900 overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+               >
+                 <div className="relative h-52 overflow-hidden bg-slate-200 border-b-[3px] border-slate-900">
+                   {clubBannerUrl ? (
+                     <img
+                       src={clubBannerUrl}
+                       alt={`Banner do clube ${club?.nome || ''}`}
+                       className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                     />
+                   ) : (
+                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-300 via-sky-200 to-pink-200" />
+                   )}
+                   <div className="absolute inset-0 bg-slate-950/20" />
+                   <div className="absolute left-6 top-6 flex items-center gap-3 rounded-full border-[3px] border-white bg-white/90 px-4 py-2 shadow-sm">
+                     <div className="h-12 w-12 rounded-2xl overflow-hidden border-[3px] border-slate-900 bg-white flex items-center justify-center">
+                       {clubLogoUrl ? (
+                         <img src={clubLogoUrl} alt={`Logo do clube ${club?.nome || ''}`} className="h-full w-full object-cover" />
+                       ) : (
+                         <span className="text-lg font-black text-slate-900">{club?.nome?.charAt(0) || 'C'}</span>
+                       )}
+                     </div>
+                     <div>
+                       <p className="text-xs font-black uppercase tracking-widest text-slate-900">Identidade do clube</p>
+                       <p className="text-sm font-black uppercase tracking-tight text-slate-900 line-clamp-1">{club?.nome || 'Clube sem nome'}</p>
+                     </div>
+                   </div>
+                 </div>
+                 <div className="p-6 md:p-8">
+                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                     <div className="min-w-0 flex-1">
+                       <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900">
+                         <Building2 className="w-4 h-4 stroke-[3]" /> Clube
+                       </div>
+                       <h3 className="mt-4 text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 line-clamp-2">
+                         {club?.nome || "Clube sem nome"}
+                       </h3>
+                       <p className="mt-3 text-sm font-bold text-slate-700 line-clamp-2">
+                         {String(club?.descricao || "").trim() || "Clube da rede de inovacao com atividades de pesquisa, desenvolvimento e colaboracao escolar."}
+                       </p>
+
+                       <div className="mt-5 flex flex-wrap items-center gap-2">
+                         <span className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900">
+                           <School className="w-4 h-4 stroke-[3]" /> {schoolName}
+                         </span>
+                         <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700">
+                           SEC: {schoolSec || "Nao informado"}
+                         </span>
+                         <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700">
+                           INEP: {schoolInep || "Nao informado"}
+                         </span>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-3 lg:w-[340px]">
+                       <div className="rounded-2xl border-[3px] border-slate-900 bg-pink-400 p-3 text-center">
+                         <p className="text-2xl font-black text-white leading-none">{projectsCount}</p>
+                         <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-white">Projetos</p>
+                       </div>
+                       <div className="rounded-2xl border-[3px] border-slate-900 bg-lime-300 p-3 text-center">
+                         <p className="text-2xl font-black text-slate-900 leading-none">{memberCount}</p>
+                         <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-900">Membros</p>
+                       </div>
+                       <div className="rounded-2xl border-[3px] border-slate-900 bg-cyan-300 p-3 text-center">
+                         <p className="text-2xl font-black text-slate-900 leading-none">{mentorCount}</p>
+                         <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-900">Mentores</p>
+                       </div>
+                     </div>
+                   </div>
+
+                   <div className="mt-6 flex flex-wrap gap-3">
+                     <button
+                       type="button"
+                       onClick={() => handleOpenClubModal(club, school)}
+                       className="rounded-full border-[3px] border-slate-900 bg-cyan-300 px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm hover:scale-105 active:scale-95 transition-transform"
+                     >
+                       Ver vitrine do clube
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => handleOpenClubBoard(club?.id)}
+                       className="rounded-full border-[3px] border-slate-900 bg-white px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm hover:scale-105 active:scale-95 transition-transform"
+                     >
+                       Abrir painel do clube
+                     </button>
+                   </div>
+                 </div>
+              </article>
+            ))}
+
           {showEmptyState && (
             <div className="relative">
               <div className="bg-white rounded-[3rem] border-[3px] border-slate-900 p-16 text-center shadow-md relative z-10">
                 <EmptyState
-                  icon={isSearchActive ? AlertCircle : FolderKanban}
-                  title={isSearchActive ? "Nenhum projeto encontrado" : "Ainda não há projetos"}
+                  icon={isClubMode ? School : (isSearchActive ? AlertCircle : FolderKanban)}
+                  title={
+                    isClubMode
+                      ? (isSearchActive ? "Nenhum clube encontrado" : "Ainda nao ha clubes")
+                      : (isSearchActive ? "Nenhum projeto encontrado" : "Ainda nao ha projetos")
+                  }
                   description={
-                    isSearchActive
-                      ? `Nenhum projeto corresponde à busca "${searchTerm.trim()}". Tente outro termo ou remova o filtro.`
-                      : "Nenhum projeto foi publicado na rede ainda. Volte mais tarde ou adicione o primeiro projeto."
+                    isClubMode
+                      ? (isSearchActive
+                        ? `Nenhum clube corresponde a busca "${searchTerm.trim()}". Tente nome da escola, SEC ou INEP.`
+                        : "Nenhum clube foi encontrado para exibicao no feed neste momento.")
+                      : (isSearchActive
+                        ? `Nenhum projeto corresponde a busca "${searchTerm.trim()}". Tente outro termo ou remova o filtro.`
+                        : "Nenhum projeto foi publicado na rede ainda. Volte mais tarde ou adicione o primeiro projeto.")
                   }
                 />
               </div>
@@ -314,7 +549,7 @@ export default function ProjectFeed({
 
         {/* CONTROLES DE CARREGAMENTO INFINITO */}
         <div className="pt-6 pb-8 flex flex-col items-center gap-6 relative z-10">
-          {isFetchingProjects && !isInitialLoading && (
+          {!isClubMode && isFetchingProjects && !isInitialLoading && (
             <div className="relative">
               <div className="flex items-center gap-3 text-sm text-slate-700 font-bold bg-yellow-300 border-[3px] border-slate-900 px-6 py-3 rounded-full shadow-sm z-10 relative">
                 <LoaderCircle className="w-5 h-5 animate-spin text-slate-900" />
@@ -324,7 +559,7 @@ export default function ProjectFeed({
             </div>
           )}
 
-          {showLoadMoreSentinel && (
+          {!isClubMode && showLoadMoreSentinel && (
             <div
               ref={loadMoreProjectsRef}
               className="h-12 w-full flex justify-center items-center group cursor-pointer"
@@ -336,7 +571,7 @@ export default function ProjectFeed({
             </div>
           )}
 
-          {showNoMoreProjects && (
+          {!isClubMode && showNoMoreProjects && !isNoResults && (
             <div className="relative mt-4">
               <p className="text-center text-sm font-bold text-slate-700 bg-white shadow-sm border-[3px] border-slate-900 px-6 py-3 rounded-full relative z-10">
                 Fim do feed. Você chegou ao fim da página!
