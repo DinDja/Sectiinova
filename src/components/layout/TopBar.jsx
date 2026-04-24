@@ -30,6 +30,7 @@ export default function TopBar({
   viewingClub,
   handleLogout,
   onSaveProfile,
+  schools = [],
   currentView,
   setCurrentView,
   onToggleSidebar = () => {},
@@ -157,10 +158,10 @@ export default function TopBar({
   const isSearchDisabled = currentView !== "Projetos";
 
   const renderSearchForm = (isMobile = false) => (
-    <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
+    <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full group">
       <Search
-        className={`absolute left-4 h-5 w-5 stroke-[3] transition-colors duration-200 ${
-          isSearchDisabled ? "text-slate-400" : "text-slate-900"
+        className={`absolute left-5 h-5 w-5 stroke-[3] transition-colors duration-300 z-10 ${
+          isSearchDisabled ? "text-slate-400" : "text-cyan-500 group-focus-within:text-pink-500"
         }`}
       />
 
@@ -172,14 +173,14 @@ export default function TopBar({
             ? "BUSCA RESTRITA AO FEED DE PROJETOS"
             : "BUSCAR PROJETOS, CLUBES, PESQUISADORES..."
         }
-        className={`w-full rounded-2xl border-4 outline-none transition-all duration-300 ${
+        className={`w-full rounded-full border-[3px] outline-none transition-all duration-300 ${
           isMobile
-            ? "py-3 pl-12 pr-24 text-xs"
-            : "py-4 pl-12 pr-28 text-xs sm:text-sm"
+            ? "py-3 pl-14 pr-24 text-xs"
+            : "py-3.5 pl-14 pr-28 text-xs sm:text-sm"
         } font-black uppercase tracking-widest ${
           isSearchDisabled
-            ? "cursor-not-allowed border-slate-400 bg-slate-200 text-slate-500"
-            : "border-slate-900 bg-white text-slate-900 placeholder:text-slate-400 shadow-[4px_4px_0px_0px_#0f172a] focus:-translate-x-1 focus:-translate-y-1 focus:shadow-[4px_4px_0px_0px_#14b8a6]"
+            ? "cursor-not-allowed border-slate-300 bg-slate-100 text-slate-500"
+            : "border-slate-900 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm focus:ring-4 focus:ring-cyan-300/30 focus:border-cyan-400"
         }`}
         value={searchInputValue}
         onChange={(event) => setSearchInputValue(event.target.value)}
@@ -195,7 +196,7 @@ export default function TopBar({
           <button
             type="button"
             onClick={handleClearSearch}
-            className="rounded-lg border-2 border-slate-900 bg-red-400 p-1.5 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#0f172a]"
+            className="rounded-full border-[3px] border-slate-900 bg-pink-500 p-1.5 text-white shadow-sm transition-transform hover:scale-110 active:scale-95"
             aria-label="Limpar busca"
           >
             <X className="h-4 w-4 stroke-[3]" />
@@ -205,10 +206,10 @@ export default function TopBar({
         <button
           type="submit"
           disabled={isSearchDisabled}
-          className={`rounded-xl border-2 px-3 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+          className={`rounded-full border-[3px] px-4 py-2 text-xs font-black uppercase tracking-widest transition-transform ${
             isSearchDisabled
-              ? "cursor-not-allowed border-slate-400 bg-slate-300 text-slate-500"
-              : "border-slate-900 bg-teal-400 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[2px_2px_0px_0px_#0f172a]"
+              ? "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-400"
+              : "border-slate-900 bg-cyan-400 text-slate-900 shadow-sm hover:scale-105 hover:bg-cyan-300 active:scale-95"
           }`}
           aria-label="Buscar"
         >
@@ -221,22 +222,22 @@ export default function TopBar({
   return (
     <>
       <header
-        className={`z-10 w-full border-b-4 border-slate-900 bg-[#FAFAFA] transition-all duration-300 ${
-          isScrolled ? "shadow-[0_8px_0_0_#0f172a]" : ""
+        className={`z-40 w-full border-b-[3px] border-slate-900 bg-white transition-all duration-300 sticky top-0 ${
+          isScrolled ? "shadow-md bg-white/95 backdrop-blur-sm" : ""
         }`}
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
           <div
-            className={`flex items-center justify-between gap-3 ${
-              isScrolled ? "py-2" : "py-3"
+            className={`flex items-center justify-between gap-3 transition-all duration-300 ${
+              isScrolled ? "py-2" : "py-3 sm:py-4"
             }`}
           >
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-3">
               {isMobileNavViewport && (
                 <button
                   type="button"
                   onClick={onToggleSidebar}
-                  className="inline-flex items-center justify-center rounded-xl border-4 border-slate-900 bg-yellow-300 p-2.5 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transition-all active:translate-y-1 active:shadow-none"
+                  className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 p-2.5 text-slate-900 shadow-sm transition-transform active:scale-95 hover:scale-105"
                   aria-label={isSidebarOpen ? "Fechar menu" : "Abrir menu"}
                 >
                   {isSidebarOpen ? (
@@ -248,27 +249,27 @@ export default function TopBar({
               )}
 
               <div
-                className={`items-center gap-2 transition-all duration-300 ${
+                className={`items-center transition-all duration-300 ${
                   isSearchExpanded ? "hidden sm:flex" : "flex"
                 }`}
               >
                 <img
                   src="/logo-sistema.svg"
                   alt="Logo do sistema"
-                  className="mb-1 w-[112px] shrink-0 object-contain sm:mb-0 sm:w-[150px] lg:w-[170px]"
+                  className="w-[112px] shrink-0 object-contain sm:w-[150px] lg:w-[160px] transform hover:rotate-2 transition-transform duration-300 origin-left"
                   loading="lazy"
                 />
               </div>
             </div>
 
-            <div className="hidden flex-1 max-w-2xl sm:block">
+            <div className="hidden flex-1 max-w-2xl sm:block mx-4">
               {renderSearchForm(false)}
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               {contextName && (
-                <div className="hidden items-center gap-3 rounded-2xl border-4 border-slate-900 bg-pink-400 px-3 py-2 shadow-[4px_4px_0px_0px_#0f172a] xl:flex">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a]">
+                <div className="hidden items-center gap-3 rounded-full border-[3px] border-slate-900 bg-pink-500 px-3 py-1.5 shadow-sm xl:flex transform hover:scale-105 transition-transform duration-300 cursor-default">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-900 bg-white">
                     {contextClubLogoUrl ? (
                       <img
                         src={contextClubLogoUrl}
@@ -276,17 +277,17 @@ export default function TopBar({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-sm font-black text-slate-900">
+                      <span className="text-xs font-black text-slate-900">
                         {getInitials(contextClub?.nome || contextName)}
                       </span>
                     )}
                   </div>
-                  <div className="flex max-w-[120px] flex-col leading-none" title={contextLine1}>
-                    <span className="line-clamp-1 text-xs font-black uppercase tracking-widest text-slate-900">
+                  <div className="flex max-w-[140px] flex-col leading-none pr-2" title={contextLine1}>
+                    <span className="line-clamp-1 text-xs font-black uppercase tracking-widest text-white">
                       {contextLine1}
                     </span>
                     {contextLine2 && (
-                      <span className="mt-1 line-clamp-1 text-[9px] font-bold uppercase tracking-widest text-slate-800">
+                      <span className="mt-0.5 line-clamp-1 text-[9px] font-bold uppercase tracking-widest text-pink-200">
                         {contextLine2}
                       </span>
                     )}
@@ -297,7 +298,7 @@ export default function TopBar({
               <button
                 type="button"
                 onClick={() => setIsSearchExpanded((expanded) => !expanded)}
-                className="rounded-xl border-4 border-slate-900 bg-yellow-300 p-2.5 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transition-all active:translate-y-1 active:shadow-none sm:hidden"
+                className="rounded-full border-[3px] border-slate-900 bg-cyan-400 p-2.5 text-slate-900 shadow-sm transition-transform active:scale-95 hover:scale-105 sm:hidden"
                 aria-label={isSearchExpanded ? "Fechar busca" : "Abrir busca"}
               >
                 {isSearchExpanded ? (
@@ -313,10 +314,10 @@ export default function TopBar({
                   onClick={() => setShowUserMenu((open) => !open)}
                   aria-expanded={showUserMenu}
                   aria-haspopup="true"
-                  className={`group flex items-center gap-2 rounded-2xl border-4 p-1.5 pr-2.5 transition-all duration-300 sm:gap-3 sm:p-2 sm:pr-4 ${
+                  className={`group flex items-center gap-2 rounded-full border-[3px] p-1 pr-2 transition-all duration-300 sm:gap-3 sm:p-1.5 sm:pr-4 ${
                     showUserMenu
-                      ? "translate-y-0 border-slate-900 bg-teal-400 shadow-[4px_4px_0px_0px_#0f172a]"
-                      : "border-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#0f172a]"
+                      ? "border-slate-900 bg-yellow-400 shadow-md scale-105"
+                      : "border-slate-900 bg-slate-50 shadow-sm hover:scale-105 hover:bg-yellow-100"
                   }`}
                 >
                   <div className="relative">
@@ -324,14 +325,13 @@ export default function TopBar({
                       <img
                         src={userAvatar}
                         alt={`Avatar de ${userName}`}
-                        className="h-9 w-9 rounded-xl border-2 border-slate-900 object-cover sm:h-10 sm:w-10"
+                        className="h-10 w-10 rounded-full border-[3px] border-slate-900 object-cover bg-white"
                       />
                     ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-slate-900 bg-blue-400 text-sm font-black text-slate-900 sm:h-10 sm:w-10">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-300 text-sm font-black text-slate-900">
                         {getInitials(userName)}
                       </div>
                     )}
-                    <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-slate-900 bg-teal-400" />
                   </div>
 
                   <div className="hidden text-left md:flex md:flex-col md:items-start">
@@ -348,27 +348,30 @@ export default function TopBar({
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-3 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a] z-[9999]">
-                    <div className="border-b-4 border-slate-900 bg-yellow-300 p-5">
-                      <p className="truncate text-base font-black uppercase tracking-tighter text-slate-900">
+                  <div className="absolute right-0 mt-3 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
+                    
+                    {/* Header do Menu com Retícula HQ */}
+                    <div className="border-b-[3px] border-slate-900 bg-yellow-400 p-6 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2.5px, transparent 2.5px)', backgroundSize: '12px 12px' }}></div>
+                      <p className="truncate text-lg font-black uppercase tracking-tighter text-slate-900 relative z-10">
                         {userName}
                       </p>
-                      <p className="mt-1 inline-block max-w-[220px] truncate border-2 border-slate-900 bg-white px-2 py-0.5 text-xs font-bold text-slate-800">
+                      <p className="mt-1.5 inline-block max-w-full truncate rounded-full border-[2.5px] border-slate-900 bg-white px-3 py-1 text-[10px] font-bold text-slate-800 relative z-10">
                         {userEmail}
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-2 bg-[#FAFAFA] p-3">
+                    <div className="flex flex-col gap-2 bg-slate-50 p-4">
                       <button
                         type="button"
                         onClick={() => {
                           setIsProfileOpen(true);
                           setShowUserMenu(false);
                         }}
-                        className="flex w-full items-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:-translate-y-0.5 hover:bg-teal-400 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                        className="group/item flex w-full items-center gap-3 rounded-full border-[3px] border-slate-900 bg-white px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-900 transition-all hover:bg-cyan-300 hover:scale-[1.02] active:scale-95"
                         role="menuitem"
                       >
-                        <User className="h-5 w-5 stroke-[2.5]" />
+                        <User className="h-5 w-5 stroke-[2.5] group-hover/item:text-slate-900 text-cyan-500 transition-colors" />
                         Meu Perfil
                       </button>
 
@@ -378,19 +381,19 @@ export default function TopBar({
                           setCurrentView("meusProjetos");
                           setShowUserMenu(false);
                         }}
-                        className="flex w-full items-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:-translate-y-0.5 hover:bg-blue-400 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                        className="group/item flex w-full items-center gap-3 rounded-full border-[3px] border-slate-900 bg-white px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-900 transition-all hover:bg-pink-400 hover:text-white hover:scale-[1.02] active:scale-95"
                         role="menuitem"
                       >
-                        <BookOpen className="h-5 w-5 stroke-[2.5]" />
+                        <BookOpen className="h-5 w-5 stroke-[2.5] group-hover/item:text-white text-pink-500 transition-colors" />
                         Meus Projetos
                       </button>
                     </div>
 
-                    <div className="border-t-4 border-slate-900 bg-slate-200 p-3">
+                    <div className="border-t-[3px] border-slate-900 bg-slate-100 p-4">
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-red-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-white shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                        className="flex w-full items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-slate-900 px-5 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-red-500 hover:scale-[1.02] active:scale-95"
                         role="menuitem"
                       >
                         <LogOut className="h-4 w-4 stroke-[3]" />
@@ -404,7 +407,7 @@ export default function TopBar({
           </div>
 
           {isSearchExpanded && (
-            <div className="pb-3 sm:hidden">{renderSearchForm(true)}</div>
+            <div className="pb-4 pt-2 sm:hidden animate-in slide-in-from-top-2">{renderSearchForm(true)}</div>
           )}
         </div>
       </header>
@@ -413,6 +416,7 @@ export default function TopBar({
         <MeuPerfil
           loggedUser={loggedUser}
           myClub={myClub}
+          schools={schools}
           onSaveProfile={onSaveProfile}
           onClose={() => setIsProfileOpen(false)}
         />

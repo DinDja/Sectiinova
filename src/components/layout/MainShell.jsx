@@ -18,6 +18,7 @@ export default function MainShell({
   selectedClub,
   handleLogout,
   onSaveProfile,
+  schools,
   fontSizeLevel,
   onDecreaseFont,
   onResetFont,
@@ -104,6 +105,7 @@ export default function MainShell({
             viewingClub={viewingClub}
             handleLogout={handleLogout}
             onSaveProfile={onSaveProfile}
+            schools={schools}
             currentView={currentView}
             setCurrentView={setCurrentView}
             onToggleSidebar={() => setIsMobileSidebarOpen((open) => !open)}

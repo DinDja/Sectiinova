@@ -212,29 +212,29 @@ export default function Sidebar({
 
   const renderSidebarContent = (isMobile) => (
     <>
-      <div className={`w-full ${isMobile ? "p-4 pb-3" : "px-4 pb-6"} flex items-center ${isMobile ? "justify-between" : "justify-center"}`}>
+      <div className={`w-full relative z-10 ${isMobile ? "p-5 pb-4" : "px-4 pb-6 pt-2"} flex items-center ${isMobile ? "justify-between" : "justify-center"}`}>
         {isMobile && (
-          <div className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+          <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm">
             Navegação
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={toggleEditMode}
-            className={`group inline-flex items-center justify-center rounded-xl border-2 border-slate-900 p-2.5 transition-all ${
+            className={`group inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 p-3 transition-transform duration-300 hover:scale-110 active:scale-95 shadow-sm ${
               isEditing
-                ? "translate-y-0.5 bg-teal-400 shadow-none"
-                : "bg-yellow-300 shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                ? "bg-pink-400 scale-105"
+                : "bg-yellow-400"
             }`}
             title={isEditing ? "Concluir organização" : "Organizar menu"}
             aria-pressed={isEditing}
           >
             {isEditing ? (
-              <Check className="h-5 w-5 stroke-[3] text-slate-900" />
+              <Check className="h-5 w-5 stroke-[3] text-white" />
             ) : (
-              <Settings2 className="h-5 w-5 stroke-[3] text-slate-900 transition-transform group-hover:rotate-45 duration-300" />
+              <Settings2 className="h-5 w-5 stroke-[3] text-slate-900 transition-transform group-hover:rotate-90 duration-500" />
             )}
           </button>
 
@@ -242,7 +242,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={closeMobileSidebar}
-              className="inline-flex items-center justify-center rounded-xl border-2 border-slate-900 bg-white p-2.5 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+              className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-white p-3 text-slate-900 shadow-sm transition-transform duration-300 hover:scale-110 hover:bg-slate-50 active:scale-95"
               aria-label="Fechar menu"
             >
               <X className="h-5 w-5 stroke-[3]" />
@@ -252,7 +252,7 @@ export default function Sidebar({
       </div>
 
       <nav
-        className={`pt-2 flex w-full flex-1 flex-col ${isMobile ? "gap-2 px-4 pb-6 pt-1" : "gap-3 px-3 sm:px-4"} overflow-y-auto`}
+        className={`pt-2 relative z-10 flex w-full flex-1 flex-col ${isMobile ? "gap-3 px-5 pb-6 pt-2" : "gap-4 px-3 sm:px-4"} overflow-y-auto no-scrollbar`}
         aria-label="Navegação"
       >
         {navItems.map((item, index) => {
@@ -282,36 +282,37 @@ export default function Sidebar({
                   }
                 }}
                 disabled={isEditing}
-                className={`group relative flex w-full items-center rounded-xl border-2 border-slate-900 transition-all duration-300 outline-none ${
+                className={`group relative flex w-full items-center border-[3px] border-slate-900 transition-all duration-300 outline-none ${
                   isMobile
-                    ? "gap-3 px-4 py-3"
-                    : "flex-col justify-center px-2 py-3"
+                    ? "rounded-full gap-4 px-5 py-3.5"
+                    : "rounded-[1.5rem] flex-col justify-center px-2 py-4"
                 } ${
                   isEditing
-                    ? "cursor-grab bg-white shadow-[2px_2px_0px_0px_#0f172a] hover:bg-slate-100 active:cursor-grabbing"
+                    ? "cursor-grab bg-slate-50 shadow-sm hover:scale-105 hover:bg-white active:cursor-grabbing active:scale-95"
                     : isActive
-                      ? "bg-teal-400 -translate-y-1 shadow-[4px_4px_0px_0px_#0f172a]"
-                      : "cursor-pointer bg-white shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                      ? "bg-cyan-300 scale-105 shadow-md"
+                      : "cursor-pointer bg-white shadow-sm hover:-translate-y-1 hover:shadow-md hover:bg-cyan-50"
                 } ${
                   isBeingDragged
-                    ? "rotate-3 scale-105 bg-white opacity-90 shadow-[4px_4px_0px_0px_#14b8a6]"
+                    ? "rotate-3 scale-110 bg-yellow-100 opacity-95 shadow-xl"
                     : ""
                 } ${
-                  isDragTarget ? "translate-y-2" : ""
+                  isDragTarget ? "translate-y-3 opacity-50 scale-95" : ""
                 }`}
                 title={item.tooltip}
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
               >
+                {/* Ícone de arraste HQ Mode */}
                 {isEditing && (
-                  <div className="absolute right-2 top-2 text-slate-900 opacity-50 transition-opacity group-hover:opacity-100">
-                    <GripHorizontal className="h-4 w-4 stroke-[3]" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-hover:text-pink-500">
+                    <GripHorizontal className="h-5 w-5 stroke-[3]" />
                   </div>
                 )}
 
                 <div
-                  className={`flex items-center justify-center transition-transform duration-300 ease-out ${
-                    isMobile ? "h-10 w-10" : "mb-2 mt-1 h-10 w-10 group-hover:scale-110"
+                  className={`flex items-center justify-center transition-transform duration-500 ease-out ${
+                    isMobile ? "h-10 w-10" : "mb-2 h-10 w-10 group-hover:scale-110 group-hover:rotate-3"
                   }`}
                 >
                   {item.iconSrc ? (
@@ -321,30 +322,26 @@ export default function Sidebar({
                       aria-hidden="true"
                       className={`transition-all duration-300 ${
                         isMobile ? "h-9 w-9" : "h-9 w-9 sm:h-10 sm:w-10"
-                      } ${!isEditing && isActive ? "drop-shadow-[2px_2px_0px_#0f172a]" : ""}`}
+                      }`}
                       loading="lazy"
                     />
                   ) : (
                     <Icon
                       className={`transition-all duration-300 ${
                         isMobile ? "h-9 w-9" : "h-9 w-9 sm:h-10 sm:w-10"
-                      } ${!isEditing && isActive ? "drop-shadow-[2px_2px_0px_#0f172a]" : ""}`}
+                      }`}
                     />
                   )}
                 </div>
 
                 {isMobile ? (
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                  <span className={`text-xs font-black uppercase tracking-widest transition-colors ${isActive ? "text-slate-900" : "text-slate-700"}`}>
                     {item.label}
                   </span>
                 ) : (
-                  <span className="text-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest leading-tight text-slate-900">
+                  <span className={`text-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest leading-tight transition-colors ${isActive ? "text-slate-900" : "text-slate-700"}`}>
                     {item.id === "clube" ? (
-                      <>
-                        Meu
-                        <br />
-                        Clube
-                      </>
+                      <>Meu<br />Clube</>
                     ) : (
                       item.label
                     )}
@@ -357,11 +354,11 @@ export default function Sidebar({
       </nav>
 
       {!isMobile && (
-        <div className="mt-auto flex w-full shrink-0 justify-center px-4 pb-2 pt-4">
+        <div className="mt-auto flex w-full shrink-0 justify-center px-4 pb-4 pt-6 relative z-10">
           <img
             src="images/Secti_Vertical.png"
             alt="Logo do sistema"
-            className="w-16 object-contain transition-all duration-500 hover:scale-105 sm:w-20 drop-shadow-[2px_2px_0px_#0f172a]"
+            className="w-16 object-contain transition-transform duration-500 hover:scale-110 hover:-rotate-2 sm:w-20"
             loading="lazy"
           />
         </div>
@@ -374,24 +371,28 @@ export default function Sidebar({
       {isMobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden transition-opacity"
             onClick={closeMobileSidebar}
             aria-hidden="true"
           />
 
           <aside
-            className="fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(20rem,88vw)] flex-col border-r-4 border-slate-900 bg-[#FAFAFA] shadow-[8px_0px_0px_0px_#0f172a] lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(22rem,88vw)] flex-col border-r-[3px] border-slate-900 bg-white shadow-2xl lg:hidden animate-in slide-in-from-left duration-300 overflow-hidden"
             aria-label="Menu principal mobile"
           >
+            {/* Halftone Pattern Mobile */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
             {renderSidebarContent(true)}
           </aside>
         </>
       )}
 
       <aside
-        className="hidden h-full min-h-screen w-28 shrink-0 flex-col border-r-4 border-slate-900 bg-[#FAFAFA] py-6 transition-all duration-300 lg:flex xl:w-32"
+        className="hidden h-full min-h-screen w-28 shrink-0 flex-col border-r-[3px] border-slate-900 bg-white py-6 transition-all duration-300 lg:flex xl:w-32 relative z-30 overflow-hidden"
         aria-label="Menu principal desktop"
       >
+        {/* Halftone Pattern Desktop */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
         {renderSidebarContent(false)}
       </aside>
     </>

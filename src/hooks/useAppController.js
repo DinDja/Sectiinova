@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
     addDoc,
     collection,
@@ -37,8 +37,6 @@ import {
 } from 'firebase/auth';
 
 import { db, auth } from '../../firebase';
-import dadosUnidades from '../../DadosUnidades.json';
-import dadosUnidadesMunicipais from '../../DadosUnidadesMunicipaisBA_8_9.json';
 import { getLattesLink, composeMentoriaLabel } from '../utils/helpers';
 import {
     getAuthErrorMessage as getAuthSecurityErrorMessage,
@@ -60,6 +58,10 @@ import {
 } from '../services/projectService';
 import cachedDataService from '../services/cachedDataService';
 import indexedDBService from '../services/indexedDBService';
+import useAppControllerState from './useAppControllerState';
+import useProjectSearch from './useProjectSearch';
+import useSchoolCatalog from './useSchoolCatalog';
+import useClubDocumentManager from './useClubDocumentManager';
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
@@ -74,27 +76,11 @@ const getDataUrlByteSize = (dataUrl) => {
     return Math.ceil((base64.length * 3) / 4) - padding;
 };
 
-const CLUB_DOCUMENT_INLINE_MAX_BYTES = 200 * 1024;
-const CLUB_DOCUMENT_INLINE_TOTAL_MAX_BYTES = 420 * 1024;
-
-const isFileLike = (value) => typeof File !== 'undefined' && value instanceof File;
-
-const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
-    if (!isFileLike(file)) {
-        resolve('');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Nao foi possivel ler o arquivo selecionado.'));
-    reader.readAsDataURL(file);
-});
-
 const DIARY_PROJECT_QUERY_CHUNK_SIZE = 10;
 const MAX_PROJECT_IMAGES = 5;
 const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
+const MAX_SELF_SCHOOL_CHANGES = 1;
 
 const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
 const isEnovaMentorEmail = (email) => /@enova\.educacao\.ba\.gov\.br$/.test(normalizeEmailAddress(email));
@@ -195,6 +181,9 @@ const createDefaultProfileFromAuthUser = (user) => {
         escola_nome: '',
         escola_municipio: '',
         escola_uf: 'BA',
+        school_change_count: 0,
+        school_change_last_reason: '',
+        school_change_last_at: null,
         clube_id: '',
         auth_provider: resolveAuthProvider(user),
         createdAt: serverTimestamp()
@@ -214,133 +203,106 @@ function chunkValues(values, size = DIARY_PROJECT_QUERY_CHUNK_SIZE) {
 }
 
 export default function useAppController() {
-    const [currentView, setCurrentView] = useState('Projetos');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [clubs, setClubs] = useState([]);
-    const [projects, setProjects] = useState([]);
-    const [allProjects, setAllProjects] = useState([]);
-    const [users, setUsers] = useState([]);
-    const [schools, setSchools] = useState([]);
-    const [diaryEntries, setDiaryEntries] = useState([]);
-    const [projectsCursor, setProjectsCursor] = useState(null);
-    const [hasMoreProjects, setHasMoreProjects] = useState(true);
-    const [isFetchingProjects, setIsFetchingProjects] = useState(false);
-    const [projectsTotalCount, setProjectsTotalCount] = useState(0);
-    const [selectedClubId, setSelectedClubId] = useState('');
-    const [loadMoreNode, setLoadMoreNode] = useState(null);
-    const loadMoreProjectsRef = useCallback((node) => {
-        setLoadMoreNode(node);
-    }, []);
-    const [selectedProjectId, setSelectedProjectId] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isSearchLoading, setIsSearchLoading] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [savingEntry, setSavingEntry] = useState(false);
-    const [creatingClub, setCreatingClub] = useState(false);
-    const [updatingClub, setUpdatingClub] = useState(false);
-    const [clubJoinRequests, setClubJoinRequests] = useState([]);
-    const [myClubJoinRequests, setMyClubJoinRequests] = useState([]);
-    const [requestingClubIds, setRequestingClubIds] = useState(new Set());
-    const [reviewingClubRequestIds, setReviewingClubRequestIds] = useState(new Set());
-    const [errorMessage, setErrorMessage] = useState('');
-    const [viewingClubId, setViewingClubId] = useState('');
-    const [clubProjects, setClubProjects] = useState([]);
-    const [myClubProjects, setMyClubProjects] = useState([]);
-    const [authUser, setAuthUser] = useState(null);
-    const [loggedUser, setLoggedUser] = useState(null);
-    const [profileCompletionContext, setProfileCompletionContext] = useState(null);
-    const [authLoading, setAuthLoading] = useState(true);
-    const [authMode, setAuthMode] = useState('login');
-    const [authError, setAuthError] = useState('');
-    const [authNotice, setAuthNotice] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
-    const [loginForm, setLoginForm] = useState({
-        email: '',
-        senha: '',
-        rememberDevice: false
+    const {
+        currentView,
+        setCurrentView,
+        isModalOpen,
+        setIsModalOpen,
+        clubs,
+        setClubs,
+        projects,
+        setProjects,
+        allProjects,
+        setAllProjects,
+        users,
+        setUsers,
+        schools,
+        setSchools,
+        diaryEntries,
+        setDiaryEntries,
+        projectsCursor,
+        setProjectsCursor,
+        hasMoreProjects,
+        setHasMoreProjects,
+        isFetchingProjects,
+        setIsFetchingProjects,
+        projectsTotalCount,
+        setProjectsTotalCount,
+        selectedClubId,
+        setSelectedClubId,
+        loadMoreNode,
+        loadMoreProjectsRef,
+        selectedProjectId,
+        setSelectedProjectId,
+        searchTerm,
+        setSearchTerm,
+        loading,
+        setLoading,
+        savingEntry,
+        setSavingEntry,
+        creatingClub,
+        setCreatingClub,
+        updatingClub,
+        setUpdatingClub,
+        clubJoinRequests,
+        setClubJoinRequests,
+        myClubJoinRequests,
+        setMyClubJoinRequests,
+        requestingClubIds,
+        setRequestingClubIds,
+        reviewingClubRequestIds,
+        setReviewingClubRequestIds,
+        errorMessage,
+        setErrorMessage,
+        viewingClubId,
+        setViewingClubId,
+        clubProjects,
+        setClubProjects,
+        myClubProjects,
+        setMyClubProjects,
+        authUser,
+        setAuthUser,
+        loggedUser,
+        setLoggedUser,
+        profileCompletionContext,
+        setProfileCompletionContext,
+        authLoading,
+        setAuthLoading,
+        authMode,
+        setAuthMode,
+        authError,
+        setAuthError,
+        authNotice,
+        setAuthNotice,
+        isSubmitting,
+        setIsSubmitting,
+        schoolSearchTerm,
+        setSchoolSearchTerm,
+        loginForm,
+        setLoginForm,
+        registerForm,
+        setRegisterForm,
+        newEntry,
+        setNewEntry,
+        sidebarOrder,
+        setSidebarOrder,
+        isRegisteringRef,
+        projectsCursorRef,
+        hasMoreProjectsRef,
+        isFetchingProjectsRef
+    } = useAppControllerState();
+
+    const { deferredSearchTerm, normalizeText, isFuzzyMatch } = useProjectSearch(searchTerm);
+    const { hasProvidedClubDocument, normalizeClubDocumentPayload, normalizeClubDocumentsForFirestore } = useClubDocumentManager();
+    const {
+        filteredSchoolGroups,
+        allSchoolUnits,
+        fallbackSchoolUnits,
+        normalizeSchoolName
+    } = useSchoolCatalog({
+        redeAdministrativa: registerForm.rede_administrativa,
+        schoolSearchTerm
     });
-    const [registerForm, setRegisterForm] = useState({
-        nome: '',
-        email: '',
-        senha: '',
-        confirmarSenha: '',
-        perfil: 'estudante',
-        rede_administrativa: 'estadual',
-        escola_id: '',
-        escola_nome: '',
-        matricula: '',
-        lattes: ''
-    });
-    const [newEntry, setNewEntry] = useState({
-        title: '',
-        duration: '',
-        stage: STAGES[0],
-        whatWasDone: '',
-        discoveries: '',
-        obstacles: '',
-        nextSteps: '',
-        tags: ''
-    });
-    const defaultSidebarOrder = ['Projetos', 'meusProjetos', 'trilha', 'inpi', 'forum', 'clube'];
-    const [sidebarOrder, setSidebarOrder] = useState(defaultSidebarOrder);
-
-    const isRegisteringRef = useRef(false);
-    const projectsCursorRef = useRef(null);
-    const hasMoreProjectsRef = useRef(true);
-    const isFetchingProjectsRef = useRef(false);
-
-    const normalizeText = (text) =>
-        String(text || '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-    const getLevenshteinDistance = (a, b) => {
-        const matrix = Array.from({ length: b.length + 1 }, () => []);
-
-        for (let i = 0; i <= b.length; i += 1) {
-            matrix[i][0] = i;
-        }
-
-        for (let j = 0; j <= a.length; j += 1) {
-            matrix[0][j] = j;
-        }
-
-        for (let i = 1; i <= b.length; i += 1) {
-            for (let j = 1; j <= a.length; j += 1) {
-                const cost = a[j - 1] === b[i - 1] ? 0 : 1;
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j] + 1,
-                    matrix[i][j - 1] + 1,
-                    matrix[i - 1][j - 1] + cost
-                );
-            }
-        }
-
-        return matrix[b.length][a.length];
-    };
-
-    const isFuzzyMatch = (term, text) => {
-        if (!term || !text) return false;
-
-        if (text.includes(term)) return true;
-
-        const termLength = term.length;
-        const maxDistance = Math.max(1, Math.floor(termLength * 0.35));
-
-        const words = text.split(/\s+/).filter(Boolean);
-        for (const word of words) {
-            if (Math.abs(word.length - termLength) > Math.max(2, termLength)) continue;
-            if (getLevenshteinDistance(term, word) <= maxDistance) {
-                return true;
-            }
-        }
-
-        return false;
-    };
 
     const normalizeUserEntity = useCallback((userData, forcedId = '') => {
         const base = { ...(userData || {}) };
@@ -377,8 +339,6 @@ export default function useAppController() {
             nome: resolvedName
         };
     }, []);
-
-    const normalizeSchoolName = useCallback((value) => String(value || '').trim().toLowerCase(), []);
 
     const getTimestampMillis = useCallback((value) => {
         if (!value) return 0;
@@ -439,23 +399,6 @@ export default function useAppController() {
 
         return 'Seu e-mail ainda nao foi verificado. Confirme o link enviado para liberar o acesso.';
     }, []);
-
-    const normalizedSearchTerm = useMemo(() => normalizeText(searchTerm), [searchTerm]);
-    const deferredSearchTerm = useDeferredValue(normalizedSearchTerm);
-
-    useEffect(() => {
-        if (!searchTerm || !searchTerm.trim()) {
-            setIsSearchLoading(false);
-            return;
-        }
-
-        setIsSearchLoading(true);
-        const timer = window.setTimeout(() => {
-            setIsSearchLoading(false);
-        }, 250);
-
-        return () => window.clearTimeout(timer);
-    }, [searchTerm]);
 
     const clubsById = useMemo(() => {
         return new Map(clubs.map((club) => [String(club.id), club]));
@@ -735,41 +678,6 @@ export default function useAppController() {
         return byClubId;
     }, [myClubJoinRequests, getTimestampMillis]);
 
-    const estadualSchoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
-    const municipalSchoolGroups = useMemo(
-        () => buildMunicipalSchoolGroups(dadosUnidadesMunicipais),
-        []
-    );
-    const selectedSchoolGroups = useMemo(() => {
-        if (registerForm.rede_administrativa === 'municipal') {
-            return municipalSchoolGroups;
-        }
-
-        return estadualSchoolGroups;
-    }, [registerForm.rede_administrativa, municipalSchoolGroups, estadualSchoolGroups]);
-    const allSchoolUnits = useMemo(
-        () => flattenSchoolGroups(selectedSchoolGroups),
-        [selectedSchoolGroups]
-    );
-    const fallbackSchoolUnits = useMemo(
-        () => flattenSchoolGroups([...estadualSchoolGroups, ...municipalSchoolGroups]),
-        [estadualSchoolGroups, municipalSchoolGroups]
-    );
-
-    const filteredSchoolGroups = useMemo(() => {
-        const term = schoolSearchTerm.trim().toLowerCase();
-        if (!term) {
-            return selectedSchoolGroups;
-        }
-
-        return selectedSchoolGroups
-            .map((group) => ({
-                ...group,
-                units: (group.units || []).filter((unit) => unit.nome.toLowerCase().includes(term))
-            }))
-            .filter((group) => (group.units || []).length > 0);
-    }, [selectedSchoolGroups, schoolSearchTerm]);
-
     const isCompletingSocialProfile = useMemo(
         () => Boolean(profileCompletionContext && authUser && !loggedUser),
         [profileCompletionContext, authUser, loggedUser]
@@ -1026,444 +934,6 @@ export default function useAppController() {
         observer.observe(loadMoreNode);
         return () => observer.disconnect();
     }, [currentView, fetchProjectsPage, hasMoreProjects, isFetchingProjects, deferredSearchTerm, loadMoreNode]);
-
-    const normalizePdfLinks = (rawPdfLinks) => {
-        if (!rawPdfLinks) return [];
-        if (Array.isArray(rawPdfLinks)) {
-            return rawPdfLinks.filter((link) => Boolean(String(link || '').trim()));
-        }
-        if (typeof rawPdfLinks === 'object') {
-            return Object.values(rawPdfLinks)
-                .flatMap((value) => (Array.isArray(value) ? value : [value]))
-                .map((link) => String(link || '').trim())
-                .filter(Boolean);
-        }
-        return String(rawPdfLinks || '')
-            .split(/\s*,\s*|\n+/)
-            .map((link) => link.trim())
-            .filter(Boolean);
-    };
-
-    const sanitizeStorageFileName = (fileName) => {
-        const baseName = String(fileName || 'documento')
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .replace(/[^a-zA-Z0-9._-]+/g, '_')
-            .replace(/^_+|_+$/g, '');
-
-        return (baseName || 'documento').slice(0, 120);
-    };
-
-    const hasProvidedClubDocument = (documentValue) => {
-        if (isFileLike(documentValue)) {
-            return true;
-        }
-
-        if (documentValue && typeof documentValue === 'object') {
-            const dataUrl = String(
-                documentValue?.data_url
-                || documentValue?.dataUrl
-                || documentValue?.base64
-                || documentValue?.url
-                || ''
-            ).trim();
-            const chunkCount = Number(documentValue?.chunk_count || documentValue?.chunkCount || 0);
-            return Boolean(dataUrl) || chunkCount > 0;
-        }
-
-        if (typeof documentValue === 'string') {
-            return Boolean(String(documentValue).trim());
-        }
-
-        return false;
-    };
-
-    const isHttpUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
-    const CLUB_DOCUMENT_CHUNK_CHAR_SIZE = 220000;
-
-    const buildClubDocumentChunkDocId = (documentKey, index) => `${String(documentKey || 'doc').trim()}_${index}`;
-
-    const splitTextIntoChunks = (text, chunkSize = CLUB_DOCUMENT_CHUNK_CHAR_SIZE) => {
-        const payload = String(text || '');
-        const safeChunkSize = Math.max(50000, Number(chunkSize || CLUB_DOCUMENT_CHUNK_CHAR_SIZE));
-        const chunks = [];
-
-        for (let cursor = 0; cursor < payload.length; cursor += safeChunkSize) {
-            chunks.push(payload.slice(cursor, cursor + safeChunkSize));
-        }
-
-        return chunks.length > 0 ? chunks : [''];
-    };
-
-    const deleteClubDocumentChunks = async ({ clubId, documentKey, chunkCount = 0 }) => {
-        const normalizedClubId = String(clubId || '').trim();
-        const normalizedDocumentKey = String(documentKey || '').trim();
-        const normalizedChunkCount = Math.max(0, Number(chunkCount || 0));
-
-        if (!normalizedClubId || !normalizedDocumentKey || normalizedChunkCount <= 0) {
-            return;
-        }
-
-        await Promise.all(
-            Array.from({ length: normalizedChunkCount }, (_, index) => deleteDoc(
-                doc(db, 'clubes', normalizedClubId, 'documentos_chunks', buildClubDocumentChunkDocId(normalizedDocumentKey, index))
-            ))
-        );
-    };
-
-    const writeClubDocumentChunks = async ({
-        clubId,
-        documentKey,
-        dataUrl,
-        uploadedAt
-    }) => {
-        const normalizedClubId = String(clubId || '').trim();
-        const normalizedDocumentKey = String(documentKey || '').trim();
-        const normalizedDataUrl = String(dataUrl || '');
-
-        if (!normalizedClubId || !normalizedDocumentKey || !normalizedDataUrl.startsWith('data:')) {
-            throw new Error('Documento invalido para segmentacao em Firestore.');
-        }
-
-        const chunks = splitTextIntoChunks(normalizedDataUrl, CLUB_DOCUMENT_CHUNK_CHAR_SIZE);
-
-        await Promise.all(
-            chunks.map((chunk, index) => setDoc(
-                doc(db, 'clubes', normalizedClubId, 'documentos_chunks', buildClubDocumentChunkDocId(normalizedDocumentKey, index)),
-                {
-                    document_key: normalizedDocumentKey,
-                    index,
-                    total: chunks.length,
-                    chunk,
-                    uploaded_at: uploadedAt
-                }
-            ))
-        );
-
-        return chunks.length;
-    };
-
-    const compressClubDocumentDataUrl = async (dataUrl, contentType) => {
-        if (!String(dataUrl || '').startsWith('data:')) {
-            return String(dataUrl || '');
-        }
-
-        const normalizedType = String(contentType || '').toLowerCase();
-        if (!normalizedType.startsWith('image/')) {
-            return String(dataUrl || '');
-        }
-
-        let compressed = String(dataUrl || '');
-        let compressedBytes = getDataUrlByteSize(compressed);
-
-        const compressionProfiles = [
-            { maxWidth: 1600, maxHeight: 1600, quality: 0.68, maxSizeKB: 700 },
-            { maxWidth: 1280, maxHeight: 1280, quality: 0.56, maxSizeKB: 520 },
-            { maxWidth: 1024, maxHeight: 1024, quality: 0.48, maxSizeKB: 380 },
-            { maxWidth: 900, maxHeight: 900, quality: 0.42, maxSizeKB: 300 }
-        ];
-
-        for (const profile of compressionProfiles) {
-            if (compressedBytes <= CLUB_DOCUMENT_INLINE_MAX_BYTES) {
-                break;
-            }
-
-            try {
-                compressed = await compressImageToBase64(compressed, profile);
-                compressedBytes = getDataUrlByteSize(compressed);
-            } catch (compressionError) {
-                console.warn('Falha ao comprimir documento de clube:', compressionError);
-                break;
-            }
-        }
-
-        return compressed;
-    };
-
-    const getDocumentInlineBytes = (documentPayload) => {
-        const dataUrl = String(documentPayload?.data_url || '').trim();
-        if (!dataUrl.startsWith('data:')) {
-            return 0;
-        }
-
-        return Math.max(0, getDataUrlByteSize(dataUrl));
-    };
-
-    const normalizeClubDocumentPayload = async ({
-        rawDocument,
-        requiredDocument,
-        uploadedAt
-    }) => {
-        let dataUrl = '';
-        let contentType = '';
-        let fileName = `${requiredDocument.key}.pdf`;
-        let sizeBytes = 0;
-        let chunkCount = 0;
-
-        if (isFileLike(rawDocument)) {
-            dataUrl = await readFileAsDataUrl(rawDocument);
-            contentType = String(rawDocument.type || 'application/octet-stream').trim();
-            fileName = String(rawDocument.name || fileName).trim() || fileName;
-            sizeBytes = Number(rawDocument.size || 0);
-        } else if (rawDocument && typeof rawDocument === 'object') {
-            dataUrl = String(
-                rawDocument?.data_url
-                || rawDocument?.dataUrl
-                || rawDocument?.base64
-                || rawDocument?.url
-                || ''
-            ).trim();
-            contentType = String(
-                rawDocument?.content_type
-                || rawDocument?.mime_type
-                || rawDocument?.mimeType
-                || ''
-            ).trim();
-            chunkCount = Math.max(0, Number(rawDocument?.chunk_count || rawDocument?.chunkCount || 0));
-            fileName = String(
-                rawDocument?.nome_arquivo
-                || rawDocument?.file_name
-                || rawDocument?.name
-                || fileName
-            ).trim() || fileName;
-            sizeBytes = Number(
-                rawDocument?.tamanho_bytes
-                || rawDocument?.size
-                || 0
-            );
-        } else if (typeof rawDocument === 'string') {
-            dataUrl = String(rawDocument || '').trim();
-        }
-
-        if (!dataUrl) {
-            return null;
-        }
-
-        if (!contentType && dataUrl.startsWith('data:')) {
-            const match = dataUrl.match(/^data:([^;]+);/i);
-            contentType = String(match?.[1] || '').trim();
-        }
-
-        if (!contentType) {
-            contentType = 'application/octet-stream';
-        }
-
-        if (dataUrl.startsWith('data:')) {
-            dataUrl = await compressClubDocumentDataUrl(dataUrl, contentType);
-        }
-
-        if (!sizeBytes && dataUrl.startsWith('data:')) {
-            sizeBytes = Math.max(0, getDataUrlByteSize(dataUrl));
-        }
-
-        return {
-            key: requiredDocument.key,
-            label: requiredDocument.label,
-            nome_arquivo: sanitizeStorageFileName(fileName),
-            caminho_storage: '',
-            url: dataUrl,
-            data_url: dataUrl,
-            content_type: contentType,
-            tamanho_bytes: Number(sizeBytes || 0),
-            storage_mode: chunkCount > 0 ? 'firestore_chunks' : 'inline',
-            chunk_count: chunkCount,
-            uploaded_at: uploadedAt,
-        };
-    };
-
-    const materializeClubDocumentPayload = async ({
-        clubId,
-        uploadedAt,
-        requiredDocument,
-        documentPayload,
-        previousDocument = null,
-        forceChunk = false
-    }) => {
-        if (!documentPayload || typeof documentPayload !== 'object') {
-            return null;
-        }
-
-        const previousChunkCount = Math.max(0, Number(previousDocument?.chunk_count || previousDocument?.chunkCount || 0));
-        const dataUrl = String(documentPayload?.data_url || documentPayload?.url || '').trim();
-        const fileName = sanitizeStorageFileName(documentPayload?.nome_arquivo || `${requiredDocument.key}.pdf`);
-        const contentType = String(documentPayload?.content_type || 'application/octet-stream').trim() || 'application/octet-stream';
-
-        if (!dataUrl) {
-            if (previousChunkCount > 0) {
-                await deleteClubDocumentChunks({ clubId, documentKey: requiredDocument.key, chunkCount: previousChunkCount });
-            }
-            return null;
-        }
-
-        if (!dataUrl.startsWith('data:')) {
-            if (previousChunkCount > 0) {
-                await deleteClubDocumentChunks({ clubId, documentKey: requiredDocument.key, chunkCount: previousChunkCount });
-            }
-
-            return {
-                key: requiredDocument.key,
-                label: requiredDocument.label,
-                nome_arquivo: fileName,
-                caminho_storage: '',
-                url: dataUrl,
-                data_url: '',
-                content_type: contentType,
-                tamanho_bytes: Number(documentPayload?.tamanho_bytes || 0),
-                storage_mode: isHttpUrl(dataUrl) ? 'external_url' : 'inline',
-                chunk_count: 0,
-                uploaded_at: uploadedAt
-            };
-        }
-
-        const sizeBytes = Math.max(0, getDataUrlByteSize(dataUrl));
-        const shouldChunk = forceChunk || sizeBytes > CLUB_DOCUMENT_INLINE_MAX_BYTES;
-
-        if (!shouldChunk) {
-            if (previousChunkCount > 0) {
-                await deleteClubDocumentChunks({ clubId, documentKey: requiredDocument.key, chunkCount: previousChunkCount });
-            }
-
-            return {
-                key: requiredDocument.key,
-                label: requiredDocument.label,
-                nome_arquivo: fileName,
-                caminho_storage: '',
-                url: dataUrl,
-                data_url: dataUrl,
-                content_type: contentType,
-                tamanho_bytes: sizeBytes,
-                storage_mode: 'inline',
-                chunk_count: 0,
-                uploaded_at: uploadedAt
-            };
-        }
-
-        if (previousChunkCount > 0) {
-            await deleteClubDocumentChunks({ clubId, documentKey: requiredDocument.key, chunkCount: previousChunkCount });
-        }
-
-        const chunkCount = await writeClubDocumentChunks({
-            clubId,
-            documentKey: requiredDocument.key,
-            dataUrl,
-            uploadedAt
-        });
-
-        return {
-            key: requiredDocument.key,
-            label: requiredDocument.label,
-            nome_arquivo: fileName,
-            caminho_storage: '',
-            url: '',
-            data_url: '',
-            content_type: contentType,
-            tamanho_bytes: sizeBytes,
-            storage_mode: 'firestore_chunks',
-            chunk_count: chunkCount,
-            uploaded_at: uploadedAt
-        };
-    };
-
-    const normalizeClubDocumentsForFirestore = async ({
-        clubId,
-        uploadedAt,
-        documentsByKey = {},
-        previousDocumentsByKey = {}
-    }) => {
-        const normalizedClubId = String(clubId || '').trim();
-        const sourceDocuments = documentsByKey && typeof documentsByKey === 'object' ? documentsByKey : {};
-        const previousDocuments = previousDocumentsByKey && typeof previousDocumentsByKey === 'object'
-            ? previousDocumentsByKey
-            : {};
-        const materializedDocuments = {};
-
-        const allDocumentKeys = new Set([
-            ...Object.keys(sourceDocuments),
-            ...Object.keys(previousDocuments)
-        ]);
-
-        for (const documentKey of allDocumentKeys) {
-            const hasCurrentDocument = Object.prototype.hasOwnProperty.call(sourceDocuments, documentKey);
-            if (hasCurrentDocument) {
-                continue;
-            }
-
-            const previousDocument = previousDocuments[documentKey];
-            const previousChunkCount = Math.max(0, Number(previousDocument?.chunk_count || previousDocument?.chunkCount || 0));
-            if (previousChunkCount > 0) {
-                await deleteClubDocumentChunks({
-                    clubId: normalizedClubId,
-                    documentKey,
-                    chunkCount: previousChunkCount
-                });
-            }
-        }
-
-        for (const [documentKey, documentPayload] of Object.entries(sourceDocuments)) {
-            const requiredDocument = CLUB_REQUIRED_DOCUMENTS.find((item) => item.key === documentKey) || {
-                key: String(documentKey || 'documento').trim() || 'documento',
-                label: String(documentPayload?.label || 'Documento').trim() || 'Documento'
-            };
-            const previousDocument = previousDocuments[documentKey] || null;
-
-            const materializedPayload = await materializeClubDocumentPayload({
-                clubId: normalizedClubId,
-                uploadedAt,
-                requiredDocument,
-                documentPayload,
-                previousDocument,
-                forceChunk: false
-            });
-
-            if (!materializedPayload) {
-                continue;
-            }
-
-            materializedDocuments[documentKey] = materializedPayload;
-        }
-
-        const collectInlineEntries = () => Object.entries(materializedDocuments)
-            .filter(([, item]) => String(item?.storage_mode || '').trim() === 'inline')
-            .filter(([, item]) => String(item?.data_url || '').trim().startsWith('data:'))
-            .map(([key, item]) => ({ key, item }));
-
-        let inlineEntries = collectInlineEntries();
-        let inlineTotalBytes = inlineEntries.reduce((total, entry) => total + getDocumentInlineBytes(entry.item), 0);
-
-        while (inlineEntries.length > 0 && inlineTotalBytes > CLUB_DOCUMENT_INLINE_TOTAL_MAX_BYTES) {
-            const largestInline = inlineEntries
-                .slice()
-                .sort((a, b) => getDocumentInlineBytes(b.item) - getDocumentInlineBytes(a.item))[0];
-            if (!largestInline) {
-                break;
-            }
-
-            const requiredDocument = CLUB_REQUIRED_DOCUMENTS.find((item) => item.key === largestInline.key) || {
-                key: largestInline.key,
-                label: String(largestInline.item?.label || 'Documento').trim() || 'Documento'
-            };
-
-            const chunkedPayload = await materializeClubDocumentPayload({
-                clubId: normalizedClubId,
-                uploadedAt,
-                requiredDocument,
-                documentPayload: largestInline.item,
-                previousDocument: previousDocuments[largestInline.key] || null,
-                forceChunk: true
-            });
-
-            if (!chunkedPayload) {
-                delete materializedDocuments[largestInline.key];
-            } else {
-                materializedDocuments[largestInline.key] = chunkedPayload;
-            }
-
-            inlineEntries = collectInlineEntries();
-            inlineTotalBytes = inlineEntries.reduce((total, entry) => total + getDocumentInlineBytes(entry.item), 0);
-        }
-
-        return materializedDocuments;
-    };
 
     const scopedProjects = deferredSearchTerm ? filteredSearchProjects : projectsCatalog;
 
@@ -2068,6 +1538,9 @@ export default function useAppController() {
                     escola_nome: escolaUnit.nome,
                     escola_municipio: String(escolaUnit.municipio || '').trim(),
                     escola_uf: String(escolaUnit.uf || 'BA').trim() || 'BA',
+                    school_change_count: 0,
+                    school_change_last_reason: '',
+                    school_change_last_at: null,
                     clube_id: '',
                     auth_provider: resolveAuthProvider(activeSocialUser),
                     createdAt: serverTimestamp()
@@ -2116,6 +1589,9 @@ export default function useAppController() {
                 escola_nome: escolaUnit.nome,
                 escola_municipio: String(escolaUnit.municipio || '').trim(),
                 escola_uf: String(escolaUnit.uf || 'BA').trim() || 'BA',
+                school_change_count: 0,
+                school_change_last_reason: '',
+                school_change_last_at: null,
                 clube_id: '',
                 createdAt: serverTimestamp()
             };
@@ -4089,13 +3565,85 @@ export default function useAppController() {
                 updates.lattes_data = profileData.lattesData;
             }
 
+            const schoolChangeRequest = profileData?.schoolChangeRequest;
+            if (schoolChangeRequest && typeof schoolChangeRequest === 'object') {
+                const nextSchoolId = String(schoolChangeRequest?.escola_id || '').trim();
+                const schoolChangeReason = String(schoolChangeRequest?.motivo || '').trim();
+                const currentSchoolId = String(loggedUser?.escola_id || '').trim();
+                const rawSchoolChangeCount = Number(loggedUser?.school_change_count || 0);
+                const currentSchoolChangeCount = Number.isFinite(rawSchoolChangeCount)
+                    ? Math.max(0, Math.trunc(rawSchoolChangeCount))
+                    : 0;
+                const hasClubLink = getUserClubIds(loggedUser).length > 0;
+
+                if (!canSelfCorrectSchoolProfile(loggedUser?.perfil)) {
+                    throw new Error('Seu perfil nao possui permissao para corrigir unidade escolar por conta propria.');
+                }
+
+                if (hasClubLink) {
+                    throw new Error('Nao e possivel alterar unidade apos vinculacao a clube. Procure a coordenacao.');
+                }
+
+                if (currentSchoolChangeCount >= MAX_SELF_SCHOOL_CHANGES) {
+                    throw new Error('A correcao de unidade escolar ja foi utilizada neste perfil.');
+                }
+
+                if (!nextSchoolId) {
+                    throw new Error('Selecione a nova unidade escolar.');
+                }
+
+                if (nextSchoolId === currentSchoolId) {
+                    throw new Error('Escolha uma unidade diferente da unidade atual.');
+                }
+
+                if (schoolChangeReason.length < 10) {
+                    throw new Error('Informe um motivo com pelo menos 10 caracteres para corrigir a unidade.');
+                }
+
+                const targetSchool = schoolsById.get(nextSchoolId);
+                if (!targetSchool) {
+                    throw new Error('Selecione uma unidade escolar valida.');
+                }
+
+                const nextSchoolName = String(targetSchool?.nome || targetSchool?.escola_nome || '').trim();
+                if (!nextSchoolName) {
+                    throw new Error('Nao foi possivel resolver o nome da unidade escolar selecionada.');
+                }
+
+                updates.escola_id = nextSchoolId;
+                updates.escola_nome = nextSchoolName;
+                updates.escola_municipio = String(targetSchool?.municipio || '').trim();
+                updates.escola_uf = String(targetSchool?.uf || 'BA').trim() || 'BA';
+                updates.escolas_ids = normalizeIdList([nextSchoolId]);
+                updates.school_change_count = currentSchoolChangeCount + 1;
+                updates.school_change_last_reason = schoolChangeReason;
+                updates.school_change_last_at = serverTimestamp();
+            }
+
             await updateDoc(userRef, updates);
-            const updatedUser = { ...loggedUser, ...updates };
+            const updatedUser = {
+                ...loggedUser,
+                ...updates,
+                school_change_last_at: Object.prototype.hasOwnProperty.call(updates, 'school_change_last_at')
+                    ? new Date()
+                    : loggedUser?.school_change_last_at
+            };
+
             setLoggedUser(normalizeUserEntity(updatedUser, loggedUser.id));
+            setUsers((previousUsers) => previousUsers.map((person) => {
+                const personId = String(person?.id || '').trim();
+                if (personId !== String(loggedUser?.id || '').trim()) {
+                    return person;
+                }
+
+                return normalizeUserEntity({ ...person, ...updatedUser }, personId);
+            }));
             setErrorMessage('Perfil salvo com sucesso.');
         } catch (error) {
             console.error('Erro ao salvar perfil:', error);
-            setErrorMessage('Falha ao salvar perfil. Tente novamente.');
+            const message = String(error?.message || '').trim() || 'Falha ao salvar perfil. Tente novamente.';
+            setErrorMessage(message);
+            throw new Error(message);
         }
     };
 
@@ -4198,114 +3746,13 @@ export default function useAppController() {
     };
 }
 
-function prettifyGroupLabel(groupKey) {
-    if (!groupKey) return '';
-    const normalized = String(groupKey).trim().toLowerCase();
-
-    if (normalized === 'ept') return 'EPT';
-    if (normalized === 'propedeutica') return 'Propedêutica';
-
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-}
-
-function buildSchoolGroups(dataset) {
-    return Object.entries(dataset || {})
-        .filter(([, value]) => Array.isArray(value))
-        .map(([groupKey, values]) => {
-            const units = (values || [])
-                .map((unit) => {
-                    const escolaId = String(unit?.cod_sec || unit?.codigo_sec || unit?.codigoSec || '').trim();
-                    const nome = String(unit?.nome || '').trim();
-
-                    if (!escolaId || !nome) {
-                        return null;
-                    }
-
-                    return {
-                        escola_id: escolaId,
-                        nome,
-                        cod_inep: String(unit?.cod_inep || '').trim(),
-                        tipo_unidade: String(unit?.['TIPO DE UNIDADE'] || '').trim()
-                    };
-                })
-                .filter(Boolean)
-                .reduce((acc, unit) => {
-                    if (!acc.find((item) => item.escola_id === unit.escola_id)) acc.push(unit);
-                    return acc;
-                }, [])
-                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-
-            return {
-                key: groupKey,
-                label: prettifyGroupLabel(groupKey),
-                units
-            };
-        })
-        .filter((group) => group.units.length > 0);
-}
-
-function buildMunicipalSchoolGroups(dataset) {
-    const schools = Array.isArray(dataset?.escolas) ? dataset.escolas : [];
-    const groupsByMunicipio = new Map();
-
-    for (const school of schools) {
-        const escolaId = String(school?.escola_id || school?.cod_inep || '').trim();
-        const nome = String(school?.nome || '').trim();
-        const municipio = String(school?.municipio || '').trim();
-        const uf = String(school?.uf || 'BA').trim() || 'BA';
-
-        if (!escolaId || !nome) {
-            continue;
-        }
-
-        const groupKeyBase = municipio || 'Municipio nao informado';
-        const groupKey = `municipal-${normalizeGroupKey(groupKeyBase)}`;
-
-        if (!groupsByMunicipio.has(groupKey)) {
-            groupsByMunicipio.set(groupKey, {
-                key: groupKey,
-                label: municipio || 'Municipio nao informado',
-                units: []
-            });
-        }
-
-        const group = groupsByMunicipio.get(groupKey);
-        if (!group.units.find((item) => item.escola_id === escolaId)) {
-            group.units.push({
-                escola_id: escolaId,
-                nome,
-                cod_inep: String(school?.cod_inep || escolaId).trim(),
-                tipo_unidade: 'MUNICIPAL',
-                municipio,
-                uf
-            });
-        }
-    }
-
-    return [...groupsByMunicipio.values()]
-        .map((group) => ({
-            ...group,
-            units: group.units.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
-}
-
-function normalizeGroupKey(value) {
-    return String(value || '')
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-}
-
-function flattenSchoolGroups(groups) {
-    return (groups || []).flatMap((group) => group.units || []);
-}
-
 function isMentoriaPerfil(perfil) {
     return ['orientador', 'coorientador'].includes(String(perfil || '').trim().toLowerCase());
+}
+
+function canSelfCorrectSchoolProfile(perfil) {
+    const normalizedPerfil = String(perfil || '').trim().toLowerCase();
+    return ['estudante', 'investigador', 'aluno', 'clubista', 'orientador', 'coorientador'].includes(normalizedPerfil);
 }
 
 function isValidHttpUrl(url) {
@@ -4317,29 +3764,3 @@ function isValidHttpUrl(url) {
     }
 }
 
-function getAuthErrorMessage(code, fallbackMessage = '') {
-    const messages = {
-        'auth/user-not-found': 'Usuário não encontrado. Verifique o e-mail ou cadastre-se.',
-        'auth/wrong-password': 'Senha incorreta. Tente novamente.',
-        'auth/invalid-credential': 'E-mail ou senha inválidos.',
-        'auth/email-already-in-use': 'Este e-mail já está cadastrado. Tente fazer login.',
-        'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
-        'auth/invalid-email': 'E-mail inválido.',
-        'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
-        'auth/popup-closed-by-user': 'A janela de autenticação foi fechada antes da conclusão.',
-        'auth/cancelled-popup-request': 'A autenticação foi cancelada.',
-        'auth/popup-blocked': 'O navegador bloqueou o popup de login. Habilite popups e tente novamente.',
-        'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.'
-    };
-
-    if (code && messages[code]) {
-        return messages[code];
-    }
-
-    const normalizedFallback = String(fallbackMessage || '').trim();
-    if (normalizedFallback) {
-        return normalizedFallback;
-    }
-
-    return 'Ocorreu um erro. Tente novamente.';
-}

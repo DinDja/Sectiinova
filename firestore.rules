@@ -169,7 +169,82 @@ service cloud.firestore {
         && request.resource.data.escola_id == resource.data.escola_id
         && request.resource.data.escolas_ids == resource.data.escolas_ids
         && request.resource.data.clube_id == resource.data.clube_id
-        && request.resource.data.clubes_ids == resource.data.clubes_ids;
+        && request.resource.data.clubes_ids == resource.data.clubes_ids
+        && request.resource.data.school_change_count == resource.data.school_change_count
+        && request.resource.data.school_change_last_reason == resource.data.school_change_last_reason
+        && request.resource.data.school_change_last_at == resource.data.school_change_last_at;
+    }
+
+    function schoolChangeCountFromData(data) {
+      return data.school_change_count is int ? data.school_change_count : 0;
+    }
+
+    function hasNoClubLinksInData(data) {
+      return (
+        !(data.clube_id is string)
+        || data.clube_id.size() == 0
+      )
+      && (
+        !(data.clubes_ids is list)
+        || data.clubes_ids.size() == 0
+      );
+    }
+
+    function isCanonicalSchoolListForSelfCorrection() {
+      return request.resource.data.escolas_ids is list
+        && request.resource.data.escolas_ids.size() == 1
+        && request.resource.data.escola_id is string
+        && request.resource.data.escola_id.size() > 0
+        && request.resource.data.escolas_ids[0] == request.resource.data.escola_id;
+    }
+
+    function canSelfCorrectSchool(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && resource.data.perfil is string
+        && isAllowedProfile(resource.data.perfil)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.perfil == resource.data.perfil
+        && request.resource.data.rede_administrativa == resource.data.rede_administrativa
+        && request.resource.data.clube_id == resource.data.clube_id
+        && request.resource.data.clubes_ids == resource.data.clubes_ids
+        && hasNoClubLinksInData(resource.data)
+        && hasNoClubLinksInData(request.resource.data)
+        && request.resource.data.escola_id is string
+        && request.resource.data.escola_id.size() > 0
+        && request.resource.data.escola_id != resource.data.escola_id
+        && request.resource.data.escola_nome is string
+        && request.resource.data.escola_nome.size() > 0
+        && request.resource.data.escola_municipio is string
+        && request.resource.data.escola_uf is string
+        && request.resource.data.escola_uf.size() > 0
+        && isCanonicalSchoolListForSelfCorrection()
+        && request.resource.data.school_change_count is int
+        && request.resource.data.school_change_count == schoolChangeCountFromData(resource.data) + 1
+        && request.resource.data.school_change_count <= 1
+        && request.resource.data.school_change_last_reason is string
+        && request.resource.data.school_change_last_reason.size() >= 10
+        && request.resource.data.school_change_last_reason.size() <= 240
+        && request.resource.data.school_change_last_at is timestamp
+        && request.resource.data.school_change_last_at == request.time
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'nome',
+          'telefone',
+          'lattes',
+          'bio',
+          'localizacao',
+          'fotoBase64',
+          'lattes_data',
+          'escola_id',
+          'escola_nome',
+          'escola_municipio',
+          'escola_uf',
+          'escolas_ids',
+          'school_change_count',
+          'school_change_last_reason',
+          'school_change_last_at'
+        ]);
     }
 
     function hasNoClubInProfile() {
@@ -414,6 +489,7 @@ service cloud.firestore {
         && hasValidUserProfileShapeOnCreate(userId);
       allow delete: if false;
       allow update: if isSafeSelfProfileUpdate(userId)
+        || canSelfCorrectSchool(userId)
         || canMentorLinkStudentToClub();
     }
 

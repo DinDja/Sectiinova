@@ -184,6 +184,7 @@ export default function App() {
             selectedClub={selectedClub}
             handleLogout={handleLogout}
             onSaveProfile={handleSaveProfile}
+            schools={schools}
             fontSizeLevel={fontSizeLevel}
             onDecreaseFont={decreaseFont}
             onResetFont={resetFont}

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import { 
+import { useMemo } from 'react';
+import {
     User, School, Lock, Edit2, Copy, Check, 
     LogOut, Mail, Shield, Camera, X, Phone, 
     MapPin, Calendar, Award, Star, TrendingUp, Briefcase, 
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react';
 import { fetchLattesPreviewByHtml, fetchLattesPreviewByLink } from '../../services/lattesService';
 
-export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfile, onClose }) {
+export default function MeuPerfilPro({ loggedUser, myClub, schools = [], onLogout, onSaveProfile, onClose }) {
     const lattesIframeRef = useRef(null);
 
     const [isEditing, setIsEditing] = useState(false);
@@ -39,6 +40,11 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         formacao: '',
         ultimaAtualizacao: ''
     });
+    const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
+    const [selectedSchoolChangeId, setSelectedSchoolChangeId] = useState('');
+    const [schoolChangeEnabled, setSchoolChangeEnabled] = useState(false);
+    const [schoolChangeReason, setSchoolChangeReason] = useState('');
+    const [schoolChangeError, setSchoolChangeError] = useState('');
 
     const buildDefaultLattesSelection = (data) => ({
         nome: Boolean(data?.nome),
@@ -116,6 +122,63 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         }
     };
 
+    const schoolOptions = useMemo(() => {
+        const uniqueById = new Map();
+
+        (Array.isArray(schools) ? schools : []).forEach((school) => {
+            const schoolId = String(school?.escola_id || school?.id || '').trim();
+            const schoolName = String(school?.nome || school?.escola_nome || '').trim();
+            if (!schoolId || !schoolName) return;
+
+            uniqueById.set(schoolId, {
+                id: schoolId,
+                nome: schoolName,
+                municipio: String(school?.municipio || school?.escola_municipio || '').trim(),
+                uf: String(school?.uf || school?.escola_uf || '').trim() || 'BA'
+            });
+        });
+
+        return [...uniqueById.values()].sort((a, b) => (
+            a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
+        ));
+    }, [schools]);
+
+    const schoolChangeCount = Number(loggedUser?.school_change_count || 0);
+    const hasUsedSchoolChange = Number.isFinite(schoolChangeCount) && schoolChangeCount >= 1;
+    const normalizedProfile = String(loggedUser?.perfil || '').trim().toLowerCase();
+    const isSelfSchoolCorrectionProfile = ['estudante', 'investigador', 'aluno', 'clubista', 'orientador', 'coorientador'].includes(normalizedProfile);
+    const hasClubLink = Boolean(String(loggedUser?.clube_id || '').trim())
+        || (Array.isArray(loggedUser?.clubes_ids)
+            && loggedUser.clubes_ids.some((clubId) => String(clubId || '').trim()));
+    const canRequestSchoolChange = isSelfSchoolCorrectionProfile && !hasUsedSchoolChange && !hasClubLink;
+    const currentSchoolId = String(loggedUser?.escola_id || '').trim();
+    const currentSchoolName = String(loggedUser?.escola_nome || '').trim();
+    const schoolChangeBlockedReason = hasUsedSchoolChange
+        ? 'A correcao de unidade escolar ja foi utilizada neste perfil.'
+        : hasClubLink
+            ? 'Seu perfil ja possui vinculo com clube. Procure a coordenação para ajuste manual.'
+            : !isSelfSchoolCorrectionProfile
+                ? 'Seu perfil nao pode corrigir unidade por conta propria.'
+                : '';
+
+    const filteredSchoolOptions = useMemo(() => {
+        const term = String(schoolSearchTerm || '').trim().toLowerCase();
+        if (!term) {
+            return schoolOptions.slice(0, 120);
+        }
+
+        return schoolOptions
+            .filter((option) => {
+                const normalizedName = String(option?.nome || '').toLowerCase();
+                const normalizedMunicipio = String(option?.municipio || '').toLowerCase();
+                const normalizedId = String(option?.id || '').toLowerCase();
+                return normalizedName.includes(term)
+                    || normalizedMunicipio.includes(term)
+                    || normalizedId.includes(term);
+            })
+            .slice(0, 180);
+    }, [schoolOptions, schoolSearchTerm]);
+
     const resetForm = () => {
         if (loggedUser) {
             const initialLattesData = loggedUser.lattes_data || loggedUser.lattesData || null;
@@ -146,6 +209,11 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                 formacao: '',
                 ultimaAtualizacao: ''
             });
+            setSchoolSearchTerm('');
+            setSchoolChangeReason('');
+            setSchoolChangeError('');
+            setSchoolChangeEnabled(false);
+            setSelectedSchoolChangeId(String(loggedUser.escola_id || '').trim());
         }
     };
 
@@ -537,13 +605,64 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
         setIsEditing(false);
     };
 
+    const handleToggleSchoolChange = () => {
+        if (!canRequestSchoolChange) {
+            setSchoolChangeEnabled(false);
+            return;
+        }
+
+        setSchoolChangeEnabled((previous) => {
+            const next = !previous;
+            if (!next) {
+                setSchoolSearchTerm('');
+                setSchoolChangeReason('');
+                setSchoolChangeError('');
+                setSelectedSchoolChangeId(currentSchoolId);
+            }
+            return next;
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData) return;
-        
+        setSchoolChangeError('');
+
+        const payload = { ...formData };
+
+        if (schoolChangeEnabled) {
+            const nextSchoolId = String(selectedSchoolChangeId || '').trim();
+            const reason = String(schoolChangeReason || '').trim();
+
+            if (!canRequestSchoolChange) {
+                setSchoolChangeError('Seu perfil nao atende aos criterios para corrigir unidade.');
+                return;
+            }
+
+            if (!nextSchoolId) {
+                setSchoolChangeError('Selecione a nova unidade escolar.');
+                return;
+            }
+
+            if (nextSchoolId === currentSchoolId) {
+                setSchoolChangeError('Escolha uma unidade diferente da unidade atual.');
+                return;
+            }
+
+            if (reason.length < 10) {
+                setSchoolChangeError('Informe um motivo com pelo menos 10 caracteres.');
+                return;
+            }
+
+            payload.schoolChangeRequest = {
+                escola_id: nextSchoolId,
+                motivo: reason
+            };
+        }
+
         try {
             if (onSaveProfile) {
-                await onSaveProfile(formData);
+                await onSaveProfile(payload);
             }
             setIsEditing(false);
         } catch (error) {
@@ -721,6 +840,28 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 border border-slate-900 px-2 py-1">Lattes</span>
                                 </div>
                             </div>
+
+                            <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] rounded-2xl p-5">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Unidade escolar atual</p>
+                                        <p className="text-lg font-black text-slate-900 uppercase mt-2 break-words">
+                                            {currentSchoolName || 'Nao informada'}
+                                        </p>
+                                        {currentSchoolId && (
+                                            <p className="text-xs font-bold text-slate-600 mt-1">
+                                                Codigo: {currentSchoolId}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <School className="w-7 h-7 stroke-[2.5] text-teal-500 shrink-0" />
+                                </div>
+                                {hasUsedSchoolChange && (
+                                    <p className="mt-4 text-xs font-black uppercase tracking-widest text-red-700 bg-red-100 border-2 border-red-700 inline-block px-2 py-1">
+                                        Correcao de unidade ja utilizada
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                     ) : (
@@ -766,6 +907,102 @@ export default function MeuPerfilPro({ loggedUser, myClub, onLogout, onSaveProfi
                                         placeholder="https://lattes.cnpq.br/..."
                                     />
                                 </div>
+                            </div>
+
+                            <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-4 flex items-center gap-2">
+                                    <School className="w-6 h-6 stroke-[3] text-blue-500" /> Unidade Escolar
+                                </h3>
+
+                                <div className="rounded-2xl border-2 border-slate-900 bg-slate-50 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Vinculo atual</p>
+                                    <p className="text-base font-black text-slate-900 mt-1 break-words">
+                                        {currentSchoolName || 'Nao informada'}
+                                    </p>
+                                    <p className="text-xs font-bold text-slate-700 mt-1">
+                                        Codigo: {currentSchoolId || 'Nao informado'}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleToggleSchoolChange}
+                                    disabled={!canRequestSchoolChange}
+                                    className={`mt-5 w-full md:w-auto px-5 py-3 border-2 border-slate-900 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        schoolChangeEnabled
+                                            ? 'bg-yellow-300 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:shadow-none hover:translate-y-0.5'
+                                            : canRequestSchoolChange
+                                                ? 'bg-teal-400 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:shadow-none hover:translate-y-0.5'
+                                                : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {schoolChangeEnabled ? 'Cancelar correcao de unidade' : 'Corrigir unidade escolar (uso unico)'}
+                                </button>
+
+                                {!canRequestSchoolChange && (
+                                    <p className="mt-3 text-xs font-bold text-red-700">
+                                        {schoolChangeBlockedReason}
+                                    </p>
+                                )}
+
+                                {schoolChangeEnabled && (
+                                    <div className="mt-6 space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-2">
+                                                Buscar unidade escolar
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={schoolSearchTerm}
+                                                onChange={(event) => setSchoolSearchTerm(event.target.value)}
+                                                placeholder="Digite nome, municipio ou codigo"
+                                                className="block w-full px-4 py-3 border-2 border-slate-900 rounded-xl text-sm font-bold shadow-[3px_3px_0px_0px_#0f172a] focus:shadow-[3px_3px_0px_0px_#14b8a6] focus:-translate-y-0.5 focus:-translate-x-0.5 outline-none transition-all"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-2">
+                                                Nova unidade escolar *
+                                            </label>
+                                            <select
+                                                value={selectedSchoolChangeId}
+                                                onChange={(event) => setSelectedSchoolChangeId(event.target.value)}
+                                                className="block w-full px-4 py-3 border-2 border-slate-900 rounded-xl text-sm font-bold bg-white shadow-[3px_3px_0px_0px_#0f172a] focus:shadow-[3px_3px_0px_0px_#14b8a6] focus:-translate-y-0.5 focus:-translate-x-0.5 outline-none transition-all"
+                                            >
+                                                <option value="">Selecione uma unidade</option>
+                                                {filteredSchoolOptions.map((option) => (
+                                                    <option key={option.id} value={option.id}>
+                                                        {option.nome} {option.municipio ? `• ${option.municipio}` : ''} • {option.id}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="mt-2 text-[11px] font-bold text-slate-600">
+                                                Exibindo {filteredSchoolOptions.length} opcoes filtradas.
+                                            </p>
+                                        </div>
+
+                                        <InputGroup
+                                            label="Motivo da correcao *"
+                                            type="textarea"
+                                            value={schoolChangeReason}
+                                            onChange={(event) => setSchoolChangeReason(event.target.value)}
+                                            icon={BookOpen}
+                                            placeholder="Explique por que a unidade cadastrada esta incorreta."
+                                            rows={3}
+                                            maxLength={240}
+                                        />
+
+                                        {schoolChangeError && (
+                                            <p className="text-xs font-bold text-red-700 bg-red-100 border-2 border-red-700 rounded-lg px-3 py-2">
+                                                {schoolChangeError}
+                                            </p>
+                                        )}
+
+                                        <p className="text-xs font-bold text-slate-700 bg-yellow-100 border-2 border-yellow-700 rounded-lg px-3 py-2">
+                                            Regra de seguranca: essa correcao pode ser feita apenas 1 vez e somente antes de entrar em clube.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
 

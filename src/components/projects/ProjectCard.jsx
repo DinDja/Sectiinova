@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Heart, MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School } from 'lucide-react';
+import { Heart, MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School, Sparkles } from 'lucide-react';
 import ModalPerfil from '../club/ModalPerfil';
 import ProjectGallery from './ProjectGallery';
 
@@ -53,7 +53,7 @@ export default function ProjectCard({
         papel: firstAvailableMentor.papel || 'Orientador'
     };
     
-    const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comercio Local";
+    const titulo = project?.titulo || "Conectando Saberes: Alunos como Agentes de Transformação Digital no Comércio Local";
     const tagText = project?.status || "EIXO PROJETOS";
     const descricao = project?.descricao || "Projeto inovador que conecta estudantes do ensino médio com pequenos comerciantes locais para promover a transformação digital e o desenvolvimento comunitário sustentável.";
     
@@ -80,10 +80,8 @@ export default function ProjectCard({
     const gridItems = displayImages.slice(0, 5);
     const hiddenImagesCount = Math.max(0, imageCount - 5);
 
-    // Estado para o Efeito Accordion no Grid
     const [hoveredGridIndex, setHoveredGridIndex] = useState(null);
 
-    // Helpers para obter o layout dinâmico baseado na quantidade de imagens
     const getGridContainerClass = (count) => {
         switch(count) {
             case 1: return "grid-cols-1 grid-rows-1";
@@ -98,27 +96,23 @@ export default function ProjectCard({
     const getGridItemClass = (count, index) => {
         if (count === 1) return "col-span-1 row-span-1";
         if (count === 2) return "col-span-1 row-span-1";
-        if (count === 3) {
-            return index === 0 ? "col-span-2 row-span-2" : "col-span-1 row-span-1";
-        }
+        if (count === 3) return index === 0 ? "col-span-2 row-span-2" : "col-span-1 row-span-1";
         if (count === 4) return "col-span-1 row-span-1";
         if (count >= 5) {
-            // Posicionamentos exatos do wireframe (5 imagens)
             return [
-                "col-start-1 col-span-1 row-start-1 row-span-1", // Quadrado topo esquerdo
-                "col-start-2 col-span-2 row-start-1 row-span-1", // Retângulo topo direito
-                "col-start-1 col-span-2 row-start-2 row-span-2", // Quadrado grande esquerdo
-                "col-start-1 col-span-2 row-start-4 row-span-1", // Retângulo deitado baixo
-                "col-start-3 col-span-1 row-start-2 row-span-3"  // Retângulo alto direito
+                "col-start-1 col-span-1 row-start-1 row-span-1", 
+                "col-start-2 col-span-2 row-start-1 row-span-1", 
+                "col-start-1 col-span-2 row-start-2 row-span-2", 
+                "col-start-1 col-span-2 row-start-4 row-span-1", 
+                "col-start-3 col-span-1 row-start-2 row-span-3"  
             ][index];
         }
         return "";
     };
 
-    // Helper para animar as proporções (Efeito Accordion 2D)
     const getGridStyle = (count, hoverIdx) => {
         const style = { 
-            transition: 'grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1), grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
+            transition: 'grid-template-columns 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), grid-template-rows 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' 
         };
         
         if (count === 1) {
@@ -134,22 +128,12 @@ export default function ProjectCard({
             style.gridTemplateColumns = (hoverIdx === 0 || hoverIdx === 2) ? '1.5fr 1fr' : (hoverIdx === 1 || hoverIdx === 3) ? '1fr 1.5fr' : '1fr 1fr';
             style.gridTemplateRows = (hoverIdx === 0 || hoverIdx === 1) ? '1.5fr 1fr' : (hoverIdx === 2 || hoverIdx === 3) ? '1fr 1.5fr' : '1fr 1fr';
         } else if (count >= 5) {
-            style.gridTemplateColumns = hoverIdx === 0 ? '1.5fr 1fr 1fr'
-                                      : hoverIdx === 1 ? '0.8fr 1.2fr 1.2fr'
-                                      : (hoverIdx === 2 || hoverIdx === 3) ? '1.2fr 1.2fr 0.8fr'
-                                      : hoverIdx === 4 ? '1fr 1fr 1.5fr'
-                                      : '1fr 1fr 1fr';
-                                      
-            style.gridTemplateRows = (hoverIdx === 0 || hoverIdx === 1) ? '1.5fr 1fr 1fr 1fr'
-                                   : hoverIdx === 2 ? '1fr 1.5fr 1.5fr 1fr'
-                                   : hoverIdx === 3 ? '1fr 1fr 1fr 1.5fr'
-                                   : hoverIdx === 4 ? '1fr 1.2fr 1.2fr 1.2fr'
-                                   : '1fr 1fr 1fr 1fr';
+            style.gridTemplateColumns = hoverIdx === 0 ? '1.5fr 1fr 1fr' : hoverIdx === 1 ? '0.8fr 1.2fr 1.2fr' : (hoverIdx === 2 || hoverIdx === 3) ? '1.2fr 1.2fr 0.8fr' : hoverIdx === 4 ? '1fr 1fr 1.5fr' : '1fr 1fr 1fr';
+            style.gridTemplateRows = (hoverIdx === 0 || hoverIdx === 1) ? '1.5fr 1fr 1fr 1fr' : hoverIdx === 2 ? '1fr 1.5fr 1.5fr 1fr' : hoverIdx === 3 ? '1fr 1fr 1fr 1.5fr' : hoverIdx === 4 ? '1fr 1.2fr 1.2fr 1.2fr' : '1fr 1fr 1fr 1fr';
         }
         return style;
     };
 
-    // Controles avançados de navegação para a galeria
     const handleNextImage = useCallback((e) => {
         if (e) e.stopPropagation();
         setActiveGalleryIndex((prev) => (prev + 1) % displayImages.length);
@@ -162,73 +146,52 @@ export default function ProjectCard({
 
     useEffect(() => {
         if (!isGalleryOpen) return undefined;
-
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') setIsGalleryOpen(false);
             if (event.key === 'ArrowRight') handleNextImage();
             if (event.key === 'ArrowLeft') handlePrevImage();
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isGalleryOpen, handleNextImage, handlePrevImage]);
 
     const openGalleryAt = (index = 0) => {
         if (displayImages.length === 0 || !displayImages[index]) return;
-
-        const safeIndex = Math.max(0, Math.min(index, displayImages.length - 1));
-        setActiveGalleryIndex(safeIndex);
+        setActiveGalleryIndex(Math.max(0, Math.min(index, displayImages.length - 1)));
         setIsGalleryOpen(true);
     };
 
     const getAvatarSrc = (user) => {
         if (!user || typeof user !== 'object') return null;
-        return (
-            user.avatar ||
-            user.fotoUrl ||
-            user.fotoBase64 ||
-            user.foto ||
-            user.photoUrl ||
-            user.photo ||
-            user.profilePhoto ||
-            user.imagemPerfil ||
-            null
-        );
+        return user.avatar || user.fotoUrl || user.fotoBase64 || user.foto || user.photoUrl || user.photo || user.profilePhoto || user.imagemPerfil || null;
     };
 
+    // Cores inspiradas na logo do Pop Ciência
     const getTagColor = () => {
         const status = tagText.toLowerCase();
-        if (status.includes('concluído') || status.includes('concluido')) return 'bg-emerald-300';
-        if (status.includes('em andamento')) return 'bg-blue-300';
-        if (status.includes('pendente')) return 'bg-yellow-300';
-        return 'bg-orange-300';
+        if (status.includes('concluído') || status.includes('concluido')) return 'bg-cyan-400 text-slate-900';
+        if (status.includes('em andamento')) return 'bg-yellow-400 text-slate-900';
+        if (status.includes('pendente')) return 'bg-slate-200 text-slate-900';
+        return 'bg-pink-500 text-white';
     };
 
     const teamMembers = useMemo(() => {
         const normalizeKey = (member) => {
             if (!member || typeof member !== 'object') return '';
-            return String(member.id || member.matricula || member.email || member.nome || member.uid || '')
-                .trim()
-                .toLowerCase();
+            return String(member.id || member.matricula || member.email || member.nome || member.uid || '').trim().toLowerCase();
         };
-
         const uniqueMembers = new Map();
-
         const addMembers = (members, type) => {
             (Array.isArray(members) ? members : []).forEach((member) => {
                 const key = normalizeKey(member);
                 if (!key) return;
-                if (!uniqueMembers.has(key)) {
-                    uniqueMembers.set(key, { ...member, type });
-                }
+                if (!uniqueMembers.has(key)) uniqueMembers.set(key, { ...member, type });
             });
         };
-
         addMembers(team?.orientadores, 'orientador');
         addMembers(team?.coorientadores, 'coorientador');
         addMembers(team?.investigadores, 'investigador');
         addMembers(team?.membros, 'membro');
-
         return Array.from(uniqueMembers.values());
     }, [team?.orientadores, team?.coorientadores, team?.investigadores, team?.membros]);
     
@@ -236,43 +199,32 @@ export default function ProjectCard({
     const remainingMembers = Math.max(0, teamMembers.length - 5);
 
     const handleLike = () => {
-        if (!isLiked) {
-            setLikesCount(likesCount + 1);
-        } else {
-            setLikesCount(likesCount - 1);
-        }
+        setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
         setIsLiked(!isLiked);
         if (onLikeClick) onLikeClick(project);
     };
 
     const clubProjectsForModal = Array.isArray(allProjects) ? allProjects.filter(p => String(p.clube_id) === String(club?.id)) : [];
-    const clubUsersForModal = Array.isArray(allUsers)
-        ? allUsers.filter((u) => getUserClubIds(u).includes(String(club?.id)))
-        : [];
-
-    const handleShare = () => {
-        if (onShareClick) {
-            onShareClick(project);
-        } else {
-            navigator.clipboard.writeText(window.location.href);
-        }
-    };
+    const clubUsersForModal = Array.isArray(allUsers) ? allUsers.filter((u) => getUserClubIds(u).includes(String(club?.id))) : [];
 
     return (
         <article 
-            className="bg-[#FAFAFA] rounded-3xl border-4 border-slate-900 overflow-hidden flex flex-col transition-all duration-200  shadow-[10px_10px_0px_0px_#0f172a] group relative"
+            className="bg-white rounded-[2.5rem] border-[3px] border-slate-900 overflow-hidden flex flex-col transition-all duration-300 shadow-lg hover:shadow-2xl group relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
             
-            {/* Header / Info do Orientador */}
-            <div className="p-5 flex items-center justify-between bg-white border-b-4 border-slate-900">
+            {/* Header: Estilo Quadrinho (Linhas curvas, tag rotacionada) */}
+            <div className="p-5 flex items-center justify-between bg-white border-b-[3px] border-slate-900 relative overflow-hidden">
+                {/* Elemento de fundo sutil para dar ar de HQ */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400 rounded-full opacity-20 pointer-events-none"></div>
+
                 <div 
-                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity z-10"
                     onClick={(e) => handleUserClick(e, orientador)}
                 >
                     <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-300 to-blue-300 overflow-hidden flex-shrink-0 border-2 border-slate-900 shadow-[3px_3px_0px_0px_#0f172a]">
+                        <div className="w-12 h-12 rounded-full bg-cyan-300 overflow-hidden flex-shrink-0 border-[3px] border-slate-900">
                             {getAvatarSrc(orientador) ? (
                                 <img src={getAvatarSrc(orientador)} alt={orientador.nome} className="w-full h-full object-cover" />
                             ) : (
@@ -284,118 +236,113 @@ export default function ProjectCard({
                     </div>
                     
                     <div className="flex flex-col">
-                        <span className="font-black text-slate-900 text-base hover:text-teal-700 transition-colors text-left">
+                        <span className="font-black text-slate-900 text-base hover:text-pink-500 transition-colors text-left">
                             {orientador.nome}
                         </span>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 font-semibold">
+                        <div className="flex items-center gap-2 text-sm text-slate-600 font-bold">
                             <span>{orientador.papel || 'Orientador'}</span>
                             {orientador.instituicao && (
                                 <>
-                                    <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
+                                    <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
                                     <span>{orientador.instituicao}</span>
                                 </>
                             )}
                         </div>
-                        {(club?.nome || school?.nome) && (
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-1 font-semibold">
-                                {club?.nome && <span>{club.nome}</span>}
-                                {club?.nome && school?.nome && <span className="w-1 h-1 bg-slate-500 rounded-full inline-block" />}
-                                {school?.nome && <span>{school.nome}</span>}
-                            </div>
-                        )}
                     </div>
                 </div>
                 
-                <span className={`${getTagColor()} text-slate-900 text-xs font-black px-4 py-1.5 rounded-full border-2 border-slate-900 uppercase tracking-wider shadow-[2px_2px_0px_0px_#0f172a] transition-all duration-200 hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[3px_3px_0px_0px_#0f172a] cursor-pointer`}>
-                    {tagText}
-                </span>
+                {/* Tag rotacionada estilo "adesivo/selo" de quadrinho */}
+                <div className="relative z-10">
+                    <span className={`${getTagColor()} text-xs font-black px-4 py-2 rounded-full border-[3px] border-slate-900 uppercase tracking-wider inline-block transform -rotate-2 hover:rotate-0 transition-transform duration-300 cursor-pointer`}>
+                        {tagText}
+                    </span>
+                </div>
             </div>
 
-            {/* Grid Dinâmico Baseado na Quantidade de Imagens com Efeito Accordion */}
-            <div className="relative w-full h-[340px] sm:h-[440px] bg-white overflow-hidden border-b-4 border-slate-900">
+            {/* Grid de Imagens: Molduras Arredondadas */}
+            <div className="relative w-full h-[340px] sm:h-[420px] bg-slate-50 overflow-hidden border-b-[3px] border-slate-900">
                 {imageCount > 0 ? (
-                    <>
-                        <div 
-                            className={`absolute inset-0 p-3 grid gap-2.5 ${getGridContainerClass(gridItems.length)}`}
-                            style={getGridStyle(gridItems.length, hoveredGridIndex)}
-                            onMouseLeave={() => setHoveredGridIndex(null)}
-                        >
-                            {gridItems.map((imageSrc, index) => {
-                                const isLastSlot = index === gridItems.length - 1;
-                                const shouldShowHiddenBadge = isLastSlot && hiddenImagesCount > 0;
-                                
-                                const gridClasses = getGridItemClass(gridItems.length, index);
+                    <div 
+                        className={`absolute inset-0 p-3 grid gap-3 ${getGridContainerClass(gridItems.length)}`}
+                        style={getGridStyle(gridItems.length, hoveredGridIndex)}
+                        onMouseLeave={() => setHoveredGridIndex(null)}
+                    >
+                        {gridItems.map((imageSrc, index) => {
+                            const isLastSlot = index === gridItems.length - 1;
+                            const shouldShowHiddenBadge = isLastSlot && hiddenImagesCount > 0;
+                            const gridClasses = getGridItemClass(gridItems.length, index);
 
-                                return (
-                                    <button
-                                        key={`${project?.id || 'project'}-grid-${index}`}
-                                        type="button"
-                                        onClick={() => openGalleryAt(index)}
-                                        onMouseEnter={() => setHoveredGridIndex(index)}
-                                        className={`relative rounded-xl overflow-hidden border-2 border-slate-900 transition-all duration-500 shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none cursor-pointer ${gridClasses} ${hoveredGridIndex === index ? 'shadow-[4px_4px_0px_0px_#0f172a] -translate-y-0.5 z-10' : 'z-0'}`}
-                                        title={`Abrir foto ${index + 1}`}
-                                    >
-                                        <img
-                                            src={imageSrc}
-                                            alt={`${titulo} - detalhe ${index + 1}`}
-                                            className={`w-full h-full object-cover transition-transform duration-700 ${hoveredGridIndex === index ? 'scale-105' : 'scale-100'}`}
-                                        />
-                                        <div className={`absolute inset-0 transition-opacity duration-500 ${hoveredGridIndex === index ? 'bg-transparent' : 'bg-black/20 hover:bg-black/10'}`} />
-                                        
-                                        {shouldShowHiddenBadge && (
-                                            <div className="absolute inset-0 bg-black/60 hover:bg-black/40 transition-colors text-white font-black text-2xl flex items-center justify-center backdrop-blur-sm">
-                                                +{hiddenImagesCount}
-                                            </div>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        
-                    
-                    </>
+                            return (
+                                <button
+                                    key={`${project?.id || 'project'}-grid-${index}`}
+                                    type="button"
+                                    onClick={() => openGalleryAt(index)}
+                                    onMouseEnter={() => setHoveredGridIndex(index)}
+                                    className={`relative rounded-2xl overflow-hidden border-[3px] border-slate-900 transition-all duration-500 focus:outline-none cursor-pointer ${gridClasses} ${hoveredGridIndex === index ? 'shadow-lg scale-[1.03] z-10' : 'z-0'}`}
+                                    title={`Abrir foto ${index + 1}`}
+                                >
+                                    <img
+                                        src={imageSrc}
+                                        alt={`${titulo} - detalhe ${index + 1}`}
+                                        className={`w-full h-full object-cover transition-transform duration-700 ${hoveredGridIndex === index ? 'scale-110' : 'scale-100'}`}
+                                    />
+                                    <div className={`absolute inset-0 transition-opacity duration-500 ${hoveredGridIndex === index ? 'bg-transparent' : 'bg-slate-900/10'}`} />
+                                    
+                                    {shouldShowHiddenBadge && (
+                                        <div className="absolute inset-0 bg-pink-500/80 hover:bg-pink-500/90 transition-colors text-white font-black text-3xl flex items-center justify-center backdrop-blur-sm">
+                                            +{hiddenImagesCount}
+                                        </div>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-100">
-                        <BookOpen className="w-12 h-12 mb-2 opacity-50" />
-                        <span className="font-semibold opacity-70">Projeto sem imagens</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                        <Sparkles className="w-12 h-12 mb-2 opacity-50" />
+                        <span className="font-bold text-slate-500">Aguardando imagens...</span>
                     </div>
                 )}
             </div>
 
-            {/* Conteúdo: Título e Descrição */}
-            <div className="p-6 pb-4 flex flex-col gap-4 bg-[#FAFAFA]">
-                <h2 className="text-[22px] sm:text-2xl font-black text-slate-900 leading-snug line-clamp-2 hover:text-teal-700 transition-colors cursor-pointer">
+            {/* Conteúdo Central */}
+            <div className="p-6 pb-4 flex flex-col gap-4 bg-white relative">
+                {/* Background dots (retícula sutil via CSS) */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
+
+                <h2 className="text-[22px] sm:text-2xl font-black text-slate-900 leading-snug line-clamp-2 hover:text-cyan-500 transition-colors cursor-pointer relative z-10">
                     {titulo}
                 </h2>
                 
-                <p className="text-slate-700 text-sm leading-relaxed line-clamp-3 font-semibold">
+                <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 font-semibold relative z-10">
                     {descricao}
                 </p>
+                
                 {project?.area_tematica && (
-                    <span className="inline-flex items-center mt-2 text-xs font-black uppercase tracking-wider text-slate-900 bg-blue-200 border-2 border-slate-900 rounded-full px-3 py-1 shadow-[2px_2px_0px_0px_#0f172a] w-fit">
+                    <span className="inline-flex items-center mt-1 text-xs font-black uppercase tracking-wider text-slate-900 bg-yellow-300 border-[2px] border-slate-900 rounded-full px-3 py-1 w-fit relative z-10">
                         {project.area_tematica}
                     </span>
                 )}
 
                 {/* Equipe do Projeto */}
                 {teamMembers.length > 0 && (
-                    <div className="flex items-center gap-3 mt-2 pt-3 border-t-2 border-slate-900/20">
-                        <div className="flex items-center gap-1 text-slate-700 text-sm font-bold">
-                            <Users className="w-4 h-4" />
-                            <span>Equipe</span>
+                    <div className="flex items-center gap-3 mt-3 pt-4 border-t-[2px] border-dashed border-slate-300 relative z-10">
+                        <div className="flex items-center gap-1 text-slate-500 text-sm font-black">
+                            <Users className="w-4 h-4 text-pink-500" />
+                            <span>EQUIPE</span>
                         </div>
                         <div className="flex -space-x-2">
                             {displayTeam.map((member, idx) => (
                                 <div 
                                     key={idx} 
                                     onClick={(e) => handleUserClick(e, member)}
-                                    className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-slate-900 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden shadow-[2px_2px_0px_0px_#0f172a] transition-all duration-200 hover:scale-110 hover:z-10 cursor-pointer"
-                                    title={`${member.nome} - ${member.type === 'orientador' ? 'Orientador' : member.type === 'coorientador' ? 'Coorientador' : 'Membro'}`}
+                                    className="relative group/avatar w-9 h-9 sm:w-10 sm:h-10 rounded-full border-[2px] border-slate-900 bg-cyan-100 overflow-hidden transition-transform duration-200 hover:scale-110 hover:z-10 cursor-pointer"
+                                    title={`${member.nome} - ${member.type}`}
                                 >
                                     {getAvatarSrc(member) ? (
                                         <img src={getAvatarSrc(member)} alt={member.nome} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-700 font-bold text-xs">
+                                        <div className="w-full h-full flex items-center justify-center text-slate-900 font-bold text-xs bg-yellow-200">
                                             {member.nome ? member.nome.charAt(0) : '?'}
                                         </div>
                                     )}
@@ -403,28 +350,26 @@ export default function ProjectCard({
                             ))}
                         </div>
                         {remainingMembers > 0 && (
-                            <button className="text-slate-900 font-black text-sm hover:text-teal-700 transition-colors flex items-center gap-1 ml-1">
-                                +{remainingMembers} outros
-                                <ChevronDown className="w-3 h-3" />
+                            <button className="text-slate-500 font-black text-xs hover:text-pink-500 transition-colors flex items-center gap-1 ml-1 bg-slate-100 px-2 py-1 rounded-full border-2 border-transparent hover:border-pink-500">
+                                +{remainingMembers}
                             </button>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Métricas e Indicadores */}
-            <div className="px-6 pb-20 pt-2">
-                <div className="flex items-center gap-4 sm:gap-6 mb-4"></div>
-
+            {/* Bottom/Ações */}
+            <div className="px-6 pb-20 pt-2 bg-white relative z-10">
                 {isCompleted === false && project?.progress && (
-                    <div className="mt-4">
-                        <div className="flex justify-between text-xs text-slate-700 font-bold mb-1">
-                            <span>Progresso do Projeto</span>
-                            <span>{project.progress}%</span>
+                    <div className="mt-2">
+                        <div className="flex justify-between text-xs text-slate-900 font-black mb-1.5 uppercase">
+                            <span>Progresso</span>
+                            <span className="text-pink-500">{project.progress}%</span>
                         </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden border-2 border-slate-900">
+                        {/* Barra de progresso arredondada estilo cápsula */}
+                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border-[2px] border-slate-900">
                             <div 
-                                className="bg-gradient-to-r from-teal-400 to-blue-400 h-full rounded-full transition-all duration-500"
+                                className="bg-cyan-400 h-full rounded-r-full transition-all duration-500 border-r-[2px] border-slate-900"
                                 style={{ width: `${project.progress}%` }}
                             ></div>
                         </div>
@@ -432,19 +377,19 @@ export default function ProjectCard({
                 )}
             </div>
 
-            {/* Botões de Ação: Clube e Diário */}
-            <div className="absolute bottom-6 right-6 z-10 flex items-center gap-3">
+            {/* Botões Flutuantes (Pill-shaped, HQ Vibe) */}
+            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3">
                 {club && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
                             if (onClubClick) onClubClick();
                         }}
-                        className="group/btn-club bg-white border-2 border-slate-900 text-slate-900 hover:bg-yellow-300 px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2 transition-all duration-200 shadow-[3px_3px_0px_0px_#0f172a] hover:shadow-[5px_5px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:-translate-x-0.5"
+                        className="group/btn-club bg-white border-[3px] border-slate-900 text-slate-900 hover:bg-yellow-400 px-4 py-2.5 rounded-full text-sm font-black flex items-center gap-2 transition-transform duration-200 hover:scale-105"
                         title="Ver página do clube"
                     >
-                        <School className="w-4 h-4 transition-transform duration-300 group-hover/btn-club:scale-110" />
-                        Ver Clube
+                        <School className="w-4 h-4 text-slate-900" />
+                        <span className="hidden sm:inline">Clube</span>
                     </button>
                 )}
 
@@ -453,11 +398,11 @@ export default function ProjectCard({
                         e.stopPropagation();
                         if (onDiaryClick) onDiaryClick();
                     }}
-                    className="group/btn bg-teal-400 hover:bg-teal-300 text-slate-900 border-2 border-slate-900 px-6 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all duration-200 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:-translate-x-0.5"
+                    className="group/btn bg-pink-500 hover:bg-pink-400 text-white border-[3px] border-slate-900 px-6 py-2.5 rounded-full text-sm font-black flex items-center gap-2 transition-transform duration-200 hover:scale-105"
                 >
-                    <BookOpen className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-12" />
-                    Acessar Diário
-                    <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-y-0.5" />
+                    <BookOpen className="w-4 h-4" />
+                    Diário
+                    <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
                 </button>
             </div> 
 
@@ -469,7 +414,6 @@ export default function ProjectCard({
                 title={titulo}
             />
 
-            {/* MODAL RENDERIZADO AQUI */}
             <ModalPerfil
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
