@@ -118,7 +118,7 @@ export default function ClubBoard({
     const canCreateProject = canManageClub;
     const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
     const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
-    const shouldShowSchoolClubDiscovery = !isMentor && hasNoClubMembership;
+    const shouldShowSchoolClubDiscovery = hasNoClubMembership || schoolClubDiscoveryList.length > 0;
     const managedClubs = useMemo(() => (mentorManagedClubs || []).filter((club) => String(club?.id || '').trim()), [mentorManagedClubs]);
     const canSwitchManagedClubs = isMentor && managedClubs.length > 1;
 
@@ -293,6 +293,44 @@ export default function ClubBoard({
         if (latestMyClubJoinRequestByClubId instanceof Map) return latestMyClubJoinRequestByClubId.get(String(clubId || '').trim()) || null;
         return null;
     };
+
+    const getClubMemberIds = (club) => new Set([
+        ...(club?.membros_ids || []),
+        ...(club?.clubistas_ids || []),
+        ...(club?.orientador_ids || []),
+        ...(club?.orientadores_ids || []),
+        ...(club?.coorientador_ids || []),
+        ...(club?.coorientadores_ids || []),
+        club?.mentor_id
+    ].map((value) => String(value || '').trim()).filter(Boolean));
+
+    const isLoggedUserMemberOfClub = (club) => {
+        if (!club || !loggedUserId) return false;
+        const clubId = String(club?.id || '').trim();
+        if (!clubId) return false;
+        const clubMemberIds = getClubMemberIds(club);
+        return clubMemberIds.has(loggedUserId) || loggedUserClubIds.has(clubId);
+    };
+
+    const getMembershipRequestState = (clubId) => {
+        const latestRequest = getLatestMembershipRequest(clubId);
+        const requestStatus = String(latestRequest?.status || '').trim().toLowerCase();
+        return {
+            latestRequest,
+            requestStatus,
+            isPending: requestStatus === 'pendente',
+            isRejected: requestStatus === 'recusada',
+            isAccepted: requestStatus === 'aceita'
+        };
+    };
+
+    const viewingClubRequestState = getMembershipRequestState(viewingClubId);
+    const isViewingClubRequestPending = viewingClubRequestState.isPending;
+    const isViewingClubRequestRejected = viewingClubRequestState.isRejected;
+    const isViewingClubRequestAccepted = viewingClubRequestState.isAccepted;
+    const isViewingClubRequesting = requestingClubIds instanceof Set && requestingClubIds.has(viewingClubId);
+    const isViewingClubMember = isLoggedUserMemberOfClub(viewingClub);
+    const canRequestViewingClubEntry = Boolean(viewingClubId && loggedUserId) && !isViewingClubMember;
 
     const flattenProjectReferenceValues = (value) => {
         if (value === undefined || value === null) return [];
@@ -469,14 +507,26 @@ export default function ClubBoard({
                                     </p>
                                 ) : (
                                     <div className="flex flex-wrap gap-3">
-                                        {schoolOverview.clubs.slice(0, 6).map((club) => (
-                                            <span
-                                                key={String(club?.id || '').trim()}
-                                                className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm hover:scale-105 transition-transform"
-                                            >
-                                                {club?.nome || 'Clube'}
-                                            </span>
-                                        ))}
+                                        {schoolOverview.clubs.slice(0, 6).map((club) => {
+                                            const schoolClubId = String(club?.id || '').trim();
+                                            const isActiveClub = schoolClubId && schoolClubId === viewingClubId;
+
+                                            return (
+                                                <button
+                                                    key={schoolClubId || String(club?.nome || '')}
+                                                    type="button"
+                                                    onClick={() => handleSelectManagedClub(schoolClubId)}
+                                                    disabled={!schoolClubId}
+                                                    className={`inline-flex items-center rounded-full border-[3px] border-slate-900 px-4 py-2 text-xs font-black uppercase tracking-wider shadow-sm transition-transform disabled:opacity-50 disabled:pointer-events-none ${
+                                                        isActiveClub
+                                                            ? 'bg-cyan-300 text-slate-900 scale-105'
+                                                            : 'bg-white text-slate-900 hover:bg-cyan-100 hover:scale-105 active:scale-95'
+                                                    }`}
+                                                >
+                                                    {club?.nome || 'Clube'}
+                                                </button>
+                                            );
+                                        })}
                                         {schoolOverview.clubs.length > 6 && (
                                             <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm">
                                                 +{schoolOverview.clubs.length - 6} clubes
@@ -511,12 +561,12 @@ export default function ClubBoard({
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                 {schoolClubDiscoveryList.map((club) => {
                                     const clubId = String(club?.id || '').trim();
-                                    const latestRequest = getLatestMembershipRequest(clubId);
-                                    const requestStatus = String(latestRequest?.status || '').trim().toLowerCase();
-                                    const isPending = requestStatus === 'pendente';
-                                    const isRejected = requestStatus === 'recusada';
-                                    const isAccepted = requestStatus === 'aceita';
+                                    const requestState = getMembershipRequestState(clubId);
+                                    const isPending = requestState.isPending;
+                                    const isRejected = requestState.isRejected;
+                                    const isAccepted = requestState.isAccepted;
                                     const isRequesting = requestingClubIds instanceof Set && requestingClubIds.has(clubId);
+                                    const isMember = isLoggedUserMemberOfClub(club);
 
                                     const statusConfig = isPending
                                         ? { icon: Clock3, label: 'Pendente', classes: 'bg-yellow-400 text-slate-900' }
@@ -524,6 +574,8 @@ export default function ClubBoard({
                                             ? { icon: XCircle, label: 'Recusada', classes: 'bg-pink-500 text-white' }
                                             : isAccepted
                                                 ? { icon: CheckCircle2, label: 'Aceita', classes: 'bg-cyan-300 text-slate-900' }
+                                                : isMember
+                                                    ? { icon: CheckCircle2, label: 'Participando', classes: 'bg-cyan-300 text-slate-900' }
                                                 : null;
 
                                     const StatusIcon = statusConfig?.icon || null;
@@ -608,10 +660,10 @@ export default function ClubBoard({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleStudentJoinRequest(clubId)}
-                                                        disabled={isPending || isAccepted || isRequesting}
+                                                        disabled={isMember || isPending || isAccepted || isRequesting}
                                                         className="w-full rounded-full px-6 py-4 text-sm font-black uppercase tracking-wider bg-cyan-300 text-slate-900 border-[3px] border-slate-900 shadow-sm hover:bg-cyan-200 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
                                                     >
-                                                        {isRequesting ? 'Enviando...' : isPending ? 'Aguardando' : isAccepted ? 'Aceita' : isRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
+                                                        {isMember ? 'Participando' : isRequesting ? 'Enviando...' : isPending ? 'Aguardando' : isAccepted ? 'Aceita' : isRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -768,6 +820,17 @@ export default function ClubBoard({
                                             className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 bg-yellow-400 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-xs tracking-wider transition-transform"
                                         >
                                             <PlusCircle className="w-4 h-4 stroke-[3]" /> Criar Clube
+                                        </button>
+                                    )}
+
+                                    {canRequestViewingClubEntry && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStudentJoinRequest(viewingClubId)}
+                                            disabled={isViewingClubRequesting || isViewingClubRequestPending || isViewingClubRequestAccepted}
+                                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 bg-cyan-300 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-xs tracking-wider transition-transform disabled:opacity-50 disabled:pointer-events-none"
+                                        >
+                                            {isViewingClubRequesting ? 'Enviando...' : isViewingClubRequestPending ? 'Aguardando' : isViewingClubRequestAccepted ? 'Aceita' : isViewingClubRequestRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
                                         </button>
                                     )}
 

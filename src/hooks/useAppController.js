@@ -648,16 +648,63 @@ export default function useAppController() {
         return normalizeIdList(getUserSchoolIds(loggedUser));
     }, [loggedUser]);
 
+    const userSchoolNames = useMemo(() => {
+        const names = new Set();
+        const profileSchoolName = normalizeSchoolName(loggedUser?.escola_nome || '');
+        if (profileSchoolName) {
+            names.add(profileSchoolName);
+        }
+
+        userSchoolIds.forEach((schoolId) => {
+            const normalizedSchoolId = String(schoolId || '').trim();
+            if (!normalizedSchoolId) return;
+            const mappedSchool = schoolsById.get(normalizedSchoolId);
+            const mappedSchoolName = normalizeSchoolName(mappedSchool?.nome || mappedSchool?.escola_nome || '');
+            if (mappedSchoolName) {
+                names.add(mappedSchoolName);
+            }
+        });
+
+        return [...names];
+    }, [loggedUser?.escola_nome, userSchoolIds, schoolsById, normalizeSchoolName]);
+
     const schoolClubDiscoveryList = useMemo(() => {
-        if (!loggedUser || myClubIds.length > 0 || userSchoolIds.length === 0) {
+        if (!loggedUser) {
+            return [];
+        }
+
+        if (userSchoolIds.length === 0 && userSchoolNames.length === 0) {
             return [];
         }
 
         const userSchoolSet = new Set(userSchoolIds);
+        const userSchoolNameSet = new Set(userSchoolNames);
+
         return clubs
-            .filter((club) => userSchoolSet.has(String(club?.escola_id || '').trim()))
+            .filter((club) => {
+                const clubSchoolId = String(club?.escola_id || '').trim();
+                const mappedSchool = schoolsById.get(clubSchoolId);
+                const clubSchoolName = normalizeSchoolName(club?.escola_nome || mappedSchool?.nome || mappedSchool?.escola_nome || '');
+
+                if (clubSchoolId && userSchoolSet.has(clubSchoolId)) {
+                    return true;
+                }
+
+                if (clubSchoolName && userSchoolNameSet.has(clubSchoolName)) {
+                    return true;
+                }
+
+                return false;
+            })
             .sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
-    }, [loggedUser, myClubIds, userSchoolIds, clubs]);
+    }, [loggedUser, userSchoolIds, userSchoolNames, clubs, schoolsById, normalizeSchoolName]);
+
+    const clubViewSelectableClubIds = useMemo(() => {
+        return normalizeIdList([
+            ...myClubIds,
+            ...schoolClubDiscoveryList.map((club) => String(club?.id || '').trim())
+        ]);
+    }, [myClubIds, schoolClubDiscoveryList]);
 
     const latestMyClubJoinRequestByClubId = useMemo(() => {
         const byClubId = new Map();
@@ -1281,15 +1328,15 @@ export default function useAppController() {
             return;
         }
 
-        if (myClubIds.length === 0) {
+        if (clubViewSelectableClubIds.length === 0) {
             return;
         }
 
-        const fallbackClubId = myClubIds[0];
+        const fallbackClubId = clubViewSelectableClubIds[0];
 
         setSelectedClubId((currentId) => {
             const normalizedCurrentId = String(currentId || '').trim();
-            if (normalizedCurrentId && myClubIds.includes(normalizedCurrentId)) {
+            if (normalizedCurrentId && clubViewSelectableClubIds.includes(normalizedCurrentId)) {
                 return normalizedCurrentId;
             }
 
@@ -1298,20 +1345,20 @@ export default function useAppController() {
 
         setViewingClubId((currentId) => {
             const normalizedCurrentId = String(currentId || '').trim();
-            if (normalizedCurrentId && myClubIds.includes(normalizedCurrentId)) {
+            if (normalizedCurrentId && clubViewSelectableClubIds.includes(normalizedCurrentId)) {
                 return normalizedCurrentId;
             }
 
             return fallbackClubId;
         });
-    }, [clubs, authUser, loggedUser, myClubIds]);
+    }, [clubs, authUser, loggedUser, clubViewSelectableClubIds]);
 
     useEffect(() => {
         if (currentView !== 'clube') {
             return;
         }
 
-        if (myClubIds.length === 0) {
+        if (clubViewSelectableClubIds.length === 0) {
             if (String(viewingClubId || '').trim()) {
                 setViewingClubId('');
             }
@@ -1322,18 +1369,18 @@ export default function useAppController() {
             return;
         }
 
-        const fallbackClubId = myClubIds[0];
+        const fallbackClubId = clubViewSelectableClubIds[0];
         const normalizedViewingClubId = String(viewingClubId || '').trim();
         const normalizedSelectedClubId = String(selectedClubId || '').trim();
 
-        if (!normalizedViewingClubId || !myClubIds.includes(normalizedViewingClubId)) {
+        if (!normalizedViewingClubId || !clubViewSelectableClubIds.includes(normalizedViewingClubId)) {
             setViewingClubId(fallbackClubId);
         }
 
-        if (!normalizedSelectedClubId || !myClubIds.includes(normalizedSelectedClubId)) {
+        if (!normalizedSelectedClubId || !clubViewSelectableClubIds.includes(normalizedSelectedClubId)) {
             setSelectedClubId(fallbackClubId);
         }
-    }, [currentView, myClubIds, viewingClubId, selectedClubId]);
+    }, [currentView, clubViewSelectableClubIds, viewingClubId, selectedClubId]);
 
     useEffect(() => {
         if (!viewingClubId) {
@@ -3369,24 +3416,41 @@ export default function useAppController() {
             throw new Error('Selecione um clube valido.');
         }
 
-        if (myClubIds.length > 0) {
-            throw new Error('Voce ja possui clube vinculado no perfil.');
-        }
-
         const targetClub = clubs.find((club) => String(club?.id || '').trim() === normalizedClubId);
         if (!targetClub) {
             throw new Error('Clube nao encontrado.');
         }
 
         const clubSchoolId = String(targetClub?.escola_id || '').trim();
-        if (!clubSchoolId || !userSchoolIds.includes(clubSchoolId)) {
+        const mappedSchool = schoolsById.get(clubSchoolId);
+        const clubSchoolName = normalizeSchoolName(targetClub?.escola_nome || mappedSchool?.nome || mappedSchool?.escola_nome || '');
+        const isSameSchoolById = Boolean(clubSchoolId) && userSchoolIds.includes(clubSchoolId);
+        const isSameSchoolByName = Boolean(clubSchoolName) && userSchoolNames.includes(clubSchoolName);
+        if (!isSameSchoolById && !isSameSchoolByName) {
             throw new Error('Voce so pode solicitar entrada em clubes da sua unidade escolar.');
+        }
+
+        const targetClubMemberIds = normalizeIdList([
+            ...(targetClub?.membros_ids || []),
+            ...(targetClub?.clubistas_ids || []),
+            ...(targetClub?.orientador_ids || []),
+            ...(targetClub?.orientadores_ids || []),
+            ...(targetClub?.coorientador_ids || []),
+            ...(targetClub?.coorientadores_ids || []),
+            targetClub?.mentor_id
+        ]);
+
+        if (myClubIds.includes(normalizedClubId) || targetClubMemberIds.includes(loggedUserId)) {
+            throw new Error('Voce ja participa deste clube.');
         }
 
         const latestRequest = latestMyClubJoinRequestByClubId.get(normalizedClubId);
         const latestStatus = String(latestRequest?.status || '').trim().toLowerCase();
         if (latestStatus === 'pendente') {
             throw new Error('Ja existe uma solicitacao pendente para este clube.');
+        }
+        if (latestStatus === 'aceita') {
+            throw new Error('Sua solicitacao para este clube ja foi aceita.');
         }
 
         setRequestingClubIds((previous) => new Set(previous).add(normalizedClubId));
@@ -3397,7 +3461,7 @@ export default function useAppController() {
                 escola_id: clubSchoolId,
                 escola_nome: String(targetClub?.escola_nome || '').trim(),
                 solicitante_id: loggedUserId,
-                solicitante_nome: String(loggedUser?.nome || '').trim() || 'Estudante',
+                solicitante_nome: String(loggedUser?.nome || '').trim() || 'Solicitante',
                 solicitante_email: String(loggedUser?.email || '').trim().toLowerCase(),
                 status: 'pendente',
                 createdAt: serverTimestamp()
