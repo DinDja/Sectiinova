@@ -236,8 +236,10 @@ const drawBarcode = (ctx, x, y, width, height, value) => {
     const barcodeCanvas = document.createElement('canvas');
     const horizontalPadding = 22;
     const verticalPadding = 12;
+    const textBlockHeight = 24;
     const maxBarcodeWidth = Math.max(120, width - horizontalPadding * 2);
-    const maxBarcodeHeight = Math.max(28, height - verticalPadding * 2);
+    const maxBarcodeHeight = Math.max(28, height - verticalPadding * 2 - textBlockHeight);
+    const barsStartY = y + verticalPadding;
 
     try {
         JsBarcode(barcodeCanvas, source || 'CTI1|CLUBE|MEMBRO|C|20991231|000', {
@@ -256,7 +258,7 @@ const drawBarcode = (ctx, x, y, width, height, value) => {
         const drawWidth = barcodeCanvas.width * scale;
         const drawHeight = barcodeCanvas.height * scale;
         const drawX = x + (width - drawWidth) / 2;
-        const drawY = y + (height - drawHeight) / 2;
+        const drawY = barsStartY + (maxBarcodeHeight - drawHeight) / 2;
         const prevSmoothing = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(barcodeCanvas, drawX, drawY, drawWidth, drawHeight);
@@ -271,10 +273,18 @@ const drawBarcode = (ctx, x, y, width, height, value) => {
             const barWidth = 3 + (charCode % 3) * 2;
             const gap = 2 + (charCode % 2);
             ctx.fillStyle = INK;
-            ctx.fillRect(cursor, y + 14, barWidth, height - 28);
+            ctx.fillRect(cursor, barsStartY + 2, barWidth, maxBarcodeHeight - 4);
             cursor += barWidth + gap;
         }
     }
+
+    drawFittedText(ctx, source, x + width / 2, y + height - 8, width - 24, 18, {
+        minSize: 10,
+        weight: 900,
+        align: 'center',
+        baseline: 'alphabetic',
+        color: INK,
+    });
 };
 
 const drawSeal = (ctx, cx, cy) => {
@@ -544,7 +554,7 @@ const createMembershipCardImage = async ({
     drawLabelValue(ctx, 'Matricula', getMatricula(selectedMember), 526, 548, 330);
     drawLabelValue(ctx, 'Turma', getStudentClass(selectedMember), 884, 548, 220);
     drawLabelValue(ctx, 'Validade', `12/${currentYear}`, 1132, 548, 178);
-    drawBarcode(ctx, 526, 684, 560, 98, membershipBarcodeValue);
+    drawBarcode(ctx, 526, 684, 748, 98, membershipBarcodeValue);
 
     return canvas.toDataURL('image/png');
 };
@@ -646,6 +656,8 @@ export default function MembershipCardGenerator({
     const scannerStreamRef = useRef(null);
     const scannerFrameRef = useRef(0);
     const scannerDetectorRef = useRef(null);
+    const scannerControlsRef = useRef(null);
+    const scannerZXingReaderRef = useRef(null);
     const isCameraSupported = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return Boolean(window.navigator?.mediaDevices?.getUserMedia);
@@ -782,6 +794,15 @@ export default function MembershipCardGenerator({
             scannerFrameRef.current = 0;
         }
 
+        if (scannerControlsRef.current && typeof scannerControlsRef.current.stop === 'function') {
+            try {
+                scannerControlsRef.current.stop();
+            } catch {
+                // noop
+            }
+            scannerControlsRef.current = null;
+        }
+
         if (scannerStreamRef.current) {
             scannerStreamRef.current.getTracks().forEach((track) => {
                 try {
@@ -798,6 +819,14 @@ export default function MembershipCardGenerator({
         }
 
         scannerDetectorRef.current = null;
+        if (scannerZXingReaderRef.current && typeof scannerZXingReaderRef.current.reset === 'function') {
+            try {
+                scannerZXingReaderRef.current.reset();
+            } catch {
+                // noop
+            }
+        }
+        scannerZXingReaderRef.current = null;
         setIsCameraScanning(false);
     }, []);
 
@@ -868,25 +897,25 @@ export default function MembershipCardGenerator({
         stopCameraScanner();
 
         try {
-            const stream = await window.navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'environment' },
-                },
-                audio: false,
-            });
-
             const videoElement = scannerVideoRef.current;
             if (!videoElement) {
                 throw new Error('Elemento de video indisponivel para leitura.');
             }
 
-            scannerStreamRef.current = stream;
-            videoElement.srcObject = stream;
-            videoElement.setAttribute('playsinline', 'true');
-            await videoElement.play();
-            setIsCameraScanning(true);
-
             if (isBarcodeDetectorSupported) {
+                const stream = await window.navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                    },
+                    audio: false,
+                });
+
+                setIsCameraScanning(true);
+                scannerStreamRef.current = stream;
+                videoElement.srcObject = stream;
+                videoElement.setAttribute('playsinline', 'true');
+                await videoElement.play();
+
                 scannerDetectorRef.current = new window.BarcodeDetector({
                     formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e'],
                 });
@@ -921,7 +950,31 @@ export default function MembershipCardGenerator({
 
                 scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
             } else {
-                setScannerError('Leitura automatica de codigo nao disponivel neste navegador. Aponte a camera para o codigo e copie o valor manualmente.');
+                const ZXingBrowser = await import('@zxing/browser');
+                const zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
+                zxingReader.possibleFormats = [ZXingBrowser.BarcodeFormat.CODE_128];
+                scannerZXingReaderRef.current = zxingReader;
+                setIsCameraScanning(true);
+
+                scannerControlsRef.current = await zxingReader.decodeFromConstraints(
+                    {
+                        video: {
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                        },
+                    },
+                    videoElement,
+                    (result) => {
+                        const detectedValue = String(result?.getText?.() || '').trim();
+                        if (!detectedValue) return;
+                        setVerificationInput(detectedValue);
+                        setIsScannerOpen(false);
+                        stopCameraScanner();
+                    }
+                );
+
+                setScannerError('Leitor alternativo ativo. Aproxime o codigo e mantenha a camera estavel por alguns segundos.');
             }
         } catch (error) {
             console.error('Falha ao iniciar scanner de barcode:', error);

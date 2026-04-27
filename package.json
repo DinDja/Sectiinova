@@ -20,6 +20,7 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
     "docx": "^9.6.1",
     "file-saver": "^2.0.5",
     "firebase": "^12.11.0",
