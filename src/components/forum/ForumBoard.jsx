@@ -47,7 +47,7 @@ import {
   markModerationAlertAsRead,
   deleteModerationAlert,
 } from "../../services/forumService";
-import { getUserClubIds, getUserSchoolIds } from "../../services/projectService";
+import { getUserClubIds } from "../../services/projectService";
 import { FORUM_EXPLORE_PAGE_SIZE } from "../../constants/appConstants";
 import ForumThread from "./ForumThread";
 import { auth } from "../../../firebase";
@@ -539,11 +539,6 @@ export default function ForumBoard({
   const normalizedMyClubIds = useMemo(() => normalizeUniqueIds(myClubIds), [myClubIds]);
   const allUserClubIds = useMemo(() => normalizeUniqueIds([...normalizedMyClubIds, ...profileClubIds]), [normalizedMyClubIds, profileClubIds]);
   const allUserClubIdSet = useMemo(() => new Set(allUserClubIds), [allUserClubIds]);
-  const userSchoolIds = useMemo(() => normalizeUniqueIds(getUserSchoolIds(loggedUser)), [loggedUser]);
-
-  const hasAnyUserClub = allUserClubIds.length > 0;
-  const restrictExploreToOwnSchool = !hasAnyUserClub && userSchoolIds.length > 0;
-
   const acceptedClubIds = useMemo(() => normalizeUniqueIds(acceptedForums.map((af) => af?.clube_id)), [acceptedForums]);
   const acceptedClubIdSet = useMemo(() => new Set(acceptedClubIds), [acceptedClubIds]);
 
@@ -565,10 +560,8 @@ export default function ForumBoard({
     if (!clubId) return false;
     if (allUserClubIdSet.has(clubId)) return false;
     if (acceptedClubIdSet.has(clubId)) return false;
-    if (!restrictExploreToOwnSchool) return true;
-    const clubSchoolId = normalizeId(club?.escola_id);
-    return clubSchoolId ? userSchoolIds.includes(clubSchoolId) : false;
-  }, [allUserClubIdSet, acceptedClubIdSet, restrictExploreToOwnSchool, userSchoolIds]);
+    return true;
+  }, [allUserClubIdSet, acceptedClubIdSet]);
 
   const matchesExploreSearch = useCallback((club) => {
     if (!searchForumLower) return true;
@@ -1361,9 +1354,7 @@ export default function ForumBoard({
                   message={
                     searchForumLower
                       ? "Nenhum clube encontrado com este nome."
-                      : restrictExploreToOwnSchool
-                        ? "Não há novos clubes da sua unidade escolar para explorar no momento."
-                        : "Não há novos clubes para explorar no momento."
+                      : "Não há novos clubes para explorar no momento."
                   }
                   icon={Globe}
                 />

@@ -36,7 +36,6 @@ export default function ClubBoard({
     viewingClubInvestigadores,
     viewingClubDiaryCount,
     projectsCatalog = [],
-    hasNoClubMembership = false,
     schoolClubDiscoveryList = [],
     latestMyClubJoinRequestByClubId = new Map(),
     requestingClubIds = new Set(),
@@ -121,7 +120,6 @@ export default function ClubBoard({
     const canCreateProject = canManageClub;
     const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
     const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
-    const shouldShowSchoolClubDiscovery = hasNoClubMembership || schoolClubDiscoveryList.length > 0;
     const managedClubs = useMemo(() => (mentorManagedClubs || []).filter((club) => String(club?.id || '').trim()), [mentorManagedClubs]);
     const normalizedMyClubIds = useMemo(
         () => [...new Set((myClubIds || []).map((clubId) => String(clubId || '').trim()).filter(Boolean))],
@@ -130,8 +128,7 @@ export default function ClubBoard({
     const switchableUserClubs = useMemo(() => {
         const switchableIds = new Set([
             ...normalizedMyClubIds,
-            ...managedClubs.map((club) => String(club?.id || '').trim()),
-            viewingClubId
+            ...managedClubs.map((club) => String(club?.id || '').trim())
         ].filter(Boolean));
 
         const byId = new Map();
@@ -141,13 +138,18 @@ export default function ClubBoard({
             byId.set(clubId, club);
         });
 
-        if (viewingClub && viewingClubId) {
-            byId.set(viewingClubId, viewingClub);
-        }
-
         return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
-    }, [normalizedMyClubIds, managedClubs, viewingClubId, clubs, viewingClub]);
+    }, [normalizedMyClubIds, managedClubs, clubs]);
     const canSwitchUserClubs = switchableUserClubs.length > 1;
+    const otherSchoolClubs = useMemo(() => {
+        const byId = new Map();
+        (schoolClubDiscoveryList || []).forEach((club) => {
+            const clubId = String(club?.id || '').trim();
+            if (!clubId || clubId === viewingClubId) return;
+            if (!byId.has(clubId)) byId.set(clubId, club);
+        });
+        return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+    }, [schoolClubDiscoveryList, viewingClubId]);
 
     const schoolOverview = useMemo(() => {
         const schoolId = String(viewingClubSchool?.id || viewingClubSchool?.escola_id || viewingClub?.escola_id || loggedUser?.escola_id || '').trim();
@@ -456,10 +458,9 @@ export default function ClubBoard({
         setIsProfileModalOpen(true);
     };
 
-    // RENDER: DESCOBERTA DE CLUBES (Estudante sem clube)
-    if (!viewingClub) {
-        if (shouldShowSchoolClubDiscovery) {
-            return (
+    // RENDER: DESCOBERTA DE CLUBES
+    if (!viewingClub || !isViewingClubMember) {
+        return (
                 <div className="relative min-h-[80vh] w-full font-sans text-slate-900 bg-[#FDFDFD] p-4 md:p-6 lg:p-8 overflow-hidden">
                     <div className="fixed inset-0 z-0 pointer-events-none">
                         <div className="absolute inset-0 bg-[url('/BG.png')] bg-cover bg-center"></div>
@@ -467,6 +468,49 @@ export default function ClubBoard({
                     </div>
                     
                     <div className="relative max-w-6xl mx-auto space-y-10 z-10">
+                        {canSwitchUserClubs && (
+                            <section className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg">
+                                <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
+                                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                                        <Building2 className="w-7 h-7 stroke-[2.5] text-pink-500" /> Seus Clubes
+                                    </h3>
+                                    <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 text-slate-900 text-lg font-black px-5 py-1.5 shadow-sm">
+                                        {switchableUserClubs.length}
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4">
+                                    {switchableUserClubs.map((club) => {
+                                        const clubId = String(club?.id || '').trim();
+                                        const isActive = String(viewingClub?.id || '').trim() === clubId;
+                                        const clubLogo = String(club?.logo_url || club?.logo || '').trim();
+
+                                        return (
+                                            <button
+                                                key={clubId}
+                                                type="button"
+                                                onClick={() => handleSelectManagedClub(clubId)}
+                                                className={`inline-flex items-center gap-4 rounded-full px-5 py-3 border-[3px] border-slate-900 font-black text-sm uppercase tracking-wider transition-transform ${
+                                                    isActive
+                                                        ? 'bg-cyan-300 text-slate-900 shadow-md scale-105'
+                                                        : 'bg-white text-slate-700 hover:bg-cyan-50 shadow-sm hover:scale-105 active:scale-95'
+                                                }`}
+                                            >
+                                                <span className="w-10 h-10 rounded-full overflow-hidden border-[3px] border-slate-900 bg-white flex items-center justify-center shrink-0">
+                                                    {clubLogo ? (
+                                                        <img src={clubLogo} alt={`Logo do clube ${club?.nome || ''}`} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
+                                                    )}
+                                                </span>
+                                                <span>{club?.nome || 'Clube'}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        )}
+
                         <div className="rounded-[3rem] border-[3px] border-slate-900 bg-white shadow-xl p-8 md:p-12 mb-10 transition-transform hover:-translate-y-1">
                             <div className="inline-flex items-center gap-2 bg-yellow-400 px-5 py-2.5 rounded-full border-[3px] border-slate-900 shadow-sm mb-6 transform --2">
                                 <Sparkles className="w-5 h-5 text-slate-900 stroke-[2.5]" />
@@ -490,6 +534,16 @@ export default function ClubBoard({
                                     <MapIcon className="w-5 h-5 stroke-[2.5]" />
                                     {String(loggedUser?.escola_nome || '').trim() || 'Unidade escolar vinculada'}
                                 </span>
+                                {isMentor && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateClubOpen(true)}
+                                        className="inline-flex items-center gap-2 bg-pink-400 text-white border-[3px] border-slate-900 shadow-sm rounded-full px-5 py-2.5 text-sm font-black uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform"
+                                    >
+                                        <PlusCircle className="w-5 h-5 stroke-[3]" />
+                                        Criar Clube
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -583,6 +637,16 @@ export default function ClubBoard({
                                 <Building2 className="w-16 h-16 text-slate-400 mx-auto mb-6 stroke-[1.5]" />
                                 <p className="text-slate-900 font-black text-2xl uppercase">Nenhum clube disponível</p>
                                 <p className="text-slate-600 font-bold mt-3 text-lg">Assim que um clube da sua unidade estiver ativo, ele aparecerá aqui para solicitação.</p>
+                                {isMentor && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateClubOpen(true)}
+                                        className="mt-8 inline-flex items-center gap-3 px-8 py-4 rounded-full bg-pink-400 text-white font-black uppercase tracking-wider text-sm hover:scale-105 active:scale-95 transition-transform border-[3px] border-slate-900 shadow-sm"
+                                    >
+                                        <PlusCircle className="w-5 h-5 stroke-[3]" />
+                                        Criar Clube na Unidade
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -700,53 +764,19 @@ export default function ClubBoard({
                             </div>
                         )}
                     </div>
+
+                    <CreateClubForm
+                        isOpen={isCreateClubOpen}
+                        onClose={() => setIsCreateClubOpen(false)}
+                        loggedUser={loggedUser}
+                        schools={schools}
+                        users={users}
+                        isSubmitting={creatingClub}
+                        onSubmit={handleCreateClub}
+                    />
                 </div>
             );
         }
-
-        // RENDER: SEM CLUBE E NÃO É ESTUDANTE BUSCANDO (Ex: Orientador sem clube)
-        return (
-            <div className="relative min-h-[80vh] w-full font-sans text-slate-900 bg-[#FDFDFD] p-4 md:p-6 lg:p-8 overflow-hidden flex items-center justify-center">
-                <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.85]">
-                    <div className="absolute inset-[-50%] animate-[spin_120s_linear_infinite]" style={{ background: 'repeating-conic-gradient(from 0deg, transparent 0deg 15deg, rgba(103, 232, 249, 0.12) 15deg 30deg)' }}></div>
-                    <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '20px 20px' }}></div>
-                </div>
-
-                <div className="relative z-10 w-full max-w-2xl">
-                    <div className="bg-white p-12 md:p-16 rounded-[3rem] border-[3px] border-slate-900 shadow-2xl text-center transform transition-transform hover:-translate-y-2">
-                        <Building2 className="w-20 h-20 text-cyan-400 mx-auto mb-8 stroke-[1.5]" />
-                        <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tight mb-6">
-                            Selecione um <span className="bg-yellow-400 px-3 py-1 rounded-full border-[3px] border-slate-900 shadow-sm inline-block transform -2">Ecossistema</span>
-                        </h2>
-                        <p className="text-slate-600 font-bold text-lg mb-10 leading-relaxed">
-                            Navegue pelo Feed de Inovação e clique no ícone da escola em um projeto para revelar o universo de colaboração do clube.
-                        </p>
-                        
-                        {isMentor && (
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateClubOpen(true)}
-                                className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-pink-400 text-white font-black uppercase tracking-wider text-sm hover:scale-105 active:scale-95 transition-transform border-[3px] border-slate-900 shadow-sm"
-                            >
-                                <PlusCircle className="w-5 h-5 stroke-[3]" />
-                                Criar Clube na Unidade
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                <CreateClubForm
-                    isOpen={isCreateClubOpen}
-                    onClose={() => setIsCreateClubOpen(false)}
-                    loggedUser={loggedUser}
-                    schools={schools}
-                    users={users}
-                    isSubmitting={creatingClub}
-                    onSubmit={handleCreateClub}
-                />
-            </div>
-        );
-    }
 
     // RENDER: VISUALIZANDO UM CLUBE
     const investigatorCount = viewingClubInvestigadores.length;
@@ -771,6 +801,48 @@ export default function ClubBoard({
                 </div>
 
                 <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 space-y-12 relative z-10">
+                    {canSwitchUserClubs && (
+                        <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
+                            <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
+                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                                    <Building2 className="w-7 h-7 stroke-[2.5] text-pink-500" /> Seus Clubes
+                                </h3>
+                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 text-slate-900 text-lg font-black px-5 py-1.5 shadow-sm">
+                                    {switchableUserClubs.length}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-4">
+                                {switchableUserClubs.map((club) => {
+                                    const clubId = String(club?.id || '').trim();
+                                    const isActive = String(viewingClub?.id || '').trim() === clubId;
+                                    const clubLogo = String(club?.logo_url || club?.logo || '').trim();
+
+                                    return (
+                                        <button
+                                            key={clubId}
+                                            type="button"
+                                            onClick={() => handleSelectManagedClub(clubId)}
+                                            className={`inline-flex items-center gap-4 rounded-full px-5 py-3 border-[3px] border-slate-900 font-black text-sm uppercase tracking-wider transition-transform ${
+                                                isActive
+                                                    ? 'bg-cyan-300 text-slate-900 shadow-md scale-105'
+                                                    : 'bg-white text-slate-700 hover:bg-cyan-50 shadow-sm hover:scale-105 active:scale-95'
+                                            }`}
+                                        >
+                                            <span className="w-10 h-10 rounded-full overflow-hidden border-[3px] border-slate-900 bg-white flex items-center justify-center shrink-0">
+                                                {clubLogo ? (
+                                                    <img src={clubLogo} alt={`Logo do clube ${club?.nome || ''}`} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
+                                                )}
+                                            </span>
+                                            <span>{club?.nome || 'Clube'}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
              
                     {/* Header do Clube HQ */}
                     <div className="relative w-full">
@@ -960,6 +1032,65 @@ export default function ClubBoard({
                                 </div>
                             )}
                         </div>
+
+                        <div className="mt-10">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-4">Solicitar entrada em outros clubes</p>
+                            {otherSchoolClubs.length === 0 ? (
+                                <p className="text-sm font-bold text-slate-700 bg-slate-50 border-[3px] border-dashed border-slate-300 rounded-[2rem] px-5 py-4">
+                                    Não há outros clubes da sua unidade escolar disponíveis para solicitação no momento.
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {otherSchoolClubs.map((club) => {
+                                        const clubId = String(club?.id || '').trim();
+                                        const requestState = getMembershipRequestState(clubId);
+                                        const isPending = requestState.isPending;
+                                        const isRejected = requestState.isRejected;
+                                        const isAccepted = requestState.isAccepted;
+                                        const isRequesting = requestingClubIds instanceof Set && requestingClubIds.has(clubId);
+                                        const isMember = isLoggedUserMemberOfClub(club);
+
+                                        const statusConfig = isPending
+                                            ? { icon: Clock3, label: 'Pendente', classes: 'bg-yellow-400 text-slate-900' }
+                                            : isRejected
+                                                ? { icon: XCircle, label: 'Recusada', classes: 'bg-pink-500 text-white' }
+                                                : isAccepted
+                                                    ? { icon: CheckCircle2, label: 'Aceita', classes: 'bg-cyan-300 text-slate-900' }
+                                                    : isMember
+                                                        ? { icon: CheckCircle2, label: 'Participando', classes: 'bg-cyan-300 text-slate-900' }
+                                                        : null;
+
+                                        const StatusIcon = statusConfig?.icon || null;
+
+                                        return (
+                                            <article key={clubId} className="rounded-[2rem] border-[3px] border-slate-900 bg-white p-5 shadow-sm">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-black text-slate-900 uppercase truncate">{club?.nome || 'Clube'}</p>
+                                                        <p className="text-[11px] font-bold text-slate-600 mt-1 truncate">{club?.escola_nome || schoolOverview.schoolLabel}</p>
+                                                    </div>
+                                                    {statusConfig && (
+                                                        <span className={`inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm ${statusConfig.classes}`}>
+                                                            {StatusIcon && <StatusIcon className="w-3.5 h-3.5 stroke-[3]" />}
+                                                            {statusConfig.label}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleStudentJoinRequest(clubId)}
+                                                    disabled={isMember || isPending || isAccepted || isRequesting}
+                                                    className="mt-4 w-full rounded-full px-5 py-3 text-xs font-black uppercase tracking-wider bg-cyan-300 text-slate-900 border-[3px] border-slate-900 shadow-sm hover:bg-cyan-200 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
+                                                >
+                                                    {isMember ? 'Participando' : isRequesting ? 'Enviando...' : isPending ? 'Aguardando' : isAccepted ? 'Aceita' : isRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
+                                                </button>
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </section>
 
                     <MembershipCardGenerator
@@ -1037,49 +1168,6 @@ export default function ClubBoard({
                             </div>
                         </div>
                     </section>
-
-                    {canSwitchUserClubs && (
-                        <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
-                            <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                    <Building2 className="w-7 h-7 stroke-[2.5] text-pink-500" /> Seus Clubes
-                                </h3>
-                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 text-slate-900 text-lg font-black px-5 py-1.5 shadow-sm">
-                                    {switchableUserClubs.length}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-wrap gap-4">
-                                {switchableUserClubs.map((club) => {
-                                    const clubId = String(club?.id || '').trim();
-                                    const isActive = String(viewingClub?.id || '').trim() === clubId;
-                                    const clubLogo = String(club?.logo_url || club?.logo || '').trim();
-
-                                    return (
-                                        <button
-                                            key={clubId}
-                                            type="button"
-                                            onClick={() => handleSelectManagedClub(clubId)}
-                                            className={`inline-flex items-center gap-4 rounded-full px-5 py-3 border-[3px] border-slate-900 font-black text-sm uppercase tracking-wider transition-transform ${
-                                                isActive
-                                                    ? 'bg-cyan-300 text-slate-900 shadow-md scale-105'
-                                                    : 'bg-white text-slate-700 hover:bg-cyan-50 shadow-sm hover:scale-105 active:scale-95'
-                                            }`}
-                                        >
-                                            <span className="w-10 h-10 rounded-full overflow-hidden border-[3px] border-slate-900 bg-white flex items-center justify-center shrink-0">
-                                                {clubLogo ? (
-                                                    <img src={clubLogo} alt={`Logo do clube ${club?.nome || ''}`} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
-                                                )}
-                                            </span>
-                                            <span>{club?.nome || 'Clube'}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
 
                     {canManageClub && (
                         <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
