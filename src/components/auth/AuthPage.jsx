@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import Select from "react-select";
 import lottie from "lottie-web/build/player/esm/lottie.min.js";
 import {
   Microscope,
@@ -18,7 +19,6 @@ import {
   Sparkles,
   Lightbulb,
   Rocket,
-  Search,
   Asterisk,
   Zap,
   X
@@ -348,11 +348,13 @@ export default function AuthPage({
   setAuthNotice,
   PERFIS_LOGIN,
 }) {
+  const MIN_SCHOOL_SEARCH_CHARS = 2;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
+  const [schoolSelectInput, setSchoolSelectInput] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -459,11 +461,163 @@ export default function AuthPage({
     { value: "municipal", label: "Rede Municipal" },
   ];
   const safeFilteredSchoolGroups = filteredSchoolGroups || [];
-  const schoolOptions = safeFilteredSchoolGroups.map((group) => ({
-    label: group.label,
-    options: (group.units || []).map((unit) => ({ value: unit.escola_id, label: unit.nome, unit })),
-  }));
+  const normalizeSchoolSearch = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "");
+  const normalizedSchoolSelectInput = normalizeSchoolSearch(schoolSelectInput);
+  const shouldShowSchoolResults = normalizedSchoolSelectInput.length >= MIN_SCHOOL_SEARCH_CHARS;
+  const schoolOptions = useMemo(() => {
+    if (!shouldShowSchoolResults) return [];
+
+    return safeFilteredSchoolGroups
+      .map((group) => ({
+        label: group.label,
+        options: (group.units || [])
+          .filter((unit) => {
+            const searchableText = normalizeSchoolSearch([
+              unit?.nome,
+              unit?.municipio,
+              unit?.escola_id,
+              unit?.cod_inep,
+              group?.label,
+            ].filter(Boolean).join(" "));
+
+            return searchableText.includes(normalizedSchoolSelectInput);
+          })
+          .map((unit) => ({
+            value: unit.escola_id,
+            label: unit.nome,
+            unit,
+          })),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [safeFilteredSchoolGroups, normalizedSchoolSelectInput, shouldShowSchoolResults]);
+  const selectedSchoolUnit = (allSchoolUnits || []).find(
+    (unit) => String(unit?.escola_id || "").trim() === String(registerForm.escola_id || "").trim(),
+  );
+  const selectedSchoolOption = selectedSchoolUnit
+    ? {
+        value: selectedSchoolUnit.escola_id,
+        label: selectedSchoolUnit.nome,
+        unit: selectedSchoolUnit,
+      }
+    : null;
   const hasSchoolError = String(authError || "").toLowerCase().includes("unidade escolar");
+  const schoolSelectStyles = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: 54,
+      borderRadius: 9999,
+      borderWidth: 3,
+      borderStyle: "solid",
+      borderColor: hasSchoolError ? "#ec4899" : "#0f172a",
+      backgroundColor: hasSchoolError ? "#fdf2f8" : "#ffffff",
+      boxShadow: state.isFocused
+        ? hasSchoolError
+          ? "0 0 0 4px rgba(236, 72, 153, 0.2)"
+          : "0 0 0 4px rgba(103, 232, 249, 0.4)"
+        : "0 1px 2px rgba(0, 0, 0, 0.05)",
+      cursor: "text",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        borderColor: hasSchoolError ? "#ec4899" : "#0f172a",
+      },
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 4,
+      paddingBottom: 4,
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#64748b",
+      fontWeight: 700,
+      fontSize: 14,
+    }),
+    input: (base) => ({
+      ...base,
+      color: "#0f172a",
+      fontWeight: 700,
+      fontSize: 14,
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "#0f172a",
+      fontWeight: 800,
+      fontSize: 14,
+    }),
+    clearIndicator: (base) => ({
+      ...base,
+      color: "#334155",
+      paddingLeft: 4,
+      paddingRight: 4,
+      "&:hover": { color: "#0f172a" },
+    }),
+    dropdownIndicator: (base) => ({
+      ...base,
+      color: "#0f172a",
+      paddingLeft: 4,
+      paddingRight: 14,
+      "&:hover": { color: "#0f172a" },
+    }),
+    indicatorSeparator: () => ({ display: "none" }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 90,
+    }),
+    menu: (base) => ({
+      ...base,
+      borderRadius: 24,
+      border: "3px solid #0f172a",
+      overflow: "hidden",
+      boxShadow: "0 12px 30px -12px rgba(15, 23, 42, 0.45)",
+      marginTop: 10,
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: 320,
+      paddingTop: 4,
+      paddingBottom: 4,
+    }),
+    groupHeading: (base) => ({
+      ...base,
+      fontSize: 11,
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      fontWeight: 900,
+      color: "#334155",
+      paddingLeft: 14,
+      paddingRight: 14,
+      paddingTop: 10,
+      paddingBottom: 6,
+      backgroundColor: "#f1f5f9",
+    }),
+    option: (base, state) => ({
+      ...base,
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0f172a",
+      paddingTop: 10,
+      paddingBottom: 10,
+      paddingLeft: 14,
+      paddingRight: 14,
+      cursor: "pointer",
+      backgroundColor: state.isSelected ? "#a5f3fc" : state.isFocused ? "#ecfeff" : "#ffffff",
+    }),
+    noOptionsMessage: (base) => ({
+      ...base,
+      color: "#475569",
+      fontWeight: 700,
+      fontSize: 13,
+      paddingTop: 14,
+      paddingBottom: 14,
+    }),
+  };
   const passwordChecks = getPasswordSecurityChecks(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
   const passwordStrength = getPasswordStrength(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
   const noticeClasses = authNotice?.tone === "success" ? "bg-cyan-300" : authNotice?.tone === "warning" ? "bg-yellow-400" : "bg-sky-300";
@@ -1053,7 +1207,8 @@ export default function AuthPage({
                             onChange={(e) => {
                               const novaRede = e.target.value === "municipal" ? "municipal" : "estadual";
                               setRegisterForm((prev) => ({ ...prev, rede_administrativa: novaRede, escola_id: "", escola_nome: "" }));
-                              setSchoolSearchTerm("");
+                              setSchoolSelectInput("");
+                              if (typeof setSchoolSearchTerm === "function") setSchoolSearchTerm("");
                             }}
                             className="w-full bg-white outline-none text-slate-900 font-bold text-sm py-3.5 pl-5 pr-10 rounded-full border-[3px] border-slate-900 shadow-sm appearance-none cursor-pointer focus:ring-4 focus:ring-cyan-300/40 focus:border-cyan-400 transition-all"
                           >
@@ -1065,43 +1220,51 @@ export default function AuthPage({
                         </div>
                       </div>
 
-                      <div className="mb-6">
-                        <SolidInput
-                          icon={Search}
-                          label="Buscar unidade escolar"
-                          type="search"
-                          value={schoolSearchTerm}
-                          onChange={(e) => setSchoolSearchTerm(e.target.value)}
-                        />
-                      </div>
-
                       <div className="relative">
                         <label className={`block text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1 ${hasSchoolError ? "text-pink-600" : "text-slate-900"}`}>Qual Unidade? *</label>
                         <div className="relative">
-                          <select
-                            value={registerForm.escola_id || ""}
-                            onChange={(e) => {
-                              const selectedId = e.target.value;
-                              if (!selectedId) {
+                          <Select
+                            inputId="register-school-select"
+                            className="text-sm"
+                            options={schoolOptions}
+                            value={selectedSchoolOption}
+                            styles={schoolSelectStyles}
+                            placeholder="Digite nome, municipio ou codigo da unidade"
+                            noOptionsMessage={({ inputValue }) =>
+                              normalizeSchoolSearch(inputValue).length < MIN_SCHOOL_SEARCH_CHARS
+                                ? `Digite pelo menos ${MIN_SCHOOL_SEARCH_CHARS} caracteres para buscar.`
+                                : "Nenhuma unidade encontrada com esse termo."
+                            }
+                            isSearchable
+                            isClearable
+                            maxMenuHeight={320}
+                            menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                            menuPosition="fixed"
+                            inputValue={schoolSelectInput}
+                            onInputChange={(inputValue, meta) => {
+                              if (meta.action === "input-change") {
+                                setSchoolSelectInput(inputValue);
+                                return;
+                              }
+
+                              if (meta.action === "menu-close" || meta.action === "set-value") {
+                                setSchoolSelectInput("");
+                              }
+                            }}
+                            onMenuClose={() => setSchoolSelectInput("")}
+                            onChange={(selectedOption) => {
+                              if (!selectedOption) {
                                 setRegisterForm((prev) => ({ ...prev, escola_id: "", escola_nome: "" }));
                                 return;
                               }
-                              const allOptions = schoolOptions.flatMap((g) => g.options);
-                              const selectedOption = allOptions.find((o) => String(o.value) === String(selectedId));
-                              setRegisterForm((prev) => ({ ...prev, escola_id: selectedId, escola_nome: selectedOption?.label || "" }));
+
+                              setRegisterForm((prev) => ({
+                                ...prev,
+                                escola_id: String(selectedOption.value || "").trim(),
+                                escola_nome: String(selectedOption.label || "").trim(),
+                              }));
                             }}
-                            className={`w-full bg-white outline-none text-slate-900 font-bold text-sm py-3.5 pl-5 pr-10 rounded-full border-[3px] transition-all appearance-none cursor-pointer focus:ring-4 focus:ring-cyan-300/40 ${hasSchoolError ? "border-pink-500 shadow-sm focus:border-pink-500 bg-pink-50" : "border-slate-900 shadow-sm focus:border-cyan-400"}`}
-                          >
-                            <option value="" disabled className="font-bold text-slate-400">Buscar na lista...</option>
-                            {schoolOptions.map((group) => (
-                              <optgroup key={group.label} label={group.label} className="bg-slate-100 text-slate-900 font-black">
-                                {group.options.map((option) => (
-                                  <option key={option.value} value={option.value} className="bg-white font-bold text-slate-700">{option.label}</option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-900 stroke-[3] pointer-events-none" />
+                          />
                         </div>
                       </div>
                     </div>

@@ -59,6 +59,14 @@ function normalizeGroupKey(value) {
         .replace(/^-+|-+$/g, '');
 }
 
+function normalizeSearchValue(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '');
+}
+
 function buildMunicipalSchoolGroups(dataset) {
     const schools = Array.isArray(dataset?.escolas) ? dataset.escolas : [];
     const groupsByMunicipio = new Map();
@@ -110,7 +118,7 @@ function flattenSchoolGroups(groups) {
 }
 
 export default function useSchoolCatalog({ redeAdministrativa, schoolSearchTerm }) {
-    const normalizeSchoolName = useCallback((value) => String(value || '').trim().toLowerCase(), []);
+    const normalizeSchoolName = useCallback((value) => normalizeSearchValue(value), []);
 
     const estadualSchoolGroups = useMemo(() => buildSchoolGroups(dadosUnidades), []);
     const municipalSchoolGroups = useMemo(
@@ -137,7 +145,7 @@ export default function useSchoolCatalog({ redeAdministrativa, schoolSearchTerm 
     );
 
     const filteredSchoolGroups = useMemo(() => {
-        const term = String(schoolSearchTerm || '').trim().toLowerCase();
+        const term = normalizeSearchValue(schoolSearchTerm);
         if (!term) {
             return selectedSchoolGroups;
         }
@@ -145,7 +153,17 @@ export default function useSchoolCatalog({ redeAdministrativa, schoolSearchTerm 
         return selectedSchoolGroups
             .map((group) => ({
                 ...group,
-                units: (group.units || []).filter((unit) => unit.nome.toLowerCase().includes(term))
+                units: (group.units || []).filter((unit) => {
+                    const searchable = normalizeSearchValue([
+                        unit?.nome,
+                        unit?.municipio,
+                        unit?.escola_id,
+                        unit?.cod_inep,
+                        group?.label
+                    ].filter(Boolean).join(' '));
+
+                    return searchable.includes(term);
+                })
             }))
             .filter((group) => (group.units || []).length > 0);
     }, [selectedSchoolGroups, schoolSearchTerm]);
