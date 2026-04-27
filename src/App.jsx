@@ -103,6 +103,7 @@ export default function App() {
         viewingClubDiaryCount,
         projectsCatalog,
         schoolClubDiscoveryList,
+        canManageViewingClub,
         latestMyClubJoinRequestByClubId,
         requestingClubIds,
         handleRequestClubEntry,
@@ -186,6 +187,12 @@ export default function App() {
             handleLogout={handleLogout}
             onSaveProfile={handleSaveProfile}
             schools={schools}
+            users={users}
+            clubJoinRequests={clubJoinRequests}
+            reviewingClubRequestIds={reviewingClubRequestIds}
+            handleRespondClubEntryRequest={handleRespondClubEntryRequest}
+            canManageViewingClub={canManageViewingClub}
+            handleUpdateClubCardTemplate={handleUpdateClubCardTemplate}
             fontSizeLevel={fontSizeLevel}
             onDecreaseFont={decreaseFont}
             onResetFont={resetFont}
@@ -258,9 +265,6 @@ export default function App() {
                         requestingClubIds={requestingClubIds}
                         handleRequestClubEntry={handleRequestClubEntry}
                         myClubIds={myClubIds}
-                        clubJoinRequests={clubJoinRequests}
-                        reviewingClubRequestIds={reviewingClubRequestIds}
-                        handleRespondClubEntryRequest={handleRespondClubEntryRequest}
                         mentorManagedClubs={mentorManagedClubs}
                         setViewingClubId={setViewingClubId}
                         setSelectedClubId={setSelectedClubId}
@@ -276,7 +280,6 @@ export default function App() {
                         handleCreateClub={handleCreateClub}
                         creatingClub={creatingClub}
                         handleUpdateClub={handleUpdateClub}
-                        handleUpdateClubCardTemplate={handleUpdateClubCardTemplate}
                         updatingClub={updatingClub}
                     />
                 )}

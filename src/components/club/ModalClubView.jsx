@@ -1,260 +1,699 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-    X, User, Map as MapIcon, FolderKanban, Users, 
-    BookOpen, Microscope, ExternalLink, Target, 
-    GraduationCap, Sparkles, Zap, Building2, Asterisk
+import {
+    X,
+    Map as MapIcon,
+    FolderKanban,
+    Users,
+    BookOpen,
+    Microscope,
+    ExternalLink,
+    GraduationCap,
+    Sparkles,
+    Star,
+    FileText,
+    Building2,
+    Eye,
+    Clock3,
+    BadgeCheck
 } from 'lucide-react';
+import EmptyState from '../shared/EmptyState';
 import ModalPerfil from './ModalPerfil';
-import { getInitials, getLattesLink } from '../../utils/helpers';
+import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
+import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 
-// --- MOCKS E STUBS DE DEPENDÊNCIAS EXTERNAS ---
-const EmptyState = ({ icon: Icon, title, description }) => (
-    <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto">
-        {Icon && <Icon className="w-20 h-20 text-slate-900 mb-6 stroke-[2]" />}
-        <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">{title}</h3>
-        <p className="text-lg font-bold text-slate-600">{description}</p>
-    </div>
+const PIONEER_CUTOFF_MS = new Date('2026-04-30T00:00:00-03:00').getTime();
+const PIONEER_SEAL_LABEL = 'Selo Pioneiro';
+const PIONEER_SEAL_REASON = 'Este clube recebeu o selo por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.';
+
+const PIONEER_SYMBOLS = [
+    { icon: BadgeCheck, className: 'h-4 w-4 text-yellow-500 stroke-[2.8]' },
+    { icon: Sparkles, className: 'h-4 w-4 text-cyan-500 stroke-[2.8]' },
+    { icon: Star, className: 'h-4 w-4 text-pink-500 stroke-[2.8]' }
+];
+
+const normalizeText = (value) => String(value || '').trim();
+
+const parseTimestampMillis = (value) => {
+    if (!value) return 0;
+    if (typeof value?.toMillis === 'function') {
+        const millis = value.toMillis();
+        return Number.isFinite(millis) ? millis : 0;
+    }
+    if (typeof value?.toDate === 'function') {
+        const dateValue = value.toDate();
+        const millis = dateValue?.getTime?.();
+        return Number.isFinite(millis) ? millis : 0;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const hasPioneerSeal = (club) => {
+    const createdAtMillis = parseTimestampMillis(club?.createdAt);
+    if (createdAtMillis <= 0) return false;
+    return createdAtMillis < PIONEER_CUTOFF_MS;
+};
+
+const normalizeExternalUrl = (value) => {
+    const raw = normalizeText(value);
+    if (!raw) return '';
+    if (raw.startsWith('data:')) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+};
+
+const PioneerBadge = ({ compact = false, className = '' }) => (
+    <span
+        className={`inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-lime-300 px-3 py-1 font-black uppercase tracking-wider text-slate-900 shadow-sm ${compact ? 'text-[10px]' : 'text-xs'} ${className}`}
+        title={PIONEER_SEAL_REASON}
+        aria-label={`${PIONEER_SEAL_LABEL}. ${PIONEER_SEAL_REASON}`}
+    >
+        {PIONEER_SYMBOLS.map(({ icon: Icon, className: iconClass }, index) => (
+            <Icon key={`pioneer-icon-${index}`} className={iconClass} />
+        ))}
+        <span>{compact ? 'Pioneiro' : PIONEER_SEAL_LABEL}</span>
+    </span>
 );
 
-// --- COMPONENTE PRINCIPAL ---
-export default function ModalClubView({ 
-    isOpen, 
-    onClose, 
-    viewingClub, 
-    viewingClubSchool, 
-    viewingClubProjects = [], 
-    viewingClubUsers = [], 
+const MemberCard = ({ person, roleLabel, roleTone = 'mentor', onOpenProfile }) => {
+    const summary = getLattesSummary(person);
+    const areas = getLattesAreas(person).slice(0, 3);
+    const lattesLink = normalizeExternalUrl(getLattesLink(person));
+    const avatarSrc = getAvatarSrc(person);
+    const roleToneClasses = roleTone === 'investigador'
+        ? 'bg-cyan-300 text-slate-900'
+        : 'bg-pink-500 text-white';
+
+    return (
+        <article
+            className="rounded-[1.7rem] border-[3px] border-slate-900 bg-white p-4 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+        >
+            <div className="flex items-start justify-between gap-3">
+                <button
+                    type="button"
+                    onClick={() => onOpenProfile(person)}
+                    className="min-w-0 flex flex-1 items-center gap-3 text-left"
+                >
+                    <div className={`h-14 w-14 shrink-0 overflow-hidden rounded-full border-[3px] border-slate-900 ${roleTone === 'investigador' ? 'bg-cyan-300' : 'bg-pink-400'} flex items-center justify-center`}>
+                        {avatarSrc ? (
+                            <img src={avatarSrc} alt={person?.nome || 'Membro do clube'} className="h-full w-full object-cover" />
+                        ) : (
+                            <span className="text-sm font-black uppercase text-slate-900">
+                                {getInitials(person?.nome || '')}
+                            </span>
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-black uppercase tracking-wider text-slate-900">
+                            {person?.nome || 'Membro sem nome'}
+                        </p>
+                        <span className={`mt-2 inline-flex rounded-full border-[2px] border-slate-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${roleToneClasses}`}>
+                            {roleLabel}
+                        </span>
+                    </div>
+                </button>
+
+                {lattesLink && (
+                    <a
+                        href={lattesLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95"
+                        title="Abrir Lattes"
+                    >
+                        <ExternalLink className="h-4 w-4 stroke-[3]" />
+                    </a>
+                )}
+            </div>
+
+            {summary && (
+                <p className="mt-3 line-clamp-2 text-xs font-bold leading-relaxed text-slate-600">
+                    {summary}
+                </p>
+            )}
+
+            {areas.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {areas.map((area) => (
+                        <span
+                            key={`${person?.id || person?.uid || area}-${area}`}
+                            className="rounded-full border-[2px] border-slate-200 bg-slate-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-600"
+                        >
+                            {area}
+                        </span>
+                    ))}
+                </div>
+            )}
+        </article>
+    );
+};
+
+export default function ModalClubView({
+    isOpen,
+    onClose,
+    viewingClub,
+    viewingClubSchool,
+    viewingClubProjects = [],
+    viewingClubUsers = [],
     viewingClubOrientadores = [],
     viewingClubCoorientadores = [],
     viewingClubInvestigadores = [],
-    viewingClubDiaryCount = 0, 
-    setSelectedClubId, 
-    setSelectedProjectId, 
-    setCurrentView 
+    viewingClubDiaryCount = 0,
+    setSelectedClubId,
+    setSelectedProjectId,
+    setCurrentView
 }) {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => { document.body.style.overflow = 'unset'; };
+        if (!isOpen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
     }, [isOpen]);
 
-    if (!isOpen || !viewingClub) return null;
+    const mentorPeople = useMemo(() => {
+        const byId = new Map();
 
-    const equipeMentor = [...viewingClubOrientadores, ...viewingClubCoorientadores];
-    const investigatorCount = viewingClubInvestigadores.length;
-    const memberCount = viewingClubUsers.length > 0 ? viewingClubUsers.length : (investigatorCount + equipeMentor.length);
-    const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
-    const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
-    const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
+        (Array.isArray(viewingClubOrientadores) ? viewingClubOrientadores : []).forEach((person) => {
+            const personId = normalizeText(person?.id || person?.uid || person?.email || person?.nome);
+            if (!personId) return;
+            byId.set(personId, { ...person, roleLabel: 'Mentor' });
+        });
 
-    const handleAcessarDiario = (projectId) => {
-        onClose();
-        setSelectedClubId(viewingClub.id);
-        setSelectedProjectId(String(projectId || '').trim());
-        setCurrentView('diario');
-    };
+        (Array.isArray(viewingClubCoorientadores) ? viewingClubCoorientadores : []).forEach((person) => {
+            const personId = normalizeText(person?.id || person?.uid || person?.email || person?.nome);
+            if (!personId) return;
+            if (byId.has(personId)) {
+                const previous = byId.get(personId);
+                byId.set(personId, { ...previous, roleLabel: 'Mentor e Co-mentor' });
+                return;
+            }
+            byId.set(personId, { ...person, roleLabel: 'Co-mentor' });
+        });
 
-    const handleOpenProfile = (user) => {
+        return [...byId.values()];
+    }, [viewingClubCoorientadores, viewingClubOrientadores]);
+
+    const investigatorPeople = useMemo(() => {
+        const byId = new Map();
+        (Array.isArray(viewingClubInvestigadores) ? viewingClubInvestigadores : []).forEach((person) => {
+            const personId = normalizeText(person?.id || person?.uid || person?.email || person?.nome);
+            if (!personId || byId.has(personId)) return;
+            byId.set(personId, person);
+        });
+        return [...byId.values()];
+    }, [viewingClubInvestigadores]);
+
+    const memberCount = useMemo(() => {
+        if (Array.isArray(viewingClubUsers) && viewingClubUsers.length > 0) {
+            return viewingClubUsers.length;
+        }
+        return mentorPeople.length + investigatorPeople.length;
+    }, [investigatorPeople.length, mentorPeople.length, viewingClubUsers]);
+
+    const investigatorRatio = useMemo(() => {
+        if (!memberCount) return 0;
+        return Math.round((investigatorPeople.length / memberCount) * 100);
+    }, [investigatorPeople.length, memberCount]);
+
+    const clubDescription = normalizeText(viewingClub?.descricao)
+        || 'Clube ativo com foco em pesquisa, ciencia, tecnologia e inovacao.';
+
+    const schoolName = normalizeText(
+        viewingClubSchool?.nome
+        || viewingClub?.escola_nome
+        || viewingClub?.escola
+    ) || 'Unidade escolar nao vinculada';
+
+    const schoolMeta = useMemo(() => {
+        const pairs = [
+            { label: 'SEC', value: normalizeText(viewingClubSchool?.cod_sec || viewingClubSchool?.sec || viewingClubSchool?.codigo_sec || viewingClub?.codigo_sec) },
+            { label: 'INEP', value: normalizeText(viewingClubSchool?.cod_inep || viewingClubSchool?.inep || viewingClub?.codigo_inep) },
+            { label: 'Municipio', value: normalizeText(viewingClubSchool?.municipio || viewingClub?.municipio) },
+            { label: 'UF', value: normalizeText(viewingClubSchool?.uf || viewingClub?.uf) },
+            { label: 'Tipo', value: normalizeText(viewingClubSchool?.tipo_unidade || viewingClub?.tipo_unidade) }
+        ];
+        return pairs.filter((item) => Boolean(item.value));
+    }, [viewingClub, viewingClubSchool]);
+
+    const clubDocuments = useMemo(() => {
+        const source = viewingClub?.documentos && typeof viewingClub.documentos === 'object'
+            ? viewingClub.documentos
+            : {};
+
+        return CLUB_REQUIRED_DOCUMENTS.map((requiredDoc) => {
+            const rawDoc = source?.[requiredDoc.key];
+            const url = normalizeText(
+                typeof rawDoc === 'string'
+                    ? rawDoc
+                    : rawDoc?.data_url || rawDoc?.dataUrl || rawDoc?.url || rawDoc?.base64
+            );
+            const fileName = normalizeText(rawDoc?.nome_arquivo || rawDoc?.file_name || rawDoc?.name) || `${requiredDoc.key}.pdf`;
+            const chunkCount = Number(rawDoc?.chunk_count || rawDoc?.chunkCount || 0);
+            const isAvailable = Boolean(url) || chunkCount > 0;
+
+            return {
+                key: requiredDoc.key,
+                label: requiredDoc.label,
+                isAvailable,
+                canOpen: Boolean(url),
+                url,
+                fileName,
+                chunkCount: Number.isFinite(chunkCount) ? chunkCount : 0
+            };
+        });
+    }, [viewingClub?.documentos]);
+
+    const availableDocumentsCount = useMemo(
+        () => clubDocuments.filter((documentItem) => documentItem.isAvailable).length,
+        [clubDocuments]
+    );
+
+    const hasClubPioneerSeal = useMemo(() => hasPioneerSeal(viewingClub), [viewingClub]);
+
+    const clubBannerUrl = normalizeText(viewingClub?.banner_url || viewingClub?.banner || viewingClub?.cover);
+    const clubLogoUrl = normalizeText(viewingClub?.logo_url || viewingClub?.logo || viewingClub?.emblem);
+
+    const shouldRender = Boolean(isOpen && viewingClub);
+
+    const handleOpenProfile = (person) => {
         const enrichedUser = {
-            ...user,
-            clube: user.clube || viewingClub?.nome || user.clube_nome || '',
-            projetosCount: user.projetosCount ?? user.projetos?.length ?? user.projetos_ids?.length ?? user.projetosIds?.length ?? 0
+            ...person,
+            clube: person?.clube || viewingClub?.nome || person?.clube_nome || '',
+            projetosCount: person?.projetosCount ?? person?.projetos?.length ?? person?.projetos_ids?.length ?? person?.projetosIds?.length ?? 0
         };
 
         setSelectedUser(enrichedUser);
         setIsProfileModalOpen(true);
     };
 
+    const handleOpenDiary = (projectId) => {
+        const clubId = normalizeText(viewingClub?.id);
+        const normalizedProjectId = normalizeText(projectId);
+        if (!normalizedProjectId) return;
+
+        if (typeof setSelectedClubId === 'function') {
+            setSelectedClubId(clubId);
+        }
+        if (typeof setSelectedProjectId === 'function') {
+            setSelectedProjectId(normalizedProjectId);
+        }
+        if (typeof setCurrentView === 'function') {
+            setCurrentView('diario');
+        }
+        onClose();
+    };
+
+    const handleOpenDocument = (documentItem) => {
+        if (!documentItem?.canOpen) return;
+        const resolvedUrl = normalizeExternalUrl(documentItem.url);
+        if (!resolvedUrl) return;
+        window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    if (!shouldRender) return null;
+
     const modalContent = (
         <>
-        <div 
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 sm:p-6 transition-opacity"
-            onClick={onClose}
-        >
-            {/* INJEÇÃO DE CSS DA SCROLLBAR */}
             <style>{`
-                .neo-scrollbar::-webkit-scrollbar { width: 8px; }
-                .neo-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
+                .modal-club-scrollbar::-webkit-scrollbar { width: 9px; height: 9px; }
+                .modal-club-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .modal-club-scrollbar::-webkit-scrollbar-thumb {
+                    background: #0f172a;
+                    border-radius: 999px;
+                    border: 2px solid #f8fafc;
+                }
             `}</style>
 
-            {/* Container do Modal NEO-BRUTALISTA */}
-            <div 
-                className="bg-[#FAFAFA] rounded-3xl shadow-[16px_16px_0px_0px_#0f172a] w-full max-w-6xl max-h-[95vh] flex flex-col relative border-4 border-slate-900 overflow-hidden animate-in zoom-in-[0.97] duration-200"
-                onClick={(e) => e.stopPropagation()} 
+            <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
+                onClick={onClose}
             >
-                {/* Botão Flutuante de Fechar */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-6 right-6 z-50 w-12 h-12 bg-white border-2 border-slate-900 rounded-xl flex items-center justify-center text-slate-900 hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[4px_4px_0px_0px_#0f172a] shadow-[2px_2px_0px_0px_#0f172a] transition-all cursor-pointer"
-                    title="Fechar"
+                <div
+                    className="relative flex max-h-[95vh] w-full max-w-7xl flex-col overflow-hidden rounded-[2.5rem] border-[4px] border-slate-900 bg-[#FAFAFA] shadow-[14px_14px_0px_0px_#0f172a]"
+                    onClick={(event) => event.stopPropagation()}
                 >
-                    <X className="w-6 h-6 stroke-[3]" />
-                </button>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="absolute right-6 top-6 z-50 inline-flex h-12 w-12 items-center justify-center rounded-xl border-[3px] border-slate-900 bg-white text-slate-900 shadow-sm transition-transform hover:-translate-y-0.5 hover:-translate-x-0.5 active:translate-x-0 active:translate-y-0"
+                        title="Fechar modal do clube"
+                    >
+                        <X className="h-6 w-6 stroke-[3]" />
+                    </button>
 
-                {/* Área Rolável do Modal */}
-                <div className="overflow-y-auto neo-scrollbar p-6 md:p-10 w-full h-full">
-                    
-                    {/* Header do Clube (Hero Section Neo-Brutalista) */}
-                    <div className="relative overflow-hidden rounded-[2rem] bg-blue-300 border-4 border-slate-900 min-h-[360px] flex flex-col justify-end p-8 md:p-12 shadow-[12px_12px_0px_0px_#0f172a] mb-16">
-                        <div className="absolute inset-0 pointer-events-none border-b-4 border-slate-900 bg-slate-200">
-                            {clubBannerUrl ? (
-                                <img
-                                    src={clubBannerUrl}
-                                    alt={`Banner do clube ${viewingClub.nome}`}
-                                    className="w-full h-full object-cover opacity-90 "
-                                />
-                            ) : (
-                                <div className="absolute inset-0 bg-yellow-300 opacity-50" />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
-                        </div>
+                    <div className="modal-club-scrollbar h-full overflow-y-auto p-6 md:p-10">
+                        <section className="relative overflow-hidden rounded-[2.5rem] border-[3px] border-slate-900 bg-white shadow-lg">
+                            <div className="absolute inset-0">
+                                {clubBannerUrl ? (
+                                    <img
+                                        src={clubBannerUrl}
+                                        alt={`Banner do clube ${viewingClub?.nome || ''}`}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="h-full w-full bg-[linear-gradient(130deg,#fde047_0%,#67e8f9_52%,#f9a8d4_100%)]" />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/90 to-white/20" />
+                            </div>
 
-                        <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between items-end">
-                            <div className="max-w-4xl flex-1 flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
-                                <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] bg-white overflow-hidden flex items-center justify-center shrink-0">
-                                    {clubLogoUrl ? (
-                                        <img
-                                            src={clubLogoUrl}
-                                            alt={`Logo do clube ${viewingClub.nome}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <span className="text-4xl md:text-5xl font-black text-slate-900">
-                                            {getInitials(viewingClub.nome)}
-                                        </span>
-                                    )}
-                                </div>
+                            <div className="relative z-10 flex min-h-[320px] flex-col justify-end gap-6 p-6 md:p-10">
+                                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                                    <div className="flex min-w-0 flex-1 flex-col items-start gap-5 md:flex-row md:items-end">
+                                        <div className="h-24 w-24 overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm md:h-32 md:w-32">
+                                            {clubLogoUrl ? (
+                                                <img
+                                                    src={clubLogoUrl}
+                                                    alt={`Logo do clube ${viewingClub?.nome || ''}`}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center">
+                                                    <span className="text-3xl font-black uppercase text-slate-900">
+                                                        {getInitials(viewingClub?.nome || '')}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                <div className="flex-1 pb-2">
-                                    <h1 className="text-4xl md:text-6xl font-black text-slate-900 uppercase tracking-tighter mb-4 leading-[0.9] bg-white/90 backdrop-blur-sm inline-block px-4 py-2 border-4 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] transform -rotate-1">
-                                        {viewingClub.nome}
-                                    </h1>
+                                        <div className="min-w-0">
+                                            <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
+                                                {viewingClub?.nome || 'Clube sem nome'}
+                                            </h1>
 
-                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2">
-                                        <p className="text-slate-900 font-black text-sm md:text-base flex items-center gap-2 bg-yellow-300 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-4 py-2 uppercase">
-                                            <MapIcon className="w-5 h-5 stroke-[3]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
-                                        </p>
-                                        <span className="inline-flex items-center gap-2 bg-teal-400 border-2 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] px-4 py-2 text-sm font-black text-slate-900 uppercase">
-                                            <Microscope className="w-5 h-5 stroke-[3]" />
-                                            {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
-                                        </span>
-                                        <span className="text-xs font-black text-white bg-slate-900 px-4 py-3 uppercase tracking-widest border-2 border-slate-900 shadow-[4px_4px_0px_0px_#cbd5e1]">
-                                            {investigatorRatio}% da equipe
-                                        </span>
+                                            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                                                <span className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                                    <MapIcon className="h-4 w-4 stroke-[3]" />
+                                                    {schoolName}
+                                                </span>
+                                                <span className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                                    <Microscope className="h-4 w-4 stroke-[3]" />
+                                                    {investigatorPeople.length} pesquisador{investigatorPeople.length === 1 ? '' : 'es'}
+                                                </span>
+                                                <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-pink-500 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white">
+                                                    {investigatorRatio}% da equipe
+                                                </span>
+                                                {hasClubPioneerSeal && (
+                                                    <PioneerBadge />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:w-[420px]">
+                                        {[
+                                            { icon: FolderKanban, value: viewingClubProjects.length, label: 'Projetos', color: 'bg-cyan-300' },
+                                            { icon: Users, value: memberCount, label: 'Membros', color: 'bg-yellow-300' },
+                                            { icon: GraduationCap, value: mentorPeople.length, label: 'Mentores', color: 'bg-pink-400 text-white' },
+                                            { icon: BookOpen, value: Number(viewingClubDiaryCount || 0), label: 'Registros', color: 'bg-white' }
+                                        ].map((stat) => (
+                                            <article
+                                                key={stat.label}
+                                                className={`rounded-[1.2rem] border-[3px] border-slate-900 p-3 text-center shadow-sm ${stat.color}`}
+                                            >
+                                                <stat.icon className="mx-auto h-5 w-5 stroke-[3]" />
+                                                <p className="mt-2 text-2xl font-black leading-none">{stat.value}</p>
+                                                <p className="mt-2 text-[9px] font-black uppercase tracking-widest">{stat.label}</p>
+                                            </article>
+                                        ))}
                                     </div>
                                 </div>
+
+                                {hasClubPioneerSeal && (
+                                    <p className="inline-flex max-w-4xl items-start gap-2 rounded-[1rem] border-[3px] border-slate-900 bg-white/95 px-4 py-3 text-xs font-bold leading-relaxed text-slate-800">
+                                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 stroke-[2.8] text-pink-500" />
+                                        <span>
+                                            Este clube recebeu o <span className="font-black uppercase">{PIONEER_SEAL_LABEL}</span> por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.
+                                        </span>
+                                    </p>
+                                )}
                             </div>
-                        </div>
-                    </div>
+                        </section>
 
-                    {/* Projetos do Clube */}
-                    <div className="relative z-10">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div className="inline-flex items-center gap-4 bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] px-6 py-4 rounded-2xl transform -rotate-1">
-                                <div className="w-4 h-8 bg-teal-400 border-2 border-slate-900"></div>
-                                <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Projetos do Clube</h3>
+                        <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-12">
+                            <article className="xl:col-span-5 rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm md:p-8">
+                                <h3 className="mb-4 flex items-center gap-3 border-b-[3px] border-slate-900 pb-4 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                    <BookOpen className="h-7 w-7 stroke-[2.8] text-pink-500" />
+                                    Descricao do clube
+                                </h3>
+                                <p className="whitespace-pre-line text-sm font-bold leading-relaxed text-slate-700">
+                                    {clubDescription}
+                                </p>
+                            </article>
+
+                            <article className="xl:col-span-7 rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm md:p-8">
+                                <div className="mb-4 flex items-center justify-between gap-3 border-b-[3px] border-slate-900 pb-4">
+                                    <h3 className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                        <Building2 className="h-7 w-7 stroke-[2.8] text-cyan-500" />
+                                        Unidade escolar
+                                    </h3>
+                                    <span className="inline-flex rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-slate-900">
+                                        {schoolName}
+                                    </span>
+                                </div>
+
+                                {schoolMeta.length === 0 ? (
+                                    <p className="rounded-[1.5rem] border-[3px] border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-bold text-slate-600">
+                                        Nenhum dado complementar da escola foi informado neste clube.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {schoolMeta.map((item) => (
+                                            <span
+                                                key={`${item.label}:${item.value}`}
+                                                className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm"
+                                            >
+                                                <span>{item.label}</span>
+                                                <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-white">
+                                                    {item.value}
+                                                </span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </article>
+                        </section>
+
+                        <section className="mt-8 rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm md:p-8">
+                            <div className="mb-6 flex items-center justify-between gap-4 border-b-[3px] border-slate-900 pb-4">
+                                <h3 className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                    <FileText className="h-7 w-7 stroke-[2.8] text-cyan-500" />
+                                    Documentos do clube
+                                </h3>
+                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-1.5 text-sm font-black text-slate-900">
+                                    {availableDocumentsCount}/{clubDocuments.length}
+                                </span>
                             </div>
-                        </div>
 
-                        {viewingClubProjects.length === 0 ? (
-                            <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] rounded-[2.5rem] p-16 text-center transform hover:rotate-1 transition-transform">
-                                <EmptyState icon={Asterisk} title="NENHUM PROJETO" description="Este clube ainda não possui projetos estruturados." />
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {viewingClubProjects.map((project) => {
-                                    const projectId = String(project?.id || '').trim();
-                                    const isCompleted = project.status?.toLowerCase().includes('conclu');
-                                    const projectImage = project?.imagens?.[0] || project?.imagem || '';
-                                    const imageCount = Array.isArray(project?.imagens) ? project.imagens.length : (project?.imagem ? 1 : 0);
-
-                                    // Lógica de Fallback
-
-                                    return (
-                                        <div key={projectId} className="group relative bg-white border-4 border-slate-900 rounded-[2rem] overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:-translate-x-2 shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-[16px_16px_0px_0px_#0f172a] flex flex-col min-h-[460px]">
-                                            <div className="h-56 w-full bg-slate-100 overflow-hidden relative border-b-4 border-slate-900">
-                                                {projectImage ? (
-                                                    <img
-                                                        src={projectImage}
-                                                        alt={project.titulo || 'Imagem do projeto'}
-                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 "
-                                                    />
-                                                ) : (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[linear-gradient(135deg,#fde047_0%,#67e8f9_100%)] p-6 text-center">
-                                                        <div className="rounded-2xl border-4 border-slate-900 bg-white p-4 shadow-[4px_4px_0px_0px_#0f172a]">
-                                                            <FolderKanban className="w-8 h-8 text-slate-900 stroke-[3]" />
-                                                        </div>
-                                                        <p className="max-w-[16rem] border-2 border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                                                            Sem imagem cadastrada para este projeto
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-yellow-300/20 mix-blend-multiply" />
-
-                                                {imageCount > 1 && (
-                                                    <span className="absolute top-4 right-4 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-blue-400 text-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                                                        {imageCount} fotos
-                                                    </span>
+                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                                {clubDocuments.map((documentItem) => (
+                                    <article
+                                        key={documentItem.key}
+                                        className={`rounded-[1.4rem] border-[3px] border-slate-900 p-4 ${
+                                            documentItem.isAvailable ? 'bg-cyan-50' : 'bg-slate-50'
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-black uppercase tracking-wider text-slate-900">
+                                                    {documentItem.label}
+                                                </p>
+                                                <p className="mt-1 truncate text-[11px] font-bold text-slate-600">
+                                                    {documentItem.isAvailable ? documentItem.fileName : 'Documento nao enviado'}
+                                                </p>
+                                                {!documentItem.canOpen && documentItem.isAvailable && (
+                                                    <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-700">
+                                                        Disponivel apenas no painel do clube
+                                                    </p>
                                                 )}
                                             </div>
 
-                                            <div className="p-8 flex flex-col flex-1 bg-[#FAFAFA]">
-                                                <div className="flex justify-between items-start mb-6">
-                                                    <span className={`inline-flex items-center px-4 py-2 text-[10px] font-black uppercase tracking-widest border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] ${isCompleted ? 'bg-teal-400 text-slate-900' : 'bg-yellow-300 text-slate-900'}`}>
-                                                        <span className={`w-2 h-2 rounded-full mr-2 border border-slate-900 ${isCompleted ? 'bg-white' : 'bg-slate-900 animate-pulse'}`}></span>
-                                                        {project.status || 'Em andamento'}
-                                                    </span>
+                                            {documentItem.canOpen ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenDocument(documentItem)}
+                                                    className="inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5 stroke-[3]" />
+                                                    Ver
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                                    <Clock3 className="h-3.5 w-3.5 stroke-[3]" />
+                                                    {documentItem.isAvailable ? 'No painel' : 'Pendente'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </section>
+
+                        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <article className="rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm">
+                                <div className="mb-5 flex items-center justify-between gap-3 border-b-[3px] border-slate-900 pb-4">
+                                    <h3 className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                        <GraduationCap className="h-7 w-7 stroke-[2.8] text-pink-500" />
+                                        Mentores
+                                    </h3>
+                                    <span className="inline-flex rounded-full border-[3px] border-slate-900 bg-pink-400 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-white">
+                                        {mentorPeople.length}
+                                    </span>
+                                </div>
+
+                                <div className="modal-club-scrollbar max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                                    {mentorPeople.length === 0 ? (
+                                        <div className="rounded-[1.7rem] border-[3px] border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-bold uppercase tracking-widest text-slate-500">
+                                            Sem mentores vinculados.
+                                        </div>
+                                    ) : (
+                                        mentorPeople.map((person) => (
+                                            <MemberCard
+                                                key={normalizeText(person?.id || person?.uid || person?.email || person?.nome)}
+                                                person={person}
+                                                roleLabel={person.roleLabel || 'Mentor'}
+                                                roleTone="mentor"
+                                                onOpenProfile={handleOpenProfile}
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            </article>
+
+                            <article className="rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm">
+                                <div className="mb-5 flex items-center justify-between gap-3 border-b-[3px] border-slate-900 pb-4">
+                                    <h3 className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                        <Microscope className="h-7 w-7 stroke-[2.8] text-cyan-500" />
+                                        Clubistas
+                                    </h3>
+                                    <span className="inline-flex rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-slate-900">
+                                        {investigatorPeople.length}
+                                    </span>
+                                </div>
+
+                                <div className="modal-club-scrollbar max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                                    {investigatorPeople.length === 0 ? (
+                                        <div className="rounded-[1.7rem] border-[3px] border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-bold uppercase tracking-widest text-slate-500">
+                                            Nenhum clubista neste clube.
+                                        </div>
+                                    ) : (
+                                        investigatorPeople.map((person) => (
+                                            <MemberCard
+                                                key={normalizeText(person?.id || person?.uid || person?.email || person?.nome)}
+                                                person={person}
+                                                roleLabel="Clubista"
+                                                roleTone="investigador"
+                                                onOpenProfile={handleOpenProfile}
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            </article>
+                        </section>
+
+                        <section className="mt-8 rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm md:p-8">
+                            <h3 className="mb-6 flex items-center gap-3 border-b-[3px] border-slate-900 pb-4 text-2xl font-black uppercase tracking-tight text-slate-900">
+                                <FolderKanban className="h-7 w-7 stroke-[2.8] text-cyan-500" />
+                                Projetos do clube
+                            </h3>
+
+                            {viewingClubProjects.length === 0 ? (
+                                <div className="rounded-[2rem] border-[3px] border-dashed border-slate-300 bg-slate-50 p-10">
+                                    <EmptyState
+                                        icon={FolderKanban}
+                                        title="Nenhum projeto cadastrado"
+                                        description="Este clube ainda nao possui projetos com publicacao no feed."
+                                    />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                                    {viewingClubProjects.map((project, index) => {
+                                        const projectId = normalizeText(project?.id);
+                                        const projectStatus = normalizeText(project?.status) || 'Em andamento';
+                                        const projectImage = normalizeText(project?.imagens?.[0] || project?.imagem);
+                                        const areaTematica = normalizeText(project?.area_tematica);
+                                        const projectDescription = normalizeText(project?.descricao || project?.introducao)
+                                            || 'Projeto aguardando descricao detalhada.';
+
+                                        return (
+                                            <article
+                                                key={projectId || `project-${normalizeText(project?.titulo || 'sem-titulo')}-${index}`}
+                                                className="flex min-h-[420px] flex-col overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                                            >
+                                                <div className="relative h-44 border-b-[3px] border-slate-900 bg-slate-100">
+                                                    {projectImage ? (
+                                                        <img
+                                                            src={projectImage}
+                                                            alt={project?.titulo || 'Projeto do clube'}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(130deg,#fde047_0%,#67e8f9_100%)]">
+                                                            <FolderKanban className="h-10 w-10 stroke-[2.5] text-slate-900" />
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                <h4 className="font-black text-2xl text-slate-900 uppercase tracking-tighter leading-[1.1] mb-4">{project.titulo || 'Projeto sem título'}</h4>
+                                                <div className="flex flex-1 flex-col p-5">
+                                                    <span className="inline-flex w-fit rounded-full border-[3px] border-slate-900 bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-900">
+                                                        {projectStatus}
+                                                    </span>
 
-                                                <p className="text-sm font-bold text-slate-600 line-clamp-3 mb-8 flex-1 leading-relaxed">{project.descricao || project.introducao || 'Projeto aguardando documentação descritiva.'}</p>
+                                                    <h4 className="mt-4 line-clamp-2 text-xl font-black uppercase tracking-tight text-slate-900">
+                                                        {project?.titulo || 'Projeto sem titulo'}
+                                                    </h4>
 
-                                                <div className="mt-auto pt-6 border-t-4 border-slate-900 border-dashed">
-                                                    {project.area_tematica && (
-                                                        <div className="mb-4">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 bg-pink-400 px-3 py-1.5 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
-                                                                {project.area_tematica}
-                                                            </span>
-                                                        </div>
+                                                    <p className="mt-3 line-clamp-3 text-sm font-bold leading-relaxed text-slate-600">
+                                                        {projectDescription}
+                                                    </p>
+
+                                                    {areaTematica && (
+                                                        <span className="mt-4 inline-flex w-fit rounded-full border-[2px] border-slate-900 bg-cyan-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-900">
+                                                            {areaTematica}
+                                                        </span>
                                                     )}
 
                                                     <button
-                                                        onClick={() => handleAcessarDiario(projectId)}
-                                                        className="w-full text-center bg-teal-400 text-slate-900 px-4 py-3 border-2 border-slate-900 font-black text-xs uppercase tracking-widest transition-all shadow-[2px_2px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+                                                        type="button"
+                                                        onClick={() => handleOpenDiary(projectId)}
+                                                        className="mt-auto inline-flex w-full items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-[1.01] active:scale-95"
                                                     >
-                                                        Acessar Diário
+                                                        Acessar diario
                                                     </button>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
                     </div>
-
                 </div>
             </div>
-        </div>
 
-        {/* Modal de Perfil Integrado */}
-        <ModalPerfil 
-            isOpen={isProfileModalOpen} 
-            onClose={() => setIsProfileModalOpen(false)} 
-            usuario={selectedUser} 
-        />
+            <ModalPerfil
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                usuario={selectedUser}
+                club={viewingClub}
+                clubProjects={viewingClubProjects}
+                clubUsers={viewingClubUsers}
+            />
         </>
     );
 
-    if (typeof document === 'undefined') return modalContent;
+    if (typeof document === 'undefined') {
+        return modalContent;
+    }
+
     return createPortal(modalContent, document.body);
 }

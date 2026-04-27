@@ -19,6 +19,12 @@ export default function MainShell({
   handleLogout,
   onSaveProfile,
   schools,
+  users,
+  clubJoinRequests,
+  reviewingClubRequestIds,
+  handleRespondClubEntryRequest,
+  canManageViewingClub,
+  handleUpdateClubCardTemplate,
   fontSizeLevel,
   onDecreaseFont,
   onResetFont,
@@ -111,6 +117,12 @@ export default function MainShell({
             handleLogout={handleLogout}
             onSaveProfile={onSaveProfile}
             schools={schools}
+            users={users}
+            clubJoinRequests={clubJoinRequests}
+            reviewingClubRequestIds={reviewingClubRequestIds}
+            onRespondClubJoinRequest={handleRespondClubEntryRequest}
+            canManageClubJoinRequests={canManageViewingClub}
+            onChangeClubCardTemplate={handleUpdateClubCardTemplate}
             currentView={currentView}
             setCurrentView={setCurrentView}
             onToggleSidebar={() => setIsMobileSidebarOpen((open) => !open)}

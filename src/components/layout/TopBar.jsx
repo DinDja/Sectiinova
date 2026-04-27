@@ -7,6 +7,8 @@ import {
   User,
   BookOpen,
   PanelLeft,
+  Bell,
+  Check,
 } from "lucide-react";
 import MeuPerfil from "./MeuPerfil";
 
@@ -31,6 +33,12 @@ export default function TopBar({
   handleLogout,
   onSaveProfile,
   schools = [],
+  users = [],
+  clubJoinRequests = [],
+  reviewingClubRequestIds = new Set(),
+  onRespondClubJoinRequest = async () => {},
+  canManageClubJoinRequests = false,
+  onChangeClubCardTemplate = async () => {},
   currentView,
   setCurrentView,
   onToggleSidebar = () => {},
@@ -39,6 +47,11 @@ export default function TopBar({
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState(searchTerm);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationFeedback, setNotificationFeedback] = useState({
+    type: "",
+    message: "",
+  });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileNavViewport, setIsMobileNavViewport] = useState(() => {
@@ -48,6 +61,7 @@ export default function TopBar({
 
   const searchInputRef = useRef(null);
   const userMenuRef = useRef(null);
+  const notificationMenuRef = useRef(null);
 
   useEffect(() => {
     setSearchInputValue(searchTerm);
@@ -85,11 +99,18 @@ export default function TopBar({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false);
       }
+      if (
+        notificationMenuRef.current &&
+        !notificationMenuRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
     };
 
     const handleEscape = (event) => {
       if (event.key === "Escape") {
         setShowUserMenu(false);
+        setShowNotifications(false);
         setIsProfileOpen(false);
         setIsSearchExpanded(false);
       }
@@ -123,6 +144,53 @@ export default function TopBar({
       setSearchTerm("");
     });
     searchInputRef.current?.focus();
+  };
+
+  const normalizedClubJoinRequests = Array.isArray(clubJoinRequests)
+    ? clubJoinRequests
+    : [];
+  const joinRequestsCount = normalizedClubJoinRequests.length;
+  const shouldShowJoinRequestNotification = Boolean(canManageClubJoinRequests);
+
+  const formatRequestDate = (dateValue) => {
+    if (!dateValue) return "";
+    const date =
+      typeof dateValue?.toDate === "function"
+        ? dateValue.toDate()
+        : new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const setNotificationToast = (type, message) => {
+    setNotificationFeedback({ type, message });
+    window.setTimeout(() => {
+      setNotificationFeedback((current) =>
+        current.message === message ? { type: "", message: "" } : current,
+      );
+    }, 4000);
+  };
+
+  const handleJoinRequestDecision = async (requestId, accept) => {
+    const normalizedRequestId = String(requestId || "").trim();
+    if (!normalizedRequestId) return;
+
+    try {
+      await onRespondClubJoinRequest(normalizedRequestId, accept);
+      setNotificationToast(
+        "success",
+        accept ? "Solicitação aceita com sucesso." : "Solicitação recusada.",
+      );
+    } catch (error) {
+      const message =
+        String(error?.message || "").trim() ||
+        "Não foi possível processar esta solicitação.";
+      setNotificationToast("error", message);
+    }
   };
 
   const userName = loggedUser?.nome || leadUser?.nome || "Usuário";
@@ -295,6 +363,134 @@ export default function TopBar({
                 </div>
               )}
 
+              {shouldShowJoinRequestNotification && (
+                <div className="relative" ref={notificationMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications((open) => !open);
+                      setShowUserMenu(false);
+                    }}
+                    aria-expanded={showNotifications}
+                    aria-haspopup="true"
+                    className={`relative inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 p-2.5 text-slate-900 shadow-sm transition-transform active:scale-95 hover:scale-105 ${
+                      showNotifications ? "bg-yellow-400" : "bg-white"
+                    }`}
+                    title="Solicitações de entrada"
+                  >
+                    <Bell className="h-5 w-5 stroke-[3]" />
+                    <span className="sr-only">Solicitações de entrada</span>
+                    {joinRequestsCount > 0 && (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-[1.35rem] items-center justify-center rounded-full border-[2px] border-slate-900 bg-pink-500 px-1 py-0.5 text-[10px] font-black text-white">
+                        {joinRequestsCount > 99 ? "99+" : joinRequestsCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-3 w-[min(26rem,calc(100vw-1rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
+                      <div className="border-b-[3px] border-slate-900 bg-yellow-400 px-5 py-4">
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-900">
+                          Solicitações de Entrada
+                        </p>
+                        <p className="mt-1 text-[11px] font-bold text-slate-800">
+                          {viewingClub?.nome
+                            ? `Clube atual: ${viewingClub.nome}`
+                            : "Clube selecionado"}
+                        </p>
+                      </div>
+
+                      {notificationFeedback.message && (
+                        <div
+                          className={`border-b-[3px] border-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-wider ${
+                            notificationFeedback.type === "error"
+                              ? "bg-pink-500 text-white"
+                              : "bg-cyan-300 text-slate-900"
+                          }`}
+                        >
+                          {notificationFeedback.message}
+                        </div>
+                      )}
+
+                      <div className="max-h-[22rem] space-y-3 overflow-y-auto bg-slate-50 p-4">
+                        {normalizedClubJoinRequests.length === 0 ? (
+                          <div className="rounded-[1.2rem] border-[3px] border-dashed border-slate-300 bg-white px-4 py-7 text-center text-[11px] font-black uppercase tracking-widest text-slate-500">
+                            Nenhuma solicitação pendente.
+                          </div>
+                        ) : (
+                          normalizedClubJoinRequests.map((request) => {
+                            const requestId = String(request?.id || "").trim();
+                            const requesterName = String(
+                              request?.solicitante_nome || "Estudante",
+                            ).trim();
+                            const requesterEmail = String(
+                              request?.solicitante_email || "",
+                            ).trim();
+                            const requestDate = formatRequestDate(
+                              request?.createdAt,
+                            );
+                            const isReviewing =
+                              reviewingClubRequestIds instanceof Set &&
+                              reviewingClubRequestIds.has(requestId);
+
+                            return (
+                              <article
+                                key={requestId}
+                                className="rounded-[1.35rem] border-[3px] border-slate-900 bg-white p-4 shadow-sm"
+                              >
+                                <p className="text-sm font-black uppercase text-slate-900">
+                                  {requesterName}
+                                </p>
+                                {requesterEmail && (
+                                  <p className="mt-1 text-xs font-bold text-slate-600">
+                                    {requesterEmail}
+                                  </p>
+                                )}
+                                {requestDate && (
+                                  <p className="mt-2 inline-flex rounded-full border-[2px] border-slate-900 bg-yellow-300 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900">
+                                    Solicitado em {requestDate}
+                                  </p>
+                                )}
+
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleJoinRequestDecision(
+                                        requestId,
+                                        false,
+                                      )
+                                    }
+                                    disabled={isReviewing}
+                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-pink-600 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                                  >
+                                    Recusar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleJoinRequestDecision(
+                                        requestId,
+                                        true,
+                                      )
+                                    }
+                                    disabled={isReviewing}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                                  >
+                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                    {isReviewing ? "..." : "Aceitar"}
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => setIsSearchExpanded((expanded) => !expanded)}
@@ -311,7 +507,10 @@ export default function TopBar({
               <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
-                  onClick={() => setShowUserMenu((open) => !open)}
+                  onClick={() => {
+                    setShowUserMenu((open) => !open);
+                    setShowNotifications(false);
+                  }}
                   aria-expanded={showUserMenu}
                   aria-haspopup="true"
                   className={`group flex items-center gap-2 rounded-full border-[3px] p-1 pr-2 transition-all duration-300 sm:gap-2 sm:pr-3 2xl:gap-3 2xl:p-1.5 2xl:pr-4 ${
@@ -417,7 +616,9 @@ export default function TopBar({
           loggedUser={loggedUser}
           myClub={myClub}
           schools={schools}
+          users={users}
           onSaveProfile={onSaveProfile}
+          onChangeClubCardTemplate={onChangeClubCardTemplate}
           onClose={() => setIsProfileOpen(false)}
         />
       )}

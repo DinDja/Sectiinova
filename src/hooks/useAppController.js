@@ -3908,6 +3908,7 @@ export default function useAppController() {
         viewingClubDiaryCount,
         myClub,
         mentorManagedClubs,
+        canManageViewingClub,
         schoolClubDiscoveryList,
         latestMyClubJoinRequestByClubId,
         requestingClubIds,

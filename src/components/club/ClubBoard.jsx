@@ -5,7 +5,6 @@ import EmptyState from '../shared/EmptyState';
 import CreateProjectForm from './CreateProjectForm';
 import CreateClubForm from './CreateClubForm';
 import EditClubForm from './EditClubForm';
-import MembershipCardGenerator from './MembershipCardGenerator';
 import ModalPerfil from './ModalPerfil'; 
 import { db } from '../../../firebase';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
@@ -25,6 +24,36 @@ const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
 );
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const LEGACY_CLUB_SEAL_CUTOFF_MS = new Date('2026-04-30T00:00:00-03:00').getTime();
+const LEGACY_CLUB_SEAL_LABEL = 'Selo Pioneiro';
+const LEGACY_CLUB_SEAL_SHORT_LABEL = 'Pioneiro';
+const LEGACY_CLUB_SEAL_REASON = 'Este clube recebeu o selo por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.';
+
+const PioneerSealBadge = ({ compact = false, emphasize = false, className = '' }) => {
+    const label = compact ? LEGACY_CLUB_SEAL_SHORT_LABEL : LEGACY_CLUB_SEAL_LABEL;
+    const sizeClass = compact
+        ? 'px-1.5 py-0.5 text-[8px]'
+        : emphasize
+            ? 'px-3 py-1.5 text-[10px]'
+            : 'px-2.5 py-1 text-[9px]';
+    const borderClass = emphasize ? 'border-[3px]' : 'border-[2px]';
+    const iconClass = compact
+        ? 'w-3 h-3'
+        : emphasize
+            ? 'w-3.5 h-3.5'
+            : 'w-3 h-3';
+
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full ${borderClass} border-slate-900 bg-lime-300 ${sizeClass} font-black uppercase tracking-widest text-slate-900 shadow-sm ${className}`}
+            title={LEGACY_CLUB_SEAL_REASON}
+            aria-label={`${label}. ${LEGACY_CLUB_SEAL_REASON}`}
+        >
+            <Sparkles className={`${iconClass} stroke-[2.5] text-slate-900`} />
+            <span>{label}</span>
+        </span>
+    );
+};
 
 export default function ClubBoard({
     viewingClub,
@@ -41,9 +70,6 @@ export default function ClubBoard({
     requestingClubIds = new Set(),
     handleRequestClubEntry = async () => {},
     myClubIds = [],
-    clubJoinRequests = [],
-    reviewingClubRequestIds = new Set(),
-    handleRespondClubEntryRequest = async () => {},
     mentorManagedClubs = [],
     setViewingClubId = () => {},
     setSelectedClubId,
@@ -59,7 +85,6 @@ export default function ClubBoard({
     handleCreateClub,
     creatingClub,
     handleUpdateClub,
-    handleUpdateClubCardTemplate = async () => {},
     updatingClub
 }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -250,11 +275,21 @@ export default function ClubBoard({
         });
     }, [viewingClub?.documentos]);
 
-    const formatRequestDate = (dateValue) => {
-        if (!dateValue) return '';
-        const date = typeof dateValue?.toDate === 'function' ? dateValue.toDate() : new Date(dateValue);
-        if (Number.isNaN(date.getTime())) return '';
-        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const getTimestampMillis = (value) => {
+        if (!value) return 0;
+        if (typeof value?.toMillis === 'function') {
+            return value.toMillis();
+        }
+        if (typeof value?.toDate === 'function') {
+            const dateValue = value.toDate();
+            const millis = dateValue?.getTime?.();
+            return Number.isFinite(millis) ? millis : 0;
+        }
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+        const parsed = new Date(value).getTime();
+        return Number.isFinite(parsed) ? parsed : 0;
     };
 
     const formatFileSize = (sizeBytes) => {
@@ -264,6 +299,12 @@ export default function ClubBoard({
         if (kb < 1024) return `${kb >= 100 ? kb.toFixed(0) : kb.toFixed(1)} KB`;
         const mb = kb / 1024;
         return `${mb.toFixed(2)} MB`;
+    };
+
+    const hasLegacyClubSeal = (club) => {
+        const createdAtMillis = getTimestampMillis(club?.createdAt);
+        if (createdAtMillis <= 0) return false;
+        return createdAtMillis < LEGACY_CLUB_SEAL_CUTOFF_MS;
     };
 
     const buildChunkDocId = (documentKey, index) => `${String(documentKey || 'doc').trim()}_${index}`;
@@ -393,18 +434,6 @@ export default function ClubBoard({
         }
     };
 
-    const handleMentorDecision = async (requestId, accept) => {
-        if (!requestId) return;
-        setMembershipRequestFeedback({ type: '', message: '' });
-        try {
-            await handleRespondClubEntryRequest(requestId, accept);
-            setMembershipRequestFeedback({ type: 'success', message: accept ? 'Clubista aprovado e vinculado ao clube.' : 'Solicitação recusada com sucesso.' });
-        } catch (error) {
-            const message = String(error?.message || '').trim() || 'Falha ao processar solicitação.';
-            setMembershipRequestFeedback({ type: 'error', message });
-        }
-    };
-
     const handleDeleteProjectClick = async (project) => {
         const projectId = String(project?.id || '').trim();
         if (!projectId || !canMentorDeleteProject(project)) return;
@@ -484,6 +513,7 @@ export default function ClubBoard({
                                         const clubId = String(club?.id || '').trim();
                                         const isActive = String(viewingClub?.id || '').trim() === clubId;
                                         const clubLogo = String(club?.logo_url || club?.logo || '').trim();
+                                        const hasLegacySeal = hasLegacyClubSeal(club);
 
                                         return (
                                             <button
@@ -503,7 +533,12 @@ export default function ClubBoard({
                                                         <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
                                                     )}
                                                 </span>
-                                                <span>{club?.nome || 'Clube'}</span>
+                                                <span className="flex flex-col items-start">
+                                                    <span>{club?.nome || 'Clube'}</span>
+                                                    {hasLegacySeal && (
+                                                        <PioneerSealBadge className="mt-1" />
+                                                    )}
+                                                </span>
                                             </button>
                                         );
                                     })}
@@ -591,6 +626,7 @@ export default function ClubBoard({
                                         {schoolOverview.clubs.slice(0, 6).map((club) => {
                                             const schoolClubId = String(club?.id || '').trim();
                                             const isActiveClub = schoolClubId && schoolClubId === viewingClubId;
+                                            const hasLegacySeal = hasLegacyClubSeal(club);
 
                                             return (
                                                 <button
@@ -604,7 +640,10 @@ export default function ClubBoard({
                                                             : 'bg-white text-slate-900 hover:bg-cyan-100 hover:scale-105 active:scale-95'
                                                     }`}
                                                 >
-                                                    {club?.nome || 'Clube'}
+                                                    <span className="mr-2">{club?.nome || 'Clube'}</span>
+                                                    {hasLegacySeal && (
+                                                        <PioneerSealBadge compact />
+                                                    )}
                                                 </button>
                                             );
                                         })}
@@ -689,6 +728,7 @@ export default function ClubBoard({
                                     const projectsCount = typeof projectClubCount === 'number'
                                         ? projectClubCount
                                         : Number(club?.projetosCount ?? club?.projetos?.length ?? club?.projetos_ids?.length ?? 0);
+                                    const hasLegacySeal = hasLegacyClubSeal(club);
 
                                     return (
                                         <article key={clubId} className="group bg-white border-[3px] border-slate-900 rounded-[3rem] overflow-hidden shadow-lg hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 flex flex-col">
@@ -708,6 +748,10 @@ export default function ClubBoard({
                                                         {StatusIcon && <StatusIcon className="w-4 h-4 stroke-[3]" />}
                                                         {statusConfig.label}
                                                     </div>
+                                                )}
+
+                                                {hasLegacySeal && (
+                                                    <PioneerSealBadge emphasize className="absolute top-5 right-5" />
                                                 )}
                                             </div>
 
@@ -782,6 +826,7 @@ export default function ClubBoard({
     const investigatorCount = viewingClubInvestigadores.length;
     const memberCount = viewingClubUsers.length;
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
+    const hasViewingClubLegacySeal = hasLegacyClubSeal(viewingClub);
     
     return (
         <>
@@ -817,6 +862,7 @@ export default function ClubBoard({
                                     const clubId = String(club?.id || '').trim();
                                     const isActive = String(viewingClub?.id || '').trim() === clubId;
                                     const clubLogo = String(club?.logo_url || club?.logo || '').trim();
+                                    const hasLegacySeal = hasLegacyClubSeal(club);
 
                                     return (
                                         <button
@@ -836,7 +882,12 @@ export default function ClubBoard({
                                                     <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
                                                 )}
                                             </span>
-                                            <span>{club?.nome || 'Clube'}</span>
+                                            <span className="flex flex-col items-start">
+                                                <span>{club?.nome || 'Clube'}</span>
+                                                {hasLegacySeal && (
+                                                    <PioneerSealBadge className="mt-1" />
+                                                )}
+                                            </span>
                                         </button>
                                     );
                                 })}
@@ -897,7 +948,18 @@ export default function ClubBoard({
                                             <span className="text-xs font-black text-white bg-pink-500 rounded-full px-4 py-2.5 uppercase tracking-widest border-[3px] border-slate-900 shadow-sm transform -2">
                                                 {investigatorRatio}% da equipe
                                             </span>
+                                            {hasViewingClubLegacySeal && (
+                                                <PioneerSealBadge emphasize />
+                                            )}
                                         </div>
+                                        {hasViewingClubLegacySeal && (
+                                            <p className="mt-3 inline-flex max-w-3xl items-start gap-2 rounded-[1rem] border-[3px] border-slate-900 bg-white/95 px-4 py-3 text-[11px] font-bold text-slate-800">
+                                                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 stroke-[2.5] text-pink-500" />
+                                                <span>
+                                                    Este clube recebeu o <span className="font-black uppercase">Selo Pioneiro</span> por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.
+                                                </span>
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1016,14 +1078,20 @@ export default function ClubBoard({
                                 </p>
                             ) : (
                                 <div className="flex flex-wrap gap-3">
-                                    {schoolOverview.clubs.slice(0, 6).map((club) => (
-                                        <span
-                                            key={String(club?.id || '').trim()}
-                                            className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm"
-                                        >
-                                            {club?.nome || 'Clube'}
-                                        </span>
-                                    ))}
+                                    {schoolOverview.clubs.slice(0, 6).map((club) => {
+                                        const hasLegacySeal = hasLegacyClubSeal(club);
+                                        return (
+                                            <span
+                                                key={String(club?.id || '').trim()}
+                                                className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm"
+                                            >
+                                                <span className="mr-2">{club?.nome || 'Clube'}</span>
+                                                {hasLegacySeal && (
+                                                    <PioneerSealBadge compact />
+                                                )}
+                                            </span>
+                                        );
+                                    })}
                                     {schoolOverview.clubs.length > 6 && (
                                         <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm">
                                             +{schoolOverview.clubs.length - 6} clubes
@@ -1061,6 +1129,7 @@ export default function ClubBoard({
                                                         : null;
 
                                         const StatusIcon = statusConfig?.icon || null;
+                                        const hasLegacySeal = hasLegacyClubSeal(club);
 
                                         return (
                                             <article key={clubId} className="rounded-[2rem] border-[3px] border-slate-900 bg-white p-5 shadow-sm">
@@ -1068,6 +1137,9 @@ export default function ClubBoard({
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-black text-slate-900 uppercase truncate">{club?.nome || 'Clube'}</p>
                                                         <p className="text-[11px] font-bold text-slate-600 mt-1 truncate">{club?.escola_nome || schoolOverview.schoolLabel}</p>
+                                                        {hasLegacySeal && (
+                                                            <PioneerSealBadge className="mt-2" />
+                                                        )}
                                                     </div>
                                                     {statusConfig && (
                                                         <span className={`inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm ${statusConfig.classes}`}>
@@ -1092,18 +1164,6 @@ export default function ClubBoard({
                             )}
                         </div>
                     </section>
-
-                    <MembershipCardGenerator
-                        viewingClub={viewingClub}
-                        viewingClubSchool={viewingClubSchool}
-                        mentors={[...viewingClubOrientadores, ...viewingClubCoorientadores]}
-                        students={viewingClubInvestigadores}
-                        clubBannerUrl={clubBannerUrl}
-                        clubLogoUrl={clubLogoUrl}
-                        loggedUser={loggedUser}
-                        canManageTemplate={canManageClub}
-                        onChangeTemplate={(templateId) => handleUpdateClubCardTemplate(viewingClubId, templateId)}
-                    />
 
                     <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                         <div className="xl:col-span-5 bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
@@ -1168,66 +1228,6 @@ export default function ClubBoard({
                             </div>
                         </div>
                     </section>
-
-                    {canManageClub && (
-                        <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
-                            <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                    <Users className="w-7 h-7 stroke-[2.5] text-yellow-500" /> Solicitações de Entrada
-                                </h3>
-                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-pink-400 text-white text-lg font-black px-5 py-1.5 shadow-sm transform -2">
-                                    {clubJoinRequests.length}
-                                </span>
-                            </div>
-
-                            {clubJoinRequests.length === 0 ? (
-                                <div className="rounded-[2rem] border-[3px] border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-lg font-bold text-slate-500 uppercase tracking-widest">
-                                    Nenhuma solicitação pendente.
-                                </div>
-                            ) : (
-                                <div className="space-y-5">
-                                    {clubJoinRequests.map((request) => {
-                                        const requestId = String(request?.id || '').trim();
-                                        const requesterName = String(request?.solicitante_nome || 'Estudante').trim();
-                                        const requesterEmail = String(request?.solicitante_email || '').trim();
-                                        const requestDate = formatRequestDate(request?.createdAt);
-                                        const isReviewing = reviewingClubRequestIds instanceof Set && reviewingClubRequestIds.has(requestId);
-
-                                        return (
-                                            <div key={requestId} className="rounded-[2.5rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                                                    <div>
-                                                        <p className="text-xl font-black text-slate-900 uppercase">{requesterName}</p>
-                                                        {requesterEmail && <p className="text-sm font-bold text-slate-600 mt-1">{requesterEmail}</p>}
-                                                        {requestDate && <p className="text-xs font-black bg-yellow-400 rounded-full inline-block px-3 py-1.5 mt-3 border-[2px] border-slate-900">Solicitado em {requestDate}</p>}
-                                                    </div>
-
-                                                    <div className="flex items-center gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleMentorDecision(requestId, false)}
-                                                            disabled={isReviewing}
-                                                            className="rounded-full px-6 py-3 text-sm font-black uppercase tracking-wider border-[3px] border-slate-900 bg-white text-pink-600 hover:bg-pink-50 shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
-                                                        >
-                                                            Recusar
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleMentorDecision(requestId, true)}
-                                                            disabled={isReviewing}
-                                                            className="rounded-full px-6 py-3 text-sm font-black uppercase tracking-wider border-[3px] border-slate-900 bg-cyan-300 text-slate-900 shadow-sm hover:bg-cyan-200 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
-                                                        >
-                                                            {isReviewing ? 'Processando...' : 'Aceitar'}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10">
                         {/* STATS GRID */}

@@ -7,8 +7,36 @@ import {
     Globe, Users, Heart, BookOpen, Link as LinkIcon, LoaderCircle, RefreshCw
 } from 'lucide-react';
 import { fetchLattesPreviewByHtml, fetchLattesPreviewByLink } from '../../services/lattesService';
+import MembershipCardGenerator from '../club/MembershipCardGenerator';
 
-export default function MeuPerfilPro({ loggedUser, myClub, schools = [], onLogout, onSaveProfile, onClose }) {
+const dedupeMembersByIdentity = (members = []) => {
+    const byKey = new Map();
+    (Array.isArray(members) ? members : []).forEach((member, index) => {
+        const key = String(
+            member?.id
+            || member?.uid
+            || member?.email
+            || member?.matricula
+            || `${member?.nome || 'membro'}-${index}`
+        ).trim();
+
+        if (!key || byKey.has(key)) return;
+        byKey.set(key, member);
+    });
+
+    return [...byKey.values()];
+};
+
+export default function MeuPerfilPro({
+    loggedUser,
+    myClub,
+    schools = [],
+    users = [],
+    onLogout,
+    onSaveProfile,
+    onChangeClubCardTemplate = async () => {},
+    onClose
+}) {
     const lattesIframeRef = useRef(null);
 
     const [isEditing, setIsEditing] = useState(false);
@@ -220,6 +248,71 @@ export default function MeuPerfilPro({ loggedUser, myClub, schools = [], onLogou
     useEffect(() => {
         resetForm();
     }, [loggedUser]);
+
+    const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+    const myClubId = String(myClub?.id || '').trim();
+
+    const usersById = useMemo(() => {
+        const map = new Map();
+        (Array.isArray(users) ? users : []).forEach((person) => {
+            const personId = String(person?.id || person?.uid || '').trim();
+            if (!personId) return;
+            map.set(personId, person);
+        });
+        return map;
+    }, [users]);
+
+    const myClubMentorIds = useMemo(() => new Set([
+        myClub?.mentor_id,
+        ...(myClub?.orientador_ids || []),
+        ...(myClub?.orientadores_ids || []),
+        ...(myClub?.coorientador_ids || []),
+        ...(myClub?.coorientadores_ids || [])
+    ].map((value) => String(value || '').trim()).filter(Boolean)), [myClub]);
+
+    const myClubStudentIds = useMemo(() => (
+        [...new Set([
+            ...(myClub?.clubistas_ids || []),
+            ...(myClub?.investigadores_ids || []),
+            ...(myClub?.membros_ids || [])
+        ].map((value) => String(value || '').trim()).filter(Boolean))]
+    ), [myClub]);
+
+    const fallbackLoggedUserMember = useMemo(() => {
+        if (!loggedUser) return null;
+        if (!loggedUserId) return loggedUser;
+        return { ...loggedUser, id: loggedUserId };
+    }, [loggedUser, loggedUserId]);
+
+    const profileCardMentors = useMemo(() => {
+        const mentors = [...myClubMentorIds]
+            .map((memberId) => usersById.get(memberId))
+            .filter(Boolean);
+
+        if (myClubMentorIds.has(loggedUserId) && fallbackLoggedUserMember) {
+            mentors.push(fallbackLoggedUserMember);
+        }
+
+        return dedupeMembersByIdentity(mentors);
+    }, [myClubMentorIds, usersById, loggedUserId, fallbackLoggedUserMember]);
+
+    const profileCardStudents = useMemo(() => {
+        const students = myClubStudentIds
+            .filter((memberId) => !myClubMentorIds.has(memberId))
+            .map((memberId) => usersById.get(memberId))
+            .filter(Boolean);
+
+        if (fallbackLoggedUserMember && !myClubMentorIds.has(loggedUserId)) {
+            students.push(fallbackLoggedUserMember);
+        }
+
+        return dedupeMembersByIdentity(students);
+    }, [myClubStudentIds, myClubMentorIds, usersById, loggedUserId, fallbackLoggedUserMember]);
+
+    const canManageProfileCardTemplate = Boolean(myClubId && loggedUserId && myClubMentorIds.has(loggedUserId));
+    const profileClubSchool = useMemo(() => ({
+        nome: String(myClub?.escola_nome || loggedUser?.escola_nome || '').trim()
+    }), [myClub?.escola_nome, loggedUser?.escola_nome]);
 
     if (!loggedUser) {
         return (
@@ -809,6 +902,26 @@ export default function MeuPerfilPro({ loggedUser, myClub, schools = [], onLogou
                                     <p className="text-xs font-black uppercase tracking-widest text-slate-900 mt-3 bg-white inline-block px-3 py-1 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">Clube de Ciências</p>
                                 </div>
                             </div>
+
+                            {myClubId ? (
+                                <MembershipCardGenerator
+                                    viewingClub={myClub}
+                                    viewingClubSchool={profileClubSchool}
+                                    mentors={profileCardMentors}
+                                    students={profileCardStudents}
+                                    clubBannerUrl={String(myClub?.banner_url || myClub?.banner || '').trim()}
+                                    clubLogoUrl={String(myClub?.logo_url || myClub?.logo || '').trim()}
+                                    loggedUser={loggedUser}
+                                    canManageTemplate={canManageProfileCardTemplate}
+                                    onChangeTemplate={(templateId) => onChangeClubCardTemplate(myClubId, templateId)}
+                                />
+                            ) : (
+                                <div className="rounded-2xl border-4 border-slate-900 bg-white p-6 text-center shadow-[6px_6px_0px_0px_#0f172a]">
+                                    <p className="text-sm font-black uppercase tracking-widest text-slate-500">
+                                        A carteirinha será exibida aqui quando você estiver vinculado a um clube.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                 <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0f172a] rounded-2xl p-5 flex flex-col items-center text-center transition-all">
