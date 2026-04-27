@@ -1,19 +1,13 @@
-import { NextResponse } from "next/server";
+import { handler } from "../../../../netlify/functions/teacher-verify.js";
+import { runNetlifyHandler } from "../../_lib/netlifyAdapter.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function buildNotImplementedMessage() {
-  return {
-    error:
-      "Teacher verify endpoint ainda nao foi implementado neste branch. Adicione netlify/functions/teacher-verify.js para habilitar /api/teacher/verify.",
-  };
+export async function GET(request) {
+  return runNetlifyHandler(request, handler);
 }
 
-export async function GET() {
-  return NextResponse.json(buildNotImplementedMessage(), { status: 501 });
-}
-
-export async function POST() {
-  return NextResponse.json(buildNotImplementedMessage(), { status: 501 });
+export async function POST(request) {
+  return runNetlifyHandler(request, handler);
 }

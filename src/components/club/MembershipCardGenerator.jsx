@@ -1,6 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, Download, IdCard, Images, Printer, ScanLine, Sparkles, UserRound } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BadgeCheck, Download, IdCard, Images, Printer, Sparkles, UserRound } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
+import { auth } from '../../../firebase';
 import { getAvatarSrc, getInitials } from '../../utils/helpers';
+import { buildMembershipBarcodePayload } from '../../utils/membershipBarcode';
 
 const CARD_WIDTH = 1400;
 const CARD_HEIGHT = 884;
@@ -64,6 +67,25 @@ const buildMembershipNumber = (club, student) => {
     const studentCode = makeCode(student?.matricula || student?.id || student?.uid || student?.email || student?.nome, 6);
     return `CTI${clubCode}${studentCode}`;
 };
+
+const getMemberBarcodeReference = (member) => safeText(
+    member?.id
+    || member?.uid
+    || member?.matricula
+    || member?.matricula_escolar
+    || member?.registro
+    || member?.codigo
+    || member?.email
+    || member?.nome,
+    'MEMBRO'
+);
+
+const buildMembershipBarcodeValue = (club, member, role, year = new Date().getFullYear()) => buildMembershipBarcodePayload({
+    clubId: safeText(club?.id || club?.nome, 'CLUBE'),
+    memberId: getMemberBarcodeReference(member),
+    roleCode: String(role || '').trim().toLowerCase() === 'mentor' ? 'M' : 'C',
+    expiryYmd: `${Number(year || new Date().getFullYear())}1231`,
+});
 
 const getStudentKey = (student, index = 0) => String(
     student?.id || student?.uid || student?.email || student?.matricula || `${student?.nome || 'clubista'}${index}`
@@ -205,20 +227,53 @@ const drawLabelValue = (ctx, label, value, x, y, width) => {
     drawFittedText(ctx, value, x + 46, y + 66, width - 70, 30, { minSize: 20, weight: 900 });
 };
 
-const drawBarcode = (ctx, x, y, width, height, seed) => {
+const drawBarcode = (ctx, x, y, width, height, value) => {
     fillRoundRect(ctx, x, y, width, height, 22, '#ffffff');
     strokeRoundRect(ctx, x, y, width, height, 22, INK, 5);
-    const source = safeText(seed, 'CLUBE');
-    let cursor = x + 24;
-    const maxX = x + width - 24;
+    const source = safeText(value, 'CTI1|CLUBE|MEMBRO|C|20991231|000')
+        .replace(/[^a-zA-Z0-9@._:\-|]/g, '');
 
-    for (let index = 0; cursor < maxX; index += 1) {
-        const charCode = source.charCodeAt(index % source.length);
-        const barWidth = 4 + (charCode % 4) * 3;
-        const gap = 4 + (charCode % 3);
-        ctx.fillStyle = index % 5 === 0 ? PINK : INK;
-        ctx.fillRect(cursor, y + 16, barWidth, height - 32);
-        cursor += barWidth + gap;
+    const barcodeCanvas = document.createElement('canvas');
+    const horizontalPadding = 22;
+    const verticalPadding = 12;
+    const maxBarcodeWidth = Math.max(120, width - horizontalPadding * 2);
+    const maxBarcodeHeight = Math.max(28, height - verticalPadding * 2);
+
+    try {
+        JsBarcode(barcodeCanvas, source || 'CTI1|CLUBE|MEMBRO|C|20991231|000', {
+            format: 'CODE128',
+            displayValue: false,
+            margin: 0,
+            width: 2,
+            height: maxBarcodeHeight,
+            lineColor: INK,
+            background: '#ffffff',
+        });
+
+        const widthScale = maxBarcodeWidth / barcodeCanvas.width;
+        const heightScale = maxBarcodeHeight / barcodeCanvas.height;
+        const scale = Math.min(widthScale, heightScale);
+        const drawWidth = barcodeCanvas.width * scale;
+        const drawHeight = barcodeCanvas.height * scale;
+        const drawX = x + (width - drawWidth) / 2;
+        const drawY = y + (height - drawHeight) / 2;
+        const prevSmoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(barcodeCanvas, drawX, drawY, drawWidth, drawHeight);
+        ctx.imageSmoothingEnabled = prevSmoothing;
+    } catch (error) {
+        console.warn('Falha ao renderizar barcode CODE128 da carteirinha:', error);
+        let cursor = x + 24;
+        const maxX = x + width - 24;
+        const fallbackSeed = source || 'CTI1|CLUBE|MEMBRO|C|20991231|000';
+        for (let index = 0; cursor < maxX; index += 1) {
+            const charCode = fallbackSeed.charCodeAt(index % fallbackSeed.length);
+            const barWidth = 3 + (charCode % 3) * 2;
+            const gap = 2 + (charCode % 2);
+            ctx.fillStyle = INK;
+            ctx.fillRect(cursor, y + 14, barWidth, height - 28);
+            cursor += barWidth + gap;
+        }
     }
 };
 
@@ -271,10 +326,9 @@ const createMembershipCardImage = async ({
     const clubName = safeText(viewingClub?.nome, 'Clube de Ciencias');
     const memberName = safeText(selectedMember?.nome, 'Membro');
     const schoolName = safeText(viewingClubSchool?.nome || viewingClub?.escola_nome || selectedMember?.escola_nome, 'Unidade escolar');
-    const membershipNumber = buildMembershipNumber(viewingClub, selectedMember);
     const roleLabel = memberRole === 'mentor' ? 'MENTOR' : 'CLUBISTA';
-    const mentorSignatureLabel = safeText(signingMentorName, 'Mentoria do Clube');
     const currentYear = new Date().getFullYear();
+    const membershipBarcodeValue = buildMembershipBarcodeValue(viewingClub, selectedMember, memberRole, currentYear);
 
 
     if (resolvedTemplateId === 'classic') {
@@ -330,7 +384,7 @@ const createMembershipCardImage = async ({
         drawLabelValue(ctx, 'Turma', getStudentClass(selectedMember), 782, 516, 208);
         drawLabelValue(ctx, 'Validade', `12/${currentYear}`, 1006, 516, 200);
 
-        drawBarcode(ctx, 458, 634, 748, 96, membershipNumber);
+        drawBarcode(ctx, 458, 634, 748, 96, membershipBarcodeValue);
 
         return canvas.toDataURL('image/png');
     }
@@ -394,7 +448,7 @@ const createMembershipCardImage = async ({
         drawLabelValue(ctx, 'Turma', getStudentClass(selectedMember), 798, 534, 208);
         drawLabelValue(ctx, 'Validade', `12/${currentYear}`, 1022, 534, 180);
 
-        drawBarcode(ctx, 474, 650, 728, 100, membershipNumber);
+        drawBarcode(ctx, 474, 650, 728, 100, membershipBarcodeValue);
 
         return canvas.toDataURL('image/png');
     }
@@ -490,7 +544,7 @@ const createMembershipCardImage = async ({
     drawLabelValue(ctx, 'Matricula', getMatricula(selectedMember), 526, 548, 330);
     drawLabelValue(ctx, 'Turma', getStudentClass(selectedMember), 884, 548, 220);
     drawLabelValue(ctx, 'Validade', `12/${currentYear}`, 1132, 548, 178);
-    drawBarcode(ctx, 526, 684, 560, 98, membershipNumber);
+    drawBarcode(ctx, 526, 684, 560, 98, membershipBarcodeValue);
 
     return canvas.toDataURL('image/png');
 };
@@ -581,6 +635,22 @@ export default function MembershipCardGenerator({
     const [templateSaveError, setTemplateSaveError] = useState('');
     const [previewImageUrl, setPreviewImageUrl] = useState('');
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+    const [verificationInput, setVerificationInput] = useState('');
+    const [verificationResult, setVerificationResult] = useState(null);
+    const [verificationError, setVerificationError] = useState('');
+    const [isVerifyingCard, setIsVerifyingCard] = useState(false);
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [isCameraScanning, setIsCameraScanning] = useState(false);
+    const [scannerError, setScannerError] = useState('');
+    const scannerVideoRef = useRef(null);
+    const scannerStreamRef = useRef(null);
+    const scannerFrameRef = useRef(0);
+    const scannerDetectorRef = useRef(null);
+    const isBarcodeDetectorSupported = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return typeof window.BarcodeDetector === 'function'
+            && Boolean(window.navigator?.mediaDevices?.getUserMedia);
+    }, []);
 
     useEffect(() => {
         setTemplateChoiceId(clubTemplateId);
@@ -598,14 +668,24 @@ export default function MembershipCardGenerator({
         }
     }, [visibleMembers, preferredStudentKey, selectedStudentKey]);
 
+    useEffect(() => {
+        setVerificationInput('');
+        setVerificationError('');
+        setVerificationResult(null);
+        setScannerError('');
+    }, [selectedStudentKey, viewingClub?.id]);
+
     const selectedMember = visibleMembers.find((student) => student.cardKey === selectedStudentKey) || visibleMembers[0] || null;
     const studentPhotoUrl = getAvatarSrc(selectedMember);
     const clubName = safeText(viewingClub?.nome, 'Clube de Ciencias');
     const studentName = safeText(selectedMember?.nome, 'Membro');
     const schoolName = safeText(viewingClubSchool?.nome || viewingClub?.escola_nome || selectedMember?.escola_nome, 'Unidade escolar');
-    const membershipNumber = selectedMember ? buildMembershipNumber(viewingClub, selectedMember) : '';
-    const memberRoleLabel = selectedMember?.cardRole === 'mentor' ? 'Mentor(a)' : 'Clubista';
     const currentYear = new Date().getFullYear();
+    const membershipNumber = selectedMember ? buildMembershipNumber(viewingClub, selectedMember) : '';
+    const membershipBarcodeValue = selectedMember
+        ? buildMembershipBarcodeValue(viewingClub, selectedMember, selectedMember?.cardRole || 'clubista', currentYear)
+        : '';
+    const memberRoleLabel = selectedMember?.cardRole === 'mentor' ? 'Mentor(a)' : 'Clubista';
     const filename = sanitizeFilename(`${clubName}${studentName}carteirinha`);
     const canSelectOtherMembers = isMentorViewer && visibleMembers.length > 1;
     const signatureImageUrl = signatureOverrideDataUrl;
@@ -690,6 +770,162 @@ export default function MembershipCardGenerator({
         clubLogoUrl,
         templateChoiceId,
     ]);
+
+    const stopCameraScanner = useCallback(() => {
+        if (scannerFrameRef.current) {
+            window.cancelAnimationFrame(scannerFrameRef.current);
+            scannerFrameRef.current = 0;
+        }
+
+        if (scannerStreamRef.current) {
+            scannerStreamRef.current.getTracks().forEach((track) => {
+                try {
+                    track.stop();
+                } catch {
+                    // noop
+                }
+            });
+            scannerStreamRef.current = null;
+        }
+
+        if (scannerVideoRef.current) {
+            scannerVideoRef.current.srcObject = null;
+        }
+
+        scannerDetectorRef.current = null;
+        setIsCameraScanning(false);
+    }, []);
+
+    useEffect(() => () => {
+        stopCameraScanner();
+    }, [stopCameraScanner]);
+
+    const handleUseCurrentCardCode = () => {
+        if (!membershipBarcodeValue) return;
+        setVerificationInput(membershipBarcodeValue);
+        setVerificationError('');
+        setVerificationResult(null);
+    };
+
+    const handleVerifyCard = async () => {
+        const codeToVerify = String(verificationInput || '').trim();
+        if (!codeToVerify) {
+            setVerificationError('Informe ou escaneie um codigo de carteirinha para validar.');
+            setVerificationResult(null);
+            return;
+        }
+
+        setIsVerifyingCard(true);
+        setVerificationError('');
+        setVerificationResult(null);
+
+        try {
+            let token = '';
+            try {
+                token = await auth?.currentUser?.getIdToken?.();
+            } catch {
+                token = '';
+            }
+
+            const response = await fetch('/api/teacher/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ code: codeToVerify }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(String(payload?.error || 'Nao foi possivel validar a carteirinha agora.'));
+            }
+
+            setVerificationResult(payload);
+        } catch (error) {
+            console.error('Falha ao validar carteirinha:', error);
+            setVerificationError(String(error?.message || 'Nao foi possivel validar a carteirinha.'));
+        } finally {
+            setIsVerifyingCard(false);
+        }
+    };
+
+    const handleStartCameraScanner = useCallback(async () => {
+        if (!isBarcodeDetectorSupported) {
+            setScannerError('Leitura por camera indisponivel neste navegador/dispositivo.');
+            return;
+        }
+
+        setScannerError('');
+        setVerificationError('');
+        setVerificationResult(null);
+        setIsScannerOpen(true);
+        stopCameraScanner();
+
+        try {
+            const stream = await window.navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                },
+                audio: false,
+            });
+
+            const videoElement = scannerVideoRef.current;
+            if (!videoElement) {
+                throw new Error('Elemento de video indisponivel para leitura.');
+            }
+
+            scannerStreamRef.current = stream;
+            videoElement.srcObject = stream;
+            videoElement.setAttribute('playsinline', 'true');
+            await videoElement.play();
+
+            scannerDetectorRef.current = new window.BarcodeDetector({
+                formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e'],
+            });
+            setIsCameraScanning(true);
+
+            let isDetecting = false;
+            const scanLoop = async () => {
+                if (!scannerDetectorRef.current || !scannerVideoRef.current || !scannerStreamRef.current) {
+                    return;
+                }
+
+                if (!isDetecting && scannerVideoRef.current.readyState >= 2) {
+                    isDetecting = true;
+                    try {
+                        const foundCodes = await scannerDetectorRef.current.detect(scannerVideoRef.current);
+                        const firstCode = (foundCodes || []).find((item) => String(item?.rawValue || '').trim());
+                        if (firstCode) {
+                            const detectedValue = String(firstCode.rawValue || '').trim();
+                            setVerificationInput(detectedValue);
+                            setIsScannerOpen(false);
+                            stopCameraScanner();
+                            return;
+                        }
+                    } catch {
+                        // ignore transient camera detection errors
+                    } finally {
+                        isDetecting = false;
+                    }
+                }
+
+                scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
+            };
+
+            scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
+        } catch (error) {
+            console.error('Falha ao iniciar scanner de barcode:', error);
+            setScannerError('Nao foi possivel acessar a camera para leitura do codigo de barras.');
+            setIsScannerOpen(false);
+            stopCameraScanner();
+        }
+    }, [isBarcodeDetectorSupported, stopCameraScanner]);
+
+    const handleCloseScanner = () => {
+        setIsScannerOpen(false);
+        stopCameraScanner();
+    };
 
     const handleSignatureFileChange = async (event) => {
         const file = event?.target?.files?.[0];
@@ -910,6 +1146,91 @@ export default function MembershipCardGenerator({
                             </button>
                         </div>
 
+                        <div className="rounded-[1.5rem] border-[3px] border-slate-900 bg-white px-5 py-4 shadow-sm">
+                            <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-900">
+                                Validador de carteirinha
+                            </label>
+                            <input
+                                type="text"
+                                value={verificationInput}
+                                onChange={(event) => setVerificationInput(event.target.value)}
+                                placeholder="Cole ou escaneie o codigo de barras"
+                                className="w-full rounded-[1rem] border-[3px] border-slate-900 bg-slate-50 px-4 py-3 text-xs font-black tracking-wide text-slate-900 outline-none"
+                            />
+
+                            <div className="mt-3 grid grid-cols-1 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleUseCurrentCardCode}
+                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900"
+                                >
+                                    Usar codigo desta carteirinha
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleStartCameraScanner}
+                                    disabled={!isBarcodeDetectorSupported || isCameraScanning}
+                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
+                                >
+                                    {isCameraScanning ? 'Lendo camera...' : 'Ler codigo com camera'}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleVerifyCard}
+                                    disabled={isVerifyingCard}
+                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-lime-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
+                                >
+                                    {isVerifyingCard ? 'Validando...' : 'Validar codigo'}
+                                </button>
+                            </div>
+
+                            {!!membershipBarcodeValue && (
+                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-700 break-all">
+                                    Codigo atual: {membershipBarcodeValue}
+                                </p>
+                            )}
+
+                            {scannerError && (
+                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-amber-200 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-900">
+                                    {scannerError}
+                                </p>
+                            )}
+
+                            {verificationError && (
+                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-pink-500 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white">
+                                    {verificationError}
+                                </p>
+                            )}
+
+                            {verificationResult && (
+                                <div className={`mt-3 rounded-[1rem] border-[3px] border-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-wide ${
+                                    verificationResult?.valid ? 'bg-cyan-300 text-slate-900' : 'bg-pink-500 text-white'
+                                }`}>
+                                    <p>{verificationResult?.valid ? 'Carteirinha valida' : 'Carteirinha invalida'}</p>
+                                    <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                        {String(verificationResult?.reason || '')}
+                                    </p>
+                                    {!!verificationResult?.member?.nome && (
+                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                            Membro: {verificationResult.member.nome}
+                                        </p>
+                                    )}
+                                    {!!verificationResult?.club?.nome && (
+                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                            Clube: {verificationResult.club.nome}
+                                        </p>
+                                    )}
+                                    {!!verificationResult?.card?.expiryDate && (
+                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                            Validade: {verificationResult.card.expiryDate}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {exportError && (
                             <p className="rounded-[1.5rem] border-[3px] border-slate-900 bg-pink-500 px-5 py-4 text-xs font-black uppercase tracking-wider text-white shadow-sm">
                                 {exportError}
@@ -942,6 +1263,39 @@ export default function MembershipCardGenerator({
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isScannerOpen && (
+                <div className="fixed inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm p-4 flex items-center justify-center">
+                    <div className="w-full max-w-xl rounded-[2rem] border-[3px] border-slate-900 bg-white p-5 shadow-[10px_10px_0px_0px_#0f172a]">
+                        <p className="text-sm font-black uppercase tracking-widest text-slate-900">
+                            Aponte a camera para o codigo de barras
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-slate-600">
+                            Encoste a carteirinha na area da camera e aguarde a leitura automatica.
+                        </p>
+
+                        <div className="mt-4 overflow-hidden rounded-[1.2rem] border-[3px] border-slate-900 bg-slate-200 aspect-video">
+                            <video
+                                ref={scannerVideoRef}
+                                autoPlay
+                                muted
+                                playsInline
+                                className="h-full w-full object-cover"
+                            />
+                        </div>
+
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={handleCloseScanner}
+                                className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-white px-5 py-2 text-xs font-black uppercase tracking-widest text-slate-900"
+                            >
+                                Fechar scanner
+                            </button>
                         </div>
                     </div>
                 </div>
