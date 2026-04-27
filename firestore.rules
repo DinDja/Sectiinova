@@ -404,7 +404,25 @@ service cloud.firestore {
         && request.resource.data.escola_id is string
         && isMySchoolLegacyAware(request.resource.data.escola_id, request.resource.data.escola_nome)
         && hasClubMinimumStructure(request.resource.data);
-      allow update, delete: if isClubTeacherMember(clubeId);
+      allow update: if isClubTeacherMember(clubeId)
+        && request.resource.data.mentor_id == resource.data.mentor_id
+        && (
+          !(resource.data.orientador_ids is list)
+          || !(resource.data.mentor_id in resource.data.orientador_ids)
+          || (
+            request.resource.data.orientador_ids is list
+            && resource.data.mentor_id in request.resource.data.orientador_ids
+          )
+        )
+        && (
+          !(resource.data.membros_ids is list)
+          || !(resource.data.mentor_id in resource.data.membros_ids)
+          || (
+            request.resource.data.membros_ids is list
+            && resource.data.mentor_id in request.resource.data.membros_ids
+          )
+        );
+      allow delete: if isClubTeacherMember(clubeId);
     }
 
     match /clubes/{clubeId}/documentos_chunks/{chunkId} {
@@ -507,8 +525,10 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && userExists()
-        && isStudentProfile(userData().perfil)
-        && hasNoClubInProfile()
+        && (
+          (isStudentProfile(userData().perfil) && hasNoClubInProfile())
+          || isMentorProfile(userData().perfil)
+        )
         && request.resource.data.clube_id is string
         && request.resource.data.clube_id.size() > 0
         && clubExists(request.resource.data.clube_id)
@@ -518,9 +538,26 @@ service cloud.firestore {
 
       allow update: if isSignedIn()
         && isMentor()
-        && isMyClub(resource.data.clube_id)
+        && (
+          isMyClub(resource.data.clube_id)
+          || (
+            resource.data.escola_id is string
+            && resource.data.escola_id.size() > 0
+            && isMySchool(resource.data.escola_id)
+          )
+          || (
+            resource.data.clube_id is string
+            && resource.data.clube_id.size() > 0
+            && clubExists(resource.data.clube_id)
+            && isMySchoolLegacyAware(
+              clubData(resource.data.clube_id).escola_id,
+              clubData(resource.data.clube_id).escola_nome
+            )
+          )
+        )
         && request.resource.data.clube_id == resource.data.clube_id
         && request.resource.data.solicitante_id == resource.data.solicitante_id
+        && resource.data.status == 'pendente'
         && request.resource.data.status is string
         && request.resource.data.status in ['aceita', 'recusada'];
 

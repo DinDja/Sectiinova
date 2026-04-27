@@ -2987,8 +2987,9 @@ export default function useAppController() {
         const schoolId = String(currentClub?.escola_id || '').trim();
         const normalizedSchoolName = normalizeSchoolName(currentClub?.escola_nome);
         const periodicidadeNormalizada = String(periodicidade || currentClub?.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+        const creatorMentorId = String(currentClub?.mentor_id || '').trim() || mentorId;
 
-        const selectedCoorientadoresIds = normalizeIdList(coorientador_ids).filter((id) => id !== mentorId);
+        const selectedCoorientadoresIds = normalizeIdList(coorientador_ids).filter((id) => id !== mentorId && id !== creatorMentorId);
         const currentCoorientadoresIds = normalizeIdList([
             ...(currentClub?.coorientador_ids || []),
             ...(currentClub?.coorientadores_ids || [])
@@ -3052,17 +3053,18 @@ export default function useAppController() {
         const currentOrientadoresIds = normalizeIdList(
             Array.isArray(currentClub?.orientador_ids) && currentClub.orientador_ids.length > 0
                 ? currentClub.orientador_ids
-                : [currentClub?.mentor_id || mentorId]
+                : [creatorMentorId]
         );
+        const persistedOrientadoresIds = normalizeIdList([creatorMentorId, ...currentOrientadoresIds]);
 
         const nextMentorIds = normalizeIdList([
             mentorId,
-            currentClub?.mentor_id,
-            ...currentOrientadoresIds,
+            creatorMentorId,
+            ...persistedOrientadoresIds,
             ...selectedCoorientadoresIds
         ]);
 
-        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => !nextMentorIds.includes(id));
+        const selectedClubistasIds = normalizeIdList(clubistas_ids).filter((id) => id !== creatorMentorId && !nextMentorIds.includes(id));
 
         const allowedProfiles = new Set(['estudante', 'investigador', 'aluno']);
         const usersById = new Map(
@@ -3202,7 +3204,9 @@ export default function useAppController() {
                 nome: clubName,
                 descricao: String(descricao || '').trim(),
                 periodicidade: periodicidadeNormalizada,
-                orientador_ids: currentOrientadoresIds,
+                mentor_id: creatorMentorId,
+                orientador_ids: persistedOrientadoresIds,
+                orientadores_ids: persistedOrientadoresIds,
                 coorientador_ids: selectedCoorientadoresIds,
                 coorientadores_ids: selectedCoorientadoresIds,
                 clubistas_ids: selectedClubistasIds,
@@ -3656,20 +3660,28 @@ export default function useAppController() {
 
             const userData = userSnap.data() || {};
             const clubData = clubSnap.data() || {};
-            const currentClubIds = normalizeIdList(getUserClubIds(userData));
-            const nextClubIds = normalizeIdList([requestClubId, ...currentClubIds]);
-            const currentPrimaryClubId = String(userData?.clube_id || '').trim();
-            const nextPrimaryClubId = currentPrimaryClubId || requestClubId;
+            const requesterPerfil = normalizePerfil(userData?.perfil);
+            const canLinkRequesterProfileToClub = ['estudante', 'investigador', 'aluno'].includes(requesterPerfil);
+            let nextClubIds = [];
+            let nextPrimaryClubId = '';
+            if (canLinkRequesterProfileToClub) {
+                const currentClubIds = normalizeIdList(getUserClubIds(userData));
+                nextClubIds = normalizeIdList([requestClubId, ...currentClubIds]);
+                const currentPrimaryClubId = String(userData?.clube_id || '').trim();
+                nextPrimaryClubId = currentPrimaryClubId || requestClubId;
+            }
 
             const batch = writeBatch(db);
             batch.update(doc(db, 'clubes', requestClubId), {
                 clubistas_ids: normalizeIdList([...(clubData?.clubistas_ids || []), requesterId]),
                 membros_ids: normalizeIdList([...(clubData?.membros_ids || []), requesterId])
             });
-            batch.update(doc(db, 'usuarios', requesterId), {
-                clube_id: nextPrimaryClubId,
-                clubes_ids: nextClubIds
-            });
+            if (canLinkRequesterProfileToClub) {
+                batch.update(doc(db, 'usuarios', requesterId), {
+                    clube_id: nextPrimaryClubId,
+                    clubes_ids: nextClubIds
+                });
+            }
             batch.update(requestRef, {
                 status: 'aceita',
                 respondido_por: loggedUserId,
@@ -3692,15 +3704,17 @@ export default function useAppController() {
                 };
             }));
 
-            setUsers((previousUsers) => previousUsers.map((person) => {
-                const personId = String(person?.id || '').trim();
-                if (personId !== requesterId) return person;
-                return normalizeUserEntity({
-                    ...person,
-                    clube_id: nextPrimaryClubId,
-                    clubes_ids: nextClubIds
-                }, personId);
-            }));
+            if (canLinkRequesterProfileToClub) {
+                setUsers((previousUsers) => previousUsers.map((person) => {
+                    const personId = String(person?.id || '').trim();
+                    if (personId !== requesterId) return person;
+                    return normalizeUserEntity({
+                        ...person,
+                        clube_id: nextPrimaryClubId,
+                        clubes_ids: nextClubIds
+                    }, personId);
+                }));
+            }
 
             setErrorMessage('Solicitacao aceita e clubista vinculado ao clube.');
         } catch (error) {

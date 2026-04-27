@@ -257,6 +257,7 @@ export default function App() {
                         latestMyClubJoinRequestByClubId={latestMyClubJoinRequestByClubId}
                         requestingClubIds={requestingClubIds}
                         handleRequestClubEntry={handleRequestClubEntry}
+                        myClubIds={myClubIds}
                         clubJoinRequests={clubJoinRequests}
                         reviewingClubRequestIds={reviewingClubRequestIds}
                         handleRespondClubEntryRequest={handleRespondClubEntryRequest}

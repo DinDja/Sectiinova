@@ -159,6 +159,7 @@ export default function EditClubForm({
         const selectedSchoolId = String(form.escola_id || '').trim();
         const selectedSchoolName = normalizeSchoolName(selectedSchool?.nome);
         const queryText = String(membersSearch || '').trim().toLowerCase();
+        const selectedClubistaIds = new Set(selectedClubistas.map((id) => String(id || '').trim()));
 
         return mergedUsers
             .filter((user) => {
@@ -170,9 +171,10 @@ export default function EditClubForm({
                 const hasSchoolIdMatch = userSchoolIds.includes(selectedSchoolId);
                 const hasSchoolNameMatch = selectedSchoolName
                     && normalizeSchoolName(user?.escola_nome) === selectedSchoolName;
-                if (!hasSchoolIdMatch && !hasSchoolNameMatch) return false;
+                const isSelected = selectedClubistaIds.has(userId);
+                if (!hasSchoolIdMatch && !hasSchoolNameMatch && !isSelected) return false;
 
-                if (!queryText) return true;
+                if (!queryText || isSelected) return true;
 
                 const text = [
                     user.nome,
@@ -185,7 +187,7 @@ export default function EditClubForm({
                 return text.includes(queryText);
             })
             .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
-    }, [form.escola_id, selectedSchool?.nome, membersSearch, mergedUsers, loggedUserId]);
+    }, [form.escola_id, selectedSchool?.nome, membersSearch, mergedUsers, loggedUserId, selectedClubistas]);
 
     const selectedClubistasSet = useMemo(
         () => new Set(selectedClubistas.map((id) => String(id || '').trim())),

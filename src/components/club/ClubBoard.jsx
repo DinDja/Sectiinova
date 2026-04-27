@@ -41,6 +41,7 @@ export default function ClubBoard({
     latestMyClubJoinRequestByClubId = new Map(),
     requestingClubIds = new Set(),
     handleRequestClubEntry = async () => {},
+    myClubIds = [],
     clubJoinRequests = [],
     reviewingClubRequestIds = new Set(),
     handleRespondClubEntryRequest = async () => {},
@@ -122,7 +123,31 @@ export default function ClubBoard({
     const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
     const shouldShowSchoolClubDiscovery = hasNoClubMembership || schoolClubDiscoveryList.length > 0;
     const managedClubs = useMemo(() => (mentorManagedClubs || []).filter((club) => String(club?.id || '').trim()), [mentorManagedClubs]);
-    const canSwitchManagedClubs = isMentor && managedClubs.length > 1;
+    const normalizedMyClubIds = useMemo(
+        () => [...new Set((myClubIds || []).map((clubId) => String(clubId || '').trim()).filter(Boolean))],
+        [myClubIds]
+    );
+    const switchableUserClubs = useMemo(() => {
+        const switchableIds = new Set([
+            ...normalizedMyClubIds,
+            ...managedClubs.map((club) => String(club?.id || '').trim()),
+            viewingClubId
+        ].filter(Boolean));
+
+        const byId = new Map();
+        (clubs || []).forEach((club) => {
+            const clubId = String(club?.id || '').trim();
+            if (!clubId || !switchableIds.has(clubId)) return;
+            byId.set(clubId, club);
+        });
+
+        if (viewingClub && viewingClubId) {
+            byId.set(viewingClubId, viewingClub);
+        }
+
+        return [...byId.values()].sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'));
+    }, [normalizedMyClubIds, managedClubs, viewingClubId, clubs, viewingClub]);
+    const canSwitchUserClubs = switchableUserClubs.length > 1;
 
     const schoolOverview = useMemo(() => {
         const schoolId = String(viewingClubSchool?.id || viewingClubSchool?.escola_id || viewingClub?.escola_id || loggedUser?.escola_id || '').trim();
@@ -1013,19 +1038,19 @@ export default function ClubBoard({
                         </div>
                     </section>
 
-                    {canSwitchManagedClubs && (
+                    {canSwitchUserClubs && (
                         <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
                             <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
                                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                     <Building2 className="w-7 h-7 stroke-[2.5] text-pink-500" /> Seus Clubes
                                 </h3>
                                 <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 text-slate-900 text-lg font-black px-5 py-1.5 shadow-sm">
-                                    {managedClubs.length}
+                                    {switchableUserClubs.length}
                                 </span>
                             </div>
 
                             <div className="flex flex-wrap gap-4">
-                                {managedClubs.map((club) => {
+                                {switchableUserClubs.map((club) => {
                                     const clubId = String(club?.id || '').trim();
                                     const isActive = String(viewingClub?.id || '').trim() === clubId;
                                     const clubLogo = String(club?.logo_url || club?.logo || '').trim();
