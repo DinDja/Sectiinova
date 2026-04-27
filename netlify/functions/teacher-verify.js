@@ -340,17 +340,14 @@ export async function handler(event) {
   const clubMentorComparableSet = buildComparableSet(clubMentorIds);
 
   const callerTokens = buildUserTokens(caller.id, caller.data);
+  const callerProfile = normalizeProfile(caller?.data?.perfil);
+  const callerIsMentorProfile =
+    callerProfile === "orientador" || callerProfile === "coorientador";
   const callerHasClubLink = callerTokens.some((token) =>
     hasTokenInSet(clubMemberComparableSet, token),
   );
   const callerClubIds = getUserClubIds(caller.data);
   const callerHasClubId = callerClubIds.includes(clubRecord.id);
-
-  if (!callerHasClubLink && !callerHasClubId) {
-    return json(403, {
-      error: "Voce nao possui permissao para validar carteirinhas deste clube.",
-    });
-  }
 
   const memberCandidates = await resolveUserCandidatesByReference(db, parsed.memberId);
   const memberCandidateByClubToken = memberCandidates.find((candidate) =>
@@ -376,20 +373,53 @@ export async function handler(event) {
         ),
     );
 
+  const resolvedMemberClubIds = resolvedMember
+    ? getUserClubIds(resolvedMember.data)
+    : [];
+  const parsedMemberHasProfileClubLink =
+    resolvedMemberClubIds.includes(clubRecord.id) ||
+    resolvedMemberClubIds.includes(parsed.clubId);
+
+  const callerComparableSet = buildComparableSet(callerTokens);
+  const resolvedMemberComparableSet = resolvedMember
+    ? buildComparableSet(resolvedMember.tokens)
+    : null;
+  const callerMatchesCardMember =
+    hasTokenInSet(callerComparableSet, parsed.memberId) ||
+    Boolean(
+      resolvedMemberComparableSet &&
+        callerTokens.some((token) =>
+          hasTokenInSet(resolvedMemberComparableSet, token),
+        ),
+    );
+
+  const callerAuthorized =
+    callerHasClubLink ||
+    callerHasClubId ||
+    callerIsMentorProfile ||
+    callerMatchesCardMember;
+
+  if (!callerAuthorized) {
+    return json(403, {
+      error: "Voce nao possui permissao para validar carteirinhas deste clube.",
+    });
+  }
+
   const expectedMentorRole = parsed.roleCode === "M";
   const roleMatch = expectedMentorRole
     ? parsedMemberIsMentor
     : parsedMemberIsInClub && !parsedMemberIsMentor;
 
   const expired = isExpiryYmdExpired(parsed.expiryYmd);
-  const valid = parsedMemberIsInClub && roleMatch && !expired;
+  const memberInClub = parsedMemberIsInClub || parsedMemberHasProfileClubLink;
+  const valid = memberInClub && !expired;
 
-  const reason = !parsedMemberIsInClub
+  const reason = !memberInClub
     ? "Membro nao vinculado ao clube informado."
     : expired
       ? "Carteirinha expirada."
       : !roleMatch
-        ? "Perfil do membro nao corresponde ao tipo da carteirinha."
+        ? "Carteirinha valida (perfil divergente do tipo impresso)."
         : "Carteirinha valida.";
 
   return json(200, {
@@ -417,9 +447,11 @@ export async function handler(event) {
     member: serializeUser(resolvedMember),
     caller: serializeUser(caller),
     validation: {
-      memberInClub: parsedMemberIsInClub,
+      memberInClub,
+      memberInClubByClubDoc: parsedMemberIsInClub,
+      memberInClubByUserProfile: parsedMemberHasProfileClubLink,
       roleMatch,
-      callerAuthorized: true,
+      callerAuthorized,
     },
   });
 }

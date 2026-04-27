@@ -646,6 +646,11 @@ export default function MembershipCardGenerator({
     const scannerStreamRef = useRef(null);
     const scannerFrameRef = useRef(0);
     const scannerDetectorRef = useRef(null);
+    const isCameraSupported = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return Boolean(window.navigator?.mediaDevices?.getUserMedia);
+    }, []);
+
     const isBarcodeDetectorSupported = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return typeof window.BarcodeDetector === 'function'
@@ -851,8 +856,8 @@ export default function MembershipCardGenerator({
     };
 
     const handleStartCameraScanner = useCallback(async () => {
-        if (!isBarcodeDetectorSupported) {
-            setScannerError('Leitura por camera indisponivel neste navegador/dispositivo.');
+        if (!isCameraSupported) {
+            setScannerError('Camera indisponivel neste navegador/dispositivo.');
             return;
         }
 
@@ -879,48 +884,52 @@ export default function MembershipCardGenerator({
             videoElement.srcObject = stream;
             videoElement.setAttribute('playsinline', 'true');
             await videoElement.play();
-
-            scannerDetectorRef.current = new window.BarcodeDetector({
-                formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e'],
-            });
             setIsCameraScanning(true);
 
-            let isDetecting = false;
-            const scanLoop = async () => {
-                if (!scannerDetectorRef.current || !scannerVideoRef.current || !scannerStreamRef.current) {
-                    return;
-                }
+            if (isBarcodeDetectorSupported) {
+                scannerDetectorRef.current = new window.BarcodeDetector({
+                    formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e'],
+                });
 
-                if (!isDetecting && scannerVideoRef.current.readyState >= 2) {
-                    isDetecting = true;
-                    try {
-                        const foundCodes = await scannerDetectorRef.current.detect(scannerVideoRef.current);
-                        const firstCode = (foundCodes || []).find((item) => String(item?.rawValue || '').trim());
-                        if (firstCode) {
-                            const detectedValue = String(firstCode.rawValue || '').trim();
-                            setVerificationInput(detectedValue);
-                            setIsScannerOpen(false);
-                            stopCameraScanner();
-                            return;
-                        }
-                    } catch {
-                        // ignore transient camera detection errors
-                    } finally {
-                        isDetecting = false;
+                let isDetecting = false;
+                const scanLoop = async () => {
+                    if (!scannerDetectorRef.current || !scannerVideoRef.current || !scannerStreamRef.current) {
+                        return;
                     }
-                }
+
+                    if (!isDetecting && scannerVideoRef.current.readyState >= 2) {
+                        isDetecting = true;
+                        try {
+                            const foundCodes = await scannerDetectorRef.current.detect(scannerVideoRef.current);
+                            const firstCode = (foundCodes || []).find((item) => String(item?.rawValue || '').trim());
+                            if (firstCode) {
+                                const detectedValue = String(firstCode.rawValue || '').trim();
+                                setVerificationInput(detectedValue);
+                                setIsScannerOpen(false);
+                                stopCameraScanner();
+                                return;
+                            }
+                        } catch {
+                            // ignore transient camera detection errors
+                        } finally {
+                            isDetecting = false;
+                        }
+                    }
+
+                    scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
+                };
 
                 scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
-            };
-
-            scannerFrameRef.current = window.requestAnimationFrame(scanLoop);
+            } else {
+                setScannerError('Leitura automatica de codigo nao disponivel neste navegador. Aponte a camera para o codigo e copie o valor manualmente.');
+            }
         } catch (error) {
             console.error('Falha ao iniciar scanner de barcode:', error);
             setScannerError('Nao foi possivel acessar a camera para leitura do codigo de barras.');
             setIsScannerOpen(false);
             stopCameraScanner();
         }
-    }, [isBarcodeDetectorSupported, stopCameraScanner]);
+    }, [isBarcodeDetectorSupported, isCameraSupported, stopCameraScanner]);
 
     const handleCloseScanner = () => {
         setIsScannerOpen(false);
@@ -1170,7 +1179,7 @@ export default function MembershipCardGenerator({
                                 <button
                                     type="button"
                                     onClick={handleStartCameraScanner}
-                                    disabled={!isBarcodeDetectorSupported || isCameraScanning}
+                                    disabled={!isCameraSupported || isCameraScanning}
                                     className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
                                 >
                                     {isCameraScanning ? 'Lendo camera...' : 'Ler codigo com camera'}
@@ -1277,6 +1286,11 @@ export default function MembershipCardGenerator({
                         <p className="mt-1 text-xs font-bold text-slate-600">
                             Encoste a carteirinha na area da camera e aguarde a leitura automatica.
                         </p>
+                        {!isBarcodeDetectorSupported && (
+                            <p className="mt-2 text-xs font-bold uppercase tracking-widest text-amber-900">
+                                Leitura automatica nao suportada neste navegador. Aponte a camera e preencha o codigo manualmente.
+                            </p>
+                        )}
 
                         <div className="mt-4 overflow-hidden rounded-[1.2rem] border-[3px] border-slate-900 bg-slate-200 aspect-video">
                             <video
