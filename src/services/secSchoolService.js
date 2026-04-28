@@ -4,28 +4,12 @@ const SEC_ENDPOINT_CANDIDATES = [
   "/.netlify/functions/sec-escola-servidores",
 ];
 
-function isLocalHostname(hostname = "") {
-  const normalized = String(hostname || "").trim().toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
-}
-
 function resolveEndpointCandidates() {
-  const hasWindow = typeof window !== "undefined";
-  const hostname = hasWindow ? String(window.location?.hostname || "") : "";
-  const shouldPreferNetlifyDirect = hasWindow && !isLocalHostname(hostname);
-
-  if (!shouldPreferNetlifyDirect) {
-    return SEC_ENDPOINT_CANDIDATES;
-  }
-
-  return [
-    "/.netlify/functions/sec-escola-servidores",
-    "/api/sec-escola/servidores",
-  ];
+  return SEC_ENDPOINT_CANDIDATES;
 }
 
 function shouldTryFallback(responseStatus) {
-  return [404, 405, 500, 502, 503, 504].includes(responseStatus);
+  return responseStatus === 404 || responseStatus === 405;
 }
 
 function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {

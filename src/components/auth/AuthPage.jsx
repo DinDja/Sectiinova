@@ -348,9 +348,10 @@ export default function AuthPage({
   PERFIS_LOGIN,
 }) {
   const MIN_SCHOOL_SEARCH_CHARS = 2;
-  const MATRICULA_REALTIME_MIN_DIGITS = 6;
+  const MATRICULA_REALTIME_MIN_DIGITS = 8;
   const SEC_REALTIME_DEBOUNCE_MS = 650;
   const SEC_REALTIME_REQUEST_TIMEOUT_MS = 35000;
+  const SEC_REALTIME_CACHE_TTL_MS = 5 * 60 * 1000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -370,6 +371,7 @@ export default function AuthPage({
   const lottieBgRef = useRef(null);
   const cycleLottieRefs = useRef([]);
   const secRealtimeRequestRef = useRef(0);
+  const secRealtimeResultCacheRef = useRef(new Map());
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -700,6 +702,29 @@ export default function AuthPage({
       return undefined;
     }
 
+    const cacheKey = [
+      String(registerForm.rede_administrativa || ""),
+      String(selectedSchoolUnit?.escola_id || ""),
+      String(selectedSchoolUnit?.cod_inep || selectedSchoolUnit?.codigo_mec || selectedSchoolUnit?.inep || ""),
+      String(selectedSchoolUnit?.cod_sec || selectedSchoolUnit?.codigo_sec || selectedSchoolUnit?.codigoSec || ""),
+      matriculaDigits,
+    ].join("|");
+
+    const cachedResult = secRealtimeResultCacheRef.current.get(cacheKey);
+    if (cachedResult && cachedResult.expiresAt > Date.now()) {
+      setSecRealtimeValidation(cachedResult.value);
+      return undefined;
+    }
+
+    if (secRealtimeResultCacheRef.current.size > 120) {
+      const now = Date.now();
+      for (const [key, entry] of secRealtimeResultCacheRef.current.entries()) {
+        if (!entry || entry.expiresAt <= now) {
+          secRealtimeResultCacheRef.current.delete(key);
+        }
+      }
+    }
+
     const requestId = secRealtimeRequestRef.current + 1;
     secRealtimeRequestRef.current = requestId;
     const realtimeAbortController = new AbortController();
@@ -719,24 +744,35 @@ export default function AuthPage({
         }, {
           signal: realtimeAbortController.signal,
           timeoutMs: SEC_REALTIME_REQUEST_TIMEOUT_MS,
+          allowEndpointFallback: false,
         });
 
         if (secRealtimeRequestRef.current !== requestId) return;
 
         if (result?.valid) {
-          setSecRealtimeValidation({
+          const nextValidation = {
             status: "valid",
             message: String(result?.reason || "Servidor validado para a unidade selecionada."),
             payload: result,
+          };
+          secRealtimeResultCacheRef.current.set(cacheKey, {
+            expiresAt: Date.now() + SEC_REALTIME_CACHE_TTL_MS,
+            value: nextValidation,
           });
+          setSecRealtimeValidation(nextValidation);
           return;
         }
 
-        setSecRealtimeValidation({
+        const nextValidation = {
           status: "invalid",
           message: String(result?.reason || "A matricula nao foi validada como servidor na unidade selecionada."),
           payload: result || null,
+        };
+        secRealtimeResultCacheRef.current.set(cacheKey, {
+          expiresAt: Date.now() + SEC_REALTIME_CACHE_TTL_MS,
+          value: nextValidation,
         });
+        setSecRealtimeValidation(nextValidation);
       } catch (error) {
         if (error?.name === "AbortError") {
           return;

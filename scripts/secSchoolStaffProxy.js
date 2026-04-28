@@ -6,7 +6,18 @@ const SEARCH_PAGE_URL = `${SEC_BASE_URL}/asp/pesquisaEscola/pesquisaescola.asp`;
 const SEARCH_RESULTS_URL = `${SEC_BASE_URL}/asp/pesquisaEscola/resultadoPesquisa.asp?OrigemTela=`;
 const SCHOOL_DETAIL_URL = `${SEC_BASE_URL}/asp/principal/consulta_escola.asp`;
 const STAFF_NOMINAL_URL = `${SEC_BASE_URL}/asp/servidores/listar_servidores_nominal.asp`;
-const SEC_NETWORK_TIMEOUT_MS = 25000;
+const SEC_NETWORK_TIMEOUT_MS = 35000;
+const SEC_STAFF_CACHE_TTL_MS = 5 * 60 * 1000;
+const SEC_STAFF_CACHE_MAX_ITEMS = 250;
+
+const STAFF_VALIDATION_CACHE =
+  globalThis.__SEC_STAFF_VALIDATION_CACHE__ instanceof Map
+    ? globalThis.__SEC_STAFF_VALIDATION_CACHE__
+    : new Map();
+
+if (!(globalThis.__SEC_STAFF_VALIDATION_CACHE__ instanceof Map)) {
+  globalThis.__SEC_STAFF_VALIDATION_CACHE__ = STAFF_VALIDATION_CACHE;
+}
 
 const DEFAULT_HEADERS = {
   "User-Agent":
@@ -734,20 +745,84 @@ function buildEnrichedSelectedSchool(selectedSchool, criteria, detailData = {}) 
   };
 }
 
+function buildStaffCacheKey(selectedSchool) {
+  const codigoMec = String(selectedSchool?.codigoMec || "").trim();
+  const codigoSec = String(selectedSchool?.codigoSec || "").trim();
+  const anexo = String(selectedSchool?.anexo || "00").trim() || "00";
+  return `${codigoMec}|${codigoSec}|${anexo}`;
+}
+
+function getStaffCacheEntry(selectedSchool) {
+  const key = buildStaffCacheKey(selectedSchool);
+  if (!key) return null;
+
+  const cached = STAFF_VALIDATION_CACHE.get(key);
+  if (!cached) return null;
+
+  if (cached.expiresAt <= Date.now()) {
+    STAFF_VALIDATION_CACHE.delete(key);
+    return null;
+  }
+
+  return cached;
+}
+
+function setStaffCacheEntry(selectedSchool, payload) {
+  const key = buildStaffCacheKey(selectedSchool);
+  if (!key) return;
+
+  STAFF_VALIDATION_CACHE.set(key, {
+    expiresAt: Date.now() + SEC_STAFF_CACHE_TTL_MS,
+    payload,
+  });
+
+  if (STAFF_VALIDATION_CACHE.size <= SEC_STAFF_CACHE_MAX_ITEMS) {
+    return;
+  }
+
+  const now = Date.now();
+  for (const [entryKey, entryValue] of STAFF_VALIDATION_CACHE.entries()) {
+    if (!entryValue || entryValue.expiresAt <= now) {
+      STAFF_VALIDATION_CACHE.delete(entryKey);
+    }
+    if (STAFF_VALIDATION_CACHE.size <= SEC_STAFF_CACHE_MAX_ITEMS) {
+      break;
+    }
+  }
+
+  if (STAFF_VALIDATION_CACHE.size <= SEC_STAFF_CACHE_MAX_ITEMS) {
+    return;
+  }
+
+  const oldestKey = STAFF_VALIDATION_CACHE.keys().next().value;
+  if (oldestKey) {
+    STAFF_VALIDATION_CACHE.delete(oldestKey);
+  }
+}
+
 async function loadStaffForValidation(selectedSchool) {
+  const cached = getStaffCacheEntry(selectedSchool);
+  if (cached?.payload) {
+    return cached.payload;
+  }
+
   try {
     const staffData = await loadSchoolStaffNominal(selectedSchool, {});
-    return {
+    const payload = {
       staffData,
       detailData: null,
     };
+    setStaffCacheEntry(selectedSchool, payload);
+    return payload;
   } catch {
     const detailData = await loadSchoolDetail(selectedSchool);
     const staffData = await loadSchoolStaffNominal(selectedSchool, detailData);
-    return {
+    const payload = {
       staffData,
       detailData,
     };
+    setStaffCacheEntry(selectedSchool, payload);
+    return payload;
   }
 }
 
