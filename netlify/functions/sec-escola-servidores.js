@@ -4,7 +4,10 @@ import {
 } from "../../scripts/secSchoolStaffProxy.js";
 import { getAdminDb } from "./firebaseAdminShared.js";
 
-const SEC_MATRICULA_GUARD_TIMEOUT_MS = 8500;
+const SEC_MATRICULA_GUARD_TIMEOUT_MS = (() => {
+  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_GUARD_TIMEOUT_MS || "28000"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 28000;
+})();
 const SEC_STAFF_PERSISTENT_CACHE_COLLECTION = "sec_escola_staff_cache";
 const SEC_STAFF_PERSISTENT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SEC_BACKGROUND_WARMUP_TRIGGER_TIMEOUT_MS = 1200;
@@ -329,7 +332,6 @@ async function runMatriculaValidationWithGuard(payload) {
   try {
     return await validateSecTeacherByMatricula(payload, {
       signal: controller.signal,
-      includeInternalStaffSnapshot: true,
     });
   } finally {
     clearTimeout(timeoutId);
@@ -359,35 +361,11 @@ export async function handler(event) {
 
   const payload = getMergedPayload(event);
   const shouldValidateMatricula = hasMatricula(payload);
-  let cachedValidationResult = null;
-
-  if (shouldValidateMatricula) {
-    try {
-      const cacheEntry = await readPersistentStaffCache(payload);
-      if (cacheEntry) {
-        cachedValidationResult = buildCachedValidationResult(payload, cacheEntry);
-
-        if (cachedValidationResult.valid || cachedValidationResult.cacheFresh) {
-          return json(200, cachedValidationResult);
-        }
-      }
-    } catch {
-      // Falhas de cache nao devem bloquear a validacao online.
-    }
-  }
 
   try {
     const result = shouldValidateMatricula
       ? await runMatriculaValidationWithGuard(payload)
       : await fetchSecSchoolStaffFlow(payload);
-
-    if (shouldValidateMatricula) {
-      try {
-        await writePersistentStaffCache(payload, result);
-      } catch {
-        // Persistencia de cache nao deve quebrar a resposta principal.
-      }
-    }
 
     return json(200, sanitizeValidationResultForClient(result));
   } catch (error) {
@@ -403,37 +381,14 @@ export async function handler(event) {
     }
 
     if (shouldValidateMatricula) {
-      if (cachedValidationResult?.valid) {
-        return json(200, {
-          ...cachedValidationResult,
-          cacheFallback: true,
-        });
-      }
-
-      const warmupTriggered = await triggerBackgroundWarmup(payload, event);
-
-      if (cachedValidationResult && !cachedValidationResult.cacheFresh) {
-        return json(200, {
-          ok: false,
-          valid: false,
-          temporarilyUnavailable: true,
-          reason: "A SEC esta temporariamente indisponivel e o cache da unidade esta desatualizado.",
-          errorCode: "SEC_UPSTREAM_UNAVAILABLE_STALE_CACHE",
-          cacheAgeMs: cachedValidationResult.cacheAgeMs,
-          fromPersistentCache: true,
-          cacheWarmupRequested: warmupTriggered,
-          upstreamError: message,
-        });
-      }
-
       return json(200, {
         ok: false,
         valid: false,
         temporarilyUnavailable: true,
-        reason: "A SEC esta temporariamente indisponivel. Tente novamente em instantes.",
-        errorCode: "SEC_UPSTREAM_UNAVAILABLE",
-        cacheWarmupRequested: warmupTriggered,
+        reason: "A SEC esta temporariamente indisponivel para consulta em tempo real. Tente novamente em instantes.",
+        errorCode: "SEC_UPSTREAM_UNAVAILABLE_REALTIME",
         upstreamError: message,
+        realtime: true,
       });
     }
 

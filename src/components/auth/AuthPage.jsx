@@ -350,9 +350,7 @@ export default function AuthPage({
   const MIN_SCHOOL_SEARCH_CHARS = 2;
   const MATRICULA_REALTIME_MIN_DIGITS = 8;
   const SEC_REALTIME_DEBOUNCE_MS = 650;
-  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 35000;
-  const SEC_REALTIME_CACHE_TTL_MS = 5 * 60 * 1000;
-  const SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS = 60 * 1000;
+  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 55000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -372,8 +370,6 @@ export default function AuthPage({
   const lottieBgRef = useRef(null);
   const cycleLottieRefs = useRef([]);
   const secRealtimeRequestRef = useRef(0);
-  const secRealtimeResultCacheRef = useRef(new Map());
-  const secRealtimeUnavailableUntilRef = useRef(0);
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -704,38 +700,6 @@ export default function AuthPage({
       return undefined;
     }
 
-    if (secRealtimeUnavailableUntilRef.current > Date.now()) {
-      setSecRealtimeValidation({
-        status: "error",
-        message: "A SEC esta temporariamente indisponivel. Aguarde alguns instantes para tentar novamente.",
-        payload: null,
-      });
-      return undefined;
-    }
-
-    const cacheKey = [
-      String(registerForm.rede_administrativa || ""),
-      String(selectedSchoolUnit?.escola_id || ""),
-      String(selectedSchoolUnit?.cod_inep || selectedSchoolUnit?.codigo_mec || selectedSchoolUnit?.inep || ""),
-      String(selectedSchoolUnit?.cod_sec || selectedSchoolUnit?.codigo_sec || selectedSchoolUnit?.codigoSec || ""),
-      matriculaDigits,
-    ].join("|");
-
-    const cachedResult = secRealtimeResultCacheRef.current.get(cacheKey);
-    if (cachedResult && cachedResult.expiresAt > Date.now()) {
-      setSecRealtimeValidation(cachedResult.value);
-      return undefined;
-    }
-
-    if (secRealtimeResultCacheRef.current.size > 120) {
-      const now = Date.now();
-      for (const [key, entry] of secRealtimeResultCacheRef.current.entries()) {
-        if (!entry || entry.expiresAt <= now) {
-          secRealtimeResultCacheRef.current.delete(key);
-        }
-      }
-    }
-
     const requestId = secRealtimeRequestRef.current + 1;
     secRealtimeRequestRef.current = requestId;
     const realtimeAbortController = new AbortController();
@@ -755,88 +719,34 @@ export default function AuthPage({
         }, {
           signal: realtimeAbortController.signal,
           timeoutMs: SEC_REALTIME_REQUEST_TIMEOUT_MS,
-          allowEndpointFallback: false,
+          allowEndpointFallback: true,
         });
 
         if (secRealtimeRequestRef.current !== requestId) return;
 
         if (result?.temporarilyUnavailable) {
-          secRealtimeUnavailableUntilRef.current = Date.now() + SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS;
-          const warmupRequested = Boolean(result?.cacheWarmupRequested);
-
-          if (!warmupRequested) {
-            const redeNormalizada = String(registerForm.rede_administrativa || "").trim().toLowerCase();
-            const codigoSecExplicito = String(
-              selectedSchoolUnit?.cod_sec
-              || selectedSchoolUnit?.codigo_sec
-              || selectedSchoolUnit?.codigoSec
-              || "",
-            ).trim();
-
-            const codigoSecWarmup = codigoSecExplicito
-              || (redeNormalizada === "estadual" ? String(selectedSchoolUnit?.escola_id || "").trim() : "");
-
-            const codigoMecWarmup = String(
-              selectedSchoolUnit?.cod_inep
-              || selectedSchoolUnit?.codigo_mec
-              || selectedSchoolUnit?.inep
-              || (redeNormalizada === "municipal" ? selectedSchoolUnit?.escola_id : "")
-              || "",
-            ).trim();
-
-            if (codigoMecWarmup && codigoSecWarmup) {
-              fetch("/.netlify/functions/sec-escola-cache-warm-background", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json; charset=utf-8",
-                },
-                body: JSON.stringify({
-                  codigoMec: codigoMecWarmup,
-                  codigoSec: codigoSecWarmup,
-                  anexo: String(selectedSchoolUnit?.anexo || selectedSchoolUnit?.seq_anexo || "00").trim() || "00",
-                  nomeEscola: String(selectedSchoolUnit?.nome || selectedSchoolUnit?.escola_nome || "").trim(),
-                  municipio: String(selectedSchoolUnit?.municipio || selectedSchoolUnit?.escola_municipio || "").trim(),
-                }),
-              }).catch(() => {
-                // Warmup e melhor-esforco; o fluxo principal ja tratou indisponibilidade.
-              });
-            }
-          }
-
           setSecRealtimeValidation({
             status: "error",
-            message: (warmupRequested || !selectedSchoolUnit)
-              ? "A SEC esta lenta. Ja iniciamos o aquecimento do cache desta unidade. Aguarde alguns segundos e tente novamente."
-              : String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
+            message: String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
             payload: null,
           });
           return;
         }
 
         if (result?.valid) {
-          const nextValidation = {
+          setSecRealtimeValidation({
             status: "valid",
             message: String(result?.reason || "Servidor validado para a unidade selecionada."),
             payload: result,
-          };
-          secRealtimeResultCacheRef.current.set(cacheKey, {
-            expiresAt: Date.now() + SEC_REALTIME_CACHE_TTL_MS,
-            value: nextValidation,
           });
-          setSecRealtimeValidation(nextValidation);
           return;
         }
 
-        const nextValidation = {
+        setSecRealtimeValidation({
           status: "invalid",
           message: String(result?.reason || "A matricula nao foi validada como servidor na unidade selecionada."),
           payload: result || null,
-        };
-        secRealtimeResultCacheRef.current.set(cacheKey, {
-          expiresAt: Date.now() + SEC_REALTIME_CACHE_TTL_MS,
-          value: nextValidation,
         });
-        setSecRealtimeValidation(nextValidation);
       } catch (error) {
         if (error?.name === "AbortError") {
           return;
@@ -846,14 +756,9 @@ export default function AuthPage({
 
         const rawMessage = String(error?.message || "Falha ao validar matricula.").trim();
         const isTimeoutMessage = /timed out|timeout|tempo limite|signal timed out/i.test(rawMessage);
-        const isGatewayMessage = /bad gateway|gateway|http 502|http 504|sec_upstream_unavailable/i.test(rawMessage.toLowerCase());
         const normalizedMessage = isTimeoutMessage
           ? "A SEC esta demorando para responder. Aguarde e tente novamente."
           : rawMessage;
-
-        if (isTimeoutMessage || isGatewayMessage) {
-          secRealtimeUnavailableUntilRef.current = Date.now() + SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS;
-        }
 
         setSecRealtimeValidation({
           status: "error",

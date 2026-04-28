@@ -1578,7 +1578,7 @@ export default function useAppController() {
                     redeAdministrativa: registerForm.rede_administrativa
                 }, {
                     timeoutMs: 60000,
-                    allowEndpointFallback: false
+                    allowEndpointFallback: true
                 });
 
                 if (!result?.valid) {
