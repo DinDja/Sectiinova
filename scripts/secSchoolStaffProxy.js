@@ -52,6 +52,45 @@ const HTML_ENTITY_MAP = {
   copy: "\u00a9",
 };
 
+function createAbortError(message = "request aborted") {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+function createNetworkTimeoutSignal(timeoutMs = SEC_NETWORK_TIMEOUT_MS) {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  return undefined;
+}
+
+function combineSignals(externalSignal, timeoutSignal) {
+  if (!externalSignal) return timeoutSignal;
+  if (!timeoutSignal) return externalSignal;
+
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+    return AbortSignal.any([externalSignal, timeoutSignal]);
+  }
+
+  return externalSignal;
+}
+
+function isTimeoutNetworkError(error) {
+  const name = String(error?.name || "").trim().toLowerCase();
+  const message = String(error?.message || "").trim().toLowerCase();
+
+  if (name === "aborterror") return true;
+
+  return (
+    message.includes("timed out")
+    || message.includes("timeout")
+    || message.includes("request timeout")
+    || message.includes("signal timed out")
+    || message.includes("tempo limite")
+  );
+}
+
 function decodeHtmlEntities(value) {
   if (!value) return "";
 
@@ -214,12 +253,15 @@ function extractDetailLabelValue(html, labelRegexSource) {
 }
 
 async function fetchLatin1Html(url, init = {}) {
+  const timeoutSignal = createNetworkTimeoutSignal();
+  const mergedSignal = combineSignals(init.signal, timeoutSignal);
   const requestInit = {
     ...init,
     headers: {
       ...DEFAULT_HEADERS,
       ...(init.headers || {}),
     },
+    signal: mergedSignal,
   };
 
   try {
@@ -233,6 +275,10 @@ async function fetchLatin1Html(url, init = {}) {
       body,
     };
   } catch (fetchError) {
+    if (isTimeoutNetworkError(fetchError)) {
+      throw new Error(`Timeout ao acessar SEC (${url}).`);
+    }
+
     try {
       return await fetchLatin1HtmlWithNodeRequest(url, requestInit);
     } catch (nodeRequestError) {
@@ -268,6 +314,7 @@ async function fetchLatin1HtmlWithNodeRequest(url, init = {}) {
   const requestUrl = new URL(url);
   const transport = requestUrl.protocol === "https:" ? https : http;
   const method = String(init.method || "GET").toUpperCase();
+  const externalSignal = init.signal;
   const headers = {
     ...DEFAULT_HEADERS,
     ...(init.headers || {}),
@@ -281,7 +328,36 @@ async function fetchLatin1HtmlWithNodeRequest(url, init = {}) {
     headers["Content-Length"] = String(bodyBuffer.byteLength);
   }
 
+  if (externalSignal?.aborted) {
+    throw createAbortError();
+  }
+
   return await new Promise((resolve, reject) => {
+    let settled = false;
+    let abortHandler = null;
+
+    const finalizeResolve = (payload) => {
+      if (settled) return;
+      settled = true;
+
+      if (externalSignal && abortHandler) {
+        externalSignal.removeEventListener("abort", abortHandler);
+      }
+
+      resolve(payload);
+    };
+
+    const finalizeReject = (error) => {
+      if (settled) return;
+      settled = true;
+
+      if (externalSignal && abortHandler) {
+        externalSignal.removeEventListener("abort", abortHandler);
+      }
+
+      reject(error);
+    };
+
     const request = transport.request(
       requestUrl,
       {
@@ -299,7 +375,7 @@ async function fetchLatin1HtmlWithNodeRequest(url, init = {}) {
         response.on("end", () => {
           const buffer = Buffer.concat(chunks);
           const status = Number(response.statusCode || 0);
-          resolve({
+          finalizeResolve({
             status,
             ok: status >= 200 && status < 300,
             body: buffer.toString("latin1"),
@@ -308,12 +384,19 @@ async function fetchLatin1HtmlWithNodeRequest(url, init = {}) {
       },
     );
 
+    if (externalSignal && typeof externalSignal.addEventListener === "function") {
+      abortHandler = () => {
+        request.destroy(createAbortError());
+      };
+      externalSignal.addEventListener("abort", abortHandler, { once: true });
+    }
+
     request.on("timeout", () => {
       request.destroy(new Error("request timeout"));
     });
 
     request.on("error", (error) => {
-      reject(error);
+      finalizeReject(error);
     });
 
     if (bodyBuffer) {
@@ -620,17 +703,59 @@ function buildSchoolFromCodes(criteria) {
   };
 }
 
+async function resolveSchoolsForCriteria(criteria) {
+  if (criteria.codigoMec && criteria.codigoSec) {
+    return [buildSchoolFromCodes(criteria)];
+  }
+
+  if (criteria.nomeEscola) {
+    return runSchoolSearch(criteria);
+  }
+
+  return [];
+}
+
+function buildEnrichedSelectedSchool(selectedSchool, criteria, detailData = {}) {
+  return {
+    ...selectedSchool,
+    codigoMec: selectedSchool.codigoMec || criteria.codigoMec,
+    codigoSec: selectedSchool.codigoSec || criteria.codigoSec,
+    anexo: selectedSchool.anexo || criteria.anexo || detailData.hdCodAnexo || "00",
+    codigoMecAnexo:
+      selectedSchool.codigoMecAnexo
+      || `${selectedSchool.codigoMec || criteria.codigoMec || ""}/${selectedSchool.anexo || criteria.anexo || detailData.hdCodAnexo || "00"}`,
+    nome: selectedSchool.nome || detailData.unidade || criteria.nomeEscola || "",
+    depAdm: selectedSchool.depAdm || detailData.tipoEscola || "",
+    situacaoFuncional: selectedSchool.situacaoFuncional || detailData.sitAdm || "",
+    direc: selectedSchool.direc || detailData.direc || "",
+    municipio: selectedSchool.municipio || detailData.municipio || criteria.municipio || "",
+    projeto: selectedSchool.projeto || detailData.projeto || "",
+    modalidade: selectedSchool.modalidade || detailData.modalidade || "",
+  };
+}
+
+async function loadStaffForValidation(selectedSchool) {
+  try {
+    const staffData = await loadSchoolStaffNominal(selectedSchool, {});
+    return {
+      staffData,
+      detailData: null,
+    };
+  } catch {
+    const detailData = await loadSchoolDetail(selectedSchool);
+    const staffData = await loadSchoolStaffNominal(selectedSchool, detailData);
+    return {
+      staffData,
+      detailData,
+    };
+  }
+}
+
 export async function fetchSecSchoolStaffFlow(input = {}) {
   const criteria = buildSchoolSearchCriteria(input);
   validateInput(criteria);
 
-  let schools = [];
-
-  if (criteria.codigoMec && criteria.codigoSec) {
-    schools = [buildSchoolFromCodes(criteria)];
-  } else if (criteria.nomeEscola) {
-    schools = await runSchoolSearch(criteria);
-  }
+  const schools = await resolveSchoolsForCriteria(criteria);
 
   if (!schools.length) {
     return {
@@ -659,22 +784,7 @@ export async function fetchSecSchoolStaffFlow(input = {}) {
 
   const detailData = await loadSchoolDetail(selectedSchool);
   const staffData = await loadSchoolStaffNominal(selectedSchool, detailData);
-  const enrichedSelectedSchool = {
-    ...selectedSchool,
-    codigoMec: selectedSchool.codigoMec || criteria.codigoMec,
-    codigoSec: selectedSchool.codigoSec || criteria.codigoSec,
-    anexo: selectedSchool.anexo || criteria.anexo || detailData.hdCodAnexo || "00",
-    codigoMecAnexo:
-      selectedSchool.codigoMecAnexo
-      || `${selectedSchool.codigoMec || criteria.codigoMec || ""}/${selectedSchool.anexo || criteria.anexo || detailData.hdCodAnexo || "00"}`,
-    nome: selectedSchool.nome || detailData.unidade || criteria.nomeEscola || "",
-    depAdm: selectedSchool.depAdm || detailData.tipoEscola || "",
-    situacaoFuncional: selectedSchool.situacaoFuncional || detailData.sitAdm || "",
-    direc: selectedSchool.direc || detailData.direc || "",
-    municipio: selectedSchool.municipio || detailData.municipio || criteria.municipio || "",
-    projeto: selectedSchool.projeto || detailData.projeto || "",
-    modalidade: selectedSchool.modalidade || detailData.modalidade || "",
-  };
+  const enrichedSelectedSchool = buildEnrichedSelectedSchool(selectedSchool, criteria, detailData);
 
   return {
     ok: true,
@@ -711,17 +821,61 @@ export async function validateSecTeacherByMatricula(input = {}) {
     throw new Error("Informe a matricula para validar na SEC.");
   }
 
-  const flowResult = await fetchSecSchoolStaffFlow(input);
-  const criteria = flowResult?.query || buildSchoolSearchCriteria(input);
-  const selectedSchool = flowResult?.selectedSchool || null;
-  const servidores = Array.isArray(flowResult?.servidores) ? flowResult.servidores : [];
+  const criteria = buildSchoolSearchCriteria(input);
+  validateInput(criteria);
+
+  const schools = await resolveSchoolsForCriteria(criteria);
+
+  if (!schools.length) {
+    return {
+      ok: true,
+      message: "Nenhuma escola encontrada para os filtros informados.",
+      query: criteria,
+      selectedSchool: null,
+      candidateSchools: [],
+      totalServidores: 0,
+      valid: false,
+      reason: "Unidade escolar nao encontrada na SEC.",
+      matricula: targetMatricula,
+      matchedByMatricula: false,
+      matchingRows: 0,
+      sameSchool: false,
+      isProfessor: false,
+      servidor: null,
+    };
+  }
+
+  const selectedSchool = chooseBestSchool(schools, criteria);
+
+  if (!selectedSchool) {
+    return {
+      ok: true,
+      message: "Nao foi possivel selecionar uma escola com os filtros enviados.",
+      query: criteria,
+      selectedSchool: null,
+      candidateSchools: schools.slice(0, Math.max(1, criteria.maxEscolas)),
+      totalServidores: 0,
+      valid: false,
+      reason: "Unidade escolar nao encontrada na SEC.",
+      matricula: targetMatricula,
+      matchedByMatricula: false,
+      matchingRows: 0,
+      sameSchool: false,
+      isProfessor: false,
+      servidor: null,
+    };
+  }
+
+  const { staffData, detailData } = await loadStaffForValidation(selectedSchool);
+  const servidores = Array.isArray(staffData?.servidores) ? staffData.servidores : [];
+  const enrichedSelectedSchool = buildEnrichedSelectedSchool(selectedSchool, criteria, detailData || {});
 
   const expectedCodigoSec = String(criteria.codigoSec || "").trim();
   const expectedCodigoMec = String(criteria.codigoMec || "").trim();
 
-  const sameSchool = Boolean(selectedSchool)
-    && (!expectedCodigoSec || String(selectedSchool.codigoSec || "").trim() === expectedCodigoSec)
-    && (!expectedCodigoMec || String(selectedSchool.codigoMec || "").trim() === expectedCodigoMec);
+  const sameSchool = Boolean(enrichedSelectedSchool)
+    && (!expectedCodigoSec || String(enrichedSelectedSchool.codigoSec || "").trim() === expectedCodigoSec)
+    && (!expectedCodigoMec || String(enrichedSelectedSchool.codigoMec || "").trim() === expectedCodigoMec);
 
   const matchingRows = servidores.filter((servidor) => {
     const matriculaRow = normalizeDigits(servidor?.matricula || servidor?.cadastro || "");
@@ -735,11 +889,11 @@ export async function validateSecTeacherByMatricula(input = {}) {
 
   const isProfessor = chosenServidor ? isTeacherRoleFromStaffRow(chosenServidor) : false;
   const hasMatch = Boolean(chosenServidor);
-  const valid = Boolean(selectedSchool && sameSchool && hasMatch);
+  const valid = Boolean(enrichedSelectedSchool && sameSchool && hasMatch);
 
   let reason = "";
-  if (!selectedSchool) {
-    reason = String(flowResult?.message || "Unidade escolar nao encontrada na SEC.");
+  if (!enrichedSelectedSchool) {
+    reason = "Unidade escolar nao encontrada na SEC.";
   } else if (!sameSchool) {
     reason = "A matricula foi encontrada, mas em unidade diferente da unidade selecionada.";
   } else if (!hasMatch) {
@@ -749,7 +903,11 @@ export async function validateSecTeacherByMatricula(input = {}) {
   }
 
   return {
-    ...flowResult,
+    ok: true,
+    query: criteria,
+    selectedSchool: enrichedSelectedSchool,
+    candidateSchools: schools.slice(0, Math.max(1, criteria.maxEscolas)),
+    totalServidores: servidores.length,
     valid,
     reason,
     matricula: targetMatricula,

@@ -4,8 +4,28 @@ const SEC_ENDPOINT_CANDIDATES = [
   "/.netlify/functions/sec-escola-servidores",
 ];
 
+function isLocalHostname(hostname = "") {
+  const normalized = String(hostname || "").trim().toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function resolveEndpointCandidates() {
+  const hasWindow = typeof window !== "undefined";
+  const hostname = hasWindow ? String(window.location?.hostname || "") : "";
+  const shouldPreferNetlifyDirect = hasWindow && !isLocalHostname(hostname);
+
+  if (!shouldPreferNetlifyDirect) {
+    return SEC_ENDPOINT_CANDIDATES;
+  }
+
+  return [
+    "/.netlify/functions/sec-escola-servidores",
+    "/api/sec-escola/servidores",
+  ];
+}
+
 function shouldTryFallback(responseStatus) {
-  return responseStatus === 404 || responseStatus === 405;
+  return [404, 405, 500, 502, 503, 504].includes(responseStatus);
 }
 
 function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {
@@ -44,6 +64,7 @@ function createRequestSignal(timeoutMs, externalSignal) {
 
 async function requestSecSchool(payload, options = {}) {
   const fallbackErrors = [];
+  const endpointCandidates = resolveEndpointCandidates();
   const timeoutMsInput = Number(options?.timeoutMs);
   const timeoutMs = Number.isFinite(timeoutMsInput) && timeoutMsInput > 0
     ? timeoutMsInput
@@ -51,9 +72,9 @@ async function requestSecSchool(payload, options = {}) {
   const externalSignal = options?.signal;
   const allowEndpointFallback = options?.allowEndpointFallback !== false;
 
-  for (let index = 0; index < SEC_ENDPOINT_CANDIDATES.length; index += 1) {
-    const endpoint = SEC_ENDPOINT_CANDIDATES[index];
-    const isLastEndpoint = index === SEC_ENDPOINT_CANDIDATES.length - 1;
+  for (let index = 0; index < endpointCandidates.length; index += 1) {
+    const endpoint = endpointCandidates[index];
+    const isLastEndpoint = index === endpointCandidates.length - 1;
 
     try {
       const response = await fetch(endpoint, {
