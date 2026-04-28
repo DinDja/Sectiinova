@@ -1,8 +1,12 @@
+import http from "node:http";
+import https from "node:https";
+
 const SEC_BASE_URL = "http://www.sec.ba.gov.br/siig/sistemaescolar";
 const SEARCH_PAGE_URL = `${SEC_BASE_URL}/asp/pesquisaEscola/pesquisaescola.asp`;
 const SEARCH_RESULTS_URL = `${SEC_BASE_URL}/asp/pesquisaEscola/resultadoPesquisa.asp?OrigemTela=`;
 const SCHOOL_DETAIL_URL = `${SEC_BASE_URL}/asp/principal/consulta_escola.asp`;
 const STAFF_NOMINAL_URL = `${SEC_BASE_URL}/asp/servidores/listar_servidores_nominal.asp`;
+const SEC_NETWORK_TIMEOUT_MS = 25000;
 
 const DEFAULT_HEADERS = {
   "User-Agent":
@@ -210,22 +214,114 @@ function extractDetailLabelValue(html, labelRegexSource) {
 }
 
 async function fetchLatin1Html(url, init = {}) {
-  const response = await fetch(url, {
+  const requestInit = {
     ...init,
     headers: {
       ...DEFAULT_HEADERS,
       ...(init.headers || {}),
     },
-  });
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const body = buffer.toString("latin1");
-
-  return {
-    status: response.status,
-    ok: response.ok,
-    body,
   };
+
+  try {
+    const response = await fetch(url, requestInit);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const body = buffer.toString("latin1");
+
+    return {
+      status: response.status,
+      ok: response.ok,
+      body,
+    };
+  } catch (fetchError) {
+    try {
+      return await fetchLatin1HtmlWithNodeRequest(url, requestInit);
+    } catch (nodeRequestError) {
+      const fetchMessage = describeNetworkError(fetchError);
+      const requestMessage = describeNetworkError(nodeRequestError);
+      throw new Error(
+        `Falha de rede ao acessar SEC (${url}). fetch: ${fetchMessage}. request: ${requestMessage}.`,
+      );
+    }
+  }
+}
+
+function describeNetworkError(error) {
+  const message = String(error?.message || "erro de rede").trim() || "erro de rede";
+  const code = String(error?.code || error?.cause?.code || "").trim();
+  const causeMessage = String(error?.cause?.message || "").trim();
+
+  const details = [];
+  details.push(message);
+
+  if (code && !details.some((item) => item.includes(code))) {
+    details.push(code);
+  }
+
+  if (causeMessage && !details.some((item) => item.includes(causeMessage))) {
+    details.push(causeMessage);
+  }
+
+  return details.join(" | ");
+}
+
+async function fetchLatin1HtmlWithNodeRequest(url, init = {}) {
+  const requestUrl = new URL(url);
+  const transport = requestUrl.protocol === "https:" ? https : http;
+  const method = String(init.method || "GET").toUpperCase();
+  const headers = {
+    ...DEFAULT_HEADERS,
+    ...(init.headers || {}),
+  };
+
+  const hasBody = method !== "GET" && method !== "HEAD";
+  const bodyText = hasBody && init.body != null ? String(init.body) : "";
+  const bodyBuffer = bodyText ? Buffer.from(bodyText, "utf8") : null;
+
+  if (bodyBuffer && !headers["Content-Length"] && !headers["content-length"]) {
+    headers["Content-Length"] = String(bodyBuffer.byteLength);
+  }
+
+  return await new Promise((resolve, reject) => {
+    const request = transport.request(
+      requestUrl,
+      {
+        method,
+        headers,
+        timeout: SEC_NETWORK_TIMEOUT_MS,
+      },
+      (response) => {
+        const chunks = [];
+
+        response.on("data", (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
+
+        response.on("end", () => {
+          const buffer = Buffer.concat(chunks);
+          const status = Number(response.statusCode || 0);
+          resolve({
+            status,
+            ok: status >= 200 && status < 300,
+            body: buffer.toString("latin1"),
+          });
+        });
+      },
+    );
+
+    request.on("timeout", () => {
+      request.destroy(new Error("request timeout"));
+    });
+
+    request.on("error", (error) => {
+      reject(error);
+    });
+
+    if (bodyBuffer) {
+      request.write(bodyBuffer);
+    }
+
+    request.end();
+  });
 }
 
 function assertNoAspError(html, stageLabel) {
