@@ -350,7 +350,7 @@ export default function AuthPage({
   const MIN_SCHOOL_SEARCH_CHARS = 2;
   const MATRICULA_REALTIME_MIN_DIGITS = 8;
   const SEC_REALTIME_DEBOUNCE_MS = 650;
-  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 55000;
+  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 40000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);

@@ -1,7 +1,7 @@
 const SEC_FETCH_TIMEOUT_MS = 45000;
 const SEC_ENDPOINT_CANDIDATES = [
-  "/api/sec-escola/servidores",
   "/.netlify/functions/sec-escola-servidores",
+  "/api/sec-escola/servidores",
 ];
 
 function resolveEndpointCandidates() {
@@ -9,7 +9,7 @@ function resolveEndpointCandidates() {
 }
 
 function shouldTryFallback(responseStatus) {
-  return [404, 405, 500, 502, 503, 504].includes(Number(responseStatus));
+  return [404, 405, 408, 500, 502, 503, 504].includes(Number(responseStatus));
 }
 
 function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {
@@ -55,9 +55,6 @@ async function requestSecSchool(payload, options = {}) {
     : SEC_FETCH_TIMEOUT_MS;
   const externalSignal = options?.signal;
   const allowEndpointFallback = options?.allowEndpointFallback !== false;
-  const perEndpointTimeoutMs = allowEndpointFallback && endpointCandidates.length > 1
-    ? Math.max(8000, Math.floor(timeoutMs / endpointCandidates.length))
-    : timeoutMs;
 
   for (let index = 0; index < endpointCandidates.length; index += 1) {
     const endpoint = endpointCandidates[index];
@@ -70,7 +67,7 @@ async function requestSecSchool(payload, options = {}) {
           "Content-Type": "application/json; charset=utf-8",
         },
         body: JSON.stringify(payload),
-        signal: createRequestSignal(perEndpointTimeoutMs, externalSignal),
+        signal: createRequestSignal(timeoutMs, externalSignal),
       });
 
       const rawResponse = await response.text();
@@ -109,13 +106,6 @@ async function requestSecSchool(payload, options = {}) {
       const isTimeoutError = isTimeoutLikeError(error);
 
       if (isTimeoutError) {
-        if (!isLastEndpoint && allowEndpointFallback) {
-          fallbackErrors.push(
-            `${endpoint} expirou por tempo limite`,
-          );
-          continue;
-        }
-
         throw new Error(
           "A consulta da SEC excedeu o tempo limite. Tente novamente em instantes.",
         );
