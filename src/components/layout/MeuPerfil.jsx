@@ -4,10 +4,22 @@ import {
     User, School, Lock, Edit2, Copy, Check, 
     LogOut, Mail, Shield, Camera, X, Phone, 
     MapPin, Calendar, Award, Star, TrendingUp, Briefcase, 
-    Globe, Users, Heart, BookOpen, Link as LinkIcon, LoaderCircle, RefreshCw
+    Globe, Users, Heart, BookOpen, Palette, Link as LinkIcon, LoaderCircle, RefreshCw
 } from 'lucide-react';
 import { fetchLattesPreviewByHtml, fetchLattesPreviewByLink } from '../../services/lattesService';
 import MembershipCardGenerator from '../club/MembershipCardGenerator';
+import {
+    UI_FONT_OPTIONS,
+    UI_STYLE_OPTIONS,
+    UI_THEME_OPTIONS,
+    getUiFontOption,
+    getUiStyleOption,
+    getUiThemeOption,
+    normalizeUiFontId,
+    normalizeUiStyleId,
+    normalizeUiThemeId,
+    resolveUserUiPreferences
+} from '../../constants/uiPreferences';
 
 const dedupeMembersByIdentity = (members = []) => {
     const byKey = new Map();
@@ -210,6 +222,7 @@ export default function MeuPerfilPro({
     const resetForm = () => {
         if (loggedUser) {
             const initialLattesData = loggedUser.lattes_data || loggedUser.lattesData || null;
+            const initialUiPreferences = resolveUserUiPreferences(loggedUser);
             setFormData({
                 nome: loggedUser.nome || '',
                 email: loggedUser.email || '',
@@ -218,7 +231,8 @@ export default function MeuPerfilPro({
                 bio: loggedUser.bio || '',
                 localizacao: loggedUser.localizacao || '',
                 fotoBase64: loggedUser.fotoBase64 || loggedUser.fotoUrl || '',
-                lattesData: initialLattesData
+                lattesData: initialLattesData,
+                uiPreferences: initialUiPreferences
             });
             setAvatarSrc(loggedUser.fotoBase64 || loggedUser.fotoUrl || '');
             setLattesPreview(initialLattesData);
@@ -419,6 +433,30 @@ export default function MeuPerfilPro({
             setLattesImportInfo('');
             setLattesFetchError('');
         }
+    };
+
+    const handleUiPreferenceChange = (field, value) => {
+        setFormData((prev) => {
+            if (!prev) return prev;
+
+            const currentPreferences = resolveUserUiPreferences({
+                ui_preferences: prev.uiPreferences
+            });
+
+            const nextPreferences = {
+                ...currentPreferences,
+                [field]: field === 'font_id'
+                    ? normalizeUiFontId(value)
+                    : field === 'theme_id'
+                        ? normalizeUiThemeId(value)
+                        : normalizeUiStyleId(value)
+            };
+
+            return {
+                ...prev,
+                uiPreferences: nextPreferences
+            };
+        });
     };
 
     const applyLattesExtractionResult = (result, failureMessage, successMessage) => {
@@ -721,7 +759,12 @@ export default function MeuPerfilPro({
         if (!formData) return;
         setSchoolChangeError('');
 
-        const payload = { ...formData };
+        const payload = {
+            ...formData,
+            uiPreferences: resolveUserUiPreferences({
+                ui_preferences: formData.uiPreferences
+            })
+        };
 
         if (schoolChangeEnabled) {
             const nextSchoolId = String(selectedSchoolChangeId || '').trim();
@@ -774,6 +817,12 @@ export default function MeuPerfilPro({
     };
 
     const projetosCount = loggedUser?.projetosCount || 0;
+    const selectedUiPreferences = resolveUserUiPreferences({
+        ui_preferences: formData?.uiPreferences
+    });
+    const selectedUiFontOption = getUiFontOption(selectedUiPreferences.font_id);
+    const selectedUiThemeOption = getUiThemeOption(selectedUiPreferences.theme_id);
+    const selectedUiStyleOption = getUiStyleOption(selectedUiPreferences.style_id);
 
     return (
         <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 ">
@@ -783,10 +832,10 @@ export default function MeuPerfilPro({
                 .neo-scrollbar::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 10px; border: 2px solid #fff; }
             `}</style>
             
-            <div className="w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-hidden animate-in zoom-in-[0.97] duration-200 my-auto">
+            <div className="w-full max-w-4xl max-h-[95vh] flex flex-col rounded-[2rem] bg-[#FAFAFA] border-4 border-slate-900 shadow-[16px_16px_0px_0px_#0f172a] overflow-x-hidden overflow-y-auto animate-in zoom-in-[0.97] duration-200 my-auto">
                 
                 {/* HEADER NEO-BRUTALISTA */}
-                <div className="relative z-0 h-36 bg-blue-400 border-b-4 border-slate-900  flex-shrink-0">
+                <div className="relative z-10 h-36 bg-blue-400 border-b-4 border-slate-900 flex-shrink-0">
                     <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-20"></div>
                     
                     <div className="absolute top-4 left-4 flex gap-3 z-10">
@@ -820,10 +869,10 @@ export default function MeuPerfilPro({
                 </div>
 
                 {/* CORPO DO MODAL */}
-                <div className="flex-1 overflow-y-scroll neo-scrollbar px-6 sm:px-10 pb-10 relative z-10">       
+                <div className="flex-1 neo-scrollbar px-6 sm:px-10 pb-10 relative z-20">       
                     
                     {/* INFO PRINCIPAL DO UTILIZADOR */}
-                    <div className="relative z-[60] flex flex-col items-center -mt-16 mb-8 isolate mt-10">
+                    <div className="relative z-[60] flex flex-col items-center -mt-20 mb-8 isolate">
                         <div className="relative group z-50">
                             <div className="relative z-20 w-32 h-32 rounded-3xl border-4 border-slate-900 bg-yellow-300 flex items-center justify-center overflow-hidden shadow-[6px_6px_0px_0px_#0f172a] transform -2">
                                 {avatarSrc ? (
@@ -975,6 +1024,45 @@ export default function MeuPerfilPro({
                                     </p>
                                 )}
                             </div>
+
+                            <div className="bg-white border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] rounded-2xl p-5">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Personalizacao ativa</p>
+                                        <p className="text-sm font-black text-slate-900 uppercase mt-2">
+                                            Fonte: {selectedUiFontOption.label}
+                                        </p>
+                                        <p className="text-sm font-black text-slate-900 uppercase mt-1">
+                                            Paleta: {selectedUiThemeOption.label}
+                                        </p>
+                                        <p className="text-sm font-black text-slate-900 uppercase mt-1">
+                                            UI: {selectedUiStyleOption.label}
+                                        </p>
+                                    </div>
+                                    <Palette className="w-7 h-7 stroke-[2.5] text-pink-500 shrink-0" />
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-2">
+                                    <span
+                                        className="w-7 h-7 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                                        style={{ backgroundColor: selectedUiThemeOption.preview.primary }}
+                                    />
+                                    <span
+                                        className="w-7 h-7 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                                        style={{ backgroundColor: selectedUiThemeOption.preview.secondary }}
+                                    />
+                                    <span
+                                        className="w-7 h-7 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                                        style={{ backgroundColor: selectedUiThemeOption.preview.soft }}
+                                    />
+                                </div>
+                                <p
+                                    className="mt-4 text-sm font-black text-slate-800 border-2 border-slate-900 rounded-xl px-3 py-2 bg-slate-50 inline-block"
+                                    style={{ fontFamily: selectedUiFontOption.stack }}
+                                >
+                                    {selectedUiFontOption.sample}
+                                </p>
+                            </div>
                         </div>
 
                     ) : (
@@ -1021,7 +1109,17 @@ export default function MeuPerfilPro({
                                     />
                                 </div>
                             </div>
-
+     <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
+                                <InputGroup 
+                                    label="Biografia" 
+                                    type="textarea"
+                                    value={formData?.bio || ''} 
+                                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                                    icon={BookOpen}
+                                    placeholder="Conte um pouco sobre você..."
+                                    rows={4}
+                                />
+                            </div>
                             <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
                                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-4 flex items-center gap-2">
                                     <School className="w-6 h-6 stroke-[3] text-blue-500" /> Unidade Escolar
@@ -1118,18 +1216,147 @@ export default function MeuPerfilPro({
                                 )}
                             </div>
 
-
                             <div className="bg-white border-4 border-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[8px_8px_0px_0px_#0f172a]">
-                                <InputGroup 
-                                    label="Biografia" 
-                                    type="textarea"
-                                    value={formData?.bio || ''} 
-                                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                                    icon={BookOpen}
-                                    placeholder="Conte um pouco sobre você..."
-                                    rows={4}
-                                />
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-4 flex items-center gap-2">
+                                    <Palette className="w-6 h-6 stroke-[3] text-pink-500" /> Personalizacao do Sistema
+                                </h3>
+                                <p className="text-xs font-bold text-slate-700 mb-6">
+                                    Escolha fonte, paleta de cores e estilo visual geral da interface. As configuracoes sao salvas no seu perfil.
+                                </p>
+
+                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                                            Fonte
+                                        </p>
+                                        <div className="space-y-3">
+                                            {UI_FONT_OPTIONS.map((fontOption) => {
+                                                const isSelected = selectedUiPreferences.font_id === fontOption.id;
+                                                return (
+                                                    <button
+                                                        key={fontOption.id}
+                                                        type="button"
+                                                        onClick={() => handleUiPreferenceChange('font_id', fontOption.id)}
+                                                        className={`w-full rounded-xl border-2 p-3 text-left transition-all ${
+                                                            isSelected
+                                                                ? 'border-slate-900 bg-yellow-200 shadow-[3px_3px_0px_0px_#0f172a]'
+                                                                : 'border-slate-300 bg-white hover:border-slate-900'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <span className="text-sm font-black text-slate-900 uppercase">
+                                                                {fontOption.label}
+                                                            </span>
+                                                            {isSelected && (
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border border-slate-900 px-2 py-0.5">
+                                                                    Ativa
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p
+                                                            className="mt-2 text-sm text-slate-800"
+                                                            style={{ fontFamily: fontOption.stack }}
+                                                        >
+                                                            {fontOption.sample}
+                                                        </p>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                                            Paleta de cores
+                                        </p>
+                                        <div className="space-y-3">
+                                            {UI_THEME_OPTIONS.map((themeOption) => {
+                                                const isSelected = selectedUiPreferences.theme_id === themeOption.id;
+                                                return (
+                                                    <button
+                                                        key={themeOption.id}
+                                                        type="button"
+                                                        onClick={() => handleUiPreferenceChange('theme_id', themeOption.id)}
+                                                        className={`w-full rounded-xl border-2 p-3 text-left transition-all ${
+                                                            isSelected
+                                                                ? 'border-slate-900 bg-yellow-200 shadow-[3px_3px_0px_0px_#0f172a]'
+                                                                : 'border-slate-300 bg-white hover:border-slate-900'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <span className="text-sm font-black text-slate-900 uppercase">
+                                                                {themeOption.label}
+                                                            </span>
+                                                            {isSelected && (
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border border-slate-900 px-2 py-0.5">
+                                                                    Ativa
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-2 text-xs font-bold text-slate-700">
+                                                            {themeOption.summary}
+                                                        </p>
+                                                        <div className="mt-3 flex items-center gap-2">
+                                                            <span
+                                                                className="w-6 h-6 rounded-lg border-2 border-slate-900"
+                                                                style={{ backgroundColor: themeOption.preview.primary }}
+                                                            />
+                                                            <span
+                                                                className="w-6 h-6 rounded-lg border-2 border-slate-900"
+                                                                style={{ backgroundColor: themeOption.preview.secondary }}
+                                                            />
+                                                            <span
+                                                                className="w-6 h-6 rounded-lg border-2 border-slate-900"
+                                                                style={{ backgroundColor: themeOption.preview.soft }}
+                                                            />
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                                            Estilo da interface
+                                        </p>
+                                        <div className="space-y-3">
+                                            {UI_STYLE_OPTIONS.map((styleOption) => {
+                                                const isSelected = selectedUiPreferences.style_id === styleOption.id;
+                                                return (
+                                                    <button
+                                                        key={styleOption.id}
+                                                        type="button"
+                                                        onClick={() => handleUiPreferenceChange('style_id', styleOption.id)}
+                                                        className={`w-full rounded-xl border-2 p-3 text-left transition-all ${
+                                                            isSelected
+                                                                ? 'border-slate-900 bg-yellow-200 shadow-[3px_3px_0px_0px_#0f172a]'
+                                                                : 'border-slate-300 bg-white hover:border-slate-900'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <span className="text-sm font-black text-slate-900 uppercase">
+                                                                {styleOption.label}
+                                                            </span>
+                                                            {isSelected && (
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 bg-white border border-slate-900 px-2 py-0.5">
+                                                                    Ativa
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-2 text-xs font-bold text-slate-700">
+                                                            {styleOption.summary}
+                                                        </p>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+
+
+                       
 
                             <div className="pt-6 border-t-4 border-slate-900 flex flex-col sm:flex-row justify-end gap-4">
                                 <button 

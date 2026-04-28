@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import {
+  getUiFontOption,
+  getUiStyleOption,
+  getUiThemeOption,
+  resolveUserUiPreferences,
+} from "../../constants/uiPreferences";
 
 export default function MainShell({
   currentView,
@@ -53,6 +59,22 @@ export default function MainShell({
       root.style.fontSize = "";
     };
   }, [effectiveFontSize]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const preferences = resolveUserUiPreferences(loggedUser);
+    const selectedFont = getUiFontOption(preferences.font_id);
+    const selectedTheme = getUiThemeOption(preferences.theme_id);
+    const selectedStyle = getUiStyleOption(preferences.style_id);
+
+    root.style.setProperty("--font-primary", selectedFont.stack);
+    Object.entries(selectedTheme.vars || {}).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
+    root.setAttribute("data-ui-theme", selectedTheme.id);
+    root.setAttribute("data-ui-font", selectedFont.id);
+    root.setAttribute("data-ui-style", selectedStyle.id);
+  }, [loggedUser]);
 
   useEffect(() => {
     setIsMobileSidebarOpen(false);

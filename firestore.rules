@@ -162,21 +162,36 @@ service cloud.firestore {
     function isSafeSelfProfileUpdate(userId) {
       return request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.perfil == resource.data.perfil
-        && request.resource.data.rede_administrativa == resource.data.rede_administrativa
-        && request.resource.data.escola_id == resource.data.escola_id
-        && request.resource.data.escolas_ids == resource.data.escolas_ids
-        && request.resource.data.clube_id == resource.data.clube_id
-        && request.resource.data.clubes_ids == resource.data.clubes_ids
-        && request.resource.data.school_change_count == resource.data.school_change_count
-        && request.resource.data.school_change_last_reason == resource.data.school_change_last_reason
-        && request.resource.data.school_change_last_at == resource.data.school_change_last_at;
+        && hasValidUiPreferences(request.resource.data)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'nome',
+          'telefone',
+          'lattes',
+          'bio',
+          'localizacao',
+          'fotoBase64',
+          'lattes_data',
+          'ui_preferences'
+        ]);
     }
 
     function schoolChangeCountFromData(data) {
       return data.school_change_count is int ? data.school_change_count : 0;
+    }
+
+    function hasValidUiPreferences(data) {
+      return !(data.ui_preferences is map)
+        || (
+          data.ui_preferences.keys().hasOnly(['font_id', 'theme_id', 'style_id'])
+          && data.ui_preferences.font_id is string
+          && data.ui_preferences.font_id.size() > 0
+          && data.ui_preferences.theme_id is string
+          && data.ui_preferences.theme_id.size() > 0
+          && (
+            !(data.ui_preferences.style_id is string)
+            || data.ui_preferences.style_id.size() > 0
+          )
+        );
     }
 
     function hasNoClubLinksInData(data) {
@@ -228,6 +243,7 @@ service cloud.firestore {
         && request.resource.data.school_change_last_reason.size() <= 240
         && request.resource.data.school_change_last_at is timestamp
         && request.resource.data.school_change_last_at == request.time
+        && hasValidUiPreferences(request.resource.data)
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -236,6 +252,7 @@ service cloud.firestore {
           'localizacao',
           'fotoBase64',
           'lattes_data',
+          'ui_preferences',
           'escola_id',
           'escola_nome',
           'escola_municipio',

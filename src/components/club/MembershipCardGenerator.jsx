@@ -645,6 +645,7 @@ export default function MembershipCardGenerator({
     const [templateSaveError, setTemplateSaveError] = useState('');
     const [previewImageUrl, setPreviewImageUrl] = useState('');
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+    const [isValidatorExpanded, setIsValidatorExpanded] = useState(false);
     const [verificationInput, setVerificationInput] = useState('');
     const [verificationResult, setVerificationResult] = useState(null);
     const [verificationError, setVerificationError] = useState('');
@@ -690,6 +691,7 @@ export default function MembershipCardGenerator({
         setVerificationError('');
         setVerificationResult(null);
         setScannerError('');
+        setIsValidatorExpanded(false);
     }, [selectedStudentKey, viewingClub?.id]);
 
     const selectedMember = visibleMembers.find((student) => student.cardKey === selectedStudentKey) || visibleMembers[0] || null;
@@ -1183,18 +1185,15 @@ export default function MembershipCardGenerator({
                                     <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-800">{memberRoleLabel}</p>
                                     <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-700">{membershipNumber}</p>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
-                            <button
+                                <div className="ml-[160px] inline-flex items-center gap-3">
+                                          <button
                                 type="button"
                                 onClick={handleDownload}
                                 disabled={isExporting}
                                 className="inline-flex items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
                             >
                                 <Download className="w-4 h-4 stroke-[3]" />
-                                {isExporting ? 'Gerando...' : 'Baixar PNG'}
+                                {isExporting ? 'Gerando...' : 'Baixar'}
                             </button>
 
                             <button
@@ -1206,92 +1205,114 @@ export default function MembershipCardGenerator({
                                 <Printer className="w-4 h-4 stroke-[3]" />
                                 Imprimir
                             </button>
+                                </div>
+                            </div>
                         </div>
 
+{/* 
                         <div className="rounded-[1.5rem] border-[3px] border-slate-900 bg-white px-5 py-4 shadow-sm">
-                            <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Validador de carteirinha
-                            </label>
-                            <input
-                                type="text"
-                                value={verificationInput}
-                                onChange={(event) => setVerificationInput(event.target.value)}
-                                placeholder="Cole ou escaneie o codigo de barras"
-                                className="w-full rounded-[1rem] border-[3px] border-slate-900 bg-slate-50 px-4 py-3 text-xs font-black tracking-wide text-slate-900 outline-none"
-                            />
+                            <button
+                                type="button"
+                                onClick={() => setIsValidatorExpanded((current) => !current)}
+                                className="flex w-full items-center justify-between gap-3 rounded-[1rem] border-[3px] border-slate-900 bg-slate-50 px-4 py-3 text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                            >
+                                <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-900">
+                                    <BadgeCheck className="h-4 w-4 stroke-[3] text-cyan-600" />
+                                    Validador de carteirinha
+                                </span>
+                                <span className="rounded-full border-[2px] border-slate-900 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-700">
+                                    {isValidatorExpanded ? 'Fechar' : 'Abrir'}
+                                </span>
+                            </button>
 
-                            <div className="mt-3 grid grid-cols-1 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleUseCurrentCardCode}
-                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900"
-                                >
-                                    Usar codigo desta carteirinha
-                                </button>
+                            <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                                Valide codigos de barras sem poluir a tela do seu perfil.
+                            </p>
 
-                                <button
-                                    type="button"
-                                    onClick={handleStartCameraScanner}
-                                    disabled={!isCameraSupported || isCameraScanning}
-                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
-                                >
-                                    {isCameraScanning ? 'Lendo camera...' : 'Ler codigo com camera'}
-                                </button>
+                            {isValidatorExpanded && (
+                                <div className="mt-4 border-t-[3px] border-slate-200 pt-4">
+                                    <input
+                                        type="text"
+                                        value={verificationInput}
+                                        onChange={(event) => setVerificationInput(event.target.value)}
+                                        placeholder="Cole ou escaneie o codigo de barras"
+                                        className="w-full rounded-[1rem] border-[3px] border-slate-900 bg-slate-50 px-4 py-3 text-xs font-black tracking-wide text-slate-900 outline-none"
+                                    />
 
-                                <button
-                                    type="button"
-                                    onClick={handleVerifyCard}
-                                    disabled={isVerifyingCard}
-                                    className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-lime-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
-                                >
-                                    {isVerifyingCard ? 'Validando...' : 'Validar codigo'}
-                                </button>
-                            </div>
+                                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleUseCurrentCardCode}
+                                            className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-cyan-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900"
+                                        >
+                                            Usar codigo atual
+                                        </button>
 
-                            {!!membershipBarcodeValue && (
-                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-700 break-all">
-                                    Codigo atual: {membershipBarcodeValue}
-                                </p>
-                            )}
+                                        <button
+                                            type="button"
+                                            onClick={handleStartCameraScanner}
+                                            disabled={!isCameraSupported || isCameraScanning}
+                                            className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
+                                        >
+                                            {isCameraScanning ? 'Lendo camera...' : 'Ler com camera'}
+                                        </button>
+                                    </div>
 
-                            {scannerError && (
-                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-amber-200 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-900">
-                                    {scannerError}
-                                </p>
-                            )}
+                                    <button
+                                        type="button"
+                                        onClick={handleVerifyCard}
+                                        disabled={isVerifyingCard}
+                                        className="mt-2 inline-flex w-full items-center justify-center rounded-full border-[3px] border-slate-900 bg-lime-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-900 disabled:opacity-50"
+                                    >
+                                        {isVerifyingCard ? 'Validando...' : 'Validar codigo'}
+                                    </button>
 
-                            {verificationError && (
-                                <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-pink-500 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white">
-                                    {verificationError}
-                                </p>
-                            )}
-
-                            {verificationResult && (
-                                <div className={`mt-3 rounded-[1rem] border-[3px] border-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-wide ${
-                                    verificationResult?.valid ? 'bg-cyan-300 text-slate-900' : 'bg-pink-500 text-white'
-                                }`}>
-                                    <p>{verificationResult?.valid ? 'Carteirinha valida' : 'Carteirinha invalida'}</p>
-                                    <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
-                                        {String(verificationResult?.reason || '')}
-                                    </p>
-                                    {!!verificationResult?.member?.nome && (
-                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
-                                            Membro: {verificationResult.member.nome}
+                                    {!!membershipBarcodeValue && (
+                                        <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-700 break-all">
+                                            Codigo atual: {membershipBarcodeValue}
                                         </p>
                                     )}
-                                    {!!verificationResult?.club?.nome && (
-                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
-                                            Clube: {verificationResult.club.nome}
+
+                                    {scannerError && (
+                                        <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-amber-200 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-900">
+                                            {scannerError}
                                         </p>
                                     )}
-                                    {!!verificationResult?.card?.expiryDate && (
-                                        <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
-                                            Validade: {verificationResult.card.expiryDate}
+
+                                    {verificationError && (
+                                        <p className="mt-3 rounded-[0.9rem] border-[2px] border-slate-900 bg-pink-500 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white">
+                                            {verificationError}
                                         </p>
+                                    )}
+
+                                    {verificationResult && (
+                                        <div className={`mt-3 rounded-[1rem] border-[3px] border-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-wide ${
+                                            verificationResult?.valid ? 'bg-cyan-300 text-slate-900' : 'bg-pink-500 text-white'
+                                        }`}>
+                                            <p>{verificationResult?.valid ? 'Carteirinha valida' : 'Carteirinha invalida'}</p>
+                                            <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                                {String(verificationResult?.reason || '')}
+                                            </p>
+                                            {!!verificationResult?.member?.nome && (
+                                                <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                                    Membro: {verificationResult.member.nome}
+                                                </p>
+                                            )}
+                                            {!!verificationResult?.club?.nome && (
+                                                <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                                    Clube: {verificationResult.club.nome}
+                                                </p>
+                                            )}
+                                            {!!verificationResult?.card?.expiryDate && (
+                                                <p className="mt-1 text-[10px] font-bold tracking-normal normal-case">
+                                                    Validade: {verificationResult.card.expiryDate}
+                                                </p>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
-                        </div>
+                        </div> */}
 
                         {exportError && (
                             <p className="rounded-[1.5rem] border-[3px] border-slate-900 bg-pink-500 px-5 py-4 text-xs font-black uppercase tracking-wider text-white shadow-sm">

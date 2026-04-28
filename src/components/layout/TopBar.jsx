@@ -1,4 +1,4 @@
-import React, { startTransition, useState, useRef, useEffect } from "react";
+﻿import React, { startTransition, useState, useRef, useEffect } from "react";
 import {
   Search,
   LogOut,
@@ -183,17 +183,17 @@ export default function TopBar({
       await onRespondClubJoinRequest(normalizedRequestId, accept);
       setNotificationToast(
         "success",
-        accept ? "Solicitação aceita com sucesso." : "Solicitação recusada.",
+        accept ? "SolicitaÃ§Ã£o aceita com sucesso." : "SolicitaÃ§Ã£o recusada.",
       );
     } catch (error) {
       const message =
         String(error?.message || "").trim() ||
-        "Não foi possível processar esta solicitação.";
+        "NÃ£o foi possÃ­vel processar esta solicitaÃ§Ã£o.";
       setNotificationToast("error", message);
     }
   };
 
-  const userName = loggedUser?.nome || leadUser?.nome || "Usuário";
+  const userName = loggedUser?.nome || leadUser?.nome || "UsuÃ¡rio";
   const userEmail = loggedUser?.email || leadUser?.email || "usuario@email.com";
   const userAvatar =
     loggedUser?.fotoBase64 ||
@@ -201,27 +201,14 @@ export default function TopBar({
     loggedUser?.avatar ||
     leadUser?.avatar ||
     null;
-  const contextClub = myClub || null;
+  const contextClub = myClub || viewingClub || selectedClub || null;
   const contextClubLogoUrl = String(
     contextClub?.logo_url || contextClub?.logo || "",
   ).trim();
-  const contextName =
-    myClub?.nome ||
-    String(loggedUser?.escola_nome || "").trim() ||
-    "UNIDADE NÃO VINCULADA";
-
-  const contextParts = contextName.split(" ");
-  const isCollege = contextName.toUpperCase().includes("COLÉGIO ESTADUAL");
-  let contextLine1 = "";
-  let contextLine2 = contextName;
-
-  if (isCollege) {
-    contextLine1 = contextParts.slice(0, 2).join(" ");
-    contextLine2 = contextParts.slice(2).join(" ");
-  } else {
-    contextLine1 = contextName;
-    contextLine2 = "";
-  }
+  const contextClubName = String(contextClub?.nome || "").trim();
+  const contextSchoolName = String(
+    loggedUser?.escola_nome || contextClub?.escola_nome || "",
+  ).trim();
 
   const isSearchDisabled = currentView !== "Projetos";
 
@@ -255,7 +242,7 @@ export default function TopBar({
         aria-label="Campo de busca"
         disabled={isSearchDisabled}
         title={
-          isSearchDisabled ? "A busca só está disponível no Feed de Projetos." : ""
+          isSearchDisabled ? "A busca sÃ³ estÃ¡ disponÃ­vel no Feed de Projetos." : ""
         }
       />
 
@@ -335,33 +322,6 @@ export default function TopBar({
             </div>
 
             <div className="flex shrink-0 items-center gap-2 2xl:gap-3">
-              {contextName && (
-                <div className="hidden items-center gap-3 rounded-full border-[3px] border-slate-900 bg-pink-500 px-3 py-1.5 shadow-sm 2xl:flex transform hover:scale-105 transition-transform duration-300 cursor-default">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-900 bg-white">
-                    {contextClubLogoUrl ? (
-                      <img
-                        src={contextClubLogoUrl}
-                        alt={`Logo ${contextName}`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs font-black text-slate-900">
-                        {getInitials(contextClub?.nome || contextName)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex max-w-[140px] flex-col leading-none pr-2" title={contextLine1}>
-                    <span className="line-clamp-1 text-xs font-black uppercase tracking-widest text-white">
-                      {contextLine1}
-                    </span>
-                    {contextLine2 && (
-                      <span className="mt-0.5 line-clamp-1 text-[9px] font-bold uppercase tracking-widest text-pink-200">
-                        {contextLine2}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {shouldShowJoinRequestNotification && (
                 <div className="relative" ref={notificationMenuRef}>
@@ -376,10 +336,10 @@ export default function TopBar({
                     className={`relative inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 p-2.5 text-slate-900 shadow-sm transition-transform active:scale-95 hover:scale-105 ${
                       showNotifications ? "bg-yellow-400" : "bg-white"
                     }`}
-                    title="Solicitações de entrada"
+                    title="SolicitaÃ§Ãµes de entrada"
                   >
                     <Bell className="h-5 w-5 stroke-[3]" />
-                    <span className="sr-only">Solicitações de entrada</span>
+                    <span className="sr-only">SolicitaÃ§Ãµes de entrada</span>
                     {joinRequestsCount > 0 && (
                       <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-[1.35rem] items-center justify-center rounded-full border-[2px] border-slate-900 bg-pink-500 px-1 py-0.5 text-[10px] font-black text-white">
                         {joinRequestsCount > 99 ? "99+" : joinRequestsCount}
@@ -391,7 +351,7 @@ export default function TopBar({
                     <div className="absolute right-0 mt-3 w-[min(26rem,calc(100vw-1rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
                       <div className="border-b-[3px] border-slate-900 bg-yellow-400 px-5 py-4">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-900">
-                          Solicitações de Entrada
+                          SolicitaÃ§Ãµes de Entrada
                         </p>
                         <p className="mt-1 text-[11px] font-bold text-slate-800">
                           {viewingClub?.nome
@@ -415,7 +375,7 @@ export default function TopBar({
                       <div className="max-h-[22rem] space-y-3 overflow-y-auto bg-slate-50 p-4">
                         {normalizedClubJoinRequests.length === 0 ? (
                           <div className="rounded-[1.2rem] border-[3px] border-dashed border-slate-300 bg-white px-4 py-7 text-center text-[11px] font-black uppercase tracking-widest text-slate-500">
-                            Nenhuma solicitação pendente.
+                            Nenhuma solicitaÃ§Ã£o pendente.
                           </div>
                         ) : (
                           normalizedClubJoinRequests.map((request) => {
@@ -549,7 +509,7 @@ export default function TopBar({
                 {showUserMenu && (
                   <div className="absolute right-0 mt-3 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
                     
-                    {/* Header do Menu com Retícula HQ */}
+                    {/* Header do Menu com RetÃ­cula HQ */}
                     <div className="border-b-[3px] border-slate-900 bg-yellow-400 p-6 relative overflow-hidden">
                       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2.5px, transparent 2.5px)', backgroundSize: '12px 12px' }}></div>
                       <p className="truncate text-lg font-black uppercase tracking-tighter text-slate-900 relative z-10">
@@ -558,6 +518,34 @@ export default function TopBar({
                       <p className="mt-1.5 inline-block max-w-full truncate rounded-full border-[2.5px] border-slate-900 bg-white px-3 py-1 text-[10px] font-bold text-slate-800 relative z-10">
                         {userEmail}
                       </p>
+                      <div className="relative z-10 mt-3 flex items-center gap-3 rounded-xl border-[3px] border-slate-900 bg-white px-3 py-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-900 bg-cyan-300">
+                          {contextClubLogoUrl ? (
+                            <img
+                              src={contextClubLogoUrl}
+                              alt={`Logo ${contextClubName || "do clube"}`}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-black text-slate-900">
+                              {getInitials(contextClubName || contextSchoolName || "Clube")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">
+                            Clube
+                          </p>
+                          <p className="truncate text-xs font-black uppercase tracking-wider text-slate-900">
+                            {contextClubName || "Sem clube vinculado"}
+                          </p>
+                          {contextSchoolName && (
+                            <p className="mt-1 truncate text-[10px] font-bold text-slate-700">
+                              {contextSchoolName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-2 bg-slate-50 p-4">
@@ -596,7 +584,7 @@ export default function TopBar({
                         role="menuitem"
                       >
                         <LogOut className="h-4 w-4 stroke-[3]" />
-                        Encerrar sessão
+                        Encerrar sessÃ£o
                       </button>
                     </div>
                   </div>
@@ -625,3 +613,4 @@ export default function TopBar({
     </>
   );
 }
+

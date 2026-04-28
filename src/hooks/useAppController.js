@@ -45,6 +45,13 @@ import {
 } from '../utils/authSecurity';
 import { compressImageToBase64 } from '../utils/imageCompression';
 import { STAGES, PROJECTS_PAGE_SIZE, CLUB_REQUIRED_DOCUMENTS } from '../constants/appConstants';
+import { normalizeClubBannerMode } from '../constants/clubBannerModes';
+import {
+    normalizeUiFontId,
+    normalizeUiStyleId,
+    normalizeUiThemeId,
+    resolveUserUiPreferences
+} from '../constants/uiPreferences';
 import {
     buildProjectEntries,
     getProjectTeam,
@@ -2580,6 +2587,7 @@ export default function useAppController() {
         escola_id,
         escola_nome = '',
         periodicidade = 'Quinzenal',
+        banner_mode = 'cover',
         coorientador_ids = [],
         clubistas_ids = [],
         documentos = {}
@@ -2603,6 +2611,7 @@ export default function useAppController() {
         ).trim();
         const normalizedSchoolName = normalizeSchoolName(schoolName);
         const periodicidadeNormalizada = String(periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+        const bannerModeNormalizado = normalizeClubBannerMode(banner_mode);
 
         if (!clubName) {
             throw new Error('Informe o nome do clube.');
@@ -2784,6 +2793,8 @@ export default function useAppController() {
                 escola_id: schoolId,
                 escola_nome: schoolName,
                 periodicidade: periodicidadeNormalizada,
+                banner_mode: bannerModeNormalizado,
+                banner_modo: bannerModeNormalizado,
                 mentor_id: mentorId,
                 mentor_nome: mentorName,
                 mentor_email: mentorEmail,
@@ -2935,6 +2946,7 @@ export default function useAppController() {
         nome,
         descricao = '',
         periodicidade = 'Quinzenal',
+        banner_mode,
         coorientador_ids = [],
         clubistas_ids = [],
         banner_file = null,
@@ -2987,6 +2999,9 @@ export default function useAppController() {
         const schoolId = String(currentClub?.escola_id || '').trim();
         const normalizedSchoolName = normalizeSchoolName(currentClub?.escola_nome);
         const periodicidadeNormalizada = String(periodicidade || currentClub?.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+        const bannerModeNormalizado = normalizeClubBannerMode(
+            banner_mode || currentClub?.banner_mode || currentClub?.banner_modo
+        );
         const creatorMentorId = String(currentClub?.mentor_id || '').trim() || mentorId;
 
         const selectedCoorientadoresIds = normalizeIdList(coorientador_ids).filter((id) => id !== mentorId && id !== creatorMentorId);
@@ -3204,6 +3219,8 @@ export default function useAppController() {
                 nome: clubName,
                 descricao: String(descricao || '').trim(),
                 periodicidade: periodicidadeNormalizada,
+                banner_mode: bannerModeNormalizado,
+                banner_modo: bannerModeNormalizado,
                 mentor_id: creatorMentorId,
                 orientador_ids: persistedOrientadoresIds,
                 orientadores_ids: persistedOrientadoresIds,
@@ -3738,7 +3755,22 @@ export default function useAppController() {
         }
 
         try {
-            const userRef = doc(db, 'usuarios', String(loggedUser.id));
+            const authenticatedUserId = String(authUser?.uid || '').trim();
+            const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+            const targetUserId = authenticatedUserId || loggedUserId;
+
+            if (!targetUserId) {
+                throw new Error('Nao foi possivel identificar o documento do perfil para salvar.');
+            }
+
+            if (authenticatedUserId && loggedUserId && authenticatedUserId !== loggedUserId) {
+                console.warn('Inconsistencia entre auth.uid e loggedUser.id ao salvar perfil.', {
+                    authenticatedUserId,
+                    loggedUserId
+                });
+            }
+
+            const userRef = doc(db, 'usuarios', targetUserId);
             const updates = {
                 nome: profileData.nome || loggedUser.nome,
                 telefone: profileData.telefone || loggedUser.telefone || '',
@@ -3746,6 +3778,31 @@ export default function useAppController() {
                 bio: profileData.bio || loggedUser.bio || '',
                 localizacao: profileData.localizacao || loggedUser.localizacao || '',
                 fotoBase64: profileData.fotoBase64 || loggedUser.fotoBase64 || loggedUser.fotoUrl || ''
+            };
+
+            const incomingUiPreferences = profileData?.uiPreferences && typeof profileData.uiPreferences === 'object'
+                ? profileData.uiPreferences
+                : profileData?.ui_preferences && typeof profileData.ui_preferences === 'object'
+                    ? profileData.ui_preferences
+                    : {};
+
+            const currentUiPreferences = resolveUserUiPreferences(loggedUser);
+            updates.ui_preferences = {
+                font_id: normalizeUiFontId(
+                    incomingUiPreferences.font_id
+                    ?? incomingUiPreferences.fontId
+                    ?? currentUiPreferences.font_id
+                ),
+                theme_id: normalizeUiThemeId(
+                    incomingUiPreferences.theme_id
+                    ?? incomingUiPreferences.themeId
+                    ?? currentUiPreferences.theme_id
+                ),
+                style_id: normalizeUiStyleId(
+                    incomingUiPreferences.style_id
+                    ?? incomingUiPreferences.styleId
+                    ?? currentUiPreferences.style_id
+                )
             };
 
             if (profileData.lattesData && typeof profileData.lattesData === 'object') {
@@ -3816,10 +3873,10 @@ export default function useAppController() {
                     : loggedUser?.school_change_last_at
             };
 
-            setLoggedUser(normalizeUserEntity(updatedUser, loggedUser.id));
+            setLoggedUser(normalizeUserEntity(updatedUser, targetUserId));
             setUsers((previousUsers) => previousUsers.map((person) => {
                 const personId = String(person?.id || '').trim();
-                if (personId !== String(loggedUser?.id || '').trim()) {
+                if (personId !== targetUserId) {
                     return person;
                 }
 

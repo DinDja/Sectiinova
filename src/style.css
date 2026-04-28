@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&family=Merriweather:wght@400;700;900&family=Nunito:wght@500;700;800&family=Poppins:wght@500;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -29,6 +29,11 @@
     --studio-accent: var(--auth-primary);
     --studio-accent-strong: var(--auth-primary-strong);
     --studio-accent-soft: #ccfbf1;
+    --ui-selection-bg: rgba(45, 212, 191, 0.32);
+    --ui-focus-ring: rgba(20, 184, 166, 0.65);
+    --studio-main-dot: rgba(15, 23, 42, 0.1);
+    --studio-main-spot-a: rgba(242, 245, 244, 0.12);
+    --studio-main-spot-b: rgba(96, 165, 250, 0.1);
   }
 
   html,
@@ -62,12 +67,12 @@
   }
 
   ::selection {
-    background-color: rgba(45, 212, 191, 0.32);
+    background-color: var(--ui-selection-bg);
     color: var(--auth-ink);
   }
 
   *:focus-visible {
-    outline: 2px solid rgba(20, 184, 166, 0.65);
+    outline: 2px solid var(--ui-focus-ring);
     outline-offset: 2px;
   }
 }
@@ -81,15 +86,15 @@
 
   .studio-main {
     background:
-      radial-gradient(circle, rgba(15, 23, 42, 0.1) 1px, transparent 1px),
+      radial-gradient(circle, var(--studio-main-dot) 1px, transparent 1px),
       radial-gradient(
         circle at 8% 15%,
-        rgba(242, 245, 244, 0.12),
+        var(--studio-main-spot-a),
         transparent 35%
       ),
       radial-gradient(
         circle at 90% 85%,
-        rgba(96, 165, 250, 0.1),
+        var(--studio-main-spot-b),
         transparent 32%
       ),
       linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
@@ -602,7 +607,117 @@
     box-shadow: 8px 8px 0 0 #0f172a !important;
   }
 
-  .app-shell .studio-main [class~="shadow-[8px_8px_0px_0px_#0f172a]"] {
+.app-shell .studio-main [class~="shadow-[8px_8px_0px_0px_#0f172a]"] {
     box-shadow: 6px 6px 0 0 #0f172a !important;
   }
+}
+
+/* Theme accents mapped over hardcoded utility colors */
+html[data-ui-theme] .app-shell .bg-teal-400,
+html[data-ui-theme] .app-shell .bg-teal-500,
+html[data-ui-theme] .app-shell .bg-teal-300 {
+  background-color: var(--auth-primary) !important;
+}
+
+html[data-ui-theme] .app-shell .bg-cyan-300,
+html[data-ui-theme] .app-shell .bg-cyan-400,
+html[data-ui-theme] .app-shell .bg-blue-300,
+html[data-ui-theme] .app-shell .bg-blue-400 {
+  background-color: var(--auth-secondary) !important;
+}
+
+html[data-ui-theme] .app-shell .text-teal-500,
+html[data-ui-theme] .app-shell .text-teal-400 {
+  color: var(--auth-primary-strong) !important;
+}
+
+html[data-ui-theme] .app-shell .text-cyan-500,
+html[data-ui-theme] .app-shell .text-blue-500,
+html[data-ui-theme] .app-shell .text-blue-400 {
+  color: var(--auth-secondary) !important;
+}
+
+html[data-ui-theme] .app-shell .border-teal-400,
+html[data-ui-theme] .app-shell .border-teal-500 {
+  border-color: var(--auth-primary-strong) !important;
+}
+
+html[data-ui-theme] .app-shell [class*="hover:bg-teal-400"]:hover,
+html[data-ui-theme] .app-shell [class*="hover:bg-teal-500"]:hover {
+  background-color: var(--auth-primary-strong) !important;
+}
+
+html[data-ui-theme] .app-shell [class*="hover:bg-cyan-300"]:hover,
+html[data-ui-theme] .app-shell [class*="hover:bg-blue-400"]:hover {
+  background-color: var(--auth-secondary) !important;
+}
+
+html[data-ui-theme] .app-shell [class*="focus:shadow-[4px_4px_0px_0px_#14b8a6]"]:focus,
+html[data-ui-theme] .app-shell [class*="focus:shadow-[3px_3px_0px_0px_#14b8a6]"]:focus {
+  box-shadow: 4px 4px 0 0 var(--auth-primary-strong) !important;
+}
+
+html[data-ui-theme] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--auth-shadow) 0%,
+    var(--auth-primary-strong) 100%
+  );
+}
+
+/* UI style presets */
+html[data-ui-style="material"] .app-shell button,
+html[data-ui-style="material"] .app-shell input,
+html[data-ui-style="material"] .app-shell select,
+html[data-ui-style="material"] .app-shell textarea {
+  border-radius: 0.9rem !important;
+}
+
+html[data-ui-style="material"] .app-shell button {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14) !important;
+  border-width: 2px !important;
+}
+
+html[data-ui-style="material"] .app-shell [class*="shadow-["] {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-ui-style="modern"] .app-shell button,
+html[data-ui-style="modern"] .app-shell input,
+html[data-ui-style="modern"] .app-shell select,
+html[data-ui-style="modern"] .app-shell textarea {
+  border-radius: 0.75rem !important;
+}
+
+html[data-ui-style="modern"] .app-shell [class*="border-4"],
+html[data-ui-style="modern"] .app-shell [class*="border-3"] {
+  border-width: 1px !important;
+}
+
+html[data-ui-style="modern"] .app-shell [class*="shadow-["] {
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-ui-style="glass"] .app-shell .studio-main {
+  background:
+    radial-gradient(circle, var(--studio-main-dot) 1px, transparent 1px),
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.64) 0%,
+      rgba(248, 250, 252, 0.72) 100%
+    );
+  background-size: 26px 26px, auto;
+}
+
+html[data-ui-style="glass"] .app-shell [class*="bg-white"][class*="border"] {
+  background: rgba(255, 255, 255, 0.58) !important;
+  backdrop-filter: blur(8px);
+}
+
+html[data-ui-style="glass"] .app-shell [class*="shadow-["] {
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-ui-style="glass"] .app-shell button {
+  border-radius: 1rem !important;
 }

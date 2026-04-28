@@ -6,6 +6,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { getInitials } from '../../utils/helpers';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
+import { CLUB_BANNER_DISPLAY_MODES, getClubBannerModeMeta, normalizeClubBannerMode } from '../../constants/clubBannerModes';
 import { getUserSchoolIds, normalizeIdList, normalizePerfil } from '../../services/projectService';
 
 const STUDENT_PROFILES = new Set(['estudante', 'investigador', 'aluno']);
@@ -61,7 +62,8 @@ export default function EditClubForm({
         nome: '',
         descricao: '',
         periodicidade: 'Quinzenal',
-        escola_id: ''
+        escola_id: '',
+        banner_mode: 'cover'
     });
     const [membersSearch, setMembersSearch] = useState('');
     const [mentorSearch, setMentorSearch] = useState('');
@@ -215,7 +217,8 @@ export default function EditClubForm({
             nome: String(viewingClub?.nome || '').trim(),
             descricao: String(viewingClub?.descricao || '').trim(),
             periodicidade: String(viewingClub?.periodicidade || 'Quinzenal').trim() || 'Quinzenal',
-            escola_id: normalizedSchoolIds[0] || schoolId
+            escola_id: normalizedSchoolIds[0] || schoolId,
+            banner_mode: normalizeClubBannerMode(viewingClub?.banner_mode || viewingClub?.banner_modo)
         });
 
         setSelectedMentors(
@@ -419,6 +422,7 @@ export default function EditClubForm({
         const nome = String(form.nome || '').trim();
         const descricao = String(form.descricao || '').trim();
         const periodicidade = String(form.periodicidade || 'Quinzenal').trim() || 'Quinzenal';
+        const bannerMode = normalizeClubBannerMode(form.banner_mode);
         const coorientadoresIds = normalizeIdList(selectedMentors);
         const clubistasIds = normalizeIdList(selectedClubistas);
 
@@ -435,6 +439,7 @@ export default function EditClubForm({
                 periodicidade,
                 coorientador_ids: coorientadoresIds,
                 clubistas_ids: clubistasIds,
+                banner_mode: bannerMode,
                 banner_file: bannerFile,
                 logo_file: logoFile,
                 documentos: documentChanges
@@ -450,6 +455,28 @@ export default function EditClubForm({
     const inputClasses = "w-full rounded-xl border-2 border-slate-900 bg-white px-4 py-3 text-sm font-bold text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] focus:shadow-[4px_4px_0px_0px_#14b8a6] focus:-translate-y-1 focus:-translate-x-1 outline-none transition-all placeholder:text-slate-400";
     const labelClasses = "text-xs font-black uppercase tracking-widest text-slate-900 mb-2 block";
     const sectionTitleClasses = "text-xl font-black text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3";
+    const selectedBannerMode = normalizeClubBannerMode(form.banner_mode);
+    const selectedBannerModeMeta = getClubBannerModeMeta(selectedBannerMode);
+    const bannerPreviewContainerClass = selectedBannerMode === 'poster'
+        ? 'flex items-center justify-center bg-[radial-gradient(circle_at_center,#f8fafc_0%,#cbd5e1_100%)] p-3'
+        : selectedBannerMode === 'contain'
+            ? 'bg-[linear-gradient(120deg,#e2e8f0_0%,#f8fafc_100%)] p-2'
+            : 'bg-slate-100';
+    const bannerPreviewImageClass = selectedBannerMode === 'poster'
+        ? 'h-full w-full rounded-xl border-2 border-slate-900 object-cover shadow-[3px_3px_0px_0px_#0f172a]'
+        : selectedBannerMode === 'contain'
+            ? 'w-full h-full object-contain'
+            : selectedBannerMode === 'focus'
+                ? 'w-full h-full object-cover scale-[1.08]'
+                : 'w-full h-full object-cover';
+    const bannerPreviewImageFrameClass = selectedBannerMode === 'poster'
+        ? 'h-full w-full flex items-center justify-center rounded-xl border-2 border-dashed border-slate-500 bg-white/80 p-3'
+        : 'h-full w-full';
+    const bannerPreviewOverlayClass = selectedBannerMode === 'focus'
+        ? 'absolute inset-0 bg-gradient-to-tr from-slate-900/40 via-slate-900/10 to-transparent'
+        : selectedBannerMode === 'cover'
+            ? 'absolute inset-0 bg-gradient-to-t from-white/35 to-transparent'
+            : '';
 
     const modalContent = (
         <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -548,11 +575,16 @@ export default function EditClubForm({
                                 {/* Banner */}
                                 <div className="rounded-2xl border-4 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col">
                                     <p className={labelClasses}>Banner do Header</p>
-                                    <div className="aspect-[16/7] rounded-xl overflow-hidden border-2 border-slate-900 bg-slate-100 mb-4 shadow-[2px_2px_0px_0px_#0f172a]">
+                                    <div className={`relative aspect-[16/7] rounded-xl overflow-hidden border-2 border-slate-900 mb-4 shadow-[2px_2px_0px_0px_#0f172a] ${bannerPreviewContainerClass}`}>
                                         {bannerPreview ? (
-                                            <img src={bannerPreview} alt="Preview do banner" className="w-full h-full object-cover" />
+                                            <div className={bannerPreviewImageFrameClass}>
+                                                <img src={bannerPreview} alt="Preview do banner" className={bannerPreviewImageClass} />
+                                            </div>
                                         ) : (
                                             <div className="w-full h-full bg-slate-200" />
+                                        )}
+                                        {bannerPreview && bannerPreviewOverlayClass && (
+                                            <div className={bannerPreviewOverlayClass} />
                                         )}
                                     </div>
 
@@ -576,6 +608,39 @@ export default function EditClubForm({
                                             ! {bannerWarning}
                                         </p>
                                     )}
+
+                                    <div className="mt-4 rounded-xl border-2 border-slate-900 bg-slate-50 p-3">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-2">
+                                            Modo de exibicao do banner
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {CLUB_BANNER_DISPLAY_MODES.map((mode) => {
+                                                const isSelected = selectedBannerMode === mode.id;
+                                                return (
+                                                    <button
+                                                        key={mode.id}
+                                                        type="button"
+                                                        onClick={() => updateField('banner_mode', mode.id)}
+                                                        className={`w-full rounded-lg border-2 px-3 py-2 text-left transition-all ${
+                                                            isSelected
+                                                                ? 'border-slate-900 bg-cyan-300 shadow-[2px_2px_0px_0px_#0f172a]'
+                                                                : 'border-slate-300 bg-white hover:border-slate-900'
+                                                        }`}
+                                                    >
+                                                        <span className="block text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                                            {mode.label}
+                                                        </span>
+                                                        <span className="block text-[10px] font-bold text-slate-700 mt-1">
+                                                            {mode.summary}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                                            Modo ativo: {selectedBannerModeMeta.label}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* Logo */}

@@ -9,6 +9,7 @@ import ModalPerfil from './ModalPerfil';
 import { db } from '../../../firebase';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
+import { normalizeClubBannerMode } from '../../constants/clubBannerModes';
 
 // --- COMPONENTES AUXILIARES HQ DE AÇÃO ---
 const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
@@ -24,35 +25,81 @@ const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
 );
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
-const LEGACY_CLUB_SEAL_CUTOFF_MS = new Date('2026-04-30T00:00:00-03:00').getTime();
-const LEGACY_CLUB_SEAL_LABEL = 'Selo Pioneiro';
-const LEGACY_CLUB_SEAL_SHORT_LABEL = 'Pioneiro';
-const LEGACY_CLUB_SEAL_REASON = 'Este clube recebeu o selo por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.';
 
-const PioneerSealBadge = ({ compact = false, emphasize = false, className = '' }) => {
-    const label = compact ? LEGACY_CLUB_SEAL_SHORT_LABEL : LEGACY_CLUB_SEAL_LABEL;
-    const sizeClass = compact
-        ? 'px-1.5 py-0.5 text-[8px]'
-        : emphasize
-            ? 'px-3 py-1.5 text-[10px]'
-            : 'px-2.5 py-1 text-[9px]';
-    const borderClass = emphasize ? 'border-[3px]' : 'border-[2px]';
-    const iconClass = compact
-        ? 'w-3 h-3'
-        : emphasize
-            ? 'w-3.5 h-3.5'
-            : 'w-3 h-3';
 
-    return (
-        <span
-            className={`inline-flex items-center gap-1 rounded-full ${borderClass} border-slate-900 bg-lime-300 ${sizeClass} font-black uppercase tracking-widest text-slate-900 shadow-sm ${className}`}
-            title={LEGACY_CLUB_SEAL_REASON}
-            aria-label={`${label}. ${LEGACY_CLUB_SEAL_REASON}`}
-        >
-            <Sparkles className={`${iconClass} stroke-[2.5] text-slate-900`} />
-            <span>{label}</span>
-        </span>
-    );
+
+const resolveClubBannerMode = (club) => normalizeClubBannerMode(club?.banner_mode || club?.banner_modo);
+
+const getHeroBannerModeConfig = (mode) => {
+    if (mode === 'contain') {
+        return {
+            containerClass: 'bg-[radial-gradient(circle_at_top,#dbeafe_0%,#f8fafc_55%,#ffffff_100%)] p-4 md:p-6',
+            frameClass: 'h-full w-full overflow-hidden rounded-[2.2rem] border-[2px] border-slate-900/50 bg-white/90',
+            imageClass: 'h-full w-full object-contain',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/85 via-white/35 to-transparent'
+        };
+    }
+
+    if (mode === 'focus') {
+        return {
+            containerClass: 'bg-slate-100',
+            frameClass: 'h-full w-full overflow-hidden',
+            imageClass: 'h-full w-full object-cover scale-[1.08] saturate-125 contrast-110 transition-transform duration-1000 hover:scale-[1.12]',
+            overlayClass: 'absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.42)_0%,rgba(15,23,42,0.2)_36%,rgba(255,255,255,0)_100%)]'
+        };
+    }
+
+    if (mode === 'poster') {
+        return {
+            containerClass: 'bg-[repeating-linear-gradient(135deg,#e2e8f0_0px,#e2e8f0_18px,#f8fafc_18px,#f8fafc_36px)] p-4 md:p-6',
+            frameClass: 'h-full w-full overflow-hidden rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-2 shadow-[6px_6px_0px_0px_rgba(15,23,42,0.35)]',
+            imageClass: 'h-full w-full rounded-[1.2rem] border-[2px] border-slate-900/70 object-cover',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/75 via-white/15 to-transparent'
+        };
+    }
+
+    return {
+        containerClass: 'bg-slate-100',
+        frameClass: 'h-full w-full overflow-hidden',
+        imageClass: 'h-full w-full object-cover opacity-90 transition-transform duration-1000 hover:scale-105',
+        overlayClass: 'absolute inset-0 bg-gradient-to-t from-white via-white/90 to-transparent'
+    };
+};
+
+const getCardBannerModeConfig = (mode) => {
+    if (mode === 'contain') {
+        return {
+            containerClass: 'bg-[linear-gradient(125deg,#f8fafc_0%,#e2e8f0_100%)] p-2',
+            frameClass: 'h-full w-full rounded-2xl border-[2px] border-slate-900/50 bg-white/90 overflow-hidden',
+            imageClass: 'h-full w-full object-contain',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/40 to-transparent'
+        };
+    }
+
+    if (mode === 'focus') {
+        return {
+            containerClass: 'bg-slate-100',
+            frameClass: 'h-full w-full overflow-hidden',
+            imageClass: 'h-full w-full object-cover scale-105 saturate-125 contrast-110 transition-transform duration-700 group-hover:scale-[1.12]',
+            overlayClass: 'absolute inset-0 bg-[linear-gradient(125deg,rgba(15,23,42,0.42)_0%,rgba(15,23,42,0.08)_55%,rgba(255,255,255,0)_100%)]'
+        };
+    }
+
+    if (mode === 'poster') {
+        return {
+            containerClass: 'bg-[repeating-linear-gradient(140deg,#e2e8f0_0px,#e2e8f0_14px,#f8fafc_14px,#f8fafc_28px)] p-2',
+            frameClass: 'h-full w-full rounded-2xl border-[2px] border-slate-900 bg-white p-1.5 overflow-hidden shadow-[3px_3px_0px_0px_rgba(15,23,42,0.35)]',
+            imageClass: 'h-full w-full rounded-xl border border-slate-900/60 object-cover',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/45 to-transparent'
+        };
+    }
+
+    return {
+        containerClass: 'bg-slate-100',
+        frameClass: 'h-full w-full overflow-hidden',
+        imageClass: 'h-full w-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90',
+        overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/25 to-transparent'
+    };
 };
 
 export default function ClubBoard({
@@ -144,6 +191,8 @@ export default function ClubBoard({
     const canManageClub = isMentor && loggedUserId && (mentorIds.has(loggedUserId) || viewingClubMemberIds.has(loggedUserId) || (viewingClubId && loggedUserClubIds.has(viewingClubId)));
     const canCreateProject = canManageClub;
     const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
+    const viewingClubBannerMode = resolveClubBannerMode(viewingClub);
+    const viewingClubHeroBannerConfig = getHeroBannerModeConfig(viewingClubBannerMode);
     const clubLogoUrl = String(viewingClub?.logo_url || viewingClub?.logo || '').trim();
     const managedClubs = useMemo(() => (mentorManagedClubs || []).filter((club) => String(club?.id || '').trim()), [mentorManagedClubs]);
     const normalizedMyClubIds = useMemo(
@@ -299,12 +348,6 @@ export default function ClubBoard({
         if (kb < 1024) return `${kb >= 100 ? kb.toFixed(0) : kb.toFixed(1)} KB`;
         const mb = kb / 1024;
         return `${mb.toFixed(2)} MB`;
-    };
-
-    const hasLegacyClubSeal = (club) => {
-        const createdAtMillis = getTimestampMillis(club?.createdAt);
-        if (createdAtMillis <= 0) return false;
-        return createdAtMillis < LEGACY_CLUB_SEAL_CUTOFF_MS;
     };
 
     const buildChunkDocId = (documentKey, index) => `${String(documentKey || 'doc').trim()}_${index}`;
@@ -513,7 +556,6 @@ export default function ClubBoard({
                                         const clubId = String(club?.id || '').trim();
                                         const isActive = String(viewingClub?.id || '').trim() === clubId;
                                         const clubLogo = String(club?.logo_url || club?.logo || '').trim();
-                                        const hasLegacySeal = hasLegacyClubSeal(club);
 
                                         return (
                                             <button
@@ -535,9 +577,6 @@ export default function ClubBoard({
                                                 </span>
                                                 <span className="flex flex-col items-start">
                                                     <span>{club?.nome || 'Clube'}</span>
-                                                    {hasLegacySeal && (
-                                                        <PioneerSealBadge className="mt-1" />
-                                                    )}
                                                 </span>
                                             </button>
                                         );
@@ -582,80 +621,8 @@ export default function ClubBoard({
                             </div>
                         </div>
 
-                        <section className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 shadow-lg">
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 border-b-[3px] border-slate-900 pb-4">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                    <Building2 className="w-7 h-7 stroke-[2.5]" /> Minha Unidade Escolar
-                                </h3>
-                                <span className="inline-flex items-center gap-2 bg-yellow-400 border-[3px] border-slate-900 shadow-sm rounded-full px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-widest">
-                                    <MapIcon className="w-4 h-4 stroke-[3]" /> {schoolOverview.schoolLabel}
-                                </span>
-                            </div>
+                  
 
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                {schoolOverviewHighlights.map((item) => (
-                                    <div key={item.key} className={`rounded-[2rem] border-[3px] border-slate-900 p-4 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${item.color}`}>
-                                        <p className="text-3xl font-black text-slate-900 leading-none">{item.value}</p>
-                                        <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mt-2">{item.label}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {schoolOverview.schoolMeta.length > 0 && (
-                                <div className="mt-8 flex flex-wrap gap-3">
-                                    {schoolOverview.schoolMeta.map((metaItem) => (
-                                        <span
-                                            key={`${metaItem.label}:${metaItem.value}`}
-                                            className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[11px] font-black text-slate-900 uppercase tracking-widest shadow-sm"
-                                        >
-                                            <span>{metaItem.label}</span>
-                                            <span className="bg-slate-900 text-white px-2.5 py-0.5 rounded-full">{metaItem.value}</span>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div className="mt-8">
-                                <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-4">Clubes da unidade</p>
-                                {schoolOverview.clubs.length === 0 ? (
-                                    <p className="text-sm font-bold text-slate-700 bg-slate-50 border-[3px] border-dashed border-slate-300 rounded-[2rem] px-5 py-4">
-                                        Nenhum clube da unidade foi encontrado no momento.
-                                    </p>
-                                ) : (
-                                    <div className="flex flex-wrap gap-3">
-                                        {schoolOverview.clubs.slice(0, 6).map((club) => {
-                                            const schoolClubId = String(club?.id || '').trim();
-                                            const isActiveClub = schoolClubId && schoolClubId === viewingClubId;
-                                            const hasLegacySeal = hasLegacyClubSeal(club);
-
-                                            return (
-                                                <button
-                                                    key={schoolClubId || String(club?.nome || '')}
-                                                    type="button"
-                                                    onClick={() => handleSelectManagedClub(schoolClubId)}
-                                                    disabled={!schoolClubId}
-                                                    className={`inline-flex items-center rounded-full border-[3px] border-slate-900 px-4 py-2 text-xs font-black uppercase tracking-wider shadow-sm transition-transform disabled:opacity-50 disabled:pointer-events-none ${
-                                                        isActiveClub
-                                                            ? 'bg-cyan-300 text-slate-900 scale-105'
-                                                            : 'bg-white text-slate-900 hover:bg-cyan-100 hover:scale-105 active:scale-95'
-                                                    }`}
-                                                >
-                                                    <span className="mr-2">{club?.nome || 'Clube'}</span>
-                                                    {hasLegacySeal && (
-                                                        <PioneerSealBadge compact />
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                        {schoolOverview.clubs.length > 6 && (
-                                            <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm">
-                                                +{schoolOverview.clubs.length - 6} clubes
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </section>
 
                         {membershipRequestFeedback.message && (
                             <div className="relative">
@@ -712,6 +679,8 @@ export default function ClubBoard({
                                     const bannerUrl = String(club?.banner_url || club?.banner || '').trim();
                                     const logoUrl = String(club?.logo_url || club?.logo || '').trim();
                                     const displayBanner = bannerUrl;
+                                    const bannerMode = resolveClubBannerMode(club);
+                                    const cardBannerConfig = getCardBannerModeConfig(bannerMode);
 
                                     const memberCount = new Set([
                                         ...(club?.membros_ids || []), ...(club?.clubistas_ids || []), ...(club?.orientador_ids || []), ...(club?.orientadores_ids || []),
@@ -728,13 +697,14 @@ export default function ClubBoard({
                                     const projectsCount = typeof projectClubCount === 'number'
                                         ? projectClubCount
                                         : Number(club?.projetosCount ?? club?.projetos?.length ?? club?.projetos_ids?.length ?? 0);
-                                    const hasLegacySeal = hasLegacyClubSeal(club);
 
                                     return (
                                         <article key={clubId} className="group bg-white border-[3px] border-slate-900 rounded-[3rem] overflow-hidden shadow-lg hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 flex flex-col">
-                                            <div className="relative h-52 overflow-hidden border-b-[3px] border-slate-900 bg-slate-50">
+                                            <div className={`relative h-52 overflow-hidden border-b-[3px] border-slate-900 ${cardBannerConfig.containerClass}`}>
                                                 {displayBanner ? (
-                                                    <img src={displayBanner} alt={`Banner do clube ${club?.nome || ''}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90" />
+                                                    <div className={cardBannerConfig.frameClass}>
+                                                        <img src={displayBanner} alt={`Banner do clube ${club?.nome || ''}`} className={cardBannerConfig.imageClass} />
+                                                    </div>
                                                 ) : (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[linear-gradient(135deg,#fde047_0%,#67e8f9_100%)] p-6 text-center opacity-80">
                                                         <div className="rounded-full border-[3px] border-slate-900 bg-white p-4 shadow-sm">
@@ -742,16 +712,15 @@ export default function ClubBoard({
                                                         </div>
                                                     </div>
                                                 )}
+                                                {displayBanner && cardBannerConfig.overlayClass && (
+                                                    <div className={cardBannerConfig.overlayClass} />
+                                                )}
 
                                                 {statusConfig && (
                                                     <div className={`absolute top-5 left-5 inline-flex items-center gap-2 border-[3px] border-slate-900 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wider shadow-sm ${statusConfig.classes}`}>
                                                         {StatusIcon && <StatusIcon className="w-4 h-4 stroke-[3]" />}
                                                         {statusConfig.label}
                                                     </div>
-                                                )}
-
-                                                {hasLegacySeal && (
-                                                    <PioneerSealBadge emphasize className="absolute top-5 right-5" />
                                                 )}
                                             </div>
 
@@ -826,7 +795,6 @@ export default function ClubBoard({
     const investigatorCount = viewingClubInvestigadores.length;
     const memberCount = viewingClubUsers.length;
     const investigatorRatio = memberCount ? Math.round((investigatorCount / memberCount) * 100) : 0;
-    const hasViewingClubLegacySeal = hasLegacyClubSeal(viewingClub);
     
     return (
         <>
@@ -862,7 +830,6 @@ export default function ClubBoard({
                                     const clubId = String(club?.id || '').trim();
                                     const isActive = String(viewingClub?.id || '').trim() === clubId;
                                     const clubLogo = String(club?.logo_url || club?.logo || '').trim();
-                                    const hasLegacySeal = hasLegacyClubSeal(club);
 
                                     return (
                                         <button
@@ -884,9 +851,6 @@ export default function ClubBoard({
                                             </span>
                                             <span className="flex flex-col items-start">
                                                 <span>{club?.nome || 'Clube'}</span>
-                                                {hasLegacySeal && (
-                                                    <PioneerSealBadge className="mt-1" />
-                                                )}
                                             </span>
                                         </button>
                                     );
@@ -899,17 +863,19 @@ export default function ClubBoard({
                     <div className="relative w-full">
                         <div className="relative overflow-hidden rounded-[3rem] bg-white border-[3px] border-slate-900 min-h-[380px] flex flex-col justify-end p-8 md:p-12 shadow-xl z-10">
                             
-                            <div className="absolute inset-0 pointer-events-none border-b-[3px] border-slate-900 bg-slate-100">
+                            <div className={`absolute inset-0 pointer-events-none border-b-[3px] border-slate-900 ${viewingClubHeroBannerConfig.containerClass}`}>
                                 {clubBannerUrl ? (
-                                    <img
-                                        src={clubBannerUrl}
-                                        alt={`Banner do clube ${viewingClub.nome}`}
-                                        className="w-full h-full object-cover opacity-90 transition-transform duration-1000 hover:scale-105"
-                                    />
+                                    <div className={viewingClubHeroBannerConfig.frameClass}>
+                                        <img
+                                            src={clubBannerUrl}
+                                            alt={`Banner do clube ${viewingClub.nome}`}
+                                            className={viewingClubHeroBannerConfig.imageClass}
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="absolute inset-0 bg-[linear-gradient(135deg,#fde047_0%,#67e8f9_100%)] opacity-30" />
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/90 to-transparent" />
+                                <div className={viewingClubHeroBannerConfig.overlayClass} />
                             </div>
 
                             <div className="relative flex flex-col lg:flex-row gap-8 justify-between items-end z-10">
@@ -941,25 +907,7 @@ export default function ClubBoard({
                                             <p className="text-slate-900 font-bold text-sm flex items-center gap-2 bg-yellow-400 border-[3px] border-slate-900 shadow-sm rounded-full px-5 py-2.5 uppercase tracking-wider">
                                                 <MapIcon className="w-4 h-4 stroke-[3]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
                                             </p>
-                                            <span className="inline-flex items-center gap-2 bg-cyan-300 border-[3px] border-slate-900 shadow-sm rounded-full px-5 py-2.5 text-sm font-black text-slate-900 uppercase tracking-wider">
-                                                <Microscope className="w-4 h-4 stroke-[3]" />
-                                                {investigatorCount} pesquisador{investigatorCount === 1 ? '' : 'es'}
-                                            </span>
-                                            <span className="text-xs font-black text-white bg-pink-500 rounded-full px-4 py-2.5 uppercase tracking-widest border-[3px] border-slate-900 shadow-sm transform -2">
-                                                {investigatorRatio}% da equipe
-                                            </span>
-                                            {hasViewingClubLegacySeal && (
-                                                <PioneerSealBadge emphasize />
-                                            )}
                                         </div>
-                                        {hasViewingClubLegacySeal && (
-                                            <p className="mt-3 inline-flex max-w-3xl items-start gap-2 rounded-[1rem] border-[3px] border-slate-900 bg-white/95 px-4 py-3 text-[11px] font-bold text-slate-800">
-                                                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 stroke-[2.5] text-pink-500" />
-                                                <span>
-                                                    Este clube recebeu o <span className="font-black uppercase">Selo Pioneiro</span> por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.
-                                                </span>
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
 
@@ -1036,134 +984,6 @@ export default function ClubBoard({
                             </div>
                         </div>
                     )}
-
-                    <section className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
-                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                <Building2 className="w-7 h-7 stroke-[2.5] text-yellow-500" /> Minha Unidade Escolar
-                            </h3>
-                            <span className="inline-flex items-center gap-2 bg-yellow-400 border-[3px] border-slate-900 shadow-sm rounded-full px-5 py-2 text-xs font-black text-slate-900 uppercase tracking-widest">
-                                <MapIcon className="w-4 h-4 stroke-[3]" /> {schoolOverview.schoolLabel}
-                            </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            {schoolOverviewHighlights.map((item) => (
-                                <div key={item.key} className={`rounded-[2rem] border-[3px] border-slate-900 p-4 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${item.color}`}>
-                                    <p className="text-3xl font-black text-slate-900 leading-none">{item.value}</p>
-                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mt-2">{item.label}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        {schoolOverview.schoolMeta.length > 0 && (
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                {schoolOverview.schoolMeta.map((metaItem) => (
-                                    <span
-                                        key={`${metaItem.label}:${metaItem.value}`}
-                                        className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[11px] font-black text-slate-900 uppercase tracking-widest shadow-sm"
-                                    >
-                                        <span>{metaItem.label}</span>
-                                        <span className="bg-slate-900 text-white px-2.5 py-0.5 rounded-full">{metaItem.value}</span>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="mt-8">
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-4">Clubes da unidade</p>
-                            {schoolOverview.clubs.length === 0 ? (
-                                <p className="text-sm font-bold text-slate-700 bg-slate-50 border-[3px] border-dashed border-slate-300 rounded-[2rem] px-5 py-4">
-                                    Nenhum clube da unidade foi encontrado no momento.
-                                </p>
-                            ) : (
-                                <div className="flex flex-wrap gap-3">
-                                    {schoolOverview.clubs.slice(0, 6).map((club) => {
-                                        const hasLegacySeal = hasLegacyClubSeal(club);
-                                        return (
-                                            <span
-                                                key={String(club?.id || '').trim()}
-                                                className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm"
-                                            >
-                                                <span className="mr-2">{club?.nome || 'Clube'}</span>
-                                                {hasLegacySeal && (
-                                                    <PioneerSealBadge compact />
-                                                )}
-                                            </span>
-                                        );
-                                    })}
-                                    {schoolOverview.clubs.length > 6 && (
-                                        <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-xs font-black text-slate-900 uppercase tracking-wider shadow-sm">
-                                            +{schoolOverview.clubs.length - 6} clubes
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-10">
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-4">Solicitar entrada em outros clubes</p>
-                            {otherSchoolClubs.length === 0 ? (
-                                <p className="text-sm font-bold text-slate-700 bg-slate-50 border-[3px] border-dashed border-slate-300 rounded-[2rem] px-5 py-4">
-                                    Não há outros clubes da sua unidade escolar disponíveis para solicitação no momento.
-                                </p>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {otherSchoolClubs.map((club) => {
-                                        const clubId = String(club?.id || '').trim();
-                                        const requestState = getMembershipRequestState(clubId);
-                                        const isPending = requestState.isPending;
-                                        const isRejected = requestState.isRejected;
-                                        const isAccepted = requestState.isAccepted;
-                                        const isRequesting = requestingClubIds instanceof Set && requestingClubIds.has(clubId);
-                                        const isMember = isLoggedUserMemberOfClub(club);
-
-                                        const statusConfig = isPending
-                                            ? { icon: Clock3, label: 'Pendente', classes: 'bg-yellow-400 text-slate-900' }
-                                            : isRejected
-                                                ? { icon: XCircle, label: 'Recusada', classes: 'bg-pink-500 text-white' }
-                                                : isAccepted
-                                                    ? { icon: CheckCircle2, label: 'Aceita', classes: 'bg-cyan-300 text-slate-900' }
-                                                    : isMember
-                                                        ? { icon: CheckCircle2, label: 'Participando', classes: 'bg-cyan-300 text-slate-900' }
-                                                        : null;
-
-                                        const StatusIcon = statusConfig?.icon || null;
-                                        const hasLegacySeal = hasLegacyClubSeal(club);
-
-                                        return (
-                                            <article key={clubId} className="rounded-[2rem] border-[3px] border-slate-900 bg-white p-5 shadow-sm">
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-black text-slate-900 uppercase truncate">{club?.nome || 'Clube'}</p>
-                                                        <p className="text-[11px] font-bold text-slate-600 mt-1 truncate">{club?.escola_nome || schoolOverview.schoolLabel}</p>
-                                                        {hasLegacySeal && (
-                                                            <PioneerSealBadge className="mt-2" />
-                                                        )}
-                                                    </div>
-                                                    {statusConfig && (
-                                                        <span className={`inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm ${statusConfig.classes}`}>
-                                                            {StatusIcon && <StatusIcon className="w-3.5 h-3.5 stroke-[3]" />}
-                                                            {statusConfig.label}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStudentJoinRequest(clubId)}
-                                                    disabled={isMember || isPending || isAccepted || isRequesting}
-                                                    className="mt-4 w-full rounded-full px-5 py-3 text-xs font-black uppercase tracking-wider bg-cyan-300 text-slate-900 border-[3px] border-slate-900 shadow-sm hover:bg-cyan-200 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
-                                                >
-                                                    {isMember ? 'Participando' : isRequesting ? 'Enviando...' : isPending ? 'Aguardando' : isAccepted ? 'Aceita' : isRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
-                                                </button>
-                                            </article>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </section>
 
                     <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                         <div className="xl:col-span-5 bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">

@@ -20,6 +20,7 @@ import {
 import EmptyState from '../shared/EmptyState';
 import ModalPerfil from './ModalPerfil';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
+import { normalizeClubBannerMode } from '../../constants/clubBannerModes';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 
 const PIONEER_CUTOFF_MS = new Date('2026-04-30T00:00:00-03:00').getTime();
@@ -64,6 +65,44 @@ const normalizeExternalUrl = (value) => {
     if (raw.startsWith('data:')) return raw;
     if (/^https?:\/\//i.test(raw)) return raw;
     return `https://${raw}`;
+};
+
+const resolveClubBannerMode = (club) => normalizeClubBannerMode(club?.banner_mode || club?.banner_modo);
+
+const getModalBannerModeConfig = (mode) => {
+    if (mode === 'contain') {
+        return {
+            containerClass: 'bg-[radial-gradient(circle_at_top,#dbeafe_0%,#f8fafc_60%,#ffffff_100%)] p-4 md:p-6',
+            frameClass: 'h-full w-full overflow-hidden rounded-[2rem] border-[2px] border-slate-900/55 bg-white/90',
+            imageClass: 'h-full w-full object-contain',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/90 via-white/35 to-transparent'
+        };
+    }
+
+    if (mode === 'focus') {
+        return {
+            containerClass: 'bg-slate-100',
+            frameClass: 'h-full w-full overflow-hidden',
+            imageClass: 'h-full w-full object-cover scale-[1.08] saturate-125 contrast-110 transition-transform duration-1000',
+            overlayClass: 'absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.44)_0%,rgba(15,23,42,0.18)_40%,rgba(255,255,255,0)_100%)]'
+        };
+    }
+
+    if (mode === 'poster') {
+        return {
+            containerClass: 'bg-[repeating-linear-gradient(130deg,#e2e8f0_0px,#e2e8f0_16px,#f8fafc_16px,#f8fafc_32px)] p-4 md:p-6',
+            frameClass: 'h-full w-full overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white p-2 shadow-[6px_6px_0px_0px_rgba(15,23,42,0.3)]',
+            imageClass: 'h-full w-full rounded-[1.1rem] border-[2px] border-slate-900/65 object-cover',
+            overlayClass: 'absolute inset-0 bg-gradient-to-t from-white/75 via-white/15 to-transparent'
+        };
+    }
+
+    return {
+        containerClass: 'bg-slate-100',
+        frameClass: 'h-full w-full overflow-hidden',
+        imageClass: 'h-full w-full object-cover',
+        overlayClass: 'absolute inset-0 bg-gradient-to-t from-white via-white/90 to-white/20'
+    };
 };
 
 const PioneerBadge = ({ compact = false, className = '' }) => (
@@ -281,6 +320,8 @@ export default function ModalClubView({
     const hasClubPioneerSeal = useMemo(() => hasPioneerSeal(viewingClub), [viewingClub]);
 
     const clubBannerUrl = normalizeText(viewingClub?.banner_url || viewingClub?.banner || viewingClub?.cover);
+    const clubBannerMode = resolveClubBannerMode(viewingClub);
+    const modalBannerModeConfig = getModalBannerModeConfig(clubBannerMode);
     const clubLogoUrl = normalizeText(viewingClub?.logo_url || viewingClub?.logo || viewingClub?.emblem);
 
     const shouldRender = Boolean(isOpen && viewingClub);
@@ -353,17 +394,19 @@ export default function ModalClubView({
 
                     <div className="modal-club-scrollbar h-full overflow-y-auto p-6 md:p-10">
                         <section className="relative overflow-hidden rounded-[2.5rem] border-[3px] border-slate-900 bg-white shadow-lg">
-                            <div className="absolute inset-0">
+                            <div className={`absolute inset-0 ${modalBannerModeConfig.containerClass}`}>
                                 {clubBannerUrl ? (
-                                    <img
-                                        src={clubBannerUrl}
-                                        alt={`Banner do clube ${viewingClub?.nome || ''}`}
-                                        className="h-full w-full object-cover"
-                                    />
+                                    <div className={modalBannerModeConfig.frameClass}>
+                                        <img
+                                            src={clubBannerUrl}
+                                            alt={`Banner do clube ${viewingClub?.nome || ''}`}
+                                            className={modalBannerModeConfig.imageClass}
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="h-full w-full bg-[linear-gradient(130deg,#fde047_0%,#67e8f9_52%,#f9a8d4_100%)]" />
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/90 to-white/20" />
+                                <div className={modalBannerModeConfig.overlayClass} />
                             </div>
 
                             <div className="relative z-10 flex min-h-[320px] flex-col justify-end gap-6 p-6 md:p-10">
