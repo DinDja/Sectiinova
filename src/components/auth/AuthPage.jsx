@@ -350,6 +350,7 @@ export default function AuthPage({
   const MIN_SCHOOL_SEARCH_CHARS = 2;
   const MATRICULA_REALTIME_MIN_DIGITS = 6;
   const SEC_REALTIME_DEBOUNCE_MS = 650;
+  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 20000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -701,6 +702,7 @@ export default function AuthPage({
 
     const requestId = secRealtimeRequestRef.current + 1;
     secRealtimeRequestRef.current = requestId;
+    const realtimeAbortController = new AbortController();
 
     const timeoutId = window.setTimeout(async () => {
       setSecRealtimeValidation({
@@ -714,6 +716,9 @@ export default function AuthPage({
           matricula: matriculaDigits,
           schoolUnit: selectedSchoolUnit,
           redeAdministrativa: registerForm.rede_administrativa,
+        }, {
+          signal: realtimeAbortController.signal,
+          timeoutMs: SEC_REALTIME_REQUEST_TIMEOUT_MS,
         });
 
         if (secRealtimeRequestRef.current !== requestId) return;
@@ -733,11 +738,21 @@ export default function AuthPage({
           payload: result || null,
         });
       } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+
         if (secRealtimeRequestRef.current !== requestId) return;
+
+        const rawMessage = String(error?.message || "Falha ao validar matricula.").trim();
+        const isTimeoutMessage = /timed out|timeout|tempo limite|signal timed out/i.test(rawMessage);
+        const normalizedMessage = isTimeoutMessage
+          ? "A SEC esta demorando para responder. Aguarde e tente novamente."
+          : rawMessage;
 
         setSecRealtimeValidation({
           status: "error",
-          message: String(error?.message || "Falha ao validar matricula."),
+          message: normalizedMessage,
           payload: null,
         });
       }
@@ -745,6 +760,7 @@ export default function AuthPage({
 
     return () => {
       window.clearTimeout(timeoutId);
+      realtimeAbortController.abort();
     };
   }, [
     registerForm.matricula,

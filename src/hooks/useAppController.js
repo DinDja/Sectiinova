@@ -1576,6 +1576,8 @@ export default function useAppController() {
                     matricula: registerForm.matricula,
                     schoolUnit: escolaUnit,
                     redeAdministrativa: registerForm.rede_administrativa
+                }, {
+                    timeoutMs: 60000
                 });
 
                 if (!result?.valid) {

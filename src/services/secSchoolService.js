@@ -1,4 +1,4 @@
-const SEC_FETCH_TIMEOUT_MS = 25000;
+const SEC_FETCH_TIMEOUT_MS = 45000;
 const SEC_ENDPOINT_CANDIDATES = [
   "/api/sec-escola/servidores",
   "/.netlify/functions/sec-escola-servidores",
@@ -15,8 +15,41 @@ function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {
   return undefined;
 }
 
-async function requestSecSchool(payload) {
+function isTimeoutLikeError(error) {
+  const name = String(error?.name || "").trim().toLowerCase();
+  const message = String(error?.message || "").trim().toLowerCase();
+
+  if (name === "aborterror") return true;
+
+  return (
+    message.includes("timed out")
+    || message.includes("timeout")
+    || message.includes("tempo limite")
+    || message.includes("signal timed out")
+  );
+}
+
+function createRequestSignal(timeoutMs, externalSignal) {
+  const timeoutSignal = createRequestTimeoutSignal(timeoutMs);
+
+  if (!externalSignal) return timeoutSignal;
+  if (!timeoutSignal) return externalSignal;
+
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+    return AbortSignal.any([externalSignal, timeoutSignal]);
+  }
+
+  return externalSignal;
+}
+
+async function requestSecSchool(payload, options = {}) {
   const fallbackErrors = [];
+  const timeoutMsInput = Number(options?.timeoutMs);
+  const timeoutMs = Number.isFinite(timeoutMsInput) && timeoutMsInput > 0
+    ? timeoutMsInput
+    : SEC_FETCH_TIMEOUT_MS;
+  const externalSignal = options?.signal;
+  const allowEndpointFallback = options?.allowEndpointFallback !== false;
 
   for (let index = 0; index < SEC_ENDPOINT_CANDIDATES.length; index += 1) {
     const endpoint = SEC_ENDPOINT_CANDIDATES[index];
@@ -29,7 +62,7 @@ async function requestSecSchool(payload) {
           "Content-Type": "application/json; charset=utf-8",
         },
         body: JSON.stringify(payload),
-        signal: createRequestTimeoutSignal(),
+        signal: createRequestSignal(timeoutMs, externalSignal),
       });
 
       const rawResponse = await response.text();
@@ -45,7 +78,7 @@ async function requestSecSchool(payload) {
         return data;
       }
 
-      if (!isLastEndpoint && shouldTryFallback(response.status)) {
+      if (!isLastEndpoint && allowEndpointFallback && shouldTryFallback(response.status)) {
         fallbackErrors.push(
           `${endpoint} retornou HTTP ${response.status}`,
         );
@@ -58,20 +91,26 @@ async function requestSecSchool(payload) {
         || `Falha ao consultar dados da SEC (HTTP ${response.status}).`,
       );
     } catch (error) {
-      const message = String(error?.message || "").trim();
-      const isAbortError = error?.name === "AbortError";
-
-      if (!isLastEndpoint) {
-        fallbackErrors.push(
-          `${endpoint} falhou: ${isAbortError ? "timeout" : message || "erro de rede"}`,
-        );
-        continue;
+      if (externalSignal?.aborted) {
+        const abortError = new Error("Request aborted");
+        abortError.name = "AbortError";
+        throw abortError;
       }
 
-      if (isAbortError) {
+      const message = String(error?.message || "").trim();
+      const isTimeoutError = isTimeoutLikeError(error);
+
+      if (isTimeoutError) {
         throw new Error(
           "A consulta da SEC excedeu o tempo limite. Tente novamente em instantes.",
         );
+      }
+
+      if (!isLastEndpoint && allowEndpointFallback) {
+        fallbackErrors.push(
+          `${endpoint} falhou: ${message || "erro de rede"}`,
+        );
+        continue;
       }
 
       if (fallbackErrors.length > 0) {
@@ -121,7 +160,7 @@ export async function validateTeacherRegistrationBySec({
   matricula,
   schoolUnit,
   redeAdministrativa,
-}) {
+}, options = {}) {
   const normalizedMatricula = String(matricula || "").replace(/\D+/g, "").trim();
   if (!normalizedMatricula) {
     throw new Error("Informe a matricula para validacao na SEC.");
@@ -135,5 +174,5 @@ export async function validateTeacherRegistrationBySec({
   return requestSecSchool({
     ...schoolPayload,
     matricula: normalizedMatricula,
-  });
+  }, options);
 }
