@@ -693,7 +693,7 @@ export default function AuthPage({
     if (!selectedSchoolUnit || !String(registerForm.escola_id || "").trim()) {
       setSecRealtimeValidation({
         status: "waiting-school",
-        message: "Selecione a unidade escolar para validar a matricula na SEC.",
+        message: "Selecione a unidade escolar para validar a matricula.",
         payload: null,
       });
       return undefined;
@@ -705,7 +705,7 @@ export default function AuthPage({
     const timeoutId = window.setTimeout(async () => {
       setSecRealtimeValidation({
         status: "loading",
-        message: "Consultando SEC para validar a matricula...",
+        message: "Consultando para validar a matricula...",
         payload: null,
       });
 
@@ -721,7 +721,7 @@ export default function AuthPage({
         if (result?.valid) {
           setSecRealtimeValidation({
             status: "valid",
-            message: String(result?.reason || "Servidor validado na SEC para a unidade selecionada."),
+            message: String(result?.reason || "Servidor validado para a unidade selecionada."),
             payload: result,
           });
           return;
@@ -737,7 +737,7 @@ export default function AuthPage({
 
         setSecRealtimeValidation({
           status: "error",
-          message: String(error?.message || "Falha ao validar matricula na SEC em tempo real."),
+          message: String(error?.message || "Falha ao validar matricula."),
           payload: null,
         });
       }

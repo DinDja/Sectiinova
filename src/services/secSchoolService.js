@@ -1,22 +1,90 @@
-async function requestSecSchool(payload) {
-  const response = await fetch("/api/sec-escola/servidores", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify(payload),
-  });
+const SEC_FETCH_TIMEOUT_MS = 25000;
+const SEC_ENDPOINT_CANDIDATES = [
+  "/api/sec-escola/servidores",
+  "/.netlify/functions/sec-escola-servidores",
+];
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(
-      data?.error
-      || data?.message
-      || "Falha ao consultar dados da SEC.",
-    );
+function shouldTryFallback(responseStatus) {
+  return responseStatus === 404 || responseStatus === 405;
+}
+
+function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  return undefined;
+}
+
+async function requestSecSchool(payload) {
+  const fallbackErrors = [];
+
+  for (let index = 0; index < SEC_ENDPOINT_CANDIDATES.length; index += 1) {
+    const endpoint = SEC_ENDPOINT_CANDIDATES[index];
+    const isLastEndpoint = index === SEC_ENDPOINT_CANDIDATES.length - 1;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(payload),
+        signal: createRequestTimeoutSignal(),
+      });
+
+      const rawResponse = await response.text();
+      let data = {};
+
+      try {
+        data = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch {
+        data = {};
+      }
+
+      if (response.ok) {
+        return data;
+      }
+
+      if (!isLastEndpoint && shouldTryFallback(response.status)) {
+        fallbackErrors.push(
+          `${endpoint} retornou HTTP ${response.status}`,
+        );
+        continue;
+      }
+
+      throw new Error(
+        data?.error
+        || data?.message
+        || `Falha ao consultar dados da SEC (HTTP ${response.status}).`,
+      );
+    } catch (error) {
+      const message = String(error?.message || "").trim();
+      const isAbortError = error?.name === "AbortError";
+
+      if (!isLastEndpoint) {
+        fallbackErrors.push(
+          `${endpoint} falhou: ${isAbortError ? "timeout" : message || "erro de rede"}`,
+        );
+        continue;
+      }
+
+      if (isAbortError) {
+        throw new Error(
+          "A consulta da SEC excedeu o tempo limite. Tente novamente em instantes.",
+        );
+      }
+
+      if (fallbackErrors.length > 0) {
+        throw new Error(
+          `Falha ao consultar a SEC. Tentativas: ${[...fallbackErrors, `${endpoint} falhou: ${message || "erro de rede"}`].join(" | ")}`,
+        );
+      }
+
+      throw new Error(message || "Falha ao consultar dados da SEC.");
+    }
   }
 
-  return data;
+  throw new Error("Falha ao consultar dados da SEC.");
 }
 
 function buildSchoolPayload(schoolUnit = {}, redeAdministrativa = "estadual") {
