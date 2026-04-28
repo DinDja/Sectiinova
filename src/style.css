@@ -666,20 +666,51 @@ html[data-ui-theme] ::-webkit-scrollbar-thumb {
 }
 
 /* UI style presets */
+html[data-ui-style="material"] .app-shell .studio-main {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(148, 163, 184, 0.14), transparent 34%),
+    radial-gradient(circle at 88% 82%, rgba(96, 165, 250, 0.16), transparent 36%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
 html[data-ui-style="material"] .app-shell button,
 html[data-ui-style="material"] .app-shell input,
 html[data-ui-style="material"] .app-shell select,
 html[data-ui-style="material"] .app-shell textarea {
-  border-radius: 0.9rem !important;
+  border-radius: 1rem !important;
 }
 
-html[data-ui-style="material"] .app-shell button {
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14) !important;
-  border-width: 2px !important;
+html[data-ui-style="material"] .app-shell [class*="border-4"],
+html[data-ui-style="material"] .app-shell [class*="border-3"] {
+  border-width: 1.5px !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="shadow-["] {
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14) !important;
+html[data-ui-style="material"] .app-shell [class*="border-slate-900"] {
+  border-color: rgba(15, 23, 42, 0.24) !important;
+}
+
+html[data-ui-style="material"] .app-shell [class*="shadow"] {
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-ui-style="material"] .app-shell button:hover {
+  transform: translateY(-1px) !important;
+}
+
+html[data-ui-style="material"] .app-shell [class*="bg-yellow-300"] {
+  background-color: #fef3c7 !important;
+}
+
+html[data-ui-style="material"] .app-shell [class*="bg-pink-400"] {
+  background-color: #f9a8d4 !important;
+}
+
+html[data-ui-style="material"] .app-shell [class*="bg-orange-400"] {
+  background-color: #fdba74 !important;
+}
+
+html[data-ui-style="modern"] .app-shell .studio-main {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 html[data-ui-style="modern"] .app-shell button,
@@ -690,32 +721,53 @@ html[data-ui-style="modern"] .app-shell textarea {
 }
 
 html[data-ui-style="modern"] .app-shell [class*="border-4"],
-html[data-ui-style="modern"] .app-shell [class*="border-3"] {
+html[data-ui-style="modern"] .app-shell [class*="border-3"],
+html[data-ui-style="modern"] .app-shell [class*="border-2"] {
   border-width: 1px !important;
 }
 
-html[data-ui-style="modern"] .app-shell [class*="shadow-["] {
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1) !important;
+html[data-ui-style="modern"] .app-shell [class*="border-slate-900"] {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-ui-style="modern"] .app-shell [class*="shadow"] {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-ui-style="modern"] .app-shell .font-black {
+  font-weight: 700 !important;
+}
+
+html[data-ui-style="modern"] .app-shell [class*="rotate-"],
+html[data-ui-style="modern"] .app-shell [class*="-rotate-"] {
+  transform: none !important;
+}
+
+html[data-ui-style="modern"] .app-shell button:hover {
+  transform: none !important;
 }
 
 html[data-ui-style="glass"] .app-shell .studio-main {
   background:
+    radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.24), transparent 35%),
+    radial-gradient(circle at 90% 84%, rgba(167, 139, 250, 0.24), transparent 36%),
     radial-gradient(circle, var(--studio-main-dot) 1px, transparent 1px),
-    linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.64) 0%,
-      rgba(248, 250, 252, 0.72) 100%
-    );
-  background-size: 26px 26px, auto;
+    linear-gradient(150deg, rgba(255, 255, 255, 0.76) 0%, rgba(241, 245, 249, 0.78) 100%);
+  background-size: auto, auto, 24px 24px, auto;
 }
 
-html[data-ui-style="glass"] .app-shell [class*="bg-white"][class*="border"] {
-  background: rgba(255, 255, 255, 0.58) !important;
-  backdrop-filter: blur(8px);
+html[data-ui-style="glass"] .app-shell [class*="bg-white"][class*="border"],
+html[data-ui-style="glass"] .app-shell [class*="bg-slate-50"][class*="border"] {
+  background: rgba(255, 255, 255, 0.52) !important;
+  backdrop-filter: blur(10px);
 }
 
-html[data-ui-style="glass"] .app-shell [class*="shadow-["] {
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18) !important;
+html[data-ui-style="glass"] .app-shell [class*="border-slate-900"] {
+  border-color: rgba(15, 23, 42, 0.22) !important;
+}
+
+html[data-ui-style="glass"] .app-shell [class*="shadow"] {
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2) !important;
 }
 
 html[data-ui-style="glass"] .app-shell button {

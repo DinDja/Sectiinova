@@ -183,17 +183,17 @@ export default function TopBar({
       await onRespondClubJoinRequest(normalizedRequestId, accept);
       setNotificationToast(
         "success",
-        accept ? "SolicitaÃ§Ã£o aceita com sucesso." : "SolicitaÃ§Ã£o recusada.",
+        accept ? "Solicitação aceita com sucesso." : "Solicitação recusada.",
       );
     } catch (error) {
       const message =
         String(error?.message || "").trim() ||
-        "NÃ£o foi possÃ­vel processar esta solicitaÃ§Ã£o.";
+        "Não foi possível processar esta solicitação.";
       setNotificationToast("error", message);
     }
   };
 
-  const userName = loggedUser?.nome || leadUser?.nome || "UsuÃ¡rio";
+  const userName = loggedUser?.nome || leadUser?.nome || "Usuário";
   const userEmail = loggedUser?.email || leadUser?.email || "usuario@email.com";
   const userAvatar =
     loggedUser?.fotoBase64 ||
@@ -336,10 +336,10 @@ export default function TopBar({
                     className={`relative inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 p-2.5 text-slate-900 shadow-sm transition-transform active:scale-95 hover:scale-105 ${
                       showNotifications ? "bg-yellow-400" : "bg-white"
                     }`}
-                    title="SolicitaÃ§Ãµes de entrada"
+                    title="Solicitações de entrada"
                   >
                     <Bell className="h-5 w-5 stroke-[3]" />
-                    <span className="sr-only">SolicitaÃ§Ãµes de entrada</span>
+                    <span className="sr-only">Solicitações de entrada</span>
                     {joinRequestsCount > 0 && (
                       <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-[1.35rem] items-center justify-center rounded-full border-[2px] border-slate-900 bg-pink-500 px-1 py-0.5 text-[10px] font-black text-white">
                         {joinRequestsCount > 99 ? "99+" : joinRequestsCount}
@@ -351,7 +351,7 @@ export default function TopBar({
                     <div className="absolute right-0 mt-3 w-[min(26rem,calc(100vw-1rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
                       <div className="border-b-[3px] border-slate-900 bg-yellow-400 px-5 py-4">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-900">
-                          SolicitaÃ§Ãµes de Entrada
+                          Solicitações de Entrada
                         </p>
                         <p className="mt-1 text-[11px] font-bold text-slate-800">
                           {viewingClub?.nome
@@ -375,7 +375,7 @@ export default function TopBar({
                       <div className="max-h-[22rem] space-y-3 overflow-y-auto bg-slate-50 p-4">
                         {normalizedClubJoinRequests.length === 0 ? (
                           <div className="rounded-[1.2rem] border-[3px] border-dashed border-slate-300 bg-white px-4 py-7 text-center text-[11px] font-black uppercase tracking-widest text-slate-500">
-                            Nenhuma solicitaÃ§Ã£o pendente.
+                            Nenhuma solicitação pendente.
                           </div>
                         ) : (
                           normalizedClubJoinRequests.map((request) => {

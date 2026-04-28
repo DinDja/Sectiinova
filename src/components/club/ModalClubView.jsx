@@ -105,18 +105,6 @@ const getModalBannerModeConfig = (mode) => {
     };
 };
 
-const PioneerBadge = ({ compact = false, className = '' }) => (
-    <span
-        className={`inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-lime-300 px-3 py-1 font-black uppercase tracking-wider text-slate-900 shadow-sm ${compact ? 'text-[10px]' : 'text-xs'} ${className}`}
-        title={PIONEER_SEAL_REASON}
-        aria-label={`${PIONEER_SEAL_LABEL}. ${PIONEER_SEAL_REASON}`}
-    >
-        {PIONEER_SYMBOLS.map(({ icon: Icon, className: iconClass }, index) => (
-            <Icon key={`pioneer-icon-${index}`} className={iconClass} />
-        ))}
-        <span>{compact ? 'Pioneiro' : PIONEER_SEAL_LABEL}</span>
-    </span>
-);
 
 const MemberCard = ({ person, roleLabel, roleTone = 'mentor', onOpenProfile }) => {
     const summary = getLattesSummary(person);
@@ -412,7 +400,7 @@ export default function ModalClubView({
                             <div className="relative z-10 flex min-h-[320px] flex-col justify-end gap-6 p-6 md:p-10">
                                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                                     <div className="flex min-w-0 flex-1 flex-col items-start gap-5 md:flex-row md:items-end">
-                                        <div className="h-24 w-24 overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm md:h-32 md:w-32">
+                                        <div className="h-24 w-24 overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm md:h-32 md:w-32 mr-5">
                                             {clubLogoUrl ? (
                                                 <img
                                                     src={clubLogoUrl}
@@ -438,16 +426,6 @@ export default function ModalClubView({
                                                     <MapIcon className="h-4 w-4 stroke-[3]" />
                                                     {schoolName}
                                                 </span>
-                                                <span className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-slate-900">
-                                                    <Microscope className="h-4 w-4 stroke-[3]" />
-                                                    {investigatorPeople.length} pesquisador{investigatorPeople.length === 1 ? '' : 'es'}
-                                                </span>
-                                                <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-pink-500 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white">
-                                                    {investigatorRatio}% da equipe
-                                                </span>
-                                                {hasClubPioneerSeal && (
-                                                    <PioneerBadge />
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -457,7 +435,6 @@ export default function ModalClubView({
                                             { icon: FolderKanban, value: viewingClubProjects.length, label: 'Projetos', color: 'bg-cyan-300' },
                                             { icon: Users, value: memberCount, label: 'Membros', color: 'bg-yellow-300' },
                                             { icon: GraduationCap, value: mentorPeople.length, label: 'Mentores', color: 'bg-pink-400 text-white' },
-                                            { icon: BookOpen, value: Number(viewingClubDiaryCount || 0), label: 'Registros', color: 'bg-white' }
                                         ].map((stat) => (
                                             <article
                                                 key={stat.label}
@@ -470,15 +447,6 @@ export default function ModalClubView({
                                         ))}
                                     </div>
                                 </div>
-
-                                {hasClubPioneerSeal && (
-                                    <p className="inline-flex max-w-4xl items-start gap-2 rounded-[1rem] border-[3px] border-slate-900 bg-white/95 px-4 py-3 text-xs font-bold leading-relaxed text-slate-800">
-                                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 stroke-[2.8] text-pink-500" />
-                                        <span>
-                                            Este clube recebeu o <span className="font-black uppercase">{PIONEER_SEAL_LABEL}</span> por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.
-                                        </span>
-                                    </p>
-                                )}
                             </div>
                         </section>
 
@@ -491,38 +459,6 @@ export default function ModalClubView({
                                 <p className="whitespace-pre-line text-sm font-bold leading-relaxed text-slate-700">
                                     {clubDescription}
                                 </p>
-                            </article>
-
-                            <article className="xl:col-span-7 rounded-[2.2rem] border-[3px] border-slate-900 bg-white p-6 shadow-sm md:p-8">
-                                <div className="mb-4 flex items-center justify-between gap-3 border-b-[3px] border-slate-900 pb-4">
-                                    <h3 className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-slate-900">
-                                        <Building2 className="h-7 w-7 stroke-[2.8] text-cyan-500" />
-                                        Unidade escolar
-                                    </h3>
-                                    <span className="inline-flex rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                        {schoolName}
-                                    </span>
-                                </div>
-
-                                {schoolMeta.length === 0 ? (
-                                    <p className="rounded-[1.5rem] border-[3px] border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-bold text-slate-600">
-                                        Nenhum dado complementar da escola foi informado neste clube.
-                                    </p>
-                                ) : (
-                                    <div className="flex flex-wrap gap-2.5">
-                                        {schoolMeta.map((item) => (
-                                            <span
-                                                key={`${item.label}:${item.value}`}
-                                                className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm"
-                                            >
-                                                <span>{item.label}</span>
-                                                <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-white">
-                                                    {item.value}
-                                                </span>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                             </article>
                         </section>
 
