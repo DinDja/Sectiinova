@@ -923,6 +923,7 @@ export async function validateSecTeacherByMatricula(input = {}, options = {}) {
       sameSchool: false,
       isProfessor: false,
       servidor: null,
+      ...(options?.includeInternalStaffSnapshot ? { internalStaffSnapshot: [] } : {}),
     };
   }
 
@@ -944,6 +945,7 @@ export async function validateSecTeacherByMatricula(input = {}, options = {}) {
       sameSchool: false,
       isProfessor: false,
       servidor: null,
+      ...(options?.includeInternalStaffSnapshot ? { internalStaffSnapshot: [] } : {}),
     };
   }
 
@@ -997,5 +999,6 @@ export async function validateSecTeacherByMatricula(input = {}, options = {}) {
     sameSchool,
     isProfessor,
     servidor: chosenServidor,
+    ...(options?.includeInternalStaffSnapshot ? { internalStaffSnapshot: servidores } : {}),
   };
 }

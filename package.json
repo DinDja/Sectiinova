@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest"
+    "test": "vitest",
+    "sec:seed-cache": "node scripts/secSeedPersistentCache.js"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
