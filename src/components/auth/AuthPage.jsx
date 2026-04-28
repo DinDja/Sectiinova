@@ -762,9 +762,52 @@ export default function AuthPage({
 
         if (result?.temporarilyUnavailable) {
           secRealtimeUnavailableUntilRef.current = Date.now() + SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS;
+          const warmupRequested = Boolean(result?.cacheWarmupRequested);
+
+          if (!warmupRequested) {
+            const redeNormalizada = String(registerForm.rede_administrativa || "").trim().toLowerCase();
+            const codigoSecExplicito = String(
+              selectedSchoolUnit?.cod_sec
+              || selectedSchoolUnit?.codigo_sec
+              || selectedSchoolUnit?.codigoSec
+              || "",
+            ).trim();
+
+            const codigoSecWarmup = codigoSecExplicito
+              || (redeNormalizada === "estadual" ? String(selectedSchoolUnit?.escola_id || "").trim() : "");
+
+            const codigoMecWarmup = String(
+              selectedSchoolUnit?.cod_inep
+              || selectedSchoolUnit?.codigo_mec
+              || selectedSchoolUnit?.inep
+              || (redeNormalizada === "municipal" ? selectedSchoolUnit?.escola_id : "")
+              || "",
+            ).trim();
+
+            if (codigoMecWarmup && codigoSecWarmup) {
+              fetch("/.netlify/functions/sec-escola-cache-warm-background", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json; charset=utf-8",
+                },
+                body: JSON.stringify({
+                  codigoMec: codigoMecWarmup,
+                  codigoSec: codigoSecWarmup,
+                  anexo: String(selectedSchoolUnit?.anexo || selectedSchoolUnit?.seq_anexo || "00").trim() || "00",
+                  nomeEscola: String(selectedSchoolUnit?.nome || selectedSchoolUnit?.escola_nome || "").trim(),
+                  municipio: String(selectedSchoolUnit?.municipio || selectedSchoolUnit?.escola_municipio || "").trim(),
+                }),
+              }).catch(() => {
+                // Warmup e melhor-esforco; o fluxo principal ja tratou indisponibilidade.
+              });
+            }
+          }
+
           setSecRealtimeValidation({
             status: "error",
-            message: String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
+            message: (warmupRequested || !selectedSchoolUnit)
+              ? "A SEC esta lenta. Ja iniciamos o aquecimento do cache desta unidade. Aguarde alguns segundos e tente novamente."
+              : String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
             payload: null,
           });
           return;

@@ -68,12 +68,41 @@ function canTriggerWarmup(payload = {}) {
   return Boolean(warmupPayload.codigoMec && warmupPayload.codigoSec);
 }
 
-async function triggerBackgroundWarmup(payload = {}) {
+async function triggerBackgroundWarmup(payload = {}, event = {}) {
   if (!canTriggerWarmup(payload)) {
     return false;
   }
 
+  const headers = event?.headers || {};
+  const rawUrl = String(event?.rawUrl || "").trim();
+  let derivedFromRequest = "";
+
+  if (rawUrl) {
+    try {
+      derivedFromRequest = new URL(rawUrl).origin;
+    } catch {
+      derivedFromRequest = "";
+    }
+  }
+
+  if (!derivedFromRequest) {
+    const proto = String(headers["x-forwarded-proto"] || headers["X-Forwarded-Proto"] || "https").trim() || "https";
+    const host = String(
+      headers["x-forwarded-host"]
+      || headers["X-Forwarded-Host"]
+      || headers.host
+      || headers.Host
+      || "",
+    ).trim();
+
+    if (host) {
+      derivedFromRequest = `${proto}://${host}`;
+    }
+  }
+
   const siteBase =
+    normalizeUrlBase(derivedFromRequest)
+    ||
     normalizeUrlBase(process.env.URL)
     || normalizeUrlBase(process.env.DEPLOY_PRIME_URL)
     || normalizeUrlBase(process.env.DEPLOY_URL);
@@ -90,15 +119,16 @@ async function triggerBackgroundWarmup(payload = {}) {
   }, SEC_BACKGROUND_WARMUP_TRIGGER_TIMEOUT_MS);
 
   try {
-    await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json; charset=utf-8",
+        "x-sec-cache-warm-trigger": "1",
       },
       body: JSON.stringify(warmupPayload),
       signal: controller.signal,
     });
-    return true;
+    return response.ok;
   } catch {
     return false;
   } finally {
@@ -380,7 +410,7 @@ export async function handler(event) {
         });
       }
 
-      const warmupTriggered = await triggerBackgroundWarmup(payload);
+      const warmupTriggered = await triggerBackgroundWarmup(payload, event);
 
       if (cachedValidationResult && !cachedValidationResult.cacheFresh) {
         return json(200, {
