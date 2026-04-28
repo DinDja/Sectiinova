@@ -1577,7 +1577,8 @@ export default function useAppController() {
                     schoolUnit: escolaUnit,
                     redeAdministrativa: registerForm.rede_administrativa
                 }, {
-                    timeoutMs: 60000
+                    timeoutMs: 60000,
+                    allowEndpointFallback: false
                 });
 
                 if (!result?.valid) {

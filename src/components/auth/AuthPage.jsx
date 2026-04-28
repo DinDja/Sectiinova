@@ -352,6 +352,7 @@ export default function AuthPage({
   const SEC_REALTIME_DEBOUNCE_MS = 650;
   const SEC_REALTIME_REQUEST_TIMEOUT_MS = 35000;
   const SEC_REALTIME_CACHE_TTL_MS = 5 * 60 * 1000;
+  const SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS = 60 * 1000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -372,6 +373,7 @@ export default function AuthPage({
   const cycleLottieRefs = useRef([]);
   const secRealtimeRequestRef = useRef(0);
   const secRealtimeResultCacheRef = useRef(new Map());
+  const secRealtimeUnavailableUntilRef = useRef(0);
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -702,6 +704,15 @@ export default function AuthPage({
       return undefined;
     }
 
+    if (secRealtimeUnavailableUntilRef.current > Date.now()) {
+      setSecRealtimeValidation({
+        status: "error",
+        message: "A SEC esta temporariamente indisponivel. Aguarde alguns instantes para tentar novamente.",
+        payload: null,
+      });
+      return undefined;
+    }
+
     const cacheKey = [
       String(registerForm.rede_administrativa || ""),
       String(selectedSchoolUnit?.escola_id || ""),
@@ -749,6 +760,16 @@ export default function AuthPage({
 
         if (secRealtimeRequestRef.current !== requestId) return;
 
+        if (result?.temporarilyUnavailable) {
+          secRealtimeUnavailableUntilRef.current = Date.now() + SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS;
+          setSecRealtimeValidation({
+            status: "error",
+            message: String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
+            payload: null,
+          });
+          return;
+        }
+
         if (result?.valid) {
           const nextValidation = {
             status: "valid",
@@ -782,9 +803,14 @@ export default function AuthPage({
 
         const rawMessage = String(error?.message || "Falha ao validar matricula.").trim();
         const isTimeoutMessage = /timed out|timeout|tempo limite|signal timed out/i.test(rawMessage);
+        const isGatewayMessage = /bad gateway|gateway|http 502|http 504|sec_upstream_unavailable/i.test(rawMessage.toLowerCase());
         const normalizedMessage = isTimeoutMessage
           ? "A SEC esta demorando para responder. Aguarde e tente novamente."
           : rawMessage;
+
+        if (isTimeoutMessage || isGatewayMessage) {
+          secRealtimeUnavailableUntilRef.current = Date.now() + SEC_REALTIME_UNAVAILABLE_COOLDOWN_MS;
+        }
 
         setSecRealtimeValidation({
           status: "error",

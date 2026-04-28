@@ -40,6 +40,15 @@ function hasMatricula(payload = {}) {
   return String(payload?.matricula || "").trim().length > 0;
 }
 
+function isClientPayloadError(message = "") {
+  const normalized = String(message || "").trim().toLowerCase();
+  return (
+    normalized.startsWith("informe ")
+    || normalized.includes("nao foi possivel identificar a unidade escolar")
+    || normalized.includes("para consultar servidores da escola")
+  );
+}
+
 export async function handler(event) {
   const method = String(event?.httpMethod || "").toUpperCase();
 
@@ -70,11 +79,30 @@ export async function handler(event) {
 
     return json(200, result);
   } catch (error) {
+    const message =
+      error instanceof Error
+        ? String(error.message || "").trim()
+        : "Falha inesperada ao consultar dados da SEC.";
+
+    if (isClientPayloadError(message)) {
+      return json(400, {
+        error: message,
+      });
+    }
+
+    if (hasMatricula(payload)) {
+      return json(200, {
+        ok: false,
+        valid: false,
+        temporarilyUnavailable: true,
+        reason: "A SEC esta temporariamente indisponivel. Tente novamente em instantes.",
+        errorCode: "SEC_UPSTREAM_UNAVAILABLE",
+        upstreamError: message,
+      });
+    }
+
     return json(502, {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Falha inesperada ao consultar dados da SEC.",
+      error: message || "Falha inesperada ao consultar dados da SEC.",
     });
   }
 }
