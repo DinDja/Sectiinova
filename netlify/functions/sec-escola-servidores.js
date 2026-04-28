@@ -3,6 +3,8 @@ import {
   validateSecTeacherByMatricula,
 } from "../../scripts/secSchoolStaffProxy.js";
 
+const SEC_MATRICULA_GUARD_TIMEOUT_MS = 8500;
+
 function json(statusCode, payload) {
   return {
     statusCode,
@@ -49,6 +51,21 @@ function isClientPayloadError(message = "") {
   );
 }
 
+async function runMatriculaValidationWithGuard(payload) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, SEC_MATRICULA_GUARD_TIMEOUT_MS);
+
+  try {
+    return await validateSecTeacherByMatricula(payload, {
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function handler(event) {
   const method = String(event?.httpMethod || "").toUpperCase();
 
@@ -71,10 +88,11 @@ export async function handler(event) {
   }
 
   const payload = getMergedPayload(event);
+  const shouldValidateMatricula = hasMatricula(payload);
 
   try {
-    const result = hasMatricula(payload)
-      ? await validateSecTeacherByMatricula(payload)
+    const result = shouldValidateMatricula
+      ? await runMatriculaValidationWithGuard(payload)
       : await fetchSecSchoolStaffFlow(payload);
 
     return json(200, result);
@@ -90,7 +108,7 @@ export async function handler(event) {
       });
     }
 
-    if (hasMatricula(payload)) {
+    if (shouldValidateMatricula) {
       return json(200, {
         ok: false,
         valid: false,

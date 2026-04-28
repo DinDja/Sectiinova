@@ -560,7 +560,8 @@ function parseStaffRows(html) {
   return rows;
 }
 
-async function runSchoolSearch(criteria) {
+async function runSchoolSearch(criteria, options = {}) {
+  const signal = options?.signal;
   const params = new URLSearchParams();
   params.set("hdProxyLet", "");
   params.set("strCorLinhaTitulo", "#DBEAF5");
@@ -584,6 +585,7 @@ async function runSchoolSearch(criteria) {
       Origin: "http://www.sec.ba.gov.br",
     },
     body: params.toString(),
+    signal,
   });
 
   if (!ok) {
@@ -595,7 +597,8 @@ async function runSchoolSearch(criteria) {
   return parseSchoolSearchRows(body);
 }
 
-async function loadSchoolDetail(selectedSchool) {
+async function loadSchoolDetail(selectedSchool, options = {}) {
+  const signal = options?.signal;
   const detailUrl = new URL(SCHOOL_DETAIL_URL);
   detailUrl.searchParams.set("codigo_mec", selectedSchool.codigoMec);
   detailUrl.searchParams.set("codigo_secretaria", selectedSchool.codigoSec);
@@ -606,6 +609,7 @@ async function loadSchoolDetail(selectedSchool) {
     headers: {
       Referer: SEARCH_PAGE_URL,
     },
+    signal,
   });
 
   if (!ok) {
@@ -628,7 +632,8 @@ async function loadSchoolDetail(selectedSchool) {
   };
 }
 
-async function loadSchoolStaffNominal(selectedSchool, detailData) {
+async function loadSchoolStaffNominal(selectedSchool, detailData, options = {}) {
+  const signal = options?.signal;
   const listUrl = new URL(STAFF_NOMINAL_URL);
   listUrl.searchParams.set("codigo_escola", selectedSchool.codigoMec);
   listUrl.searchParams.set("codigo_secretaria", selectedSchool.codigoSec);
@@ -651,6 +656,7 @@ async function loadSchoolStaffNominal(selectedSchool, detailData) {
     headers: {
       Referer: SCHOOL_DETAIL_URL,
     },
+    signal,
   });
 
   if (!ok) {
@@ -714,13 +720,13 @@ function buildSchoolFromCodes(criteria) {
   };
 }
 
-async function resolveSchoolsForCriteria(criteria) {
+async function resolveSchoolsForCriteria(criteria, options = {}) {
   if (criteria.codigoMec && criteria.codigoSec) {
     return [buildSchoolFromCodes(criteria)];
   }
 
   if (criteria.nomeEscola) {
-    return runSchoolSearch(criteria);
+    return runSchoolSearch(criteria, options);
   }
 
   return [];
@@ -800,14 +806,14 @@ function setStaffCacheEntry(selectedSchool, payload) {
   }
 }
 
-async function loadStaffForValidation(selectedSchool) {
+async function loadStaffForValidation(selectedSchool, options = {}) {
   const cached = getStaffCacheEntry(selectedSchool);
   if (cached?.payload) {
     return cached.payload;
   }
 
   try {
-    const staffData = await loadSchoolStaffNominal(selectedSchool, {});
+    const staffData = await loadSchoolStaffNominal(selectedSchool, {}, options);
     const payload = {
       staffData,
       detailData: null,
@@ -815,8 +821,8 @@ async function loadStaffForValidation(selectedSchool) {
     setStaffCacheEntry(selectedSchool, payload);
     return payload;
   } catch {
-    const detailData = await loadSchoolDetail(selectedSchool);
-    const staffData = await loadSchoolStaffNominal(selectedSchool, detailData);
+    const detailData = await loadSchoolDetail(selectedSchool, options);
+    const staffData = await loadSchoolStaffNominal(selectedSchool, detailData, options);
     const payload = {
       staffData,
       detailData,
@@ -826,11 +832,11 @@ async function loadStaffForValidation(selectedSchool) {
   }
 }
 
-export async function fetchSecSchoolStaffFlow(input = {}) {
+export async function fetchSecSchoolStaffFlow(input = {}, options = {}) {
   const criteria = buildSchoolSearchCriteria(input);
   validateInput(criteria);
 
-  const schools = await resolveSchoolsForCriteria(criteria);
+  const schools = await resolveSchoolsForCriteria(criteria, options);
 
   if (!schools.length) {
     return {
@@ -857,8 +863,8 @@ export async function fetchSecSchoolStaffFlow(input = {}) {
     };
   }
 
-  const detailData = await loadSchoolDetail(selectedSchool);
-  const staffData = await loadSchoolStaffNominal(selectedSchool, detailData);
+  const detailData = await loadSchoolDetail(selectedSchool, options);
+  const staffData = await loadSchoolStaffNominal(selectedSchool, detailData, options);
   const enrichedSelectedSchool = buildEnrichedSelectedSchool(selectedSchool, criteria, detailData);
 
   return {
@@ -890,7 +896,7 @@ export async function fetchSecSchoolStaffFlow(input = {}) {
   };
 }
 
-export async function validateSecTeacherByMatricula(input = {}) {
+export async function validateSecTeacherByMatricula(input = {}, options = {}) {
   const targetMatricula = normalizeDigits(input.matricula);
   if (!targetMatricula) {
     throw new Error("Informe a matricula para validar na SEC.");
@@ -899,7 +905,7 @@ export async function validateSecTeacherByMatricula(input = {}) {
   const criteria = buildSchoolSearchCriteria(input);
   validateInput(criteria);
 
-  const schools = await resolveSchoolsForCriteria(criteria);
+  const schools = await resolveSchoolsForCriteria(criteria, options);
 
   if (!schools.length) {
     return {
@@ -941,7 +947,7 @@ export async function validateSecTeacherByMatricula(input = {}) {
     };
   }
 
-  const { staffData, detailData } = await loadStaffForValidation(selectedSchool);
+  const { staffData, detailData } = await loadStaffForValidation(selectedSchool, options);
   const servidores = Array.isArray(staffData?.servidores) ? staffData.servidores : [];
   const enrichedSelectedSchool = buildEnrichedSelectedSchool(selectedSchool, criteria, detailData || {});
 
