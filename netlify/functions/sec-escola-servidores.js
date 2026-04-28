@@ -332,6 +332,8 @@ async function runMatriculaValidationWithGuard(payload) {
   try {
     return await validateSecTeacherByMatricula(payload, {
       signal: controller.signal,
+      allowDetailFallback: false,
+      disableStaffCache: true,
     });
   } finally {
     clearTimeout(timeoutId);

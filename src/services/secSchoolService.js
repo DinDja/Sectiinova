@@ -1,7 +1,7 @@
 const SEC_FETCH_TIMEOUT_MS = 45000;
 const SEC_ENDPOINT_CANDIDATES = [
-  "/.netlify/functions/sec-escola-servidores",
   "/api/sec-escola/servidores",
+  "/.netlify/functions/sec-escola-servidores",
 ];
 
 function resolveEndpointCandidates() {

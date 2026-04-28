@@ -807,28 +807,70 @@ function setStaffCacheEntry(selectedSchool, payload) {
 }
 
 async function loadStaffForValidation(selectedSchool, options = {}) {
-  const cached = getStaffCacheEntry(selectedSchool);
-  if (cached?.payload) {
-    return cached.payload;
+  const useStaffCache = options?.disableStaffCache !== true;
+  const allowDetailFallback = options?.allowDetailFallback !== false;
+
+  if (useStaffCache) {
+    const cached = getStaffCacheEntry(selectedSchool);
+    if (cached?.payload) {
+      return cached.payload;
+    }
+  }
+
+  let nominalError = null;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const staffData = await loadSchoolStaffNominal(selectedSchool, {}, options);
+      const payload = {
+        staffData,
+        detailData: null,
+      };
+
+      if (useStaffCache) {
+        setStaffCacheEntry(selectedSchool, payload);
+      }
+
+      return payload;
+    } catch (error) {
+      nominalError = error;
+    }
+  }
+
+  if (!allowDetailFallback) {
+    const nominalMessage = nominalError instanceof Error
+      ? String(nominalError.message || "").trim()
+      : "Falha ao consultar quadro de servidores na SEC.";
+
+    throw new Error(
+      nominalMessage || "Falha ao consultar quadro de servidores na SEC.",
+    );
   }
 
   try {
-    const staffData = await loadSchoolStaffNominal(selectedSchool, {}, options);
-    const payload = {
-      staffData,
-      detailData: null,
-    };
-    setStaffCacheEntry(selectedSchool, payload);
-    return payload;
-  } catch {
     const detailData = await loadSchoolDetail(selectedSchool, options);
     const staffData = await loadSchoolStaffNominal(selectedSchool, detailData, options);
     const payload = {
       staffData,
       detailData,
     };
-    setStaffCacheEntry(selectedSchool, payload);
+
+    if (useStaffCache) {
+      setStaffCacheEntry(selectedSchool, payload);
+    }
+
     return payload;
+  } catch (detailError) {
+    const nominalMessage = nominalError instanceof Error
+      ? String(nominalError.message || "").trim()
+      : "Falha nominal desconhecida";
+    const detailMessage = detailError instanceof Error
+      ? String(detailError.message || "").trim()
+      : "Falha detalhe desconhecida";
+
+    throw new Error(
+      `Falha ao consultar SEC para validar matricula. nominal: ${nominalMessage}. detalhe: ${detailMessage}.`,
+    );
   }
 }
 
