@@ -1,0 +1,282 @@
+
+<html>
+	<head>
+	<style type="text/css">
+		body	{font-family:tahoma,sans-serif;
+				font-size:11px;
+				color:#000000;
+				margin-top:2px;
+				margin-left:4px;
+				margin-right:10px;
+				margin-bottom:2px;
+				background-color:#ffffff;
+				scrollbar-face-color: #217dad;
+				scrollbar-highlight-color: #ffffff;
+				scrollbar-shadow-color: #ffffff; 
+				scrollbar-3dlight-color: #217dad; 
+				scrollbar-arrow-color: #ffffff; 
+				scrollbar-darkshadow-color: #217dad; 
+				scrollbar-base-color: #217dad;}
+		input	{font-family:tahoma,sans-serif; font-size:10px; background-color:#E7F3FF}
+		select	{font-family:tahoma,sans-serif; font-size:10px; background-color:#E7F3FF}
+		.Wf		{font-family:tahoma,sans-serif;font-size:12px}
+		.Wfb	{font-family:tahoma,sans-serif;font-size:11px;font-weight:BOLD}
+		.s		{font-family:tahoma,sans-serif;font-size:11px}
+		.swb	{font-family:tahoma,sans-serif;font-size:11px;font-weight:BOLD;color:#FFFFFF}
+		.Bsbttn {font-family:tahoma,sans-serif;font-size:13px;background: #D6E7EF;border-bottom: 1px solid #104A7B;border-right: 1px solid #104A7B;border-left: 1px solid #AFC4D5;border-top:1px solid #AFC4D5; color:#000066;text-decoration:none;cursor: hand}
+		.menu	{font-family:tahoma,sans-serif;font-size:11px;color:#000066;font-weight:BOLD;text-decoration:none}
+		
+		.style1 {list-style: none; display: inline; margin: 0;}
+		.style1  a{text-decoration: none; padding: 3px 0.5em; margin-left: 0px; border: 1px solid #778; border-bottom: none; background: white;}
+		.style1  a:link, a:visited{color: #006600;background: #FFFFFF;}
+		.style1  a:hover{color:#006600 ; background: #99ff99; border-color: #227;}
+
+		#tablist{padding: 3px 0; margin-left: 0; margin-bottom: 0; margin-top: 0.1em; font: bold 12px Verdana;}
+		#tablist li{list-style: none; display: inline; margin: 0;}
+		#tablist li a{text-decoration: none; padding: 3px 0.5em; margin-left: 0px; border: 1px solid #778; border-bottom: none; background: white;}
+
+		#tablist li a:link, #tablist li a:visited{color: #000066;background: #FFFFFF;}
+		#tablist li a:hover{color:#000066 ; background: #e7f2ff; border-color: #227;}
+		#tablist li a.current{color: #FFFFFF; background: #31659C;}
+	</style>
+		<title>Histórico Administrativo</title>
+	</head>
+	<body>
+		<script language="JavaScript" src="../../js/util.js"></script>
+		<script language="JavaScript" src="../../js/consulta_escola.js"></script>
+		<script language="JavaScript" src="../../js/menu.js"></script>
+        <script>		
+		
+			
+			function listaDados(cod,tipo,codigo_SIA){
+				var w = 800, h = 600;
+				if (document.all || document.layers) {
+   					w = screen.availWidth;
+   					h = screen.availHeight;
+				}
+				var popW = 600, popH = 200;
+				var leftPos = (w-popW)/2;
+				var topPos = (h-popH)/2;
+				window.open('listar_dados.asp?cod='+cod+'&tipo='+tipo+'&cod_sia='+codigo_SIA ,'','width=900, height=500 ,top=' + topPos + ',left=' + leftPos ,'');			
+			}
+			function listaOcupacao(cod,tipo,codigo_SIA){
+				var w = 800, h = 600;
+				if (document.all || document.layers) {
+   					w = screen.availWidth;
+   					h = screen.availHeight;
+				}
+				var popW = 600, popH = 200;
+				var leftPos = (w-popW)/2;
+				var topPos = (h-popH)/2;
+				window.open('listar_ocupacao.asp?cod='+cod+'&tipo='+tipo+'&cod_sia='+codigo_SIA ,'','dependent=yes,status=yes,scrolling=yes,menubar=yes,toolbar=yes,width=900, height=500,top=' + topPos + ',left=' + leftPos ,'');			
+				
+			}
+			function listaFormularios(codigo_SIA,usuario){
+				//var w = 800, h = 600;
+				//if (document.all || document.layers) {
+//   					w = screen.availWidth;
+//   					h = screen.availHeight;
+//				}
+//				var popW = 600, popH = 200;
+//				var leftPos = (w-popW)/2;
+//				var topPos = (h-popH)/2;
+//				window.open('secao1.asp?codigo_SIA='+codigo_SIA+'&hdNomeUsuario='+usuario ,'','dependent=yes,status=yes,scrolling=yes,menubar=yes,toolbar=yes,width=900, height=500,top=' + topPos + ',left=' + leftPos ,'');			
+				//var strUrl= 'http://desenvolvimento.sec.ba.gov.br/siig/sistemaescolar/asp/formularios/secao1.asp?codigo_SIA='+codigo_SIA+'&hdNomeUsuario='+usuario;
+				var strUrl= '../formularios/secao1.asp?codigo_SIA='+codigo_SIA+'&hdNomeUsuario='+usuario;
+				window.open(strUrl);	
+			}
+			
+		</script>	
+		<form action="" method="get" name="FormEscola" id="escola">		
+			<input type='hidden' name='hdNomeUsuario' value=''><input type='hidden' name='hdGrupoEspecial' value=''><input type='hidden' name='hdcadastro' value=''>
+	      <table align="center" border="0" cellpadding="2" cellspacing="0" width="775">
+		      
+		      <tr>
+		        <td colspan="6" class="Wf" align="right"><a href="javascript:AbreNovaJanela('../pesquisaEscola/pesquisaescola.asp');"><img src="../../imgs/pesquisas.gif" border="0" alt="Clique para pesquisar a escola desejada!"></a></td>
+	        </tr>
+		      <tr>
+		        <td width="75" class="Wf" nowrap>C&oacute;digo MEC:</td>
+		        <td width="171" class="Wf"><input type="text" value="29406889" name="codigo_escola" id="codigo_escola" size="8" maxlength="8" onKeyPress="onKeyPressCodigoMEC(event);" onKeyUp="SoPermiteEntradaNumerica(this,codigo_escola);" onBlur="onBlurCodigoMEC(this)"></td>
+		        <td width="79" class="Wf" nowrap>C&oacute;digo SEC:</td>
+		        <td width="151" class="Wf"><input type="text" name="codigo_secretaria" id="codigo_secretaria" size="8" maxlength="7" onKeyPress="onKeyPressCodigoSEC(event);" onKeyUp="SoPermiteEntradaNumerica(this,codigo_secretaria);" onBlur="" value="1176675"></td>
+		        <td width="90" class="Wf">Anexo:&nbsp;</td>
+		        <td width="185" class="Wf"><select name='SeqAnexo' onChange='submeteAnexo();'><option value=''>-- Selecione --<option selected value='00'>Anexo - 00 / 29406889</select>&nbsp;</td>
+	        </tr>
+		      
+		      <input type="hidden" name="codigo_SIA"  id="codigo_SIA"  value="33859">
+			  
+			  <input type="hidden" name="hdcodigo_MEC"  id="hdcodigo_MEC"  value="29406889">
+		      <!-- 20/07/2009, O campo hidden (hdcodigo_secretaria) estava com o mesmo nome do input 'codigo_secretaria', isso estava causando erro em várias páginas. Página n publicada. Caso seja necessário fazer alguma intervenção nessa página verificar. -->
+		      
+		      <input type="hidden" name="hdcodigo_secretaria"  id="hdcodigo_secretaria"  value="1176675   ">
+		      <input type="hidden" name="tipo_escola" id="tipo_escola" value="Estadual">
+		      <input type="hidden" name="hdCodAnexo"  id="hdCodAnexo"  value="00">
+		      <tr>
+		        <td class="Wf">Unidade:</td>
+		        <td colspan="3" class="Wf"><b>COLEGIO ESTADUAL PROFESSOR FABIO ARARIPE GOULART</b>&nbsp;</td>
+		        <input type="hidden" name="unidade" id="unidade" value="COLEGIO ESTADUAL PROFESSOR FABIO ARARIPE GOULART">
+		        <td class="Wf">Munic&iacute;pio:</td>
+		        <td class="Wf"><b>ILHEUS</b></td>
+		        <input type="hidden" name="municipio" id="municipio" value="ILHEUS">
+	        </tr>
+		      <tr>
+		        <td class="Wf">Endere&ccedil;o:</td>
+		        <td colspan="3" class="Wf"><b>RUA AZUL JARDIM DËL REY, Nº </b></td>
+		        <td class="Wf">Núcleo Regional:</td>
+		        <td class="Wf"><b>
+		          NTE-05
+		          </b></td>
+		        <input type="hidden" name="direc" id="direc" value="NTE-05">
+	        </tr>
+		      
+		      <tr>
+		        <td class="Wf">Bairro:</td>
+		        <td class="Wf"><b>TEOTONIO VILELA</b></td>
+		        <td class="Wf" nowrap>Sit. Funcional:</td>
+		        <td class="Wf"><b>EM ATIVIDADE</b></td>
+		        <input type="hidden" name="sitadm" id="sitadm" value="EM ATIVIDADE">
+		        <td class="Wf" nowrap>Território:</td>
+		        <td class="s"><b>LITORAL SUL</b></td>
+	        </tr>
+		      <tr>
+		        <td class="Wf">Porte:</td>
+		        <td class="Wf"><b>GRANDE</b></td>
+		        <input type="hidden" name="sitimovel" id="sitimovel" value="PRÓPRIO">
+		        <input type="hidden" name="siglaporte" id="siglaporte" value="PG">
+		        <td class="Wf">Projeto:</td>
+		        <td class="Wf"><b>
+		          ENSINO REGULAR
+		          </b></td>
+		        <input type="hidden" name="siglaSitFunc" id="siglaSitFunc" value="E">
+		        <input type="hidden" name="SitFunc" id="SitFunc" value="ESTADUAL">
+		        <td class="Wf" nowrap>Dep. Administ.:</td>
+		        <td class="Wf"><b>ESTADUAL</b></td>
+	        </tr>
+            <tr>
+             <td class="Wf" nowrap>Sit. Im&oacute;vel:</td>
+		        <td class="Wf"><b>
+		          PRÓPRIO
+		          </b></td>
+                  
+            <td colspan="2" class="Wf">Ocupação do imóvel: <b>ORGAO - EM USO</B> <a href="" onClick="listaOcupacao(290703113606    ,0,33859); return false;" ><img src='../../imgs/lupa.gif' border='0'></a></td>
+            
+             <!--td colspan="2" class="Wf"><b>Monitoramento:</b> <a href="" onClick="listaFormularios(33859,''); return false;" ><img src='../../imgs/lupa.gif' border='0'></a></td>-->
+		   
+            </tr>
+		      <tr>		       
+		        <td class="Wf">E-mail:</td>
+		        <td class="Wf"><b>
+		          ----- Sem E-mail -----               
+		        <td class="Wf">Oferta de Ensino:</td>
+		        <td class="Wf"><b>
+		          MÉDIO - EDUCAÇÃO PROFISSIONAL
+		          </b></td>
+                  <td colspan="2" class="Wf">Observações: <a href="" onClick="listaDados(290703113606    ,0,33859); return false;" ><img src='../../imgs/lupa.gif' border='0'></a></td>
+	        </tr>
+		   
+	      </table>
+	      <br>
+			<table align="center" border="0" cellpadding="1" cellspacing="0" width="775pt">
+				
+				<tr align="center">
+					<td><ul id="tablist">
+          <li><a class="current" href="#" onClick="handlelink(this);return tab1_on();">Administrativo</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab2_on()">Histórico</a></li>
+          <li><a  href="#" onClick="handlelink(this);return tab3_on()">Atos 
+            Legais</a></li>
+            
+          <li><a href="#" onClick="handlelink(this);return tab4_on()">Cadastro</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab5_on()">Consumo</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab6_on();">Rede 
+            Física</a></li>   
+        <li><a href="#" onClick="handlelink(this);return tab8_on();">Serviços</a></li>
+        
+        <li><a href="#" onClick="handlelink(this);return tab25_on();">Licitação</a></li>
+                 
+          <li><a href="#" onClick="handlelink(this);return tab15_on();">Caixa</a></li>
+          <div style="margin-bottom: 8px"></div>
+          
+          <li><a href="#" onClick="handlelink(this);return tab10_on();">Infraestrutura</a></li>
+          <li><a href="#"  onClick="handlelink(this);return tab11_on();">Projetos</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab16_on();">Servidores</a></li>
+         <li><a href="#" onClick="handlelink(this);return tab12_on();">FAED</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab7_on();">Aluno</a></li>
+          <li><a class="semuso" href="#" onClick="handlelink(this);return tab9_on()">Representação Estudantil</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab18_on();">Documentos</a></li>
+          <li><a href="#" onClick="handlelink(this);return tab20_on();">Colegiado</a></li>
+        </ul>
+        <!--<li><a href="#" onClick="handlelink(this);return tab9_on();">Grêmio</a></li>-->     
+         
+        </ul></td>
+				</tr>
+			</table>
+			<table align="center" id="idTBSubAba" name="nmTBSubAba" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">
+					<!--
+					## Linha contendo a opcao de Instrucao, omitida por pedido de Sergio(02/08/2005)
+
+					<td colspan="7"><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab17_on('nom');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nominal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab17_on('qtd');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Qtd. por Cargo/Fun&ccedil;&atilde;o&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab17_on('inst');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Instrução&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab17_on('ced');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cedidos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li>
+					-->
+					<td colspan="7"><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab17_on('nom');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nominal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab17_on('qtd');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Qtd. por Cargo/Fun&ccedil;&atilde;o&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab17_on('ced');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cedidos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>
+			<table align="center" id="idTBSubAba_col" name="nmTBSubAba_col" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">					
+					<td colspan="3"><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab21_on('dad');">Dados</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('ele');">Eleição</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('atu');">Atual</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('reu');">Reunião 1º anuênio</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('reu2');">Reunião 2º anuênio</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('eve');">Eventos</a></li><li><a href="#" onClick="handlelink(this);return tab21_on('his');">Histórico</a></li></td>
+				</tr>
+			</table>	
+            <table align="center" id="idTBSubAba_ele" name="nmTBSubAba_ele" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">					
+					<td colspan="3"><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab22_on('cal');">&nbsp;Calendario&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('com');">&nbsp;&nbsp;&nbsp;&nbsp;Comissão&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('can');">&nbsp;&nbsp;&nbsp;Candidatos&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('res');">&nbsp;&nbsp;&nbsp;Relatórios&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('cad');">&nbsp;&nbsp;&nbsp;Eleitos&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('mod');">&nbsp;&nbsp;&nbsp;Modelos&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab22_on('doc2');">&nbsp;&nbsp;&nbsp;Documentos&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>			
+			<table align="center" id="idTBSubAba_doc" name="nmTBSubAba_doc" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">
+					<td><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab19_on('vis');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Visualizar&nbsp;Arquivos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>
+          <table align="center" id="idTBSubAba_lider" name="idTBSubAba_lider" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">
+					<td><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab23_on('lidE');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lideres Escola&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab23_on('lid');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lideres Classe&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab23_on('jouv');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Jovem Ouvidor&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+                 <table align="center" id="idTBSubAba_com" name="idTBSubAba_com" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">					
+					<td colspan="3"><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab26_on('com');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Comissão&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab26_on('par');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Participantes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab26_on('his');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Historico&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab26_on('rel');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Relatórios&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li><li><a href="#" onClick="handlelink(this);return tab26_on('docE');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Documentos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>
+            <table align="center" id="idTBSubAba_docE" name="nmTBSubAba_docE" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">
+					<td><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab27_on('vis');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Visualizar&nbsp;Arquivos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>	
+            <table align="center" id="idTBSubAba_doc2" name="nmTBSubAba_doc2" border="0" cellpadding="0" cellspacing="0" width="775pt" style="display:none ">
+				<tr align="center">
+					<td><ul id="tablist"><li><a href="#" onClick="handlelink(this);return tab28_on('vis');">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Visualizar&nbsp;Arquivos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></li></ul></td>
+				</tr>
+			</table>	
+			</table>
+            <table align="center"><tr align="center"><td align="center">
+          <iframe align="center" src="" name="iframe_historico" id="iframe_historico" width="775" height="274pt" frameborder="0"> iframe </iframe>
+          </td></tr></table>
+          <table border="0" cellpadding="0" cellspacing="0">
+			  <tr>
+					<td id="idTDInformativo" name="nmTDInformativo">&nbsp;</td>
+				</tr>
+			</table>
+			<br>
+			<table width="596" id="idTBLegenda" name="nmTBLegenda" border="0" cellpadding="0" style="display:none ">
+				<tr>
+					<td width="592"><font style='font-family:tahoma,sans-serif; font-size:11px;margin-top:0px;margin-left:0px;margin-right:10px;margin-bottom:2px;background-color:#ffffff'>Legenda da Tabela Nominal</font></td>
+				</tr>
+				<tr>
+					<td><img src="../../imgs/legenda_verde.jpg">&nbsp;<font style='font-family:tahoma,sans-serif; font-size:11px;margin-top:0px;margin-left:0px;margin-right:10px;margin-bottom:2px;background-color:#ffffff'>Certificado/Recertificado&nbsp;</font><img src="../../imgs/legenda_amarelo.jpg">&nbsp;<font style='font-family:tahoma,sans-serif; font-size:11px;margin-top:0px;margin-left:0px;margin-right:10px;margin-bottom:2px;background-color:#ffffff'>Em Processo&nbsp;</font><img src="../../imgs/legenda_verm.jpg">&nbsp;<font style='font-family:tahoma,sans-serif; font-size:11px;margin-top:0px;margin-left:0px;margin-right:10px;margin-bottom:2px;background-color:#ffffff'>Inscrição Suspensa/Reprovado&nbsp;</font><img src="../../imgs/barra.gif">&nbsp;<font style='font-family:tahoma,sans-serif; font-size:11px;margin-top:0px;margin-left:0px;margin-right:10px;margin-bottom:2px;background-color:#ffffff'>Sem Habilitação</font></td>
+				</tr>
+			</table>
+			<script language="JavaScript" type="text/javascript">tab1_on();</script>
+		</form>		
+	</body>
+	<script>
+		FormEscola.codigo_secretaria.select();
+		FormEscola.codigo_secretaria.focus();
+	</script>
+</html>

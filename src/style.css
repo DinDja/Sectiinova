@@ -613,47 +613,47 @@
 }
 
 /* Theme accents mapped over hardcoded utility colors */
-html[data-ui-theme] .app-shell .bg-teal-400,
-html[data-ui-theme] .app-shell .bg-teal-500,
-html[data-ui-theme] .app-shell .bg-teal-300 {
+html[data-ui-theme] .bg-teal-400,
+html[data-ui-theme] .bg-teal-500,
+html[data-ui-theme] .bg-teal-300 {
   background-color: var(--auth-primary) !important;
 }
 
-html[data-ui-theme] .app-shell .bg-cyan-300,
-html[data-ui-theme] .app-shell .bg-cyan-400,
-html[data-ui-theme] .app-shell .bg-blue-300,
-html[data-ui-theme] .app-shell .bg-blue-400 {
+html[data-ui-theme] .bg-cyan-300,
+html[data-ui-theme] .bg-cyan-400,
+html[data-ui-theme] .bg-blue-300,
+html[data-ui-theme] .bg-blue-400 {
   background-color: var(--auth-secondary) !important;
 }
 
-html[data-ui-theme] .app-shell .text-teal-500,
-html[data-ui-theme] .app-shell .text-teal-400 {
+html[data-ui-theme] .text-teal-500,
+html[data-ui-theme] .text-teal-400 {
   color: var(--auth-primary-strong) !important;
 }
 
-html[data-ui-theme] .app-shell .text-cyan-500,
-html[data-ui-theme] .app-shell .text-blue-500,
-html[data-ui-theme] .app-shell .text-blue-400 {
+html[data-ui-theme] .text-cyan-500,
+html[data-ui-theme] .text-blue-500,
+html[data-ui-theme] .text-blue-400 {
   color: var(--auth-secondary) !important;
 }
 
-html[data-ui-theme] .app-shell .border-teal-400,
-html[data-ui-theme] .app-shell .border-teal-500 {
+html[data-ui-theme] .border-teal-400,
+html[data-ui-theme] .border-teal-500 {
   border-color: var(--auth-primary-strong) !important;
 }
 
-html[data-ui-theme] .app-shell [class*="hover:bg-teal-400"]:hover,
-html[data-ui-theme] .app-shell [class*="hover:bg-teal-500"]:hover {
+html[data-ui-theme] [class*="hover:bg-teal-400"]:hover,
+html[data-ui-theme] [class*="hover:bg-teal-500"]:hover {
   background-color: var(--auth-primary-strong) !important;
 }
 
-html[data-ui-theme] .app-shell [class*="hover:bg-cyan-300"]:hover,
-html[data-ui-theme] .app-shell [class*="hover:bg-blue-400"]:hover {
+html[data-ui-theme] [class*="hover:bg-cyan-300"]:hover,
+html[data-ui-theme] [class*="hover:bg-blue-400"]:hover {
   background-color: var(--auth-secondary) !important;
 }
 
-html[data-ui-theme] .app-shell [class*="focus:shadow-[4px_4px_0px_0px_#14b8a6]"]:focus,
-html[data-ui-theme] .app-shell [class*="focus:shadow-[3px_3px_0px_0px_#14b8a6]"]:focus {
+html[data-ui-theme] [class*="focus:shadow-[4px_4px_0px_0px_#14b8a6]"]:focus,
+html[data-ui-theme] [class*="focus:shadow-[3px_3px_0px_0px_#14b8a6]"]:focus {
   box-shadow: 4px 4px 0 0 var(--auth-primary-strong) !important;
 }
 
@@ -666,88 +666,116 @@ html[data-ui-theme] ::-webkit-scrollbar-thumb {
 }
 
 /* UI style presets */
-html[data-ui-style="material"] .app-shell .studio-main {
+html[data-ui-style="material"] .studio-main {
   background:
     radial-gradient(circle at 12% 14%, rgba(148, 163, 184, 0.14), transparent 34%),
     radial-gradient(circle at 88% 82%, rgba(96, 165, 250, 0.16), transparent 36%),
     linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-html[data-ui-style="material"] .app-shell button,
-html[data-ui-style="material"] .app-shell input,
-html[data-ui-style="material"] .app-shell select,
-html[data-ui-style="material"] .app-shell textarea {
+html[data-ui-style="material"] button,
+html[data-ui-style="material"] input,
+html[data-ui-style="material"] select,
+html[data-ui-style="material"] textarea {
   border-radius: 1rem !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="border-4"],
-html[data-ui-style="material"] .app-shell [class*="border-3"] {
+html[data-ui-style="material"] [class*="border-4"],
+html[data-ui-style="material"] [class*="border-3"] {
   border-width: 1.5px !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="border-slate-900"] {
+html[data-ui-style="material"] [class*="border-slate-900"] {
   border-color: rgba(15, 23, 42, 0.24) !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="shadow"] {
+html[data-ui-style="material"] [class*="shadow"] {
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14) !important;
 }
 
-html[data-ui-style="material"] .app-shell button:hover {
+html[data-ui-style="material"] button:hover {
   transform: translateY(-1px) !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="bg-yellow-300"] {
+html[data-ui-style="material"] [class*="rounded-"] {
+  border-radius: 1.15rem !important;
+}
+
+html[data-ui-style="material"] [class*="bg-yellow-300"] {
   background-color: #fef3c7 !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="bg-pink-400"] {
+html[data-ui-style="material"] [class*="bg-pink-400"] {
   background-color: #f9a8d4 !important;
 }
 
-html[data-ui-style="material"] .app-shell [class*="bg-orange-400"] {
+html[data-ui-style="material"] [class*="bg-orange-400"] {
   background-color: #fdba74 !important;
 }
 
-html[data-ui-style="modern"] .app-shell .studio-main {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+html[data-ui-style="modern"] .studio-main {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
 }
 
-html[data-ui-style="modern"] .app-shell button,
-html[data-ui-style="modern"] .app-shell input,
-html[data-ui-style="modern"] .app-shell select,
-html[data-ui-style="modern"] .app-shell textarea {
+html[data-ui-style="modern"] button,
+html[data-ui-style="modern"] input,
+html[data-ui-style="modern"] select,
+html[data-ui-style="modern"] textarea {
   border-radius: 0.75rem !important;
 }
 
-html[data-ui-style="modern"] .app-shell [class*="border-4"],
-html[data-ui-style="modern"] .app-shell [class*="border-3"],
-html[data-ui-style="modern"] .app-shell [class*="border-2"] {
+html[data-ui-style="modern"] [class*="border-4"],
+html[data-ui-style="modern"] [class*="border-3"],
+html[data-ui-style="modern"] [class*="border-2"] {
   border-width: 1px !important;
 }
 
-html[data-ui-style="modern"] .app-shell [class*="border-slate-900"] {
+html[data-ui-style="modern"] [class*="border-slate-900"] {
   border-color: rgba(15, 23, 42, 0.18) !important;
 }
 
-html[data-ui-style="modern"] .app-shell [class*="shadow"] {
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+html[data-ui-style="modern"] [class*="shadow"] {
+  box-shadow: none !important;
 }
 
-html[data-ui-style="modern"] .app-shell .font-black {
-  font-weight: 700 !important;
+html[data-ui-style="modern"] .font-black {
+  font-weight: 600 !important;
 }
 
-html[data-ui-style="modern"] .app-shell [class*="rotate-"],
-html[data-ui-style="modern"] .app-shell [class*="-rotate-"] {
+html[data-ui-style="modern"] [class*="uppercase"] {
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+}
+
+html[data-ui-style="modern"] [class*="bg-cyan-300"],
+html[data-ui-style="modern"] [class*="bg-cyan-400"],
+html[data-ui-style="modern"] [class*="bg-blue-300"],
+html[data-ui-style="modern"] [class*="bg-blue-400"],
+html[data-ui-style="modern"] [class*="bg-yellow-300"],
+html[data-ui-style="modern"] [class*="bg-pink-400"],
+html[data-ui-style="modern"] [class*="bg-orange-400"] {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-ui-style="modern"] [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+html[data-ui-style="modern"] button {
+  border-radius: 0.65rem !important;
+}
+
+html[data-ui-style="modern"] [class*="rotate-"],
+html[data-ui-style="modern"] [class*="-rotate-"] {
   transform: none !important;
 }
 
-html[data-ui-style="modern"] .app-shell button:hover {
+html[data-ui-style="modern"] button:hover {
   transform: none !important;
 }
 
-html[data-ui-style="glass"] .app-shell .studio-main {
+html[data-ui-style="glass"] .studio-main {
   background:
     radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.24), transparent 35%),
     radial-gradient(circle at 90% 84%, rgba(167, 139, 250, 0.24), transparent 36%),
@@ -756,20 +784,24 @@ html[data-ui-style="glass"] .app-shell .studio-main {
   background-size: auto, auto, 24px 24px, auto;
 }
 
-html[data-ui-style="glass"] .app-shell [class*="bg-white"][class*="border"],
-html[data-ui-style="glass"] .app-shell [class*="bg-slate-50"][class*="border"] {
+html[data-ui-style="glass"] [class*="bg-white"][class*="border"],
+html[data-ui-style="glass"] [class*="bg-slate-50"][class*="border"] {
   background: rgba(255, 255, 255, 0.52) !important;
   backdrop-filter: blur(10px);
 }
 
-html[data-ui-style="glass"] .app-shell [class*="border-slate-900"] {
+html[data-ui-style="glass"] [class*="border-slate-900"] {
   border-color: rgba(15, 23, 42, 0.22) !important;
 }
 
-html[data-ui-style="glass"] .app-shell [class*="shadow"] {
+html[data-ui-style="glass"] [class*="shadow"] {
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2) !important;
 }
 
-html[data-ui-style="glass"] .app-shell button {
+html[data-ui-style="glass"] button {
   border-radius: 1rem !important;
+}
+
+html[data-ui-style="glass"] [class*="uppercase"] {
+  letter-spacing: 0.07em !important;
 }

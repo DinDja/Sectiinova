@@ -242,7 +242,7 @@ export default function TopBar({
         aria-label="Campo de busca"
         disabled={isSearchDisabled}
         title={
-          isSearchDisabled ? "A busca sÃ³ estÃ¡ disponÃ­vel no Feed de Projetos." : ""
+          isSearchDisabled ? "A busca só está disponível no Feed de Projetos." : ""
         }
       />
 
@@ -509,7 +509,7 @@ export default function TopBar({
                 {showUserMenu && (
                   <div className="absolute right-0 mt-3 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-[2rem] border-[3px] border-slate-900 bg-white shadow-2xl z-[9999] origin-top-right animate-in fade-in zoom-in duration-200">
                     
-                    {/* Header do Menu com RetÃ­cula HQ */}
+                    {/* Header do Menu HQ */}
                     <div className="border-b-[3px] border-slate-900 bg-yellow-400 p-6 relative overflow-hidden">
                       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2.5px, transparent 2.5px)', backgroundSize: '12px 12px' }}></div>
                       <p className="truncate text-lg font-black uppercase tracking-tighter text-slate-900 relative z-10">
@@ -584,7 +584,7 @@ export default function TopBar({
                         role="menuitem"
                       >
                         <LogOut className="h-4 w-4 stroke-[3]" />
-                        Encerrar sessÃ£o
+                        Encerrar sessão
                       </button>
                     </div>
                   </div>

@@ -1,0 +1,830 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<style type="text/css">
+	.ON {background-color: #C3D6E6;}
+	.OFF {background-color: #FFFFFF}
+	.TDXX {border-bottom:1px solid #C1CDD8; background-color: #C3D6E6}
+	.Wf		{font-family:tahoma,sans-serif;font-size:12px}
+	.TITULO {font-family:tahoma,sans-serif;font-size:11px;font-weight:BOLD;color:#FFFFFF;}
+.style1 {
+	color: #FF0000;
+	font-size: xx-small;
+	font-weight: bold;
+}
+.style2 {font-size: xx-small}
+</style>
+<script type="text/javascript" language="javascript" src="../../js/jquery-1.11.2.js"></script>
+<script type="text/javascript" language="javascript" src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" language="javascript" src="../../js/jquery.filter_input.js"></script>
+<script type="text/javascript" language="javascript" src="../../js/funcAjax.js"></script>
+<script language="JavaScript" src="../../js/proxyLet.js"></script>
+<!--script language="JavaScript" src="../../js/jquery-1.9.1.js"></script-->
+
+<script language="javascript">
+	//## Variavel que indica que o combo de municipios foi filtrado apartir de uma direc selecionada
+	//## True=Selecionaram alguma DIREC e carregaram os municipios	
+	var booMunicipioCarregado=false;
+	
+	function carregaMunicipioDirec(){
+	/*
+	@desc	Rotina que chama o proxyLet para carregar os municipios
+	referente a direc selecionada
+	@autor	Juracy Araujo - jjunior@sec.ba.gov.br
+	@versão	1.0
+	@param	
+	@rel	
+	@pre	Selecionar uma direc	
+	@pos	Carregar os municipios
+	@ret	
+	@hist
+	*/		
+	
+		var strUrl="proxyLet.asp?tipoAcao=carregaMunicipiosDirec";
+		strUrl=strUrl + "&coddirec=" + $('#direc :selected').val();
+		//window.open(strUrl);
+		preencheCombo(strUrl,document.all.municipio);
+		//## Se nao escolher a DIREC entao se selecionar o municipio, vai entao selecionar a DIREC
+		if( $('#direc :selected').val()==""){
+			booMunicipioCarregado=false;
+		}else{
+		//## Entra aqui entao alguma direc foi selecionada
+			booMunicipioCarregado=true;		
+		}
+		
+		//## Limpando o texto '-- Selecione --' para nao fugir ao padrao da tela, que nenhum combo tem isso
+		$('#municipio :selected').text="";
+	}
+	
+	function carregaDirecMunicipio(){
+	/*
+	@desc	Rotina que chama o proxyLet para retornar a DIREC
+	referente ao municipio selecionado
+	@autor	Juracy Araujo - jjunior@sec.ba.gov.br
+	@versão	1.0
+	@param	
+	@rel	
+	@pre	Selecionar um municipio
+	@pos	Seleciona a DIREC
+	@ret	
+	@hist
+	*/		
+		var strUrl="proxyLet.asp?tipoAcao=carregaDirecMunicipio";
+		var intCont=0;
+		
+		//## Se tiver alguma direc selecionada nao tem pq, rodar o proxylet,
+		//## pois os municipios ja são desta direc mesmo
+		if(booMunicipioCarregado) return false;
+	
+		if($('#municipio :selected').val() != ""){
+		//if (document.all.municipio(document.all.municipio.selectedIndex).value!=""){
+			strUrl=strUrl + "&codMunicipio=" +  $('#municipio :selected').val();
+			//window.open(strUrl);
+			preencheUmCampo(strUrl,document.all.hdProxyLet);
+		}
+		//var valor = $('#direc :selected').val();
+
+		//alert(parseInt(intCont))
+		//arrayIDs[key].id_produto_itens
+		//alert(document.all.direc[intCont].value)
+		
+		while(parseInt(intCont)<parseInt(document.all.direc.length)){
+			//if(document.all.direc(intCont).value==document.all.hdProxyLet.value){
+			if(document.all.direc[intCont].value == document.all.hdProxyLet.value){
+			
+				document.all.direc[intCont].selected=true;
+				return false;
+			}
+			intCont=intCont+1;
+		}
+	}	
+
+	function trim(inputString) {
+	/*
+	@desc	Função que retira os espacos a mais etre os caracteres
+	@autor	Juracy Araujo - jjunior@sec.ba.gov.br
+	@versão	1.0
+	@param	inputString: Valor a ser corrigido
+	@rel	
+	@pre	Informar qual campo será dado o trim..
+	@pos	Retira os espacos a mais
+	@ret	Não tem retorno
+	@hist
+	*/
+		// Removes leading and trailing spaces from the passed string. Also removes
+		// consecutive spaces and replaces it with one space. If something besides
+		// a string is passed in (null, custom object, etc.) then return the input.
+		if (typeof inputString != "string") { return inputString; }
+		var retValue = inputString;
+		var ch = retValue.substring(0, 1);
+		while (ch == " ") { // Check for spaces at the beginning of the string
+			retValue = retValue.substring(1, retValue.length);
+			ch = retValue.substring(0, 1);
+		}
+		
+		ch = retValue.substring(retValue.length-1, retValue.length);
+		while (ch == " ") { // Check for spaces at the end of the string
+			retValue = retValue.substring(0, retValue.length-1);
+			ch = retValue.substring(retValue.length-1, retValue.length);
+		}
+		
+		while (retValue.indexOf("  ") != -1) { // Note that there are two spaces in the string - look for multiple spaces within the string
+			retValue = retValue.substring(0, retValue.indexOf("  ")) + retValue.substring(retValue.indexOf("  ")+1, retValue.length); // Again, there are two spaces in each of the strings
+		}
+		return retValue; // Return the trimmed string back to the user
+	} // Ends the "trim" function
+
+	function setRecordCount(texto){
+		RecordCount.innerText=texto;
+	}
+	function RetornaCodigoEscola(codigo, codigoSEC, anexo){//
+//********************************
+//Atualizar quando os outros sistemas/chamadas passarem a utilizar somente esta PesquisaEscola
+		
+			window.open("../principal/consulta_escola.asp?codigo_mec=" + codigo +"&codigo_secretaria=" + codigoSEC + "&SeqAnexo=" + anexo);
+		
+			window.close();
+		
+//*********************************
+	}
+	function validaForm(){
+		//=trim(frm.nomeEscola.value)
+		frm.nomeEscola.value = frm.nomeEscola.value.replace(/^\s+/,'').replace(/\s+$/,'');
+		//alert(frm.slModalidade.value);
+		if (frm.nomeEscola.value=='' && frm.direc.value=='' && frm.Polo.value=='' && frm.municipio.value=='' && frm.depAdm.value=='' && frm.sitFunc.value=='' && frm.selPorte.value=='')
+			alert('A pesquisa deve conter pelo menos um dos parâmetros selecionado(Nome, Polo, Municipio, NTE, Dep. Adm., Sit.Func ou Porte)!');
+		else 
+			frm.submit();
+	}
+	function MudaUnidadeRegional() {
+		var eOnChangeMunicipio;
+		var eOnChangeUnidadeRegional;
+		var strDirec;
+		var i;
+
+		// Desativa o evento OnChange dos MUNICÍPIOS
+		eOnChangeMunicipio = frm.municipio.onchange;
+		eOnChangeUnidadeRegional = frm.direc.onchange;
+		frm.municipio.onchange = "";
+		frm.direc.onchange = "";
+
+		
+		// Seleciona a DIREC de acordo com o município
+		i=0;
+		while( i < frm.direc.length) {
+			strDirec = frm.direc.options[i].value.split(";");
+			if( trim( strDirec) != "") {
+				if( strDirec[1].substring(0, 7) == frm.municipio(frm.municipio.selectedIndex).value.substring(0,7))
+					break;
+			}
+			i = i + 1;
+		}
+
+		// Seleciona o município
+		frm.direc.selectedIndex = i ;
+
+
+		// Ativa o evento OnChange dos SELECTs
+		frm.municipio.onchange = eOnChangeMunicipio;
+		frm.direc.onchange = eOnChangeUnidadeRegional;
+	}
+	function MudaMunicipio() {
+		var eOnChangeMunicipio;
+		var eOnChangeUnidadeRegional;
+		var strMunicipio;
+		var i;
+
+		// Desativa o evento OnChange dos MUNICÍPIOS
+		eOnChangeMunicipio = frm.municipio.onchange;
+		eOnChangeUnidadeRegional = frm.direc.onchange;
+		frm.municipio.onchange = "";
+		frm.direc.onchange = "";
+
+		// Separa as strings
+		strMunicipio = frm.direc(frm.direc.selectedIndex).value.split(";");
+
+		i=0;
+		// Seleciona a DIREC de acordo com o município
+		while(( i < frm.municipio.length) && (frm.municipio.options[i].value != strMunicipio[1]) ) {
+			i = i + 1;
+		}
+
+		// Seleciona o município
+		frm.municipio.selectedIndex = i ;
+
+		// Ativa o evento OnChange dos SELECTs
+		frm.municipio.onchange = eOnChangeMunicipio;
+		frm.direc.onchange = eOnChangeUnidadeRegional;
+	}
+</script>
+<html>
+	<head>
+		<title>Pesquisa Escolas</title>
+	</head>
+	
+	<body topmargin="0">
+		<form action="resultadoPesquisa.asp?OrigemTela=" target="resultadoPesquisa" method="post" id="frm">
+			<input type="hidden" name="hdProxyLet">
+			<input type="hidden" name="strCorLinhaTitulo" value="#DBEAF5">
+			<input type="hidden" name="strCorTexto" value="#104A7B">
+			<table border="0" align="" width="755">
+				<tr bgcolor="#DBEAF5">
+					<td colspan="4" nowrap><font class="Wf" color="#104A7B"><b>Pesquisar Escolas</b></td>
+				</tr>
+				<tr>
+					<td width="60"><font class="Wf" color="#104A7B">Nome:</font></td>
+					<td width="280"><input type="text" name="nomeEscola" maxlength="70" id="nomeEscola" size="50"></td>
+					<td width="100"><font class="Wf" color="#104A7B">&nbsp;&nbsp;NTE:</font></td>
+					<!--<td><select name="direc" onchange="MudaMunicipio();">-->
+					<td width="290"><select name="direc" id="direc" onChange="carregaMunicipioDirec();">
+							<option value="">
+							<option value="9359">NTE-01
+<option value="9360">NTE-02
+<option value="9361">NTE-03
+<option value="9362">NTE-04
+<option value="9363">NTE-05
+<option value="9364">NTE-06
+<option value="9365">NTE-07
+<option value="9366">NTE-08
+<option value="9367">NTE-09
+<option value="9368">NTE-10
+<option value="9369">NTE-11
+<option value="9370">NTE-12
+<option value="9371">NTE-13
+<option value="9372">NTE-14
+<option value="9373">NTE-15
+<option value="9374">NTE-16
+<option value="9375">NTE-17
+<option value="9376">NTE-18
+<option value="9377">NTE-19
+<option value="9378">NTE-20
+<option value="9379">NTE-21
+<option value="9380">NTE-22
+<option value="9381">NTE-23
+<option value="9382">NTE-24
+<option value="9383">NTE-25
+<option value="9384">NTE-26
+<option value="9385">NTE-27
+
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td><font class="Wf" color="#104A7B">Polo:</font></td>
+					<td><select name="Polo">
+							<option value="">
+							<option value="2">FILIAL do POLO
+<option value="1">SEDE do POLO
+<option value="0">SEM POLO
+
+						</select>
+					</td>
+					<td><font class="Wf" color="#104A7B">&nbsp;&nbsp;Munic&iacute;pio:</font></td>
+					<!--<td><select name="municipio" onchange="MudaUnidadeRegional();">-->
+					<td><select name="municipio" id="municipio" style="width:143pt;" onChange="carregaDirecMunicipio();">
+							<option value="">
+							<option value="290602300108">Abaira
+<option value="290200500207">Abare
+<option value="290401700306">Acajutiba
+<option value="290401500355">Adustina
+<option value="290301200405">Agua Fria
+<option value="290602400603">Aiquara
+<option value="290401700702">Alagoinhas
+<option value="290703200801">Alcobaca
+<option value="290703100900">Almadina
+<option value="290602401007">Amargosa
+<option value="290501901106">Amelia Rodrigues
+<option value="290300901155">America Dourada
+<option value="290602801205">Anage
+<option value="290602301304">Andarai
+<option value="290300801353">Andorinha
+<option value="290100201403">Angical
+<option value="290301201502">Anguera
+<option value="290401501601">Antas
+<option value="290301201700">Antonio Cardoso
+<option value="290300801809">Antonio Goncalves
+<option value="290401701908">Apora
+<option value="290602401957">Apuarema
+<option value="290401702054">Aracas
+<option value="290602702005">Aracatu
+<option value="290401602104">Araci
+<option value="290401702203">Aramari
+<option value="290703102252">Arataca
+<option value="290502002302">Aratuipe
+<option value="290703102401">Aurelino Leal
+<option value="290100102500">Baianopolis
+<option value="290301102609">Baixa Grande
+<option value="290401502658">Banzae
+<option value="290200602708">Barra
+<option value="290602302807">Barra da Estiva
+<option value="290602802906">Barra do Choca
+<option value="290300903003">Barra do Mendes
+<option value="290703103102">Barra do Rocha
+<option value="290100103201">Barreiras
+<option value="290300903235">Barro Alto
+<option value="290703103300">Barro Preto
+<option value="290401603276">Barrocas
+<option value="290703103409">Belmonte
+<option value="290602803508">Belo Campo
+<option value="290401603607">Biritinga
+<option value="290602803706">Boa Nova
+<option value="290301103805">Boa Vista do Tupim
+<option value="290200703904">Bom Jesus da Lapa
+<option value="290602803953">Bom Jesus da Serra
+<option value="290602304001">Boninal
+<option value="290602304050">Bonito
+<option value="290602204100">Boquira
+<option value="290602204209">Botupora
+<option value="290602404308">Brejoes
+<option value="290100204407">Brejolandia
+<option value="290602204506">Brotas de Macaubas
+<option value="290602704605">Brumado
+<option value="290703104704">Buerarema
+<option value="290200604753">Buritirama
+<option value="290602804803">Caatiba
+<option value="290502004852">Cabaceiras do Paraguacu
+<option value="290502004902">Cachoeira
+<option value="290602605008">Cacule
+<option value="290301005107">Caem
+<option value="290602805156">Caetanos
+<option value="290602605206">Caetite
+<option value="290300905305">Cafarnaum
+<option value="290703005404">Cairu
+<option value="290301005503">Caldeirao Grande
+<option value="290703105602">Camacan
+<option value="290502105701">Camacari
+<option value="290703005800">Camamu
+<option value="290200405909">Campo Alegre de Lourdes
+<option value="290300806006">Campo Formoso
+<option value="290100306105">Canapolis
+<option value="290300906204">Canarana
+<option value="290703106303">Canavieiras
+<option value="290401606402">Candeal
+<option value="290502106501">Candeias
+<option value="290602606600">Candiba
+<option value="290602806709">Candido Sales
+<option value="290401406808">Cansancao
+<option value="290401406824">Canudos
+<option value="290401606857">Capela do Alto Alegre
+<option value="290301006873">Capim Grosso
+<option value="290602706899">Caraibas
+<option value="290703206907">Caravelas
+<option value="290401807004">Cardeal da Silva
+<option value="290200707103">Carinhanha
+<option value="290200407202">Casa Nova
+<option value="290502007301">Castro Alves
+<option value="290100107400">Catolandia
+<option value="290501907509">Catu
+<option value="290602207558">Caturama
+<option value="290300907608">Central
+<option value="290200507707">Chorrocho
+<option value="290401507806">Cicero Dantas
+<option value="290401507905">Cipo
+<option value="290703108002">Coaraci
+<option value="290100308101">Cocos
+<option value="290301208200">Conceicao da Feira
+<option value="290502008309">Conceicao do Almeida
+<option value="290401608408">Conceicao do Coite
+<option value="290301208507">Conceicao do Jacuipe
+<option value="290401808606">Conde
+<option value="290602708705">Condeuba
+<option value="290602308804">Contendas do Sincora
+<option value="290301208903">Coracao de Maria
+<option value="290602709000">Cordeiros
+<option value="290100309109">Coribe
+<option value="290401309208">Coronel Joao Sa
+<option value="290100309307">Correntina
+<option value="290100209406">Cotegipe
+<option value="290602409505">Cravolandia
+<option value="290401709604">Crisopolis
+<option value="290100209703">Cristopolis
+<option value="290502009802">Cruz das Almas
+<option value="290200409901">Curaca
+<option value="290602810008">Dario Meira
+<option value="290502110057">Dias dAvila
+<option value="290602510107">Dom Basilio
+<option value="290502010206">Dom Macedo Costa
+<option value="290301210305">Elisio Medrado
+<option value="290602910404">Encruzilhada
+<option value="290401810503">Entre Rios
+<option value="290602500504">Erico Cardoso
+<option value="290401810602">Esplanada
+<option value="290401410701">Euclides da Cunha
+<option value="290703210727">Eunapolis
+<option value="290401510750">Fatima
+<option value="290200710776">Feira da Mata
+<option value="290301210800">Feira de Santana
+<option value="290300810859">Filadelfia
+<option value="290703110909">Firmino Alves
+<option value="290703111006">Floresta Azul
+<option value="290100111105">Formosa do Rio Preto
+<option value="290703111204">Gandu
+<option value="290401611253">Gaviao
+<option value="290300911303">Gentio do Ouro
+<option value="290200511402">Gloria
+<option value="290703111501">Gongogi
+<option value="290502011600">Governador Mangabeira
+<option value="290602711659">Guajeru
+<option value="290602611709">Guanambi
+<option value="290703211808">Guaratinga
+<option value="290401511857">Heliopolis
+<option value="290301111907">Iacu
+<option value="290602612004">Ibiassuce
+<option value="290703112103">Ibicarai
+<option value="290602312202">Ibicoara
+<option value="290602812301">Ibicui
+<option value="290300912400">Ibipeba
+<option value="290602212509">Ibipitanga
+<option value="290301112608">Ibiquera
+<option value="290703112707">Ibirapitanga
+<option value="290703212806">Ibirapua
+<option value="290703112905">Ibirataia
+<option value="290602213002">Ibitiara
+<option value="290300913101">Ibitita
+<option value="290200613200">Ibotirama
+<option value="290401613309">Ichu
+<option value="290602613408">Igapora
+<option value="290703013457">Igrapiuna
+<option value="290602813507">Iguai
+<option value="290703113606">Ilheus
+<option value="290401713705">Inhambupe
+<option value="290301213804">Ipecaeta
+<option value="290703113903">Ipiau
+<option value="290301214000">Ipira
+<option value="290602214109">Ipupiara
+<option value="290602414208">Irajuba
+<option value="290602414307">Iramaia
+<option value="290300914406">Iraquara
+<option value="290301214505">Irara
+<option value="290300914604">Irece
+<option value="290703214653">Itabela
+<option value="290301114703">Itaberaba
+<option value="290703114802">Itabuna
+<option value="290703114901">Itacare
+<option value="290602315007">Itaete
+<option value="290602415106">Itagi
+<option value="290703115205">Itagiba
+<option value="290703215304">Itagimirim
+<option value="290200615353">Itaguacu da Bahia
+<option value="290703115403">Itaju do Colonia
+<option value="290703115502">Itajuipe
+<option value="290703215601">Itamaraju
+<option value="290703115700">Itamari
+<option value="290602915809">Itambe
+<option value="290501915908">Itanagra
+<option value="290703216005">Itanhem
+<option value="290502116104">Itaparica
+<option value="290703116203">Itape
+<option value="290703116302">Itapebi
+<option value="290602916401">Itapetinga
+<option value="290401516500">Itapicuru
+<option value="290703116609">Itapitanga
+<option value="290602416708">Itaquara
+<option value="290602916807">Itarantim
+<option value="290301216856">Itatim
+<option value="290602416906">Itirucu
+<option value="290300817003">Itiuba
+<option value="290602917102">Itororo
+<option value="290602717201">Ituacu
+<option value="290703017300">Itubera
+<option value="290602617334">Iuiu
+<option value="290100317359">Jaborandi
+<option value="290602617409">Jacaraci
+<option value="290301017508">Jacobina
+<option value="290602417607">Jaguaquara
+<option value="290300817706">Jaguarari
+<option value="290502017805">Jaguaripe
+<option value="290401817904">Jandaira
+<option value="290602418001">Jequie
+<option value="290401318100">Jeremoabo
+<option value="290602418209">Jiquirica
+<option value="290602418308">Jitauna
+<option value="290300918357">Joao Dourado
+<option value="290200418407">Juazeiro
+<option value="290703218456">Jucurucu
+<option value="290300918506">Jussara
+<option value="290703118555">Jussari
+<option value="290602318605">Jussiape
+<option value="290602418704">Lafaiete Coutinho
+<option value="290602618753">Lagoa Real
+<option value="290602418803">Laje
+<option value="290703218902">Lajedao
+<option value="290301119009">Lajedinho
+<option value="290602419058">Lajedo do Tabocal
+<option value="290401619108">Lamarao
+<option value="290300919157">Lapao
+<option value="290502119207">Lauro de Freitas
+<option value="290602319306">Lencois
+<option value="290602619405">Licinio de Almeida
+<option value="290602519504">Livramento de Nsa. Senhora
+<option value="290100119553">Luis Eduardo Magalhães
+<option value="290301119603">Macajuba
+<option value="290602919702">Macarani
+<option value="290602219801">Macaubas
+<option value="290200519900">Macurure
+<option value="290502119926">Madre de Deus
+<option value="290602719959">Maetinga
+<option value="290602920007">Maiquinique
+<option value="290301120106">Mairi
+<option value="290602620205">Malhada
+<option value="290602720304">Malhada de Pedras
+<option value="290602820403">Manoel Vitorino
+<option value="290100220452">Mansidao
+<option value="290602420502">Maracas
+<option value="290502020601">Maragogipe
+<option value="290703020700">Marau
+<option value="290602420809">Marcionilio Souza
+<option value="290703120908">Mascote
+<option value="290501921005">Mata de Sao Joao
+<option value="290602621054">Matina
+<option value="290703221104">Medeiros Neto
+<option value="290301021203">Miguel Calmon
+<option value="290602421302">Milagres
+<option value="290301021401">Mirangaba
+<option value="290602821450">Mirante
+<option value="290401421500">Monte Santo
+<option value="290200621609">Morpara
+<option value="290301021708">Morro do Chapeu
+<option value="290602621807">Mortugaba
+<option value="290602321906">Mucuge
+<option value="290703222003">Mucuri
+<option value="290300922052">Mulungu do Morro
+<option value="290301122102">Mundo Novo
+<option value="290502022201">Muniz Ferreira
+<option value="290200622250">Muquem de Sao Francisco
+<option value="290502022300">Muritiba
+<option value="290602422409">Mutuipe
+<option value="290502022508">Nazare
+<option value="290703022607">Nilo Pecanha
+<option value="290401422656">Nordestina
+<option value="290602822706">Nova Canaa
+<option value="290401622730">Nova Fatima
+<option value="290703122755">Nova Ibia
+<option value="290602422805">Nova Itarana
+<option value="290602322854">Nova Redencao
+<option value="290401522904">Nova Soure
+<option value="290703223001">Nova Vicosa
+<option value="290602223035">Novo Horizonte
+<option value="290401523050">Novo Triunfo
+<option value="290401523100">Olindina
+<option value="290602223209">Oliveira dos Brejinhos
+<option value="290301223308">Ouricangas
+<option value="290301023357">Ourolandia
+<option value="290602623407">Palmas de Monte Alto
+<option value="290602323506">Palmeiras
+<option value="290602523605">Paramirim
+<option value="290200723704">Paratinga
+<option value="290401523803">Paripiranga
+<option value="290703123902">Pau Brasil
+<option value="290200524009">Paulo Afonso
+<option value="290401624058">Pe de Serra
+<option value="290301224108">Pedrao
+<option value="290401324207">Pedro Alexandre
+<option value="290602324306">Piata
+<option value="290200424405">Pilao Arcado
+<option value="290602624504">Pindai
+<option value="290300824603">Pindobacu
+<option value="290301224652">Pintadas
+<option value="290703024678">Pirai do Norte
+<option value="290602724702">Piripa
+<option value="290301024801">Piritiba
+<option value="290602424900">Planaltino
+<option value="290602825006">Planalto
+<option value="290602825105">Pocoes
+<option value="290501925204">Pojuca
+<option value="290301025253">Ponto Novo
+<option value="290703225303">Porto Seguro
+<option value="290602925402">Potiragua
+<option value="290703225501">Prado
+<option value="290300925600">Presidente Dutra
+<option value="290602725709">Presidente Janio Quadros
+<option value="290703025758">Presidente Tancredo Neves
+<option value="290401425808">Queimadas
+<option value="290401425907">Quijingue
+<option value="290301025931">Quixabeira
+<option value="290301225956">Rafael Jambeiro
+<option value="290200426004">Remanso
+<option value="290401626103">Retirolandia
+<option value="290100126202">Riachao das Neves
+<option value="290401626301">Riachao do Jacuipe
+<option value="290602626400">Riacho de Santana
+<option value="290401526509">Ribeira do Amparo
+<option value="290401526608">Ribeira do Pombal
+<option value="290602926657">Ribeirao do Largo
+<option value="290602326707">Rio de Contas
+<option value="290602726806">Rio do Antonio
+<option value="290602526905">Rio do Pires
+<option value="290401727002">Rio Real
+<option value="290200527101">Rodelas
+<option value="290301127200">Ruy Barbosa
+<option value="290502027309">Salinas da Margarida
+<option value="290502127408">Salvador
+<option value="290301227507">Santa Barbara
+<option value="290401327606">Santa Brigida
+<option value="290703227705">Santa Cruz Cabralia
+<option value="290703127804">Santa Cruz da Vitoria
+<option value="290602427903">Santa Ines
+<option value="290703128059">Santa Luzia
+<option value="290100328109">Santa Maria da Vitoria
+<option value="290100228406">Santa Rita de Cassia
+<option value="290301228505">Santa Teresinha
+<option value="290401628000">Santaluz
+<option value="290100328208">Santana
+<option value="290301228307">Santanopolis
+<option value="290502028604">Santo Amaro
+<option value="290502028703">Santo Antonio de Jesus
+<option value="290301228802">Santo Estevao
+<option value="290100128901">Sao Desiderio
+<option value="290401628950">Sao Domingos
+<option value="290502029107">Sao Felipe
+<option value="290502029008">Sao Felix
+<option value="290100329057">Sao Felix do Coribe
+<option value="290502129206">Sao Francisco do Conde
+<option value="290300929255">Sao Gabriel
+<option value="290301229305">Sao Goncalo dos Campos
+<option value="290703129354">Sao Jose da Vitoria
+<option value="290301029370">Sao Jose do Jacuipe
+<option value="290602429404">Sao Miguel das Matas
+<option value="290501929503">Sao Sebastiao do Passe
+<option value="290502029602">Sapeacu
+<option value="290401729701">Satiro Dias
+<option value="290502029750">Saubara
+<option value="290301029800">Saude
+<option value="290602329909">Seabra
+<option value="290602630006">Sebastiao Laranjeiras
+<option value="290300830105">Senhor do Bonfim
+<option value="290200430204">Sento Se
+<option value="290200730154">Serra do Ramalho
+<option value="290100330303">Serra Dourada
+<option value="290301230402">Serra Preta
+<option value="290401630501">Serrinha
+<option value="290301030600">Serrolandia
+<option value="290502130709">Simoes Filho
+<option value="290200730758">Sitio do Mato
+<option value="290401330766">Sitio do Quinto
+<option value="290200430774">Sobradinho
+<option value="290300930808">Souto Soares
+<option value="290100230907">Tabocas do Brejo Velho
+<option value="290602731004">Tanhacu
+<option value="290602231053">Tanque Novo
+<option value="290301231103">Tanquinho
+<option value="290703031202">Taperoa
+<option value="290301131301">Tapiramuta
+<option value="290703231350">Teixeira de Freitas
+<option value="290301231400">Teodoro Sampaio
+<option value="290401631509">Teofilandia
+<option value="290703131608">Teolandia
+<option value="290501931707">Terra Nova
+<option value="290602731806">Tremedal
+<option value="290401431905">Tucano
+<option value="290401432002">Uaua
+<option value="290602432101">Ubaira
+<option value="290703132200">Ubaitaba
+<option value="290703132309">Ubata
+<option value="290300932408">Uibai
+<option value="290300832457">Umburanas
+<option value="290703132507">Una
+<option value="290602632606">Urandi
+<option value="290703132705">Urucuca
+<option value="290602332804">Utinga
+<option value="290703032903">Valenca
+<option value="290401633000">Valente
+<option value="290301133059">Varzea da Roca
+<option value="290301033109">Varzea do Poco
+<option value="290301033158">Varzea Nova
+<option value="290502033174">Varzedo
+<option value="290502133208">Vera Cruz
+<option value="290703233257">Vereda
+<option value="290602833307">Vitoria da Conquista
+<option value="290602333406">Wagner
+<option value="290100233455">Wanderley
+<option value="290703133505">Wenceslau Guimaraes
+<option value="290200633604">Xique-Xique
+
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td><font class="Wf" color="#104A7B">Dep. adm.:</font></td>
+					<td><select name="depAdm">
+							<option value="">
+							<option value="N">Convenio
+<option value="E">Estadual
+<option value="O">Est./Conveniada
+<option value="C">Est./Outras Sec
+<option value="F">Federal
+<option value="M">Municipal
+<option value="P">Particular
+
+							<!-- Opcao Adicional -->
+							<option value="EO">Estadual + Estadual Conveniada
+							</select>
+					</td>
+					<td nowrap><font class="Wf" color="#104A7B">&nbsp;&nbsp;Sit. Func.:</font></td>
+					<td>
+						<select name="sitFunc">
+							<option value="">
+							<option value="ATV">Em atividade
+<option value="EXT">Extinta
+<option value="INA">INATIVA
+<option value="PAR">Paralisada
+
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap><font class="Wf" color="#104A7B">Projeto:</font></td>
+					<td>
+						<select name="slProjeto">
+							<option value="0">
+							<option value="1">Autonomia
+							<option value="2">Fluxo Escolar
+							<option value="3">Autonomia/Fluxo Escolar
+							<option value="4">Ensino Regular
+						</select>
+					</td>
+					<td nowrap><font class="Wf" color="#104A7B">&nbsp;&nbsp;Mod. de Ensino:</font></td>
+					<td>
+						<select name="slModalidade" id="slModalidade">
+							<option value="0">
+							<option value=14 >Médio - Educação Profissional 
+<option value=1  >Modalidade Educação Especial  
+<option value=2  >Modalidade Jovens e Adultos   
+<option value=3  >Educação Indígena             
+<option value=4  >Ensino Fundamental - 1 a 4    
+<option value=5  >Ensino Fundamental - 5 a 8    
+<option value=6  >Ensino Médio                  
+<option value=7  >Ensino Fundamental            
+<option value=8  >Ensino Fund. - 1 a 8 e Médio  
+<option value=9  >Ensino Fund. - 5 a 8 e Médio  
+<option value=10 >Ensino Fund. - 1 a 4 e Médio  
+<option value=11 >Modalidade do Campo           
+<option value=12 >Regularização do Fluxo Escolar
+<option value=13 >Educação Profissional         
+<option value=15 >Ensino EAD                    
+
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap><font class="Wf" color="#104A7B">Porte:</font></td>
+					<td>
+						<select name="selPorte">
+							<option value="">
+							<option value="PP">Pequeno
+							<option value="PM">Médio
+							<option value="PG">Grande
+							<option value="PE">Especial
+							<option value="ND">Não Definida
+						</select>
+					</td>
+					<td nowrap><font class="Wf" color="#104A7B">&nbsp;&nbsp;Sit. Imóvel:</font></td>
+					<td>
+						<select name="sitImovel">
+							<option value="0">
+							<option value="1">Próprio
+<option value="2">Alugado
+<option value="3">Cedido
+<option value="4">Convenio
+<option value="5">Comodato
+<option value="6">Cessâo
+
+						</select>
+					</td>
+				</tr>
+			</table>
+			<br>
+			<div align="right" style="width:540pt;">
+				
+				<input type="button" style="cursor:hand;" value="Pesquisar..." class="botao" OnClick="validaForm();">
+			</div>
+			<br>
+<!--
+			<table align="center" border="0" cellpadding="2" cellspacing="0" style="font-size:9px" width="732">
+				<tr bgcolor="#DBEAF5" align="center">
+					<td class="TITULO" width="66" ><font color="#104A7B">Código MEC.</font></td>
+					<td class="TITULO" width="42" ><font color="#104A7B">Código SEC.</font></td>
+					<td class="TITULO" width="222" align="left"><font color="#104A7B">&nbsp;Nome</font></td>
+					<td class="TITULO" width="53" ><font color="#104A7B">Dep.</font></td>
+					<td class="TITULO" width="65" ><font color="#104A7B">Situação Funcional</font></td>
+					<td class="TITULO" width="50" ><font color="#104A7B">Direc</font></td>
+					<td class="TITULO" width="54" ><font color="#104A7B">Município</font></td>
+					<td class="TITULO" width="50" ><font color="#104A7B">Projeto</font></td>
+					<td class="TITULO" width="65" ><font color="#104A7B">Mod. Ensino</font></td>
+					<td class="TITULO" width="65" ><font color="#104A7B">Situação Imóvel</font></td>
+				</tr>
+			</table>
+-->
+			<iframe align="left" src="" id="resultadoPesquisa" name="resultadoPesquisa" width="755" height="200" frameborder="1" scrolling="yes"></iframe>
+			<br><br><br><br><br><br><br><br><br><br><br>
+            <table border="0" align="left" width="755">
+            
+				<tr bgcolor="#DBEAF5">               
+					<td align="left" class="TITULO"><font color="#104A7B"><div id="RecordCount">&nbsp;</div></font></td>
+				</tr>
+				<tr align="left">
+					<td><span class="style1">*</span> <span class="style2">Fonte: Sistema Escolar / Unidade Respons&aacute;vel: Coordena&ccedil;&atilde;o de Legisla&ccedil;&atilde;o Escolar - CLO Tel. 3115-9132 </span></td>
+				</tr>
+			</table>
+		</form>
+	</body>
+</html>

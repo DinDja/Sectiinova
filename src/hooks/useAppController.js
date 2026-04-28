@@ -63,6 +63,7 @@ import {
     normalizePerfil,
     withLegacyUserMembership
 } from '../services/projectService';
+import { validateTeacherRegistrationBySec } from '../services/secSchoolService';
 import cachedDataService from '../services/cachedDataService';
 import indexedDBService from '../services/indexedDBService';
 import useAppControllerState from './useAppControllerState';
@@ -96,7 +97,6 @@ const normalizeClubCardTemplate = (value) => {
 };
 
 const normalizeEmailAddress = (value) => String(value || '').trim().toLowerCase();
-const isEnovaMentorEmail = (email) => /@enova\.educacao\.ba\.gov\.br$/.test(normalizeEmailAddress(email));
 
 const resolveProjectClubId = (project) => {
     if (!project || typeof project !== 'object') return '';
@@ -1149,15 +1149,17 @@ export default function useAppController() {
     };
 
     const saveSidebarOrder = async (newOrder) => {
-        if (!authUser) return;
-        
+        if (!authUser) return false;
+
         try {
             await updateDoc(doc(db, 'usuarios', authUser.uid), {
                 sidebarOrder: newOrder
             });
             setSidebarOrder(newOrder);
+            return true;
         } catch (error) {
             console.error('Erro ao salvar ordem do sidebar:', error);
+            return false;
         }
     };
 
@@ -1246,28 +1248,6 @@ export default function useAppController() {
 
                     if (snap.exists()) {
                         const userData = snap.data();
-                        const profileEmail = normalizeEmailAddress(userData?.email || user?.email);
-                        if (
-                            authProvider === 'google'
-                            && isMentoriaPerfil(userData?.perfil)
-                            && !isEnovaMentorEmail(profileEmail)
-                        ) {
-                            try {
-                                await signOut(auth);
-                            } catch (signOutError) {
-                                console.error('Falha ao encerrar sessao de mentor fora do dominio Enova:', signOutError);
-                            }
-
-                            setAuthMode('login');
-                            setAuthUser(null);
-                            setLoggedUser(null);
-                            setProfileCompletionContext(null);
-                            setAuthNotice(null);
-                            setAuthError('Orientadores e coorientadores so podem entrar com Google usando e-mail @enova.educacao.ba.gov.br.');
-                            setAuthLoading(false);
-                            return;
-                        }
-
                         setProfileCompletionContext(null);
                         setAuthUser(user);
                         setLoggedUser(normalizeUserEntity(userData, snap.id));
@@ -1581,19 +1561,32 @@ export default function useAppController() {
             return;
         }
 
-        if (isMentoriaPerfil(registerForm.perfil)) {
-            const emailNormalized = normalizeEmailAddress(registerForm.email);
-            if (!isEnovaMentorEmail(emailNormalized)) {
-                setAuthError('Orientadores e coorientadores devem usar e-mail @enova.educacao.ba.gov.br.');
-                return;
-            }
-        }
-
         setIsSubmitting(true);
         isRegisteringRef.current = !isSocialCompletionFlow;
 
         try {
             await setPersistence(auth, browserSessionPersistence);
+
+            const runMentorSecValidation = async () => {
+                if (!isMentoriaPerfil(registerForm.perfil)) {
+                    return null;
+                }
+
+                const result = await validateTeacherRegistrationBySec({
+                    matricula: registerForm.matricula,
+                    schoolUnit: escolaUnit,
+                    redeAdministrativa: registerForm.rede_administrativa
+                });
+
+                if (!result?.valid) {
+                    const reason = String(
+                        result?.reason || 'Nao foi possivel validar matricula e unidade na SEC para concluir o cadastro.'
+                    ).trim();
+                    throw new Error(reason || 'Nao foi possivel validar matricula e unidade na SEC.');
+                }
+
+                return result;
+            };
 
             const normalizedEmail = normalizeEmailAddress(registerForm.email);
             if (isSocialCompletionFlow) {
@@ -1623,6 +1616,8 @@ export default function useAppController() {
                     });
                     return;
                 }
+
+                await runMentorSecValidation();
 
                 const resolvedEscolasIds = normalizeIdList([escolaUnit.escola_id]);
                 const profileData = {
@@ -1668,6 +1663,8 @@ export default function useAppController() {
 
                 return;
             }
+
+            await runMentorSecValidation();
 
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
@@ -1782,26 +1779,6 @@ export default function useAppController() {
                 return;
             }
 
-            if (normalizedProvider === 'google') {
-                const userRef = doc(db, 'usuarios', user.uid);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    const existingProfile = userSnap.data() || {};
-                    const existingPerfil = String(existingProfile?.perfil || '').trim().toLowerCase();
-                    const existingEmail = normalizeEmailAddress(existingProfile?.email || normalizedEmail);
-
-                    if (isMentoriaPerfil(existingPerfil) && !isEnovaMentorEmail(existingEmail)) {
-                        try {
-                            await signOut(auth);
-                        } catch (signOutError) {
-                            console.error('Falha ao encerrar sessao de mentor fora do dominio Enova:', signOutError);
-                        }
-
-                        setAuthError('Orientadores e coorientadores so podem entrar com Google usando e-mail @enova.educacao.ba.gov.br.');
-                        return;
-                    }
-                }
-            }
         } catch (error) {
             console.error(`Erro no login social (${providerName}):`, error);
             setAuthError(
@@ -2128,12 +2105,9 @@ export default function useAppController() {
 
             if (authProfileProbe.loaded && authProfileProbe.exists) {
                 const authProfilePerfil = normalizePerfil(authProfileProbe.perfil);
-                const authProfileEmail = normalizeEmailAddress(authProfileProbe.email);
-                const authTokenEmail = normalizeEmailAddress(authTokenClaimsDebug?.tokenEmail || '');
                 const isMentorByProfile = isMentoriaPerfil(authProfilePerfil);
-                const isMentorByEmail = isEnovaMentorEmail(authProfileEmail) || isEnovaMentorEmail(authTokenEmail);
 
-                if (!isMentorByProfile && !isMentorByEmail) {
+                if (!isMentorByProfile) {
                     throw new Error('Seu perfil autenticado nao possui permissao de mentor para criar projetos.');
                 }
             }

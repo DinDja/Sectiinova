@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Select from "react-select";
 import lottie from "lottie-web/build/player/esm/lottie.min.js";
 import {
@@ -6,7 +6,6 @@ import {
   User,
   Mail,
   Lock,
-  School,
   ExternalLink,
   ArrowRight,
   LoaderCircle,
@@ -17,9 +16,7 @@ import {
   Brain,
   ChevronDown,
   Sparkles,
-  Lightbulb,
   Rocket,
-  Asterisk,
   Zap,
   X
 } from "lucide-react";
@@ -28,6 +25,8 @@ import {
   getPasswordSecurityChecks,
   getPasswordStrength,
 } from "../../utils/authSecurity";
+import { validateTeacherRegistrationBySec } from "../../services/secSchoolService";
+import Toast from "../forum/Toast";
 
 // --- COMPONENTES AUXILIARES HQ ---
 const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
@@ -349,12 +348,19 @@ export default function AuthPage({
   PERFIS_LOGIN,
 }) {
   const MIN_SCHOOL_SEARCH_CHARS = 2;
+  const MATRICULA_REALTIME_MIN_DIGITS = 6;
+  const SEC_REALTIME_DEBOUNCE_MS = 650;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
   const [schoolSelectInput, setSchoolSelectInput] = useState("");
+  const [secRealtimeValidation, setSecRealtimeValidation] = useState({
+    status: "idle",
+    message: "",
+    payload: null,
+  });
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -362,6 +368,7 @@ export default function AuthPage({
   
   const lottieBgRef = useRef(null);
   const cycleLottieRefs = useRef([]);
+  const secRealtimeRequestRef = useRef(0);
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -620,18 +627,133 @@ export default function AuthPage({
   };
   const passwordChecks = getPasswordSecurityChecks(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
   const passwordStrength = getPasswordStrength(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
-  const noticeClasses = authNotice?.tone === "success" ? "bg-cyan-300" : authNotice?.tone === "warning" ? "bg-yellow-400" : "bg-sky-300";
-  const normalizedRegisterEmail = String(registerForm.email || "").trim().toLowerCase();
-  const canUseMentorProfile = /@enova\.educacao\.ba\.gov\.br$/.test(normalizedRegisterEmail);
+  const isMentorRegistrationProfile = typeof isMentoriaPerfil === "function" && isMentoriaPerfil(registerForm.perfil);
+  const shouldRunRealtimeSecLookup = authMode === "register" && isMentorRegistrationProfile;
+  const secValidatedTeacher = secRealtimeValidation?.payload?.servidor || null;
+  const secValidatedSchool = secRealtimeValidation?.payload?.selectedSchool || null;
   const socialProviderLabel = String(socialCompletionProvider || "").toLowerCase() === "google" ? "Google" : String(socialCompletionProvider || "").toLowerCase() === "microsoft" ? "Microsoft" : "conta social";
-  
-  useEffect(() => {
-    if (typeof isMentoriaPerfil !== "function") return;
-    if (canUseMentorProfile) return;
-    if (!isMentoriaPerfil(registerForm.perfil)) return;
-    setRegisterForm((prev) => ({ ...prev, perfil: "estudante" }));
-  }, [canUseMentorProfile, isMentoriaPerfil, registerForm.perfil, setRegisterForm]);
+  const activeAuthToast = useMemo(() => {
+    if (authError) {
+      return { type: "error", message: String(authError).trim() };
+    }
 
+    if (authNotice?.message) {
+      const toneMap = {
+        success: "success",
+        warning: "warning",
+        info: "info",
+      };
+
+      return {
+        type: toneMap[String(authNotice.tone || "").toLowerCase()] || "info",
+        message: String(authNotice.message).trim(),
+      };
+    }
+
+    return null;
+  }, [authError, authNotice]);
+  const handleCloseAuthToast = useCallback(() => {
+    if (authError) {
+      setAuthError("");
+      return;
+    }
+
+    setAuthNotice(null);
+  }, [authError, setAuthError, setAuthNotice]);
+
+  useEffect(() => {
+    if (!shouldRunRealtimeSecLookup) {
+      setSecRealtimeValidation((previous) => (
+        previous.status === "idle" && !previous.message && !previous.payload
+          ? previous
+          : { status: "idle", message: "", payload: null }
+      ));
+      return undefined;
+    }
+
+    const matriculaDigits = String(registerForm.matricula || "").replace(/\D+/g, "");
+    if (!matriculaDigits) {
+      setSecRealtimeValidation({
+        status: "idle",
+        message: "Digite a matricula para validar automaticamente.",
+        payload: null,
+      });
+      return undefined;
+    }
+
+    if (matriculaDigits.length < MATRICULA_REALTIME_MIN_DIGITS) {
+      setSecRealtimeValidation({
+        status: "typing",
+        message: `Continue digitando a matricula (minimo de ${MATRICULA_REALTIME_MIN_DIGITS} digitos).`,
+        payload: null,
+      });
+      return undefined;
+    }
+
+    if (!selectedSchoolUnit || !String(registerForm.escola_id || "").trim()) {
+      setSecRealtimeValidation({
+        status: "waiting-school",
+        message: "Selecione a unidade escolar para validar a matricula na SEC.",
+        payload: null,
+      });
+      return undefined;
+    }
+
+    const requestId = secRealtimeRequestRef.current + 1;
+    secRealtimeRequestRef.current = requestId;
+
+    const timeoutId = window.setTimeout(async () => {
+      setSecRealtimeValidation({
+        status: "loading",
+        message: "Consultando SEC para validar a matricula...",
+        payload: null,
+      });
+
+      try {
+        const result = await validateTeacherRegistrationBySec({
+          matricula: matriculaDigits,
+          schoolUnit: selectedSchoolUnit,
+          redeAdministrativa: registerForm.rede_administrativa,
+        });
+
+        if (secRealtimeRequestRef.current !== requestId) return;
+
+        if (result?.valid) {
+          setSecRealtimeValidation({
+            status: "valid",
+            message: String(result?.reason || "Servidor validado na SEC para a unidade selecionada."),
+            payload: result,
+          });
+          return;
+        }
+
+        setSecRealtimeValidation({
+          status: "invalid",
+          message: String(result?.reason || "A matricula nao foi validada como servidor na unidade selecionada."),
+          payload: result || null,
+        });
+      } catch (error) {
+        if (secRealtimeRequestRef.current !== requestId) return;
+
+        setSecRealtimeValidation({
+          status: "error",
+          message: String(error?.message || "Falha ao validar matricula na SEC em tempo real."),
+          payload: null,
+        });
+      }
+    }, SEC_REALTIME_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    registerForm.matricula,
+    registerForm.escola_id,
+    registerForm.rede_administrativa,
+    selectedSchoolUnit,
+    shouldRunRealtimeSecLookup,
+  ]);
+  
   return (
     <div
       className="relative min-h-screen w-full font-sans text-slate-900 selection:bg-pink-400 selection:text-white overflow-x-hidden"
@@ -936,20 +1058,6 @@ export default function AuthPage({
                   </p>
                 </div>
 
-                {authNotice?.message && (
-                  <div className={`mb-6 rounded-[2rem] border-[3px] border-slate-900 ${noticeClasses} p-5 flex items-center gap-4 text-slate-900 shadow-sm animate-in fade-in`}>
-                    <Lightbulb className="w-6 h-6 stroke-[2.5]" />
-                    <p className="text-sm font-black uppercase tracking-wide">{authNotice.message}</p>
-                  </div>
-                )}
-
-                {authError && (
-                  <div className="mb-6 rounded-[2rem] border-[3px] border-slate-900 bg-pink-400 p-5 flex items-center gap-4 text-white shadow-sm animate-in fade-in">
-                    <Asterisk className="w-6 h-6 stroke-[3]" />
-                    <p className="text-sm font-black uppercase tracking-wide">{authError}</p>
-                  </div>
-                )}
-
                 {!isCompletingSocialProfile && (
                   <div className="space-y-4 mb-8">
                     <SolidButton
@@ -1084,22 +1192,15 @@ export default function AuthPage({
                         >
                           <option value="" disabled>Selecione seu perfil</option>
                           {safePerfisLogin.map((opt) => {
-                            const isMentorOption = typeof isMentoriaPerfil === "function" && isMentoriaPerfil(opt.value);
-                            const shouldDisableMentorOption = isMentorOption && !canUseMentorProfile;
                             return (
-                              <option key={opt.value} value={opt.value} disabled={shouldDisableMentorOption} className="font-bold">
-                                {opt.label} {shouldDisableMentorOption ? " (exige e-mail Enova)" : ""}
+                              <option key={opt.value} value={opt.value} className="font-bold">
+                                {opt.label}
                               </option>
                             );
                           })}
                         </select>
                         <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-900 stroke-[3] pointer-events-none" />
                       </div>
-                      {!canUseMentorProfile && (
-                        <p className="mt-2 ml-2 text-[10px] font-bold text-pink-500 uppercase tracking-wider">
-                          Perfis orientador/coorientador exigem @enova.
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-3 mb-8 p-5 border-[3px] border-slate-200 bg-slate-50 rounded-[2rem] hover:border-slate-900 transition-colors">
@@ -1168,35 +1269,9 @@ export default function AuthPage({
                       </div>
                     )}
 
-                    {/* Dados Acadêmicos Adicionais */}
-                    {((typeof isMentoriaPerfil === "function" ? isMentoriaPerfil(registerForm.perfil) : false) || (registerForm.perfil || "").toLowerCase().includes("estudante") || (registerForm.perfil || "").toLowerCase().includes("aluno")) && (
-                      <div className="bg-yellow-100 p-6 sm:p-8 rounded-[2.5rem] border-[3px] border-slate-900 mb-8 mt-4 animate-in slide-in-from-top-4">
-                        <h4 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3 uppercase tracking-tight">
-                          <BookOpen className="w-6 h-6 stroke-[3]" /> Dados Acadêmicos
-                        </h4>
-                        <SolidInput
-                          icon={ExternalLink}
-                          label="Link Lattes (Opcional)"
-                          type="url"
-                          value={registerForm.lattes}
-                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, lattes: e.target.value }))}
-                        />
-                        <div className="mb-2">
-                          <SolidInput
-                            icon={User}
-                            label="Número de Matrícula *"
-                            value={registerForm.matricula}
-                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, matricula: e.target.value }))}
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Vínculo Escolar */}
-                    <div className="bg-cyan-100 p-6 sm:p-8 rounded-[2.5rem] border-[3px] border-slate-900 mb-10">
+                    <div className="bg-yellow-100 p-6 sm:p-8 rounded-[2.5rem] border-[3px] border-slate-900 mb-10 mt-4 animate-in slide-in-from-top-4">
                       <h4 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3 uppercase tracking-tight">
-                        <School className="w-6 h-6 stroke-[3]" /> Vínculo Escolar
+                        <BookOpen className="w-6 h-6 stroke-[3]" /> Dados Acadêmicos
                       </h4>
 
                       <div className="relative mb-6">
@@ -1220,7 +1295,7 @@ export default function AuthPage({
                         </div>
                       </div>
 
-                      <div className="relative">
+                      <div className="relative mb-6">
                         <label className={`block text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1 ${hasSchoolError ? "text-pink-600" : "text-slate-900"}`}>Qual Unidade? *</label>
                         <div className="relative">
                           <Select
@@ -1267,6 +1342,81 @@ export default function AuthPage({
                           />
                         </div>
                       </div>
+
+                      {((typeof isMentoriaPerfil === "function" ? isMentoriaPerfil(registerForm.perfil) : false) || (registerForm.perfil || "").toLowerCase().includes("estudante") || (registerForm.perfil || "").toLowerCase().includes("aluno")) && (
+                        <>
+                          <SolidInput
+                            icon={ExternalLink}
+                            label="Link Lattes (Opcional)"
+                            type="url"
+                            value={registerForm.lattes}
+                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, lattes: e.target.value }))}
+                          />
+                          <div className="mb-2">
+                            <SolidInput
+                              icon={User}
+                              label="Número de Matrícula *"
+                              value={registerForm.matricula}
+                              onChange={(e) => setRegisterForm((prev) => ({ ...prev, matricula: e.target.value }))}
+                              required
+                            />
+
+                            {isMentorRegistrationProfile && (
+                              <div
+                                className={`mt-3 rounded-[1.4rem] border-[3px] p-4 transition-colors ${
+                                  secRealtimeValidation.status === "valid"
+                                    ? "border-cyan-400 bg-cyan-50"
+                                    : secRealtimeValidation.status === "invalid"
+                                      ? "border-pink-500 bg-pink-50"
+                                      : secRealtimeValidation.status === "error"
+                                        ? "border-yellow-500 bg-yellow-50"
+                                        : "border-slate-300 bg-white"
+                                }`}
+                                aria-live="polite"
+                              >
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                  Validação de matricula em tempo real
+                                </p>
+
+                                <p className="mt-2 text-xs font-bold text-slate-800">
+                                  {secRealtimeValidation.message || "Informe matricula e unidade escolar para iniciar a validacao."}
+                                </p>
+
+                                {secRealtimeValidation.status === "loading" && (
+                                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-700">
+                                    <LoaderCircle className="h-4 w-4 animate-spin stroke-[3]" />
+                                    Consultando
+                                  </div>
+                                )}
+
+                                {secValidatedSchool && (
+                                  <div className="mt-3 grid gap-1.5 rounded-[1rem] border-[2px] border-slate-300 bg-white p-3 text-xs font-bold text-slate-700">
+                                    <p><span className="font-black text-slate-900">Codigo MEC/Anexo:</span> {secValidatedSchool.codigoMecAnexo || `${secValidatedSchool.codigoMec || "-"}/${secValidatedSchool.anexo || "00"}`}</p>
+                                    <p><span className="font-black text-slate-900">Codigo SEC:</span> {secValidatedSchool.codigoSec || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Unidade:</span> {secValidatedSchool.nome || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Dependencia:</span> {secValidatedSchool.depAdm || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Situacao:</span> {secValidatedSchool.situacaoFuncional || "-"}</p>
+                                    <p><span className="font-black text-slate-900">NTE:</span> {secValidatedSchool.direc || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Municipio:</span> {secValidatedSchool.municipio || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Projeto:</span> {secValidatedSchool.projeto || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Modalidade:</span> {secValidatedSchool.modalidade || "-"}</p>
+                                  </div>
+                                )}
+
+                                {secValidatedTeacher && (
+                                  <div className="mt-3 grid gap-1.5 rounded-[1rem] border-[2px] border-cyan-300 bg-white p-3 text-xs font-bold text-slate-700">
+                                    <p><span className="font-black text-slate-900">Servidor:</span> {secValidatedTeacher.nome || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Cargo:</span> {secValidatedTeacher.cargo || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Funcao:</span> {secValidatedTeacher.funcao || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Situacao:</span> {secValidatedTeacher.situacao || "-"}</p>
+                                    <p><span className="font-black text-slate-900">Matricula:</span> {secValidatedTeacher.matricula || secValidatedTeacher.cadastro || "-"}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <SolidButton type="submit" disabled={isSubmitting} color="bg-pink-400 text-white" className="w-full text-base py-4 mt-8">
@@ -1278,6 +1428,15 @@ export default function AuthPage({
             </div>
           </div>
         </div>
+      )}
+
+      {activeAuthToast?.message && (
+        <Toast
+          message={activeAuthToast.message}
+          type={activeAuthToast.type}
+          duration={5000}
+          onClose={handleCloseAuthToast}
+        />
       )}
     </div>
   );

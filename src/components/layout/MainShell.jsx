@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import {
@@ -51,6 +51,7 @@ export default function MainShell({
 
   const effectiveFontSize = fontSizeMap[fontSizeLevel] || fontSizeMap[2];
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const mainContentRef = useRef(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -62,6 +63,7 @@ export default function MainShell({
 
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     const preferences = resolveUserUiPreferences(loggedUser);
     const selectedFont = getUiFontOption(preferences.font_id);
     const selectedTheme = getUiThemeOption(preferences.theme_id);
@@ -74,10 +76,31 @@ export default function MainShell({
     root.setAttribute("data-ui-theme", selectedTheme.id);
     root.setAttribute("data-ui-font", selectedFont.id);
     root.setAttribute("data-ui-style", selectedStyle.id);
+    if (body) {
+      body.setAttribute("data-ui-theme", selectedTheme.id);
+      body.setAttribute("data-ui-font", selectedFont.id);
+      body.setAttribute("data-ui-style", selectedStyle.id);
+    }
+
+    return () => {
+      root.removeAttribute("data-ui-theme");
+      root.removeAttribute("data-ui-font");
+      root.removeAttribute("data-ui-style");
+      if (body) {
+        body.removeAttribute("data-ui-theme");
+        body.removeAttribute("data-ui-font");
+        body.removeAttribute("data-ui-style");
+      }
+    };
   }, [loggedUser]);
 
   useEffect(() => {
     setIsMobileSidebarOpen(false);
+  }, [currentView]);
+
+  useEffect(() => {
+    if (!mainContentRef.current) return;
+    mainContentRef.current.scrollTop = 0;
   }, [currentView]);
 
   useEffect(() => {
@@ -151,7 +174,10 @@ export default function MainShell({
             isSidebarOpen={isMobileSidebarOpen}
           />
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden relative studio-main min-w-0">
+          <main
+            ref={mainContentRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden relative studio-main min-w-0"
+          >
             {isINPIView ? (
               <div className={constrainedContentClasses}>
                 {children}

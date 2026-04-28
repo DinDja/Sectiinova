@@ -50,12 +50,12 @@ export default function Sidebar({
       iconSrc: "/iconesSidebar/trilha.svg",
       tooltip: "Planejar trilha CT&I",
     },
-    // {
-    //   id: "inpi",
-    //   label: "PatentesLab",
-    //   icon: FcIdea,
-    //   tooltip: "Propriedade intelectual",
-    // },
+    {
+      id: "inpi",
+      label: "PatentesLab",
+      icon: FcIdea,
+      tooltip: "Propriedade intelectual",
+    },
     {
       id: "forum",
       label: "POP Café",
@@ -189,13 +189,17 @@ export default function Sidebar({
   };
 
   const handleDragEnd = async () => {
+    const previousOrder = sidebarOrder;
     setDraggedItemIndex(null);
     setDragOverItemIndex(null);
 
     if (tempOrder) {
       setSidebarOrder(tempOrder);
       if (saveSidebarOrder) {
-        await saveSidebarOrder(tempOrder);
+        const success = await saveSidebarOrder(tempOrder);
+        if (!success) {
+          setSidebarOrder(previousOrder);
+        }
       }
     }
 

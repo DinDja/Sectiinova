@@ -77,21 +77,6 @@ service cloud.firestore {
         );
     }
 
-    function isClubMentorFromData(data) {
-      return isSignedIn() && (
-        (data.orientador_ids is list && request.auth.uid in data.orientador_ids)
-        || (data.orientadores_ids is list && request.auth.uid in data.orientadores_ids)
-        || (data.coorientador_ids is list && request.auth.uid in data.coorientador_ids)
-        || (data.coorientadores_ids is list && request.auth.uid in data.coorientadores_ids)
-        || data.mentor_id == request.auth.uid
-        || (
-          isMentor()
-          && data.membros_ids is list
-          && request.auth.uid in data.membros_ids
-        )
-      );
-    }
-
     function isClubTeacherMember(clubeId) {
       return isSignedIn()
         && isMentor()
@@ -105,14 +90,6 @@ service cloud.firestore {
           || userData().clube_id == clubeId
           || isClubDocMember(clubeId)
         );
-    }
-
-    function canCreateProjectInClub(clubeId) {
-      return isSignedIn()
-        && clubeId is string
-        && clubeId.size() > 0
-        && clubExists(clubeId)
-        && isClubTeacherMember(clubeId);
     }
 
     function hasClubMinimumStructure(data) {
@@ -163,6 +140,7 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.uid == userId
         && hasValidUiPreferences(request.resource.data)
+        && isValidSidebarOrder(request.resource.data)
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -171,7 +149,8 @@ service cloud.firestore {
           'localizacao',
           'fotoBase64',
           'lattes_data',
-          'ui_preferences'
+          'ui_preferences',
+          'sidebarOrder'
         ]);
     }
 
@@ -190,6 +169,43 @@ service cloud.firestore {
           && (
             !(data.ui_preferences.style_id is string)
             || data.ui_preferences.style_id.size() > 0
+          )
+        );
+    }
+
+    function isValidSidebarOrder(data) {
+      return !(data.sidebarOrder is list)
+        || (
+          data.sidebarOrder.size() > 0
+          && data.sidebarOrder.size() <= 6
+          && (
+            data.sidebarOrder.size() == 1
+              && data.sidebarOrder[0] is string
+            || data.sidebarOrder.size() == 2
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+            || data.sidebarOrder.size() == 3
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+            || data.sidebarOrder.size() == 4
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+              && data.sidebarOrder[3] is string
+            || data.sidebarOrder.size() == 5
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+              && data.sidebarOrder[3] is string
+              && data.sidebarOrder[4] is string
+            || data.sidebarOrder.size() == 6
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+              && data.sidebarOrder[3] is string
+              && data.sidebarOrder[4] is string
+              && data.sidebarOrder[5] is string
           )
         );
     }

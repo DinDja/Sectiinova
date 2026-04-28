@@ -1,11 +1,11 @@
 import "../src/style.css";
 
 export const metadata = {
-  title: "Conecta Juvs | SECTI BA - plataforma de inovacao e colaboracao",
+  title: "Conecta Clube | SECTI BA - plataforma de inovacao e colaboracao",
   description:
-    "Conecta Juvs da SECTI BA: plataforma de inovacao, gestao de projetos e colaboracao para clubes e redes de pesquisa.",
+    "Conecta Clube da SECTI BA: plataforma de inovacao, gestao de projetos e colaboracao para clubes e redes de pesquisa.",
   keywords: [
-    "Conecta Juvs",
+    "Conecta Clube",
     "SECTI BA",
     "inovacao",
     "projetos",
@@ -16,7 +16,7 @@ export const metadata = {
   ],
   manifest: "/site.webmanifest",
   appleWebApp: {
-    title: "MyWebSite",
+    title: "Conecta Clube",
   },
   icons: {
     icon: [
