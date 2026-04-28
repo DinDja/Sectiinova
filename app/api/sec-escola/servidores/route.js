@@ -8,9 +8,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SEC_MATRICULA_GUARD_TIMEOUT_MS = (() => {
-  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_GUARD_TIMEOUT_MS || "28000"), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 28000;
+  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_GUARD_TIMEOUT_MS || "18000"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 18000;
 })();
+
+function extractErrorMessage(error) {
+  if (error instanceof Error) {
+    return String(error.message || "").trim();
+  }
+  return String(error || "").trim();
+}
 
 function buildCorsHeaders() {
   return {
@@ -68,11 +75,34 @@ async function runMatriculaValidationWithGuard(payload) {
   }, SEC_MATRICULA_GUARD_TIMEOUT_MS);
 
   try {
-    return await validateSecTeacherByMatricula(payload, {
+    const runAttempt = (transportPreference) => validateSecTeacherByMatricula(payload, {
       signal: controller.signal,
       allowDetailFallback: false,
       disableStaffCache: true,
+      transportPreference,
     });
+
+    try {
+      const result = await Promise.any([
+        runAttempt("node-only"),
+        runAttempt("fetch-first"),
+      ]);
+
+      controller.abort();
+      return result;
+    } catch (aggregateError) {
+      const aggregateErrors = Array.isArray(aggregateError?.errors)
+        ? aggregateError.errors
+        : [aggregateError];
+
+      const message = aggregateErrors
+        .map((entry) => extractErrorMessage(entry))
+        .find((entry) => entry.length > 0);
+
+      throw new Error(
+        message || "Falha ao consultar SEC para validar matricula.",
+      );
+    }
   } finally {
     clearTimeout(timeoutId);
   }

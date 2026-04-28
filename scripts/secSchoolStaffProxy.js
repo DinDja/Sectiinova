@@ -265,7 +265,25 @@ function extractDetailLabelValue(html, labelRegexSource) {
 }
 
 async function fetchLatin1Html(url, init = {}) {
+  const transportPreference = String(init.transportPreference || "").trim().toLowerCase();
+  const shouldUseNodeOnly = transportPreference === "node-only";
+  const shouldUseFetchOnly = transportPreference === "fetch-only";
   const externalSignal = init.signal;
+  const nodeRequestInit = {
+    ...init,
+    headers: {
+      ...DEFAULT_HEADERS,
+      ...(init.headers || {}),
+    },
+    signal: externalSignal,
+  };
+
+  delete nodeRequestInit.transportPreference;
+
+  if (shouldUseNodeOnly) {
+    return fetchLatin1HtmlWithNodeRequest(url, nodeRequestInit);
+  }
+
   const timeoutSignal = createNetworkTimeoutSignal(SEC_FETCH_PRIMARY_TIMEOUT_MS);
   const mergedSignal = combineSignals(externalSignal, timeoutSignal);
   const requestInit = {
@@ -276,6 +294,8 @@ async function fetchLatin1Html(url, init = {}) {
     },
     signal: mergedSignal,
   };
+
+  delete requestInit.transportPreference;
 
   try {
     const response = await fetch(url, requestInit);
@@ -292,16 +312,16 @@ async function fetchLatin1Html(url, init = {}) {
       throw createAbortError();
     }
 
-    try {
-      const nodeRequestInit = {
-        ...init,
-        headers: {
-          ...DEFAULT_HEADERS,
-          ...(init.headers || {}),
-        },
-        signal: externalSignal,
-      };
+    if (shouldUseFetchOnly) {
+      if (isTimeoutNetworkError(fetchError)) {
+        throw new Error(`Timeout ao acessar SEC (${url}).`);
+      }
 
+      const fetchMessage = describeNetworkError(fetchError);
+      throw new Error(`Falha de rede ao acessar SEC (${url}). fetch: ${fetchMessage}.`);
+    }
+
+    try {
       return await fetchLatin1HtmlWithNodeRequest(url, nodeRequestInit);
     } catch (nodeRequestError) {
       if (isTimeoutNetworkError(fetchError) && isTimeoutNetworkError(nodeRequestError)) {
@@ -577,6 +597,7 @@ function parseStaffRows(html) {
 
 async function runSchoolSearch(criteria, options = {}) {
   const signal = options?.signal;
+  const transportPreference = options?.transportPreference;
   const params = new URLSearchParams();
   params.set("hdProxyLet", "");
   params.set("strCorLinhaTitulo", "#DBEAF5");
@@ -601,6 +622,7 @@ async function runSchoolSearch(criteria, options = {}) {
     },
     body: params.toString(),
     signal,
+    transportPreference,
   });
 
   if (!ok) {
@@ -614,6 +636,7 @@ async function runSchoolSearch(criteria, options = {}) {
 
 async function loadSchoolDetail(selectedSchool, options = {}) {
   const signal = options?.signal;
+  const transportPreference = options?.transportPreference;
   const detailUrl = new URL(SCHOOL_DETAIL_URL);
   detailUrl.searchParams.set("codigo_mec", selectedSchool.codigoMec);
   detailUrl.searchParams.set("codigo_secretaria", selectedSchool.codigoSec);
@@ -625,6 +648,7 @@ async function loadSchoolDetail(selectedSchool, options = {}) {
       Referer: SEARCH_PAGE_URL,
     },
     signal,
+    transportPreference,
   });
 
   if (!ok) {
@@ -649,6 +673,7 @@ async function loadSchoolDetail(selectedSchool, options = {}) {
 
 async function loadSchoolStaffNominal(selectedSchool, detailData, options = {}) {
   const signal = options?.signal;
+  const transportPreference = options?.transportPreference;
   const listUrl = new URL(STAFF_NOMINAL_URL);
   listUrl.searchParams.set("codigo_escola", selectedSchool.codigoMec);
   listUrl.searchParams.set("codigo_secretaria", selectedSchool.codigoSec);
@@ -672,6 +697,7 @@ async function loadSchoolStaffNominal(selectedSchool, detailData, options = {}) 
       Referer: SCHOOL_DETAIL_URL,
     },
     signal,
+    transportPreference,
   });
 
   if (!ok) {
