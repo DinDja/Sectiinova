@@ -7,6 +7,7 @@ const SEARCH_RESULTS_URL = `${SEC_BASE_URL}/asp/pesquisaEscola/resultadoPesquisa
 const SCHOOL_DETAIL_URL = `${SEC_BASE_URL}/asp/principal/consulta_escola.asp`;
 const STAFF_NOMINAL_URL = `${SEC_BASE_URL}/asp/servidores/listar_servidores_nominal.asp`;
 const SEC_NETWORK_TIMEOUT_MS = 35000;
+const SEC_FETCH_PRIMARY_TIMEOUT_MS = 9000;
 const SEC_STAFF_CACHE_TTL_MS = 5 * 60 * 1000;
 const SEC_STAFF_CACHE_MAX_ITEMS = 250;
 
@@ -264,8 +265,9 @@ function extractDetailLabelValue(html, labelRegexSource) {
 }
 
 async function fetchLatin1Html(url, init = {}) {
-  const timeoutSignal = createNetworkTimeoutSignal();
-  const mergedSignal = combineSignals(init.signal, timeoutSignal);
+  const externalSignal = init.signal;
+  const timeoutSignal = createNetworkTimeoutSignal(SEC_FETCH_PRIMARY_TIMEOUT_MS);
+  const mergedSignal = combineSignals(externalSignal, timeoutSignal);
   const requestInit = {
     ...init,
     headers: {
@@ -286,13 +288,26 @@ async function fetchLatin1Html(url, init = {}) {
       body,
     };
   } catch (fetchError) {
-    if (isTimeoutNetworkError(fetchError)) {
-      throw new Error(`Timeout ao acessar SEC (${url}).`);
+    if (externalSignal?.aborted) {
+      throw createAbortError();
     }
 
     try {
-      return await fetchLatin1HtmlWithNodeRequest(url, requestInit);
+      const nodeRequestInit = {
+        ...init,
+        headers: {
+          ...DEFAULT_HEADERS,
+          ...(init.headers || {}),
+        },
+        signal: externalSignal,
+      };
+
+      return await fetchLatin1HtmlWithNodeRequest(url, nodeRequestInit);
     } catch (nodeRequestError) {
+      if (isTimeoutNetworkError(fetchError) && isTimeoutNetworkError(nodeRequestError)) {
+        throw new Error(`Timeout ao acessar SEC (${url}).`);
+      }
+
       const fetchMessage = describeNetworkError(fetchError);
       const requestMessage = describeNetworkError(nodeRequestError);
       throw new Error(
