@@ -127,10 +127,6 @@ service cloud.firestore {
           !(request.auth.token.email is string)
           || request.resource.data.email == request.auth.token.email
         )
-        && (
-          !isMentorProfile(request.resource.data.perfil)
-          || isMentorDomainEmail(request.resource.data.email)
-        )
         && request.resource.data.clubes_ids is list
         && request.resource.data.escolas_ids is list
         && request.resource.data.createdAt is timestamp;
@@ -139,8 +135,8 @@ service cloud.firestore {
     function isSafeSelfProfileUpdate(userId) {
       return request.auth != null
         && request.auth.uid == userId
-        && hasValidUiPreferences(request.resource.data)
-        && isValidSidebarOrder(request.resource.data)
+        && isUiPreferencesChangeValid()
+        && isSidebarOrderChangeValid()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -154,32 +150,49 @@ service cloud.firestore {
         ]);
     }
 
+    function isUiPreferencesChangeValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['ui_preferences'])
+        || hasValidUiPreferences(request.resource.data);
+    }
+
+    function isSidebarOrderChangeValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['sidebarOrder'])
+        || isValidSidebarOrder(request.resource.data);
+    }
+
     function schoolChangeCountFromData(data) {
       return data.school_change_count is int ? data.school_change_count : 0;
     }
 
-    function hasValidUiPreferences(data) {
-      return !(data.ui_preferences is map)
-        || (
-          data.ui_preferences.keys().hasOnly(['font_id', 'theme_id', 'style_id'])
-          && data.ui_preferences.font_id is string
-          && data.ui_preferences.font_id.size() > 0
-          && data.ui_preferences.theme_id is string
-          && data.ui_preferences.theme_id.size() > 0
-          && (
-            !(data.ui_preferences.style_id is string)
-            || data.ui_preferences.style_id.size() > 0
-          )
-        );
-    }
+ function hasValidUiPreferences(data) {
+  return (
+    !(data.ui_preferences is map)
+    || (
+      data.ui_preferences.keys().hasOnly(['font_id', 'theme_id', 'style_id'])
+      && (
+        !(data.ui_preferences.font_id is string)
+        || data.ui_preferences.font_id.size() > 0
+      )
+      && (
+        !(data.ui_preferences.theme_id is string)
+        || data.ui_preferences.theme_id.size() > 0
+      )
+      && (
+        !(data.ui_preferences.style_id is string)
+        || data.ui_preferences.style_id.size() > 0
+      )
+    )
+  );
+}
 
     function isValidSidebarOrder(data) {
       return !(data.sidebarOrder is list)
         || (
-          data.sidebarOrder.size() > 0
+          data.sidebarOrder.size() >= 0
           && data.sidebarOrder.size() <= 6
           && (
-            data.sidebarOrder.size() == 1
+            data.sidebarOrder.size() == 0
+            || data.sidebarOrder.size() == 1
               && data.sidebarOrder[0] is string
             || data.sidebarOrder.size() == 2
               && data.sidebarOrder[0] is string
@@ -259,7 +272,7 @@ service cloud.firestore {
         && request.resource.data.school_change_last_reason.size() <= 240
         && request.resource.data.school_change_last_at is timestamp
         && request.resource.data.school_change_last_at == request.time
-        && hasValidUiPreferences(request.resource.data)
+        && isUiPreferencesChangeValid()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',

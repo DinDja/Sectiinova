@@ -740,7 +740,7 @@ export default function ClubBoard({
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-8 grid grid-cols-4 gap-3">
+                                                <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                                                     {[
                                                         { v: memberCount, l: "Membros", c: "bg-teal-400" },
                                                         { v: clubistasCount, l: "Clubistas", c: "bg-blue-400" },
@@ -805,15 +805,8 @@ export default function ClubBoard({
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             `}</style>
 
-            <div className="min-h-screen bg-[#FDFDFD] text-slate-900 pb-32 font-sans selection:bg-pink-400 selection:text-white overflow-x-hidden relative">
-                
-                {/* BACKGROUND HQ: imagem BG.png com sobreposição suave */}
-                <div className="fixed inset-0 z-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-[url('/BG.png')] bg-cover bg-center"></div>
-                    <div className="absolute inset-0 bg-white/15 backdrop-blur-sm"></div>
-                </div>
-
-                <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 space-y-12 relative z-10">
+            <div className="club-board-editorial min-h-screen bg-[#f7f2e9] text-slate-900 pb-16 font-sans selection:bg-pink-400 selection:text-white overflow-x-hidden relative">
+                <div className="club-board-shell max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8 relative z-10">
                     {canSwitchUserClubs && (
                         <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
                             <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
@@ -849,8 +842,8 @@ export default function ClubBoard({
                                                     <span className="text-[10px] font-black text-slate-900">{getInitials(club?.nome || '')}</span>
                                                 )}
                                             </span>
-                                            <span className="flex flex-col items-start">
-                                                <span>{club?.nome || 'Clube'}</span>
+                                            <span className="flex min-w-0 max-w-[14rem] flex-col items-start sm:max-w-[18rem]">
+                                                <span className="w-full truncate">{club?.nome || 'Clube'}</span>
                                             </span>
                                         </button>
                                     );
@@ -861,7 +854,7 @@ export default function ClubBoard({
              
                     {/* Header do Clube HQ */}
                     <div className="relative w-full">
-                        <div className="relative overflow-hidden rounded-[3rem] bg-white border-[3px] border-slate-900 min-h-[380px] flex flex-col justify-end p-8 md:p-12 shadow-xl z-10">
+                        <div className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-200 min-h-[300px] flex flex-col justify-end p-6 md:p-8 shadow-sm z-10">
                             
                             <div className={`absolute inset-0 pointer-events-none border-b-[3px] border-slate-900 ${viewingClubHeroBannerConfig.containerClass}`}>
                                 {clubBannerUrl ? (
@@ -878,12 +871,12 @@ export default function ClubBoard({
                                 <div className={viewingClubHeroBannerConfig.overlayClass} />
                             </div>
 
-                            <div className="relative flex flex-col lg:flex-row gap-8 justify-between items-end z-10">
-                                <div className="max-w-4xl flex-1 flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
+                            <div className="relative flex flex-col lg:flex-row gap-6 justify-between items-end z-10">
+                                <div className="max-w-4xl flex-1 flex flex-col md:flex-row items-center md:items-end gap-5 text-center md:text-left">
                                     
                                     {/* Logo Container com Isolate para garantir z-index sobre o background */}
                                     <div className="isolate">
-                                        <div className="relative z-20 w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] border-[3px] border-slate-900 shadow-md bg-white overflow-hidden flex items-center justify-center shrink-0">
+                                        <div className="relative z-20 w-28 h-28 md:w-32 md:h-32 rounded-[1.5rem] border border-slate-200 shadow-sm bg-white overflow-hidden flex items-center justify-center shrink-0">
                                             {clubLogoUrl ? (
                                                 <img
                                                     src={clubLogoUrl}
@@ -899,26 +892,26 @@ export default function ClubBoard({
                                     </div>
 
                                     <div className="flex-1 pb-2">
-                                        <h1 className="text-4xl md:text-6xl font-black text-slate-900 uppercase tracking-tight mb-5 leading-[1.05]">
+                                        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-3 leading-[1.1]">
                                             {viewingClub.nome}
                                         </h1>
 
                                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                            <p className="text-slate-900 font-bold text-sm flex items-center gap-2 bg-yellow-400 border-[3px] border-slate-900 shadow-sm rounded-full px-5 py-2.5 uppercase tracking-wider">
-                                                <MapIcon className="w-4 h-4 stroke-[3]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
+                                            <p className="max-w-full text-slate-700 font-semibold text-sm flex items-center gap-2 bg-[#f5eee1] border border-[#ddd0bb] rounded-full px-4 py-2 break-words [overflow-wrap:anywhere]">
+                                                <MapIcon className="w-4 h-4 stroke-[2.5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row gap-4 shrink-0 w-full lg:w-auto">
+                                <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full lg:w-auto">
                                     {canManageClub && (
                                         <button
                                             type="button"
                                             onClick={() => setIsEditClubOpen(true)}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 bg-white border-[3px] border-slate-900 shadow-sm hover:scale-105 hover:bg-slate-50 active:scale-95 text-slate-900 font-black uppercase text-xs tracking-wider transition-transform"
+                                            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs tracking-wide transition-colors"
                                         >
-                                            <Pencil className="w-4 h-4 stroke-[3]" /> Editar Clube
+                                            <Pencil className="w-4 h-4 stroke-[2.5]" /> Editar Clube
                                         </button>
                                     )}
 
@@ -926,9 +919,9 @@ export default function ClubBoard({
                                         <button
                                             type="button"
                                             onClick={() => setIsCreateClubOpen(true)}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 bg-yellow-400 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-xs tracking-wider transition-transform"
+                                            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 bg-[#ead5b8] border border-[#d4be9e] hover:bg-[#e2ccb0] text-slate-800 font-semibold text-xs tracking-wide transition-colors"
                                         >
-                                            <PlusCircle className="w-4 h-4 stroke-[3]" /> Criar Clube
+                                            <PlusCircle className="w-4 h-4 stroke-[2.5]" /> Criar Clube
                                         </button>
                                     )}
 
@@ -937,7 +930,7 @@ export default function ClubBoard({
                                             type="button"
                                             onClick={() => handleStudentJoinRequest(viewingClubId)}
                                             disabled={isViewingClubRequesting || isViewingClubRequestPending || isViewingClubRequestAccepted}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 bg-cyan-300 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-xs tracking-wider transition-transform disabled:opacity-50 disabled:pointer-events-none"
+                                            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 bg-[#c8d8d4] border border-[#b3c5c1] hover:bg-[#bfd0cb] text-slate-800 font-semibold text-xs tracking-wide transition-colors disabled:opacity-50 disabled:pointer-events-none"
                                         >
                                             {isViewingClubRequesting ? 'Enviando...' : isViewingClubRequestPending ? 'Aguardando' : isViewingClubRequestAccepted ? 'Aceita' : isViewingClubRequestRejected ? 'Tentar Novamente' : 'Solicitar Entrada'}
                                         </button>
@@ -947,9 +940,9 @@ export default function ClubBoard({
                                         <button
                                             type="button"
                                             onClick={() => setIsCreateOpen((previous) => !previous)}
-                                            className="inline-flex items-center justify-center gap-3 rounded-full px-8 py-3.5 bg-cyan-300 border-[3px] border-slate-900 shadow-sm hover:scale-105 active:scale-95 text-slate-900 font-black uppercase text-sm tracking-wider transition-transform"
+                                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-[#bcd4cf] border border-[#a7c0ba] hover:bg-[#b2cac5] text-slate-900 font-semibold text-sm tracking-wide transition-colors"
                                         >
-                                            <Zap className={`w-5 h-5 stroke-[2.5] transition-transform ${isCreateOpen ? '--45' : ''}`} />
+                                            <Zap className={`w-4 h-4 stroke-[2.25] transition-transform ${isCreateOpen ? '--45' : ''}`} />
                                             {isCreateOpen ? 'Cancelar Criação' : 'Novo Projeto'}
                                         </button>
                                     )}
@@ -977,7 +970,7 @@ export default function ClubBoard({
 
                     {membershipRequestFeedback.message && (
                         <div className="relative">
-                            <div className={`rounded-full border-[3px] border-slate-900 px-6 py-4 text-sm font-black uppercase shadow-sm relative z-10 text-center ${
+                            <div className={`rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold shadow-sm relative z-10 text-center ${
                                 membershipRequestFeedback.type === 'error' ? 'bg-pink-500 text-white' : 'bg-cyan-300 text-slate-900'
                             }`}>
                                 {membershipRequestFeedback.message}
@@ -986,21 +979,21 @@ export default function ClubBoard({
                     )}
 
                     <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                        <div className="xl:col-span-5 bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
-                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-6 border-b-[3px] border-slate-900 pb-4 flex items-center gap-3">
+                        <div className="xl:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm relative">
+                            <h3 className="text-xl font-semibold text-slate-900 mb-4 border-b border-slate-200 pb-3 flex items-center gap-2.5">
                                 <BookOpen className="w-7 h-7 stroke-[2.5] text-pink-500" /> Descrição do Clube
                             </h3>
-                            <p className="text-sm md:text-base font-bold text-slate-700 leading-relaxed whitespace-pre-line">
+                            <p className="text-sm md:text-base font-medium text-slate-700 leading-relaxed whitespace-pre-line">
                                 {clubDescription || 'Clube ativo na unidade escolar com foco em pesquisa, inovação e formação científica.'}
                             </p>
                         </div>
 
-                        <div className="xl:col-span-7 bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">
-                            <div className="flex items-center justify-between gap-4 mb-8 border-b-[3px] border-slate-900 pb-5">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                        <div className="xl:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm relative">
+                            <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-4">
+                                <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2.5">
                                     <FileText className="w-7 h-7 stroke-[2.5] text-cyan-500" /> Documentos de Criação
                                 </h3>
-                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-yellow-400 text-slate-900 text-sm font-black px-4 py-1.5 shadow-sm">
+                                <span className="inline-flex items-center justify-center rounded-full border border-[#d4be9e] bg-[#ead5b8] text-slate-800 text-xs font-semibold px-3 py-1">
                                     {clubDocuments.filter((item) => item.isAvailable).length}/{clubDocuments.length}
                                 </span>
                             </div>
@@ -1012,17 +1005,17 @@ export default function ClubBoard({
                                     return (
                                         <div
                                             key={documentItem.key}
-                                            className={`rounded-[2rem] border-[3px] border-slate-900 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-colors ${
+                                            className={`rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-colors ${
                                                 documentItem.isAvailable ? 'bg-cyan-50 hover:bg-cyan-100' : 'bg-slate-50'
                                             }`}
                                         >
                                             <div className="min-w-0">
-                                                <p className="text-sm font-black text-slate-900 uppercase">{documentItem.label}</p>
-                                                <p className="text-xs font-bold text-slate-600 mt-1 truncate">
+                                                <p className="text-sm font-semibold text-slate-900">{documentItem.label}</p>
+                                                <p className="text-xs font-medium text-slate-600 mt-1 truncate">
                                                     {documentItem.isAvailable ? documentItem.fileName : 'Documento ainda não enviado'}
                                                 </p>
                                                 {(sizeLabel || documentItem.contentType) && documentItem.isAvailable && (
-                                                    <p className="text-[10px] font-black text-slate-500 mt-2 uppercase tracking-wider">
+                                                    <p className="text-[10px] font-semibold text-slate-500 mt-2 tracking-wide">
                                                         {[sizeLabel, documentItem.contentType].filter(Boolean).join(' - ')}
                                                     </p>
                                                 )}
@@ -1033,12 +1026,12 @@ export default function ClubBoard({
                                                     type="button"
                                                     onClick={() => void handleOpenDocument(documentItem)}
                                                     disabled={isLoadingDocument}
-                                                    className="inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-900 shadow-sm hover:scale-105 active:scale-95 transition-transform"
+                                                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold tracking-wide text-slate-900 shadow-sm hover:bg-slate-50 transition-colors"
                                                 >
-                                                    <Eye className="w-4 h-4 stroke-[3]" /> {isLoadingDocument ? 'Carregando...' : 'Visualizar'}
+                                                    <Eye className="w-4 h-4 stroke-[2.5]" /> {isLoadingDocument ? 'Carregando...' : 'Visualizar'}
                                                 </button>
                                             ) : (
-                                                <span className="inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 bg-slate-200 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-500">
+                                                <span className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-slate-200 px-4 py-2 text-xs font-semibold tracking-wide text-slate-500">
                                                     Pendente
                                                 </span>
                                             )}
@@ -1058,19 +1051,19 @@ export default function ClubBoard({
                                 { icon: BookOpen, count: viewingClubDiaryCount, label: "Registros", color: "bg-white" },
                                 { icon: Target, count: viewingClubOrientadores.length + viewingClubCoorientadores.length, label: "Mentores", color: "bg-pink-400" }
                             ].map((stat, i) => (
-                                <div key={i} className={`border-[3px] border-slate-900 rounded-[2rem] p-6 flex flex-col justify-between hover:-translate-y-2 transition-transform duration-300 shadow-md hover:shadow-lg ${stat.color} ${stat.color === 'bg-pink-400' ? 'text-white' : 'text-slate-900'}`}>
+                                <div key={i} className={`border border-slate-200 rounded-xl p-5 flex flex-col justify-between transition-colors shadow-sm ${stat.color} ${stat.color === 'bg-pink-400' ? 'text-white' : 'text-slate-900'}`}>
                                     <div>
                                         <stat.icon className={`w-8 h-8 stroke-[2.5] mb-4 opacity-80 ${stat.color === 'bg-pink-400' ? 'text-white' : 'text-slate-900'}`} />
-                                        <h4 className="text-5xl font-black tracking-tighter leading-none">{stat.count}</h4>
-                                        <p className="text-xs font-black tracking-widest uppercase mt-3">{stat.label}</p>
+                                        <h4 className="text-4xl font-extrabold tracking-tight leading-none">{stat.count}</h4>
+                                        <p className="text-xs font-semibold tracking-wide mt-2">{stat.label}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
                         {/* MENTORES LIST */}
-                        <div className="md:col-span-4 bg-white border-[3px] border-slate-900 shadow-lg rounded-[3rem] p-8 relative overflow-hidden">
-                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-6 border-b-[3px] border-slate-900 pb-4 flex items-center gap-3">
+                        <div className="md:col-span-4 bg-white border border-slate-200 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+                            <h3 className="text-xl font-semibold text-slate-900 mb-5 border-b border-slate-200 pb-3 flex items-center gap-2.5">
                                 <GraduationCap className="w-8 h-8 stroke-[2.5] text-pink-500" /> Mentores
                             </h3>
                             
@@ -1142,12 +1135,12 @@ export default function ClubBoard({
                         </div>
 
                         {/* CLUBISTAS LIST */}
-                        <div className="md:col-span-4 bg-white border-[3px] border-slate-900 shadow-lg rounded-[3rem] p-8 relative overflow-hidden">
-                            <div className="flex items-center justify-between gap-4 mb-6 border-b-[3px] border-slate-900 pb-4">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                        <div className="md:col-span-4 bg-white border border-slate-200 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+                            <div className="flex items-center justify-between gap-4 mb-5 border-b border-slate-200 pb-3">
+                                <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2.5">
                                     <Microscope className="w-8 h-8 stroke-[2.5] text-cyan-500" /> Clubistas
                                 </h3>
-                                <span className="bg-yellow-400 border-[3px] border-slate-900 rounded-full px-4 py-1.5 text-sm font-black shadow-sm">
+                                <span className="bg-[#ead5b8] border border-[#d4be9e] rounded-full px-3 py-1 text-xs font-semibold shadow-sm">
                                     {viewingClubInvestigadores.length}
                                 </span>
                             </div>
@@ -1203,22 +1196,22 @@ export default function ClubBoard({
                     </div>
 
                     {/* PROJECTS GRID */}
-                    <div className="pt-16 relative z-10">
+                    <div className="pt-8 relative z-10">
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div className="inline-flex items-center gap-4 bg-white border-[3px] border-slate-900 shadow-md px-8 py-5 rounded-[3rem] transform --1">
-                                <div className="w-5 h-10 bg-cyan-300 border-[3px] border-slate-900 rounded-full"></div>
-                                <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Projetos Ativos</h3>
+                            <div className="inline-flex items-center gap-3 bg-white border border-slate-200 shadow-sm px-6 py-4 rounded-2xl">
+                                <div className="w-3 h-8 bg-[#c8d8d4] border border-[#b3c5c1] rounded-full"></div>
+                                <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Projetos Ativos</h3>
                             </div>
                         </div>
 
                         {viewingClubProjects.length === 0 ? (
                             <div className="relative">
-                                <div className="bg-white border-[3px] border-slate-900 shadow-lg rounded-[3rem] p-16 text-center z-10 relative">
+                                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-12 text-center z-10 relative">
                                     <EmptyState icon={Asterisk} title="NENHUM PROJETO DETECTADO" description="O radar deste clube está limpo. Que tal iniciar a primeira onda de inovação?" />
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {viewingClubProjects.map((project) => {
                                     const projectId = String(project?.id || '').trim();
                                     const isCompleted = project.status?.toLowerCase().includes('conclu');
@@ -1230,8 +1223,8 @@ export default function ClubBoard({
                                     const actionGridClass = canDeleteProject ? 'grid-cols-3' : (canEditProject ? 'grid-cols-2' : 'grid-cols-1');
 
                                     return (
-                                        <div key={project.id} className="group relative bg-white border-[3px] border-slate-900 rounded-[3rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 shadow-lg hover:shadow-2xl flex flex-col min-h-[480px]">
-                                            <div className="h-56 w-full bg-slate-50 overflow-hidden relative border-b-[3px] border-slate-900">
+                                        <div key={project.id} className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-lg flex flex-col min-h-[420px]">
+                                            <div className="h-52 w-full bg-slate-50 overflow-hidden relative border-b border-slate-200">
                                                 {projectImage ? (
                                                     <img
                                                         src={projectImage}
@@ -1277,7 +1270,7 @@ export default function ClubBoard({
                                                     <div className={`grid ${actionGridClass} gap-3`}>
                                                         <button
                                                             onClick={() => { setSelectedClubId(viewingClub.id); setSelectedProjectId(String(project.id || '').trim()); setCurrentView('diario'); }}
-                                                            className="w-full text-center bg-cyan-300 text-slate-900 px-4 py-3.5 rounded-full border-[3px] border-slate-900 font-black text-xs uppercase tracking-widest transition-transform shadow-sm hover:scale-105 active:scale-95"
+                                                            className="w-full text-center bg-cyan-300 text-slate-900 px-4 py-3.5 rounded-full border-[3px] border-slate-900 font-black text-xs uppercase tracking-widest leading-tight whitespace-normal transition-transform shadow-sm hover:scale-105 active:scale-95"
                                                         >
                                                             Acessar Diário
                                                         </button>
@@ -1286,7 +1279,7 @@ export default function ClubBoard({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleEditProjectClick(project)}
-                                                                className="w-full inline-flex items-center justify-center gap-2 bg-white text-slate-900 border-[3px] border-slate-900 rounded-full px-4 py-3.5 font-black text-xs uppercase tracking-widest transition-transform shadow-sm hover:scale-105 active:scale-95"
+                                                                className="w-full inline-flex items-center justify-center gap-2 bg-white text-slate-900 border-[3px] border-slate-900 rounded-full px-4 py-3.5 font-black text-xs uppercase tracking-widest leading-tight whitespace-normal transition-transform shadow-sm hover:scale-105 active:scale-95"
                                                             >
                                                                 <Pencil className="w-4 h-4 stroke-[3]" /> Editar
                                                             </button>
@@ -1297,7 +1290,7 @@ export default function ClubBoard({
                                                                 type="button"
                                                                 onClick={() => handleDeleteProjectClick(project)}
                                                                 disabled={isDeletingProject}
-                                                                className="w-full inline-flex items-center justify-center gap-2 bg-pink-500 text-white border-[3px] border-slate-900 rounded-full px-4 py-3.5 font-black text-xs uppercase tracking-widest transition-transform shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
+                                                                className="w-full inline-flex items-center justify-center gap-2 bg-pink-500 text-white border-[3px] border-slate-900 rounded-full px-4 py-3.5 font-black text-xs uppercase tracking-widest leading-tight whitespace-normal transition-transform shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
                                                             >
                                                                 <Trash2 className="w-4 h-4 stroke-[3]" />
                                                                 {isDeletingProject ? '...' : 'Apagar'}
@@ -1365,3 +1358,4 @@ export default function ClubBoard({
         </>
     );
 }
+

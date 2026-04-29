@@ -144,6 +144,11 @@ export const UI_STYLE_OPTIONS = [
         id: 'glass',
         label: 'Glassmorphism',
         summary: 'Camadas translúcidas com blur e profundidade.'
+    },
+    {
+        id: 'editorial',
+        label: 'Editorial',
+        summary: 'Layout de leitura com blocos organizados e tipografia refinada.'
     }
 ];
 
@@ -203,3 +208,5 @@ export const resolveUserUiPreferences = (user = {}) => {
         style_id: normalizeUiStyleId(styleCandidate)
     };
 };
+
+
