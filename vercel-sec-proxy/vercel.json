@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/sec-escola-servidores.js": {
+      "maxDuration": 25,
+      "regions": ["iad1"]
+    }
+  }
+}

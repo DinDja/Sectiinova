@@ -63,7 +63,6 @@ import {
     normalizePerfil,
     withLegacyUserMembership
 } from '../services/projectService';
-import { validateTeacherRegistrationBySec } from '../services/secSchoolService';
 import cachedDataService from '../services/cachedDataService';
 import indexedDBService from '../services/indexedDBService';
 import useAppControllerState from './useAppControllerState';
@@ -1567,30 +1566,6 @@ export default function useAppController() {
         try {
             await setPersistence(auth, browserSessionPersistence);
 
-            const runMentorSecValidation = async () => {
-                if (!isMentoriaPerfil(registerForm.perfil)) {
-                    return null;
-                }
-
-                const result = await validateTeacherRegistrationBySec({
-                    matricula: registerForm.matricula,
-                    schoolUnit: escolaUnit,
-                    redeAdministrativa: registerForm.rede_administrativa
-                }, {
-                    timeoutMs: 60000,
-                    allowEndpointFallback: true
-                });
-
-                if (!result?.valid) {
-                    const reason = String(
-                        result?.reason || 'Nao foi possivel validar matricula e unidade na SEC para concluir o cadastro.'
-                    ).trim();
-                    throw new Error(reason || 'Nao foi possivel validar matricula e unidade na SEC.');
-                }
-
-                return result;
-            };
-
             const normalizedEmail = normalizeEmailAddress(registerForm.email);
             if (isSocialCompletionFlow) {
                 const activeSocialUser = auth.currentUser || authUser;
@@ -1619,8 +1594,6 @@ export default function useAppController() {
                     });
                     return;
                 }
-
-                await runMentorSecValidation();
 
                 const resolvedEscolasIds = normalizeIdList([escolaUnit.escola_id]);
                 const profileData = {
@@ -1666,8 +1639,6 @@ export default function useAppController() {
 
                 return;
             }
-
-            await runMentorSecValidation();
 
             const userCredential = await createUserWithEmailAndPassword(
                 auth,

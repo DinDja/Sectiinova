@@ -25,7 +25,6 @@ import {
   getPasswordSecurityChecks,
   getPasswordStrength,
 } from "../../utils/authSecurity";
-import { validateTeacherRegistrationBySec } from "../../services/secSchoolService";
 import Toast from "../forum/Toast";
 
 // --- COMPONENTES AUXILIARES HQ ---
@@ -348,20 +347,12 @@ export default function AuthPage({
   PERFIS_LOGIN,
 }) {
   const MIN_SCHOOL_SEARCH_CHARS = 2;
-  const MATRICULA_REALTIME_MIN_DIGITS = 8;
-  const SEC_REALTIME_DEBOUNCE_MS = 650;
-  const SEC_REALTIME_REQUEST_TIMEOUT_MS = 40000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
   const [schoolSelectInput, setSchoolSelectInput] = useState("");
-  const [secRealtimeValidation, setSecRealtimeValidation] = useState({
-    status: "idle",
-    message: "",
-    payload: null,
-  });
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -369,7 +360,6 @@ export default function AuthPage({
   
   const lottieBgRef = useRef(null);
   const cycleLottieRefs = useRef([]);
-  const secRealtimeRequestRef = useRef(0);
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -628,10 +618,6 @@ export default function AuthPage({
   };
   const passwordChecks = getPasswordSecurityChecks(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
   const passwordStrength = getPasswordStrength(registerForm.senha, { email: registerForm.email, fullName: registerForm.nome });
-  const isMentorRegistrationProfile = typeof isMentoriaPerfil === "function" && isMentoriaPerfil(registerForm.perfil);
-  const shouldRunRealtimeSecLookup = authMode === "register" && isMentorRegistrationProfile;
-  const secValidatedTeacher = secRealtimeValidation?.payload?.servidor || null;
-  const secValidatedSchool = secRealtimeValidation?.payload?.selectedSchool || null;
   const socialProviderLabel = String(socialCompletionProvider || "").toLowerCase() === "google" ? "Google" : String(socialCompletionProvider || "").toLowerCase() === "microsoft" ? "Microsoft" : "conta social";
   const activeAuthToast = useMemo(() => {
     if (authError) {
@@ -661,124 +647,6 @@ export default function AuthPage({
 
     setAuthNotice(null);
   }, [authError, setAuthError, setAuthNotice]);
-
-  useEffect(() => {
-    if (!shouldRunRealtimeSecLookup) {
-      setSecRealtimeValidation((previous) => (
-        previous.status === "idle" && !previous.message && !previous.payload
-          ? previous
-          : { status: "idle", message: "", payload: null }
-      ));
-      return undefined;
-    }
-
-    const matriculaDigits = String(registerForm.matricula || "").replace(/\D+/g, "");
-    if (!matriculaDigits) {
-      setSecRealtimeValidation({
-        status: "idle",
-        message: "Digite a matricula para validar automaticamente.",
-        payload: null,
-      });
-      return undefined;
-    }
-
-    if (matriculaDigits.length < MATRICULA_REALTIME_MIN_DIGITS) {
-      setSecRealtimeValidation({
-        status: "typing",
-        message: `Continue digitando a matricula (minimo de ${MATRICULA_REALTIME_MIN_DIGITS} digitos).`,
-        payload: null,
-      });
-      return undefined;
-    }
-
-    if (!selectedSchoolUnit || !String(registerForm.escola_id || "").trim()) {
-      setSecRealtimeValidation({
-        status: "waiting-school",
-        message: "Selecione a unidade escolar para validar a matricula.",
-        payload: null,
-      });
-      return undefined;
-    }
-
-    const requestId = secRealtimeRequestRef.current + 1;
-    secRealtimeRequestRef.current = requestId;
-    const realtimeAbortController = new AbortController();
-
-    const timeoutId = window.setTimeout(async () => {
-      setSecRealtimeValidation({
-        status: "loading",
-        message: "Consultando para validar a matricula...",
-        payload: null,
-      });
-
-      try {
-        const result = await validateTeacherRegistrationBySec({
-          matricula: matriculaDigits,
-          schoolUnit: selectedSchoolUnit,
-          redeAdministrativa: registerForm.rede_administrativa,
-        }, {
-          signal: realtimeAbortController.signal,
-          timeoutMs: SEC_REALTIME_REQUEST_TIMEOUT_MS,
-          allowEndpointFallback: true,
-        });
-
-        if (secRealtimeRequestRef.current !== requestId) return;
-
-        if (result?.temporarilyUnavailable) {
-          setSecRealtimeValidation({
-            status: "error",
-            message: String(result?.reason || "A SEC esta temporariamente indisponivel. Tente novamente em instantes."),
-            payload: null,
-          });
-          return;
-        }
-
-        if (result?.valid) {
-          setSecRealtimeValidation({
-            status: "valid",
-            message: String(result?.reason || "Servidor validado para a unidade selecionada."),
-            payload: result,
-          });
-          return;
-        }
-
-        setSecRealtimeValidation({
-          status: "invalid",
-          message: String(result?.reason || "A matricula nao foi validada como servidor na unidade selecionada."),
-          payload: result || null,
-        });
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          return;
-        }
-
-        if (secRealtimeRequestRef.current !== requestId) return;
-
-        const rawMessage = String(error?.message || "Falha ao validar matricula.").trim();
-        const isTimeoutMessage = /timed out|timeout|tempo limite|signal timed out/i.test(rawMessage);
-        const normalizedMessage = isTimeoutMessage
-          ? "A SEC esta demorando para responder. Aguarde e tente novamente."
-          : rawMessage;
-
-        setSecRealtimeValidation({
-          status: "error",
-          message: normalizedMessage,
-          payload: null,
-        });
-      }
-    }, SEC_REALTIME_DEBOUNCE_MS);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      realtimeAbortController.abort();
-    };
-  }, [
-    registerForm.matricula,
-    registerForm.escola_id,
-    registerForm.rede_administrativa,
-    selectedSchoolUnit,
-    shouldRunRealtimeSecLookup,
-  ]);
   
   return (
     <div
@@ -1386,60 +1254,6 @@ export default function AuthPage({
                               onChange={(e) => setRegisterForm((prev) => ({ ...prev, matricula: e.target.value }))}
                               required
                             />
-
-                            {isMentorRegistrationProfile && (
-                              <div
-                                className={`mt-3 rounded-[1.4rem] border-[3px] p-4 transition-colors ${
-                                  secRealtimeValidation.status === "valid"
-                                    ? "border-cyan-400 bg-cyan-50"
-                                    : secRealtimeValidation.status === "invalid"
-                                      ? "border-pink-500 bg-pink-50"
-                                      : secRealtimeValidation.status === "error"
-                                        ? "border-yellow-500 bg-yellow-50"
-                                        : "border-slate-300 bg-white"
-                                }`}
-                                aria-live="polite"
-                              >
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                                  Validação de matricula em tempo real
-                                </p>
-
-                                <p className="mt-2 text-xs font-bold text-slate-800">
-                                  {secRealtimeValidation.message || "Informe matricula e unidade escolar para iniciar a validacao."}
-                                </p>
-
-                                {secRealtimeValidation.status === "loading" && (
-                                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-700">
-                                    <LoaderCircle className="h-4 w-4 animate-spin stroke-[3]" />
-                                    Consultando
-                                  </div>
-                                )}
-
-                                {secValidatedSchool && (
-                                  <div className="mt-3 grid gap-1.5 rounded-[1rem] border-[2px] border-slate-300 bg-white p-3 text-xs font-bold text-slate-700">
-                                    <p><span className="font-black text-slate-900">Codigo MEC/Anexo:</span> {secValidatedSchool.codigoMecAnexo || `${secValidatedSchool.codigoMec || "-"}/${secValidatedSchool.anexo || "00"}`}</p>
-                                    <p><span className="font-black text-slate-900">Codigo SEC:</span> {secValidatedSchool.codigoSec || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Unidade:</span> {secValidatedSchool.nome || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Dependencia:</span> {secValidatedSchool.depAdm || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Situacao:</span> {secValidatedSchool.situacaoFuncional || "-"}</p>
-                                    <p><span className="font-black text-slate-900">NTE:</span> {secValidatedSchool.direc || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Municipio:</span> {secValidatedSchool.municipio || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Projeto:</span> {secValidatedSchool.projeto || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Modalidade:</span> {secValidatedSchool.modalidade || "-"}</p>
-                                  </div>
-                                )}
-
-                                {secValidatedTeacher && (
-                                  <div className="mt-3 grid gap-1.5 rounded-[1rem] border-[2px] border-cyan-300 bg-white p-3 text-xs font-bold text-slate-700">
-                                    <p><span className="font-black text-slate-900">Servidor:</span> {secValidatedTeacher.nome || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Cargo:</span> {secValidatedTeacher.cargo || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Funcao:</span> {secValidatedTeacher.funcao || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Situacao:</span> {secValidatedTeacher.situacao || "-"}</p>
-                                    <p><span className="font-black text-slate-900">Matricula:</span> {secValidatedTeacher.matricula || secValidatedTeacher.cadastro || "-"}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </>
                       )}
