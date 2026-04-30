@@ -58,6 +58,10 @@ const ProjectCardSkeleton = () => (
 
 const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
+const normalizeId = (value) => String(value || "").trim();
+
+const getPersonKey = (person) => normalizeId(person?.id || person?.uid || person?.email || person?.nome);
+
 const countUniqueIds = (values = []) => (
   new Set(
     (Array.isArray(values) ? values : [])
@@ -225,23 +229,95 @@ export default function ProjectFeed({
 
   const handleOpenClubModal = (club, school) => {
     if (!club) return;
-    const clubProjects = feedProjects.filter((p) => String(p.clube_id) === String(club.id));
-    const clubUsers = users.filter((u) => getUserClubIds(u).includes(String(club.id)));
+    const clubId = normalizeId(club?.id);
+    const clubProjects = feedProjects.filter((p) => normalizeId(p?.clube_id) === clubId);
+    const clubMemberIds = new Set(
+      [
+        ...(club?.membros_ids || []),
+        ...(club?.clubistas_ids || []),
+        ...(club?.investigadores_ids || []),
+        ...(club?.orientador_ids || []),
+        ...(club?.orientadores_ids || []),
+        ...(club?.coorientador_ids || []),
+        ...(club?.coorientadores_ids || []),
+        club?.mentor_id,
+      ]
+        .map(normalizeId)
+        .filter(Boolean)
+    );
+    const clubMentorIds = new Set(
+      [
+        club?.mentor_id,
+        ...(club?.orientador_ids || []),
+        ...(club?.orientadores_ids || []),
+        ...(club?.coorientador_ids || []),
+        ...(club?.coorientadores_ids || []),
+      ]
+        .map(normalizeId)
+        .filter(Boolean)
+    );
+    const clubClubistaIds = new Set(
+      [
+        ...(club?.membros_ids || []),
+        ...(club?.clubistas_ids || []),
+        ...(club?.investigadores_ids || []),
+      ]
+        .map(normalizeId)
+        .filter(Boolean)
+    );
 
-    const allTeamMembers = new Map();
-    clubProjects.forEach((project) => {
-      const team = getProjectTeam(project, users, club.id);
-      team.orientadores?.forEach((m) => allTeamMembers.set(String(m.id), { ...m, role: "orientador" }));
-      team.coorientadores?.forEach((m) => allTeamMembers.set(String(m.id), { ...m, role: "coorientador" }));
-      team.investigadores?.forEach((m) => allTeamMembers.set(String(m.id), { ...m, role: "investigador" }));
+    const clubUsers = users.filter((user) => {
+      const userId = normalizeId(user?.id || user?.uid);
+      const userClubIds = getUserClubIds(user);
+      return (Boolean(userId) && clubMemberIds.has(userId)) || userClubIds.includes(clubId);
     });
 
-    const orientadores = Array.from(allTeamMembers.values()).filter((m) => m.role === "orientador");
-    const coorientadores = Array.from(allTeamMembers.values()).filter((m) => m.role === "coorientador");
-    const investigadores = Array.from(allTeamMembers.values()).filter((m) => m.role === "investigador");
+    const orientadoresById = new Map();
+    const coorientadoresById = new Map();
+    const investigadoresById = new Map();
+
+    const addUniquePerson = (targetMap, person) => {
+      const personKey = getPersonKey(person);
+      if (!personKey || targetMap.has(personKey)) return;
+      targetMap.set(personKey, person);
+    };
+
+    clubUsers.forEach((person) => {
+      const personId = normalizeId(person?.id || person?.uid);
+      const perfil = normalizeText(person?.perfil);
+      const isMentorProfile = perfil === "orientador" || perfil === "coorientador";
+      const isStudentProfile = ["estudante", "investigador", "aluno", "clubista"].includes(perfil);
+      const isMentorByClubId = Boolean(personId) && clubMentorIds.has(personId);
+      const isClubistaByClubId = Boolean(personId) && clubClubistaIds.has(personId);
+
+      if (perfil === "coorientador") {
+        addUniquePerson(coorientadoresById, person);
+      } else if (perfil === "orientador" || isMentorByClubId) {
+        addUniquePerson(orientadoresById, person);
+      }
+
+      if (!isMentorProfile && (isStudentProfile || (isClubistaByClubId && !isMentorByClubId))) {
+        addUniquePerson(investigadoresById, person);
+      }
+    });
+
+    clubProjects.forEach((project) => {
+      const team = getProjectTeam(project, users, clubId);
+      team.orientadores?.forEach((person) => addUniquePerson(orientadoresById, person));
+      team.coorientadores?.forEach((person) => addUniquePerson(coorientadoresById, person));
+      team.investigadores?.forEach((person) => {
+        const personKey = getPersonKey(person);
+        if (!personKey || orientadoresById.has(personKey) || coorientadoresById.has(personKey)) return;
+        addUniquePerson(investigadoresById, person);
+      });
+    });
+
+    const orientadores = Array.from(orientadoresById.values());
+    const coorientadores = Array.from(coorientadoresById.values());
+    const investigadores = Array.from(investigadoresById.values());
 
     const clubDiaryCount = diaryEntries.filter(
-      (entry) => String(entry.clube_id) === String(club.id) || clubProjects.some((p) => String(p.id) === String(entry.projeto_id))
+      (entry) => normalizeId(entry?.clube_id) === clubId || clubProjects.some((p) => normalizeId(p?.id) === normalizeId(entry?.projeto_id))
     ).length;
 
     setModalClubData({

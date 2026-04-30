@@ -64,6 +64,7 @@ export default function MainShell({
     "Projetos",
     "meusProjetos",
     "trilha",
+    "popEventos",
     "inpi",
     "forum",
     "clube",
@@ -152,6 +153,10 @@ export default function MainShell({
     trilha: {
       label: "Trilha Pedagogica",
       summary: "Planejamento das trilhas de aprendizagem.",
+    },
+    popEventos: {
+      label: "POP Eventos",
+      summary: "Radar de eventos, editais e competicoes oficiais de 2026.",
     },
     forum: {
       label: "Forum",
@@ -400,6 +405,7 @@ export default function MainShell({
 
           <main
             ref={mainContentRef}
+            data-tutorial-anchor="main-content"
             className={`flex-1 overflow-y-auto overflow-x-hidden relative studio-main min-w-0 ${isMaterialStyle ? "material-main" : ""} ${isModernStyle ? "modern-main" : ""} ${isEditorialStyle ? "editorial-main" : ""}`}
           >
             {renderContentByStyle()}

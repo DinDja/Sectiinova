@@ -400,12 +400,12 @@ export default function ModalClubView({
                             <div className="relative z-10 flex min-h-[320px] flex-col justify-end gap-6 p-6 md:p-10">
                                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                                     <div className="flex min-w-0 flex-1 flex-col items-start gap-5 md:flex-row md:items-end">
-                                        <div className="h-24 w-24 overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm md:h-32 md:w-32 mr-5">
+                                        <div className="mr-5 h-24 w-24 shrink-0 aspect-square overflow-hidden rounded-[1.8rem] border-[3px] border-slate-900 bg-white shadow-sm md:h-32 md:w-32">
                                             {clubLogoUrl ? (
                                                 <img
                                                     src={clubLogoUrl}
                                                     alt={`Logo do clube ${viewingClub?.nome || ''}`}
-                                                    className="h-full w-full object-cover"
+                                                    className="h-full w-full object-contain p-2"
                                                 />
                                             ) : (
                                                 <div className="flex h-full w-full items-center justify-center">

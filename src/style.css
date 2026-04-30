@@ -214,6 +214,98 @@
     background: #f8fafc;
   }
 
+  .pop-eventos-board {
+    color: var(--auth-ink);
+  }
+
+  .pop-eventos-event-card {
+    background: var(--auth-surface-elevated);
+  }
+
+  .pop-eventos-assistant-card {
+    background: var(--auth-surface-elevated);
+  }
+
+  .pop-eventos-assistant-icon {
+    background: var(--ui-theme-warning-soft);
+  }
+
+  .pop-eventos-pill {
+    color: var(--auth-ink);
+    background: var(--ui-theme-surface-soft);
+  }
+
+  .pop-eventos-pill--accent {
+    background: var(--ui-theme-secondary-soft);
+  }
+
+  .pop-eventos-pill--soft {
+    background: var(--ui-theme-accent-soft);
+  }
+
+  .pop-eventos-pill--warning {
+    background: var(--ui-theme-warning-soft);
+  }
+
+  .pop-eventos-pill--danger {
+    background: var(--ui-theme-danger-soft);
+  }
+
+  .pop-eventos-pill--neutral {
+    background: color-mix(in srgb, var(--auth-primary) 11%, white);
+  }
+
+  .pop-eventos-pill--women {
+    color: var(--auth-ink);
+    border-color: color-mix(in srgb, var(--auth-accent) 62%, var(--auth-ink)) !important;
+    background: linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--auth-warning) 58%, white) 0%,
+      color-mix(in srgb, var(--auth-accent) 34%, white) 100%
+    );
+    box-shadow: 2px 2px 0 0 var(--auth-shadow-soft);
+  }
+
+  .pop-eventos-event-card--women {
+    border-color: color-mix(in srgb, var(--auth-accent) 62%, var(--auth-ink)) !important;
+    background:
+      radial-gradient(
+        circle at 92% 8%,
+        color-mix(in srgb, var(--auth-accent) 22%, white) 0%,
+        transparent 44%
+      ),
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--auth-warning) 18%, white) 0%,
+        var(--auth-surface-elevated) 64%
+      );
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--auth-accent) 28%, transparent),
+      6px 6px 0 0 var(--auth-shadow);
+  }
+
+  .pop-eventos-seal-women {
+    color: var(--auth-ink);
+    border-color: color-mix(in srgb, var(--auth-accent) 62%, var(--auth-ink)) !important;
+    background: linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--auth-warning) 68%, white) 0%,
+      color-mix(in srgb, var(--auth-accent) 44%, white) 100%
+    );
+    box-shadow: 2px 2px 0 0 var(--auth-shadow-soft);
+  }
+
+  .pop-eventos-button-ghost {
+    background: var(--auth-surface-elevated);
+    color: var(--auth-ink);
+    box-shadow: 2px 2px 0 0 var(--auth-shadow);
+  }
+
+  .pop-eventos-button-ghost:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 0 var(--auth-shadow);
+  }
+
   .mono-accent {
     font-family: var(--font-mono);
     letter-spacing: 0.08em;
@@ -925,4 +1017,11 @@ html[data-ui-style="glass"] button {
 
 html[data-ui-style="glass"] [class*="uppercase"] {
   letter-spacing: 0.07em !important;
+}
+
+html[data-ui-style="glass"] .pop-eventos-board .pop-eventos-event-card,
+html[data-ui-style="glass"] .pop-eventos-board .pop-eventos-assistant-card,
+html[data-ui-style="glass"] .pop-eventos-board .pop-eventos-button-ghost {
+  background: rgba(255, 255, 255, 0.58) !important;
+  backdrop-filter: blur(10px);
 }

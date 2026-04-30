@@ -1253,7 +1253,7 @@ export default function useAppController() {
                         
                         // Carregar ordem do sidebar se existir
                         if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
-                            const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'inpi', 'forum', 'clube'];
+                            const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'popEventos', 'inpi', 'forum', 'clube'];
                             const filteredOrder = userData.sidebarOrder.filter((item) => defaultOrder.includes(item));
                             const mergedOrder = [...new Set([...filteredOrder, ...defaultOrder])];
                             setSidebarOrder(mergedOrder);

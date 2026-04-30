@@ -4,6 +4,7 @@ import {
   FcGlobe,
   FcOpenedFolder,
   FcWorkflow,
+  FcCalendar,
   FcIdea,
   FcComments,
   FcDepartment,
@@ -57,12 +58,19 @@ export default function Sidebar({
       description: "Planejamento pedagogico de trilhas",
     },
     {
-      id: "inpi",
-      label: "PatentesLab",
-      icon: FcIdea,
-      tooltip: "Propriedade intelectual",
-      description: "Fluxo de PI e documentos",
+      id: "popEventos",
+      label: "POP Eventos",
+      icon: FcCalendar,
+      tooltip: "Radar de eventos 2026",
+      description: "Editais, olimpiadas e chamadas",
     },
+    // {
+    //   id: "inpi",
+    //   label: "PatentesLab",
+    //   icon: FcIdea,
+    //   tooltip: "Propriedade intelectual",
+    //   description: "Fluxo de PI e documentos",
+    // },
     {
       id: "forum",
       label: "POP Cafe",
@@ -85,6 +93,7 @@ export default function Sidebar({
     "Projetos",
     "meusProjetos",
     "trilha",
+    "popEventos",
     "inpi",
     "forum",
     "clube",
@@ -93,9 +102,13 @@ export default function Sidebar({
   const sanitizedSidebarOrder = Array.isArray(sidebarOrder)
     ? sidebarOrder.filter((id) => validNavIds.includes(id))
     : [];
+  const mergedSidebarOrder = [
+    ...sanitizedSidebarOrder,
+    ...defaultOrder.filter((id) => !sanitizedSidebarOrder.includes(id)),
+  ];
   const displayOrder =
     tempOrder ||
-    (sanitizedSidebarOrder.length > 0 ? sanitizedSidebarOrder : defaultOrder);
+    (mergedSidebarOrder.length > 0 ? mergedSidebarOrder : defaultOrder);
 
   const navItems = displayOrder
     .map((id) => allNavItems.find((item) => item.id === id))
@@ -267,6 +280,7 @@ export default function Sidebar({
             }
           }}
           disabled={isEditing}
+          data-tutorial-anchor={`nav-${item.id}`}
           className={`group relative flex w-full items-center gap-3 overflow-hidden border transition-all duration-300 outline-none ${
             isMobile ? "rounded-2xl px-4 py-3.5" : "rounded-xl px-3.5 py-3"
           } ${
@@ -345,6 +359,7 @@ export default function Sidebar({
             }
           }}
           disabled={isEditing}
+          data-tutorial-anchor={`nav-${item.id}`}
           className={`group relative flex w-full items-center gap-3 overflow-hidden border outline-none ${
             isMobile ? "rounded-xl px-4 py-3.5" : "rounded-xl px-4 py-3"
           } ${
@@ -423,6 +438,7 @@ export default function Sidebar({
             }
           }}
           disabled={isEditing}
+          data-tutorial-anchor={`nav-${item.id}`}
           className={`group relative flex w-full items-center border-[3px] border-slate-900 transition-all duration-300 outline-none ${
             isMobile
               ? "rounded-full gap-4 px-5 py-3.5"
@@ -517,6 +533,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={toggleEditMode}
+                data-tutorial-anchor="sidebar-organize"
                 className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-semibold transition-colors ${
                   isEditing
                     ? "border-pink-300 bg-pink-100 text-pink-700"
@@ -602,6 +619,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={toggleEditMode}
+                data-tutorial-anchor="sidebar-organize"
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-medium transition-colors ${
                   isEditing
                     ? "border-[#d6bfa2] bg-[#f2e2cc] text-[#654c30]"
@@ -675,6 +693,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={toggleEditMode}
+              data-tutorial-anchor="sidebar-organize"
               className={`group inline-flex items-center justify-center rounded-full border-[3px] border-slate-900 ${
                 isMobile ? "p-3" : "p-2.5 2xl:p-3"
               } transition-transform duration-300 hover:scale-110 active:scale-95 shadow-sm ${

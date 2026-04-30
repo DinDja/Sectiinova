@@ -137,6 +137,7 @@ service cloud.firestore {
         && request.auth.uid == userId
         && isUiPreferencesChangeValid()
         && isSidebarOrderChangeValid()
+        && isPopEventosSavedChangeValid()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -146,7 +147,8 @@ service cloud.firestore {
           'fotoBase64',
           'lattes_data',
           'ui_preferences',
-          'sidebarOrder'
+          'sidebarOrder',
+          'pop_eventos_saved'
         ]);
     }
 
@@ -158,6 +160,11 @@ service cloud.firestore {
     function isSidebarOrderChangeValid() {
       return !request.resource.data.diff(resource.data).changedKeys().hasAny(['sidebarOrder'])
         || isValidSidebarOrder(request.resource.data);
+    }
+
+    function isPopEventosSavedChangeValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['pop_eventos_saved'])
+        || hasValidPopEventosSaved(request.resource.data);
     }
 
     function schoolChangeCountFromData(data) {
@@ -184,6 +191,11 @@ service cloud.firestore {
     )
   );
 }
+
+    function hasValidPopEventosSaved(data) {
+      return !(data.pop_eventos_saved is list)
+        || data.pop_eventos_saved.size() <= 80;
+    }
 
     function isValidSidebarOrder(data) {
       return !(data.sidebarOrder is list)

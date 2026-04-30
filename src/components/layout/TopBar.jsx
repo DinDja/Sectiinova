@@ -9,8 +9,10 @@ import {
   PanelLeft,
   Bell,
   Check,
+  Sparkles,
 } from "lucide-react";
 import MeuPerfil from "./MeuPerfil";
+import { useTutorial } from "../../contexts/TutorialContext";
 
 function getInitials(value) {
   if (!value) return "?";
@@ -65,6 +67,11 @@ export default function TopBar({
   });
   const isMaterialStyle = uiStyleId === "material";
   const isModernStyle = uiStyleId === "modern";
+  const {
+    startTutorialFromCurrentView,
+    startTutorialFromBeginning,
+    hasCompletedTutorial,
+  } = useTutorial();
 
   const searchInputRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -222,6 +229,7 @@ export default function TopBar({
     Projetos: "Feed de Projetos",
     meusProjetos: "Meus Projetos",
     trilha: "Trilha Pedagogica",
+    popEventos: "POP Eventos",
     inpi: "PatentesLab",
     forum: "Forum",
     clube: "Meu Clube",
@@ -230,6 +238,15 @@ export default function TopBar({
   const currentViewLabel = currentViewLabelMap[currentView] || "Workspace";
   const canDecreaseFont = fontSizeLevel > 1;
   const canIncreaseFont = fontSizeLevel < 4;
+
+  const handleTutorialClick = (event) => {
+    if (event?.shiftKey || hasCompletedTutorial) {
+      startTutorialFromBeginning();
+      return;
+    }
+
+    startTutorialFromCurrentView();
+  };
 
   const renderFontSizer = () => (
     <div
@@ -292,8 +309,12 @@ export default function TopBar({
     </div>
   );
 
-  const renderSearchForm = (isMobile = false) => (
-    <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full group">
+  const renderSearchForm = (isMobile = false, tutorialAnchorId = "") => (
+    <form
+      onSubmit={handleSearchSubmit}
+      className="relative flex items-center w-full group"
+      data-tutorial-anchor={tutorialAnchorId || undefined}
+    >
       <Search
         className={`absolute left-4 h-4 w-4 transition-colors duration-300 z-10 2xl:left-5 2xl:h-5 2xl:w-5 ${
           isSearchDisabled
@@ -427,6 +448,7 @@ export default function TopBar({
                 className={`items-center transition-all duration-300 ${
                   isSearchExpanded ? "hidden sm:flex" : "flex"
                 }`}
+                data-tutorial-anchor="topbar-brand"
               >
                 {isMaterialStyle ? (
                   <div className="flex items-center gap-3">
@@ -461,7 +483,7 @@ export default function TopBar({
                 isMaterialStyle ? "sm:hidden" : ""
               }`}
             >
-              {renderSearchForm(false)}
+              {renderSearchForm(false, "topbar-search")}
             </div>
 
             <div
@@ -469,6 +491,30 @@ export default function TopBar({
                 isMaterialStyle ? "gap-2" : "gap-2 2xl:gap-3"
               }`}
             >
+              <button
+                type="button"
+                onClick={handleTutorialClick}
+                className={`inline-flex items-center gap-1.5 p-2.5 text-slate-900 transition-transform active:scale-95 ${
+                  isMaterialStyle
+                    ? "rounded-xl border border-slate-200 bg-white shadow-sm hover:bg-slate-100"
+                    : isModernStyle
+                      ? "rounded-lg border border-slate-200 bg-white hover:border-slate-300"
+                      : "rounded-full border-[3px] border-slate-900 bg-cyan-300 hover:scale-105"
+                }`}
+                title="Abrir guia animado (Shift para forcar inicio)"
+                aria-label="Abrir guia animado"
+                data-tutorial-anchor="topbar-help"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span
+                  className={`hidden text-[11px] font-semibold lg:inline ${
+                    isMaterialStyle || isModernStyle ? "" : "font-black uppercase tracking-wide"
+                  }`}
+                >
+                  {hasCompletedTutorial ? "Rever guia" : "Guia"}
+                </span>
+              </button>
+
               {renderFontSizer()}
 
               {shouldShowJoinRequestNotification && (
@@ -721,6 +767,7 @@ export default function TopBar({
                   }}
                   aria-expanded={showUserMenu}
                   aria-haspopup="true"
+                  data-tutorial-anchor="topbar-profile"
                   className={`group flex items-center gap-2 transition-all duration-300 sm:gap-2 sm:pr-3 ${
                     isMaterialStyle
                       ? `rounded-xl border p-1.5 pr-2 ${
@@ -983,7 +1030,7 @@ export default function TopBar({
           {isMaterialStyle && (
             <div className="border-t border-slate-200 pb-3 pt-3">
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0 flex-1">{renderSearchForm(false)}</div>
+                <div className="min-w-0 flex-1">{renderSearchForm(false, "topbar-search")}</div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
                     Modulo: {currentViewLabel}
@@ -1000,7 +1047,7 @@ export default function TopBar({
 
           {!isMaterialStyle && isSearchExpanded && (
             <div className="pb-4 pt-2 sm:hidden animate-in slide-in-from-top-2">
-              {renderSearchForm(true)}
+              {renderSearchForm(true, "topbar-search")}
             </div>
           )}
         </div>
