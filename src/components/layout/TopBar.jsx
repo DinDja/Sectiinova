@@ -240,7 +240,7 @@ export default function TopBar({
   const canIncreaseFont = fontSizeLevel < 4;
 
   const handleTutorialClick = (event) => {
-    if (event?.shiftKey || hasCompletedTutorial) {
+    if (event?.shiftKey) {
       startTutorialFromBeginning();
       return;
     }
@@ -501,7 +501,7 @@ export default function TopBar({
                       ? "rounded-lg border border-slate-200 bg-white hover:border-slate-300"
                       : "rounded-full border-[3px] border-slate-900 bg-cyan-300 hover:scale-105"
                 }`}
-                title="Abrir guia animado (Shift para forcar inicio)"
+                title="Abrir guia animado (Shift para tour completo)"
                 aria-label="Abrir guia animado"
                 data-tutorial-anchor="topbar-help"
               >

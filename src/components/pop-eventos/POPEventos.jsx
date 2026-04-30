@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bookmark,
   BookmarkCheck,
@@ -18,6 +18,21 @@ const TARGET_YEAR = 2026;
 const EVENTS_PER_PAGE = 10;
 const MAX_SAVED_EVENTS = 80;
 const SAVED_EVENTS_FIELD = "pop_eventos_saved";
+const WOMEN_PROTAGONISM_FALLBACK_KEYWORDS = [
+  "protagonismo feminino",
+  "lideranca feminina",
+  "mulheres na ciencia",
+  "mulheres na tecnologia",
+  "meninas na tecnologia",
+  "publico feminino",
+  "equidade de genero",
+  "mulheres",
+  "mulher",
+  "meninas",
+  "menina",
+  "feminino",
+  "feminina",
+];
 
 const MODE_OPTIONS = [
   { value: "quick", label: "Varredura rápida" },
@@ -26,6 +41,8 @@ const MODE_OPTIONS = [
 
 const GROUP_OPTIONS = [
   { value: "", label: "Todas as fontes" },
+  { value: "protagonismo_feminino", label: "Protagonismo feminino" },
+  { value: "fapesb", label: "FAPESB" },
   { value: "bahia", label: "Bahia" },
   { value: "governo_federal", label: "Governo federal" },
   { value: "olimpiadas", label: "Olimpíadas" },
@@ -53,6 +70,43 @@ function normalizeHttpUrl(value = "") {
   const normalized = normalizeText(value);
   if (!normalized) return "";
   return /^https?:\/\//i.test(normalized) ? normalized : "";
+}
+
+function resolveWomenProtagonism(event = {}) {
+  if (typeof event?.womenProtagonism === "boolean") {
+    return event.womenProtagonism;
+  }
+
+  const normalizedContext = normalizeText(
+    [
+      event?.title,
+      event?.description,
+      event?.sourceName,
+      event?.sourceGroupLabel,
+      event?.womenProtagonismLabel,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  ).toLowerCase();
+
+  if (!normalizedContext) {
+    return false;
+  }
+
+  return WOMEN_PROTAGONISM_FALLBACK_KEYWORDS.some((keyword) =>
+    normalizedContext.includes(keyword),
+  );
+}
+
+function resolveWomenProtagonismLabel(event = {}, isWomenProtagonism = false) {
+  const explicitLabel = normalizeText(event?.womenProtagonismLabel);
+  if (explicitLabel) {
+    return explicitLabel;
+  }
+
+  return isWomenProtagonism
+    ? "Protagonismo Feminino"
+    : "Sem protagonismo feminino";
 }
 
 function resolveEventKey(event = {}) {
@@ -87,6 +141,8 @@ function resolveEventImageUrls(event = {}) {
 }
 
 function createSavedEventSnapshot(event = {}) {
+  const womenProtagonism = resolveWomenProtagonism(event);
+
   return {
     eventKey: resolveEventKey(event),
     title: normalizeText(event?.title || "Evento sem titulo").slice(0, 240),
@@ -98,6 +154,10 @@ function createSavedEventSnapshot(event = {}) {
     sourceName: normalizeText(event?.sourceName || "Fonte oficial").slice(0, 120),
     sourceGroupLabel: normalizeText(event?.sourceGroupLabel || "Fonte").slice(0, 120),
     imageUrls: resolveEventImageUrls(event),
+    womenProtagonism,
+    womenProtagonismLabel: resolveWomenProtagonismLabel(event, womenProtagonism).slice(0, 120),
+    educationAudienceFocus: Boolean(event?.educationAudienceFocus),
+    educationAudienceLabel: normalizeText(event?.educationAudienceLabel).slice(0, 120),
     savedAt: normalizeText(event?.savedAt),
   };
 }
@@ -296,6 +356,7 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
   const [scanMode, setScanMode] = useState("quick");
   const [currentPage, setCurrentPage] = useState(1);
   const [imageIndexByEventId, setImageIndexByEventId] = useState({});
+  const hasBootstrappedScanRef = useRef(false);
 
   const runScan = useCallback(
     async ({ nextMode = scanMode, nextGroup = groupFilter, nextQuery = queryInput } = {}) => {
@@ -340,6 +401,11 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
   );
 
   useEffect(() => {
+    if (hasBootstrappedScanRef.current) {
+      return;
+    }
+
+    hasBootstrappedScanRef.current = true;
     void runScan({ nextMode: "quick", nextGroup: "", nextQuery: "" });
   }, [runScan]);
 
@@ -528,6 +594,15 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
         </div>
       </header>
 
+      <div className="rounded-2xl border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-900 shadow-sm">
+        <p className="font-semibold">Aviso de desenvolvimento</p>
+        <p className="mt-1 leading-relaxed text-orange-800">
+          O módulo POP Eventos ainda está em desenvolvimento. A ferramenta pode apresentar falhas,
+          resultados incompletos ou comportamentos inesperados durante a busca e a leitura de fontes.
+          Use com critério e reporte qualquer erro para a equipe de suporte.
+        </p>
+      </div>
+
       <div className={tabListClassName}>
         <button
           type="button"
@@ -622,11 +697,6 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
                   Atualizado em {formattedGeneratedAt}
                 </span>
               )}
-              {Number(scanMeta?.sourcesSkippedByBudget || 0) > 0 && (
-                <span className="pop-eventos-pill pop-eventos-pill--danger rounded-full border-2 border-slate-900 px-3 py-1 text-slate-800">
-                  Puladas por tempo: {Number(scanMeta?.sourcesSkippedByBudget || 0)}
-                </span>
-              )}
             </div>
           )}
         </form>
@@ -678,9 +748,15 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
           const isSaved = savedEventKeySet.has(eventKey);
           const isSavingThisEvent = pendingSaveEventKey === eventKey;
           const savedAtLabel = formatSavedAt(event?.savedAt);
-          const isWomenProtagonism = Boolean(event?.womenProtagonism);
-          const womenBadgeLabel = String(
-            event?.womenProtagonismLabel || "Protagonismo Feminino",
+          const isWomenProtagonism = resolveWomenProtagonism(event);
+          const womenBadgeLabel = resolveWomenProtagonismLabel(
+            event,
+            isWomenProtagonism,
+          );
+          const shouldShowWomenStatus = activeTab === "saved" || isWomenProtagonism;
+          const isEducationAudienceFocus = Boolean(event?.educationAudienceFocus);
+          const educationAudienceLabel = String(
+            event?.educationAudienceLabel || "Foco em Escolas e Clubes",
           );
           const cardClassName = isWomenProtagonism
             ? `${eventCardClassName} pop-eventos-event-card--women`
@@ -722,9 +798,18 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
                     <span className="pop-eventos-pill pop-eventos-pill--soft rounded-full border-2 border-slate-900 px-2.5 py-1 text-slate-900">
                       GUIA IA
                     </span>
-                    {isWomenProtagonism ? (
-                      <span className="pop-eventos-pill pop-eventos-pill--women rounded-full border-2 px-2.5 py-1">
+                    {shouldShowWomenStatus ? (
+                      <span
+                        className={isWomenProtagonism
+                          ? "pop-eventos-pill pop-eventos-pill--women rounded-full border-2 px-2.5 py-1"
+                          : "pop-eventos-pill pop-eventos-pill--neutral rounded-full border-2 border-slate-900 px-2.5 py-1 text-slate-900"}
+                      >
                         {womenBadgeLabel}
+                      </span>
+                    ) : null}
+                    {isEducationAudienceFocus ? (
+                      <span className="pop-eventos-pill pop-eventos-pill--soft rounded-full border-2 border-slate-900 px-2.5 py-1 text-slate-900">
+                        {educationAudienceLabel}
                       </span>
                     ) : null}
                   </div>

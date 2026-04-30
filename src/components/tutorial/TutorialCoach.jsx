@@ -52,6 +52,54 @@ const resolveSpotlightRect = (anchorId) => {
 };
 
 const resolveTooltipPosition = (spotlightRect, tooltipSize) => {
+  const margin = 10;
+  const gap = 16;
+
+  const clampRect = (rect) => {
+    const clampedLeft = clamp(
+      rect.left,
+      margin,
+      window.innerWidth - rect.width - margin,
+    );
+    const clampedTop = clamp(
+      rect.top,
+      margin,
+      window.innerHeight - rect.height - margin,
+    );
+
+    return {
+      ...rect,
+      left: clampedLeft,
+      top: clampedTop,
+    };
+  };
+
+  const hasOverlap = (rect, anchorRect) => {
+    const expandedAnchor = {
+      left: anchorRect.left - 8,
+      top: anchorRect.top - 8,
+      right: anchorRect.left + anchorRect.width + 8,
+      bottom: anchorRect.top + anchorRect.height + 8,
+    };
+
+    const rectRight = rect.left + rect.width;
+    const rectBottom = rect.top + rect.height;
+
+    return !(
+      rectRight <= expandedAnchor.left ||
+      rect.left >= expandedAnchor.right ||
+      rectBottom <= expandedAnchor.top ||
+      rect.top >= expandedAnchor.bottom
+    );
+  };
+
+  const isInsideViewport = (rect) => (
+    rect.left >= margin &&
+    rect.top >= margin &&
+    rect.left + rect.width <= window.innerWidth - margin &&
+    rect.top + rect.height <= window.innerHeight - margin
+  );
+
   const fallbackWidth = clamp(
     Number(tooltipSize?.width) || 380,
     280,
@@ -74,19 +122,80 @@ const resolveTooltipPosition = (spotlightRect, tooltipSize) => {
   );
   const tooltipHeight = Number(tooltipSize?.height) || 240;
 
-  let top = spotlightRect.top + spotlightRect.height + 16;
-  if (top + tooltipHeight > spotlightRect.viewportHeight - 10) {
-    top = spotlightRect.top - tooltipHeight - 16;
+  const centeredLeft =
+    spotlightRect.left + spotlightRect.width / 2 - tooltipWidth / 2;
+  const centeredTop =
+    spotlightRect.top + spotlightRect.height / 2 - tooltipHeight / 2;
+
+  const candidateByPlacement = {
+    right: {
+      left: spotlightRect.left + spotlightRect.width + gap,
+      top: centeredTop,
+      width: tooltipWidth,
+      height: tooltipHeight,
+    },
+    left: {
+      left: spotlightRect.left - tooltipWidth - gap,
+      top: centeredTop,
+      width: tooltipWidth,
+      height: tooltipHeight,
+    },
+    below: {
+      left: centeredLeft,
+      top: spotlightRect.top + spotlightRect.height + gap,
+      width: tooltipWidth,
+      height: tooltipHeight,
+    },
+    above: {
+      left: centeredLeft,
+      top: spotlightRect.top - tooltipHeight - gap,
+      width: tooltipWidth,
+      height: tooltipHeight,
+    },
+  };
+
+  const placementOrder =
+    spotlightRect.viewportWidth >= 1024
+      ? ["right", "left", "below", "above"]
+      : ["below", "above", "right", "left"];
+
+  for (const placement of placementOrder) {
+    const candidate = candidateByPlacement[placement];
+    if (!candidate) continue;
+
+    if (!isInsideViewport(candidate)) {
+      continue;
+    }
+
+    if (!hasOverlap(candidate, spotlightRect)) {
+      return {
+        top: candidate.top,
+        left: candidate.left,
+        width: candidate.width,
+      };
+    }
   }
 
-  if (top < 10) {
-    top = 10;
+  for (const placement of placementOrder) {
+    const candidate = candidateByPlacement[placement];
+    if (!candidate) continue;
+
+    const clampedCandidate = clampRect(candidate);
+    if (!hasOverlap(clampedCandidate, spotlightRect)) {
+      return {
+        top: clampedCandidate.top,
+        left: clampedCandidate.left,
+        width: clampedCandidate.width,
+      };
+    }
   }
 
-  let left = spotlightRect.left + spotlightRect.width / 2 - tooltipWidth / 2;
-  left = clamp(left, 10, spotlightRect.viewportWidth - tooltipWidth - 10);
-
-  return { top, left, width: tooltipWidth };
+  const fallbackCandidate = clampRect(candidateByPlacement.below);
+  return {
+    top: fallbackCandidate.top,
+    left: fallbackCandidate.left,
+    width: fallbackCandidate.width,
+  };
 };
 
 export default function TutorialCoach({ uiStyleId = "neo" }) {
@@ -113,12 +222,12 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
   const isEditorialStyle = uiStyleId === "editorial";
 
   const panelClassName = isMaterialStyle
-    ? "pointer-events-auto fixed w-[min(27rem,calc(100vw-1.25rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.25)]"
+    ? "pointer-events-auto fixed flex max-h-[calc(100vh-1.25rem)] w-[min(31rem,calc(100vw-1.25rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.25)]"
     : isModernStyle
-      ? "pointer-events-auto fixed w-[min(27rem,calc(100vw-1.25rem))] overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-[0_16px_38px_rgba(15,23,42,0.2)]"
+      ? "pointer-events-auto fixed flex max-h-[calc(100vh-1.25rem)] w-[min(31rem,calc(100vw-1.25rem))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-[0_16px_38px_rgba(15,23,42,0.2)]"
       : isEditorialStyle
-        ? "pointer-events-auto fixed w-[min(27rem,calc(100vw-1.25rem))] overflow-hidden rounded-[1rem] border border-[#c9b8a2] bg-[#fffaf3] shadow-[0_18px_42px_rgba(83,63,39,0.24)]"
-        : "pointer-events-auto fixed w-[min(27rem,calc(100vw-1.25rem))] overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(2,6,23,0.45)] backdrop-blur-sm";
+        ? "pointer-events-auto fixed flex max-h-[calc(100vh-1.25rem)] w-[min(31rem,calc(100vw-1.25rem))] flex-col overflow-hidden rounded-[1rem] border border-[#c9b8a2] bg-[#fffaf3] shadow-[0_18px_42px_rgba(83,63,39,0.24)]"
+        : "pointer-events-auto fixed flex max-h-[calc(100vh-1.25rem)] w-[min(31rem,calc(100vw-1.25rem))] flex-col overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(2,6,23,0.45)] backdrop-blur-sm";
 
   const panelHeaderClassName = isMaterialStyle
     ? "relative border-b border-slate-200 bg-slate-100 px-4 pb-3 pt-3.5"
@@ -238,6 +347,9 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
 
   const totalSteps = steps.length;
   const stepLabel = `${Math.min(stepIndex + 1, totalSteps)}/${totalSteps}`;
+  const stepActions = Array.isArray(activeStep?.actions)
+    ? activeStep.actions.filter(Boolean)
+    : [];
 
   return (
     <>
@@ -309,7 +421,6 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
               <div className={panelHeaderClassName}>
-            
 
                 <div className="pr-10">
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700">
@@ -321,6 +432,11 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
                   <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600">
                     {activeStep.description}
                   </p>
+                  {activeStep.details && (
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                      {activeStep.details}
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -333,7 +449,7 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
                 </button>
               </div>
 
-              <div className="px-4 py-3.5">
+              <div className="flex-1 overflow-y-auto px-4 py-3.5">
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
                     Dica criativa
@@ -342,6 +458,27 @@ export default function TutorialCoach({ uiStyleId = "neo" }) {
                     {activeStep.tip}
                   </p>
                 </div>
+
+                {stepActions.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+                      Como aplicar nesta etapa
+                    </p>
+                    <ol className="mt-2 space-y-1.5">
+                      {stepActions.map((action, index) => (
+                        <li
+                          key={`${activeStep.id}-action-${index}`}
+                          className="flex items-start gap-2 text-xs leading-relaxed text-slate-700"
+                        >
+                          <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-semibold text-slate-700">
+                            {index + 1}
+                          </span>
+                          <span>{action}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
 
                 <div className="mt-3.5">
                   <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-500">

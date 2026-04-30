@@ -5,6 +5,35 @@ import ProjectGallery from './ProjectGallery';
 
 const getUserClubIds = () => [];
 
+const normalizeLikeCount = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.trunc(parsed));
+};
+
+const resolveProjectLikesCount = (project) => {
+    return normalizeLikeCount(
+        project?.likes_count
+        ?? project?.likesCount
+        ?? project?.likes
+        ?? 0
+    );
+};
+
+const resolveUserHasLikedProject = (project, userId) => {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) {
+        return false;
+    }
+
+    const likesByUser = project?.likes_by_user;
+    if (!likesByUser || typeof likesByUser !== 'object' || Array.isArray(likesByUser)) {
+        return false;
+    }
+
+    return likesByUser[normalizedUserId] === true;
+};
+
 export default function ProjectCard({
     project,
     club,
@@ -16,11 +45,16 @@ export default function ProjectCard({
     onDiaryClick,
     onLikeClick,
     onShareClick,
+    loggedUserId = '',
+    isLikeSubmitting = false,
     allProjects = [],
     allUsers = []
 }) {
-    const [isLiked, setIsLiked] = useState(false);
-    const [likesCount, setLikesCount] = useState(project?.likes || 195);
+    const normalizedLoggedUserId = String(loggedUserId || '').trim();
+    const canLikeProject = Boolean(normalizedLoggedUserId);
+    const likesCount = useMemo(() => resolveProjectLikesCount(project), [project?.likes_count, project?.likesCount, project?.likes]);
+    const isLiked = useMemo(() => resolveUserHasLikedProject(project, normalizedLoggedUserId), [project?.likes_by_user, normalizedLoggedUserId]);
+    const [isLikePending, setIsLikePending] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -198,11 +232,27 @@ export default function ProjectCard({
     const displayTeam = teamMembers.slice(0, 5);
     const remainingMembers = Math.max(0, teamMembers.length - 5);
 
-    const handleLike = () => {
-        setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-        setIsLiked(!isLiked);
-        if (onLikeClick) onLikeClick(project);
-    };
+    const handleLike = useCallback(async (event) => {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        if (!canLikeProject || isLikePending || isLikeSubmitting) {
+            return;
+        }
+
+        if (typeof onLikeClick !== 'function') {
+            return;
+        }
+
+        try {
+            setIsLikePending(true);
+            await onLikeClick(project);
+        } finally {
+            setIsLikePending(false);
+        }
+    }, [canLikeProject, isLikePending, isLikeSubmitting, onLikeClick, project]);
 
     const clubProjectsForModal = Array.isArray(allProjects) ? allProjects.filter(p => String(p.clube_id) === String(club?.id)) : [];
     const clubUsersForModal = Array.isArray(allUsers) ? allUsers.filter((u) => getUserClubIds(u).includes(String(club?.id))) : [];
@@ -379,6 +429,25 @@ export default function ProjectCard({
 
             {/* Botões Flutuantes (Pill-shaped, HQ Vibe) */}
             <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3">
+                <button
+                    onClick={handleLike}
+                    disabled={!canLikeProject || isLikePending || isLikeSubmitting}
+                    className={`group/btn-like border-[3px] border-slate-900 px-4 py-2.5 rounded-full text-sm font-black flex items-center gap-2 transition-transform duration-200 ${
+                        isLiked
+                            ? 'bg-pink-500 text-white hover:bg-pink-400'
+                            : 'bg-white text-slate-900 hover:bg-pink-100'
+                    } ${
+                        !canLikeProject ? 'cursor-not-allowed opacity-60' : 'hover:scale-105'
+                    }`}
+                    title={canLikeProject ? (isLiked ? 'Descurtir projeto' : 'Curtir projeto') : 'Faca login para curtir projetos'}
+                >
+                    <Heart
+                        className={`w-4 h-4 ${isLikePending || isLikeSubmitting ? 'animate-pulse' : ''}`}
+                        fill={isLiked ? 'currentColor' : 'none'}
+                    />
+                    <span>{likesCount}</span>
+                </button>
+
                 {club && (
                     <button 
                         onClick={(e) => {

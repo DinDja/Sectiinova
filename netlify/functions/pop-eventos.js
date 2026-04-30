@@ -1,3 +1,6 @@
+import http from "node:http";
+import https from "node:https";
+
 const BOT_NAME = "SECTI-POP-Eventos-Bot/1.0";
 const DEFAULT_YEAR = 2026;
 const MIN_YEAR = 2020;
@@ -9,6 +12,7 @@ const FULL_TIME_BUDGET_MS = 42000;
 const QUICK_SOURCE_TIMEOUT_MS = 6500;
 const FULL_SOURCE_TIMEOUT_MS = 9000;
 const DEFAULT_MAX_EVENTS_PER_SOURCE = 4;
+const WOMEN_FOCUS_MAX_EVENTS_PER_SOURCE = 8;
 const DEFAULT_MAX_SOURCES = 28;
 const MAX_MAX_SOURCES = 40;
 const MAX_EVENTS_RETURNED = 140;
@@ -16,6 +20,9 @@ const MAX_ANCHOR_SCAN = 260;
 const QUICK_MAX_CONCURRENT = 6;
 const FULL_MAX_CONCURRENT = 8;
 const MAX_DESCRIPTION_LENGTH = 1400;
+const WOMEN_FOCUS_GROUP = "protagonismo_feminino";
+const FAPESB_GROUP = "fapesb";
+const FAPESB_SOURCE_ID = "fapesb";
 
 const EVENT_KEYWORDS = [
   "evento",
@@ -189,6 +196,31 @@ const WOMEN_PROTAGONISM_KEYWORDS = [
 ];
 
 const WOMEN_PROTAGONISM_LABEL = "Protagonismo Feminino";
+const EDUCATION_AUDIENCE_LABEL = "Foco em Escolas e Clubes";
+
+const EDUCATION_AUDIENCE_KEYWORDS = [
+  "ensino medio",
+  "ensino fundamental",
+  "educacao basica",
+  "educacao profissional e tecnologica",
+  "rede estadual",
+  "rede publica estadual",
+  "clube de ciencias",
+  "clubes de ciencias",
+  "professor",
+  "professora",
+  "professores",
+  "professoras",
+  "estudante",
+  "estudantes",
+  "educacao cientifica",
+  "popularizacao da ciencia",
+  "iniciacao cientifica",
+  "jovens",
+  "escola",
+  "escolas",
+  "bahia faz ciencia na escola",
+];
 
 const MONTHS_PT = {
   janeiro: 1,
@@ -266,9 +298,27 @@ const POP_EVENT_SOURCES = [
     name: "FAPESB",
     group: "bahia",
     groupLabel: "Bahia",
-    url: "https://www.fapesb.ba.gov.br",
+    url: "https://www.fapesb.ba.gov.br/?s=edital",
+    apiUrl: "https://www.fapesb.ba.gov.br/wp-json/wp/v2/posts?per_page=100&_embed=1",
+    apiSearchUrls: [
+      "https://www.fapesb.ba.gov.br/wp-json/wp/v2/posts?per_page=50&search=clubes%20de%20ciencias%20bahia%20faz%20ciencia%20na%20escola&_embed=1",
+      "https://www.fapesb.ba.gov.br/wp-json/wp/v2/posts?per_page=50&search=educacao%20basica%20professores%20rede%20estadual&_embed=1",
+    ],
+    allowInsecureTls: true,
+    minTimeoutMs: 9000,
+    maxEventsPerSource: 14,
     priority: 6.5,
-    tags: ["fapesb", "edital", "chamada", "pesquisa", "inovacao"],
+    tags: [
+      "fapesb",
+      "edital",
+      "chamada",
+      "pesquisa",
+      "inovacao",
+      "ensino medio",
+      "clube de ciencias",
+      "professores da rede estadual",
+      "bahia faz ciencia na escola",
+    ],
   },
   {
     id: "mec",
@@ -1093,6 +1143,39 @@ function detectWomenProtagonism({
   return false;
 }
 
+function detectEducationAudienceFocus({
+  title = "",
+  description = "",
+  contextText = "",
+  sourceTags = [],
+} = {}) {
+  const haystack = normalizeForSearch([
+    title,
+    description,
+    contextText,
+    ...(Array.isArray(sourceTags) ? sourceTags : []),
+  ].join(" "));
+
+  if (!haystack) return false;
+
+  const keywordHits = EDUCATION_AUDIENCE_KEYWORDS.reduce((total, keyword) => {
+    const normalizedKeyword = normalizeForSearch(keyword);
+    return normalizedKeyword && haystack.includes(normalizedKeyword) ? total + 1 : total;
+  }, 0);
+
+  if (keywordHits >= 2) {
+    return true;
+  }
+
+  const hasTeacherOrStudent = /\b(?:professor(?:a|es|as)?|estudante(?:s)?)\b/i.test(haystack);
+  const hasSchoolContext = /\b(?:escola(?:s)?|ensino|rede estadual|educacao basica|clube(?:s)? de ciencias)\b/i.test(haystack);
+  if (hasTeacherOrStudent && hasSchoolContext) {
+    return true;
+  }
+
+  return false;
+}
+
 function computeEventScore({
   title,
   contextText,
@@ -1101,6 +1184,7 @@ function computeEventScore({
   url = "",
   sourceName = "",
   womenProtagonism = false,
+  educationAudienceFocus = false,
 }) {
   const normalizedTitle = normalizeForSearch(title);
   const normalizedText = normalizeForSearch(`${title} ${contextText} ${url}`);
@@ -1149,6 +1233,10 @@ function computeEventScore({
 
   if (womenProtagonism) {
     score += 4;
+  }
+
+  if (educationAudienceFocus) {
+    score += 6;
   }
 
   return score;
@@ -1259,6 +1347,12 @@ function extractAnchorEventsFromPage({
       contextText: contextForEvaluation,
       sourceTags: source.tags || [],
     });
+    const educationAudienceFocus = detectEducationAudienceFocus({
+      title: resolvedTitle,
+      description,
+      contextText: contextForEvaluation,
+      sourceTags: [],
+    });
 
     const dateDetails = extractDateDetails(`${resolvedTitle}\n${contextForEvaluation}`, year);
     const score = computeEventScore({
@@ -1269,6 +1363,7 @@ function extractAnchorEventsFromPage({
       url: resolvedUrl,
       sourceName: source.name,
       womenProtagonism,
+      educationAudienceFocus,
     });
 
     if (score < 8) {
@@ -1297,6 +1392,8 @@ function extractAnchorEventsFromPage({
       imageUrls: extractImageUrlsFromChunk(chunkHtml, pageUrl || source.url, pageImage),
       womenProtagonism,
       womenProtagonismLabel: womenProtagonism ? WOMEN_PROTAGONISM_LABEL : "",
+      educationAudienceFocus,
+      educationAudienceLabel: educationAudienceFocus ? EDUCATION_AUDIENCE_LABEL : "",
       score,
     });
   }
@@ -1357,6 +1454,12 @@ function extractFallbackEventsFromLines({
       contextText: line,
       sourceTags: source.tags || [],
     });
+    const educationAudienceFocus = detectEducationAudienceFocus({
+      title: line,
+      description: line,
+      contextText: line,
+      sourceTags: [],
+    });
 
     const score = computeEventScore({
       title: line,
@@ -1366,6 +1469,7 @@ function extractFallbackEventsFromLines({
       url: pageUrl || source.url,
       sourceName: source.name,
       womenProtagonism,
+      educationAudienceFocus,
     });
 
     if (score < 8) {
@@ -1382,6 +1486,8 @@ function extractFallbackEventsFromLines({
       imageUrls: pageImage ? [pageImage] : [],
       womenProtagonism,
       womenProtagonismLabel: womenProtagonism ? WOMEN_PROTAGONISM_LABEL : "",
+      educationAudienceFocus,
+      educationAudienceLabel: educationAudienceFocus ? EDUCATION_AUDIENCE_LABEL : "",
       score,
     });
   }
@@ -1451,6 +1557,12 @@ function sortEvents(events = []) {
       return bIsWomenFocus - aIsWomenFocus;
     }
 
+    const aIsSchoolFocus = Boolean(a.educationAudienceFocus) ? 1 : 0;
+    const bIsSchoolFocus = Boolean(b.educationAudienceFocus) ? 1 : 0;
+    if (aIsSchoolFocus !== bIsSchoolFocus) {
+      return bIsSchoolFocus - aIsSchoolFocus;
+    }
+
     const scoreDiff = Number(b.score || 0) - Number(a.score || 0);
     if (scoreDiff !== 0) return scoreDiff;
 
@@ -1466,74 +1578,481 @@ function sortEvents(events = []) {
   });
 }
 
-async function fetchHtmlWithTimeout(url, timeoutMs = 4000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 4000));
+function requestTextOnce(url, { timeoutMs = 4000, allowInsecureTls = false, acceptHeader = "*/*" } = {}) {
+  return new Promise((resolve, reject) => {
+    let parsedUrl = null;
+    try {
+      parsedUrl = new URL(String(url || "").trim());
+    } catch {
+      reject(new Error("URL invalida."));
+      return;
+    }
 
-  try {
-    const response = await fetch(url, {
+    const isHttps = parsedUrl.protocol === "https:";
+    const client = isHttps ? https : http;
+    const requestOptions = {
       method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
       headers: {
         "User-Agent": BOT_NAME,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        Accept: acceptHeader,
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "identity",
         "Cache-Control": "no-cache",
       },
+      timeout: Math.max(1000, Number(timeoutMs) || 4000),
+      rejectUnauthorized: isHttps ? !allowInsecureTls : undefined,
+    };
+
+    const req = client.request(parsedUrl, requestOptions, (response) => {
+      const chunks = [];
+
+      response.on("data", (chunk) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk || ""), "utf8"));
+      });
+
+      response.on("end", () => {
+        const body = Buffer.concat(chunks).toString("utf8");
+        resolve({
+          statusCode: Number(response.statusCode || 0),
+          headers: response.headers || {},
+          body,
+          finalUrl: parsedUrl.toString(),
+        });
+      });
     });
 
-    const finalUrl = response.url || url;
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    req.on("timeout", () => {
+      req.destroy(new Error("Tempo limite por fonte excedido."));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+async function requestTextWithRedirects(
+  url,
+  {
+    timeoutMs = 4000,
+    allowInsecureTls = false,
+    acceptHeader = "*/*",
+    maxRedirects = 4,
+  } = {},
+) {
+  let currentUrl = String(url || "").trim();
+  let redirectsLeft = Math.max(0, Number(maxRedirects) || 0);
+
+  while (currentUrl) {
+    const response = await requestTextOnce(currentUrl, {
+      timeoutMs,
+      allowInsecureTls,
+      acceptHeader,
+    });
+
+    const statusCode = Number(response.statusCode || 0);
+    const locationHeader = String(response.headers?.location || "").trim();
+    const shouldRedirect = [301, 302, 303, 307, 308].includes(statusCode) && locationHeader;
+
+    if (shouldRedirect && redirectsLeft > 0) {
+      currentUrl = safeResolveUrl(currentUrl, locationHeader);
+      redirectsLeft -= 1;
+      continue;
     }
 
-    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
-    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
-      throw new Error(`Conteudo nao HTML (${contentType || "desconhecido"})`);
+    return response;
+  }
+
+  throw new Error("Nao foi possivel resolver redirecionamento da fonte.");
+}
+
+async function fetchHtmlWithTimeout(url, timeoutMs = 4000, options = {}) {
+  const allowInsecureTls = Boolean(options?.allowInsecureTls);
+  const safeTimeoutMs = Math.max(1000, Number(timeoutMs) || 4000);
+  const headers = {
+    "User-Agent": BOT_NAME,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Cache-Control": "no-cache",
+  };
+
+  const parseAndValidateHtml = (responseBody, finalUrl, contentType, statusCode) => {
+    const normalizedType = String(contentType || "").toLowerCase();
+    const normalizedStatus = Number(statusCode || 0);
+    if (normalizedStatus < 200 || normalizedStatus >= 400) {
+      throw new Error(`HTTP ${normalizedStatus || 0}`);
+    }
+    if (!normalizedType.includes("text/html") && !normalizedType.includes("application/xhtml+xml")) {
+      throw new Error(`Conteudo nao HTML (${normalizedType || "desconhecido"})`);
     }
 
-    const html = await response.text();
     return {
-      html,
+      html: String(responseBody || ""),
       finalUrl,
-      contentType,
+      contentType: normalizedType,
     };
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), safeTimeoutMs);
+
+  try {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers,
+      });
+      const html = await response.text();
+      return parseAndValidateHtml(
+        html,
+        response.url || String(url || ""),
+        response.headers.get("content-type") || "",
+        response.status,
+      );
+    } catch (error) {
+      if (!allowInsecureTls) {
+        throw error;
+      }
+
+      const fallbackResponse = await requestTextWithRedirects(url, {
+        timeoutMs: safeTimeoutMs,
+        allowInsecureTls: true,
+        acceptHeader: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        maxRedirects: 5,
+      });
+
+      return parseAndValidateHtml(
+        fallbackResponse.body,
+        fallbackResponse.finalUrl || String(url || ""),
+        fallbackResponse.headers?.["content-type"] || "",
+        fallbackResponse.statusCode,
+      );
+    }
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = 4000, options = {}) {
+  const allowInsecureTls = Boolean(options?.allowInsecureTls);
+  const safeTimeoutMs = Math.max(1000, Number(timeoutMs) || 4000);
+  const headers = {
+    "User-Agent": BOT_NAME,
+    Accept: "application/json,text/plain,*/*",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Cache-Control": "no-cache",
+  };
+
+  const parseJsonPayload = (payloadText = "", statusCode = 0) => {
+    const status = Number(statusCode || 0);
+    if (status < 200 || status >= 400) {
+      throw new Error(`HTTP ${status || 0}`);
+    }
+    try {
+      return JSON.parse(String(payloadText || ""));
+    } catch (error) {
+      throw new Error(`Resposta JSON invalida: ${error?.message || "parse error"}`);
+    }
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), safeTimeoutMs);
+
+  try {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers,
+      });
+      const raw = await response.text();
+      return {
+        payload: parseJsonPayload(raw, response.status),
+        finalUrl: response.url || String(url || ""),
+      };
+    } catch (error) {
+      if (!allowInsecureTls) {
+        throw error;
+      }
+
+      const fallbackResponse = await requestTextWithRedirects(url, {
+        timeoutMs: safeTimeoutMs,
+        allowInsecureTls: true,
+        acceptHeader: "application/json,text/plain,*/*",
+        maxRedirects: 5,
+      });
+
+      return {
+        payload: parseJsonPayload(fallbackResponse.body, fallbackResponse.statusCode),
+        finalUrl: fallbackResponse.finalUrl || String(url || ""),
+      };
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function toIsoDateOnly(value = "") {
+  const candidate = new Date(String(value || "").trim());
+  if (Number.isNaN(candidate.getTime())) return "";
+
+  const year = candidate.getUTCFullYear();
+  const month = String(candidate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(candidate.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function extractWordPressEventsFromPosts({
+  posts = [],
+  source = {},
+  year = DEFAULT_YEAR,
+}) {
+  if (!Array.isArray(posts) || posts.length === 0) {
+    return [];
+  }
+
+  const events = [];
+  const lowerBoundYear = Math.max(MIN_YEAR, year - 1);
+
+  for (const post of posts) {
+    const rawTitle = stripHtml(post?.title?.rendered || "");
+    const title = resolveEventTitle(rawTitle, "", source.name);
+    if (!title || isWeakEventTitle(title, source.name)) {
+      continue;
+    }
+
+    const excerpt = stripHtml(post?.excerpt?.rendered || "");
+    const content = truncateText(stripHtml(post?.content?.rendered || ""), 1800);
+    const termNames = Array.isArray(post?._embedded?.["wp:term"])
+      ? post._embedded["wp:term"].flat().map((term) => cleanupExtractedLine(term?.name || "")).filter(Boolean)
+      : [];
+
+    const description = buildDescription(
+      title,
+      normalizeWhitespace([excerpt, content].filter(Boolean).join("\n")),
+    ) || truncateText(normalizeWhitespace([excerpt, content].filter(Boolean).join(" ")), MAX_DESCRIPTION_LENGTH);
+
+    const contextForEvaluation = normalizeWhitespace(
+      [description, content, termNames.join(" ")].filter(Boolean).join("\n"),
+    );
+    if (!contextForEvaluation || contextForEvaluation.length < 24) {
+      continue;
+    }
+
+    const postDateIso = toIsoDateOnly(post?.date || post?.date_gmt || "");
+    const dateDetails = extractDateDetails(
+      `${title}\n${contextForEvaluation}\n${postDateIso}\n${termNames.join(" ")}`,
+      year,
+    );
+
+    const womenProtagonism = detectWomenProtagonism({
+      title,
+      description,
+      contextText: contextForEvaluation,
+      sourceTags: [...(source.tags || []), ...termNames],
+    });
+    const educationAudienceFocus = detectEducationAudienceFocus({
+      title,
+      description,
+      contextText: contextForEvaluation,
+      sourceTags: termNames,
+    });
+
+    const resolvedUrl = safeResolveUrl(source.url, post?.link || "");
+    const score = computeEventScore({
+      title,
+      contextText: contextForEvaluation,
+      year,
+      sourceTags: [...(source.tags || []), ...termNames],
+      url: resolvedUrl,
+      sourceName: source.name,
+      womenProtagonism,
+      educationAudienceFocus,
+    });
+
+    const normalizedEducationContext = normalizeForSearch(`${title} ${contextForEvaluation}`);
+    const educationPriorityMatch = /\b(?:clubes?\s+de\s+ciencias?|bahia\s+faz\s+ciencia\s+na\s+escola|professores?\s+coordenadores?|rede\s+publica\s+estadual|educacao\s+basica|ensino\s+medio)\b/i.test(normalizedEducationContext);
+    const strictYearMatch = eventLooksLike2026Candidate({
+      title,
+      contextText: contextForEvaluation,
+      url: resolvedUrl,
+      dateDetails: {
+        dateText: dateDetails.dateText || postDateIso || "",
+        startDate: dateDetails.startDate || postDateIso || "",
+        endDate: dateDetails.endDate || "",
+      },
+      year,
+    });
+    const postYear = Number(String(postDateIso || "").slice(0, 4)) || 0;
+    const audienceCarryOverMatch =
+      educationAudienceFocus
+      && postYear >= lowerBoundYear
+      && postYear <= year;
+    const educationOverrideMatch =
+      String(source?.id || "").toLowerCase() === "fapesb"
+      && educationPriorityMatch
+      && postYear >= lowerBoundYear
+      && postYear <= year;
+
+    if (!strictYearMatch && !audienceCarryOverMatch && !educationOverrideMatch) {
+      continue;
+    }
+
+    const minimumScore = educationOverrideMatch ? 4 : educationAudienceFocus ? 6 : 8;
+    if (score < minimumScore) {
+      continue;
+    }
+
+    const featuredMedia = post?._embedded?.["wp:featuredmedia"];
+    const imageFromMedia = Array.isArray(featuredMedia)
+      ? String(featuredMedia?.[0]?.source_url || "").trim()
+      : "";
+    const imageUrls = imageFromMedia && /^https?:\/\//i.test(imageFromMedia)
+      ? [imageFromMedia]
+      : [];
+
+    events.push({
+      title: truncateText(title, 150),
+      description: description || truncateText(contextForEvaluation, MAX_DESCRIPTION_LENGTH),
+      url: resolvedUrl || source.url,
+      dateText: dateDetails.dateText || postDateIso || "",
+      startDate: dateDetails.startDate || postDateIso || "",
+      endDate: dateDetails.endDate || "",
+      imageUrls,
+      womenProtagonism,
+      womenProtagonismLabel: womenProtagonism ? WOMEN_PROTAGONISM_LABEL : "",
+      educationAudienceFocus,
+      educationAudienceLabel: educationAudienceFocus ? EDUCATION_AUDIENCE_LABEL : "",
+      score,
+    });
+  }
+
+  return events;
 }
 
 async function scanSourceForEvents(source, options = {}) {
   const startedAt = Date.now();
   const year = clampYear(options.year);
   const perSourceTimeoutMs = Math.max(1200, Number(options.perSourceTimeoutMs) || QUICK_SOURCE_TIMEOUT_MS);
-  const maxEventsPerSource = Math.max(1, Number(options.maxEventsPerSource) || DEFAULT_MAX_EVENTS_PER_SOURCE);
+  const effectiveTimeoutMs = Math.max(
+    perSourceTimeoutMs,
+    Number(source?.minTimeoutMs || 0) || 0,
+  );
+  const defaultMaxEventsPerSource = Math.max(1, Number(options.maxEventsPerSource) || DEFAULT_MAX_EVENTS_PER_SOURCE);
+  const maxEventsPerSource = Math.max(
+    1,
+    Number(source?.maxEventsPerSource || defaultMaxEventsPerSource) || defaultMaxEventsPerSource,
+  );
 
   try {
-    const page = await fetchHtmlWithTimeout(source.url, perSourceTimeoutMs);
-    const pageTitle = extractPageTitle(page.html) || source.name;
-    const pageImage = extractMetaImage(page.html, page.finalUrl);
+    const allowInsecureTls = Boolean(source?.allowInsecureTls);
+    let events = [];
+    let pageTitle = source.name;
+    let pageImage = "";
+    let fetchedUrl = source.url;
 
-    let events = extractAnchorEventsFromPage({
-      html: page.html,
-      source,
-      year,
-      pageUrl: page.finalUrl,
-      pageImage,
-    });
+    if (source?.apiUrl) {
+      try {
+        const jsonResult = await fetchJsonWithTimeout(source.apiUrl, effectiveTimeoutMs, {
+          allowInsecureTls,
+        });
+        const basePosts = Array.isArray(jsonResult?.payload) ? jsonResult.payload : [];
+        const apiSearchUrls = Array.isArray(source?.apiSearchUrls)
+          ? source.apiSearchUrls.filter((candidate) => String(candidate || "").trim())
+          : [];
+        const limitedApiSearchUrls = perSourceTimeoutMs <= QUICK_SOURCE_TIMEOUT_MS
+          ? apiSearchUrls.slice(0, 1)
+          : apiSearchUrls;
+        const extraPosts = [];
+
+        for (const apiSearchUrl of limitedApiSearchUrls) {
+          try {
+            const searchResult = await fetchJsonWithTimeout(apiSearchUrl, effectiveTimeoutMs, {
+              allowInsecureTls,
+            });
+            if (Array.isArray(searchResult?.payload)) {
+              extraPosts.push(...searchResult.payload);
+            }
+          } catch {
+            // ignora falhas pontuais nas buscas complementares
+          }
+        }
+
+        const dedupedPostsById = new Map();
+        [...basePosts, ...extraPosts].forEach((post, index) => {
+          const postId = String(post?.id || `fapesb-post-${index}`);
+          if (!dedupedPostsById.has(postId)) {
+            dedupedPostsById.set(postId, post);
+          }
+        });
+
+        events = extractWordPressEventsFromPosts({
+          posts: [...dedupedPostsById.values()],
+          source,
+          year,
+        });
+        fetchedUrl = String(jsonResult?.finalUrl || source.apiUrl || source.url);
+        pageTitle = `${source.name} (API)`;
+      } catch {
+        // fallback para HTML abaixo
+      }
+    }
 
     if (events.length === 0) {
-      events = extractFallbackEventsFromLines({
+      const page = await fetchHtmlWithTimeout(source.url, effectiveTimeoutMs, {
+        allowInsecureTls,
+      });
+      pageTitle = extractPageTitle(page.html) || source.name;
+      pageImage = extractMetaImage(page.html, page.finalUrl);
+      fetchedUrl = page.finalUrl || source.url;
+
+      events = extractAnchorEventsFromPage({
         html: page.html,
         source,
         year,
         pageUrl: page.finalUrl,
         pageImage,
       });
+
+      if (events.length === 0) {
+        events = extractFallbackEventsFromLines({
+          html: page.html,
+          source,
+          year,
+          pageUrl: page.finalUrl,
+          pageImage,
+        });
+      }
     }
 
-    const sourceEvents = dedupeEvents(events)
+    const dedupedEvents = dedupeEvents(events);
+    const isFapesbSource = String(source?.id || "").toLowerCase() === "fapesb";
+    const schoolPriorityRegex = /\b(?:clubes?\s+de\s+ciencias?|bahia\s+faz\s+ciencia\s+na\s+escola|professores?\s+coordenadores?|rede\s+publica\s+estadual|educacao\s+basica|ensino\s+medio)\b/i;
+    const priorityEvents = isFapesbSource
+      ? dedupedEvents.filter((event) => {
+        if (!event?.educationAudienceFocus) return false;
+        const normalized = normalizeForSearch(`${event?.title || ""} ${event?.description || ""}`);
+        return schoolPriorityRegex.test(normalized);
+      })
+      : [];
+
+    const priorityKeys = new Set(
+      priorityEvents.map((event) => {
+        return normalizeForSearch(`${event?.url || ""}|${event?.title || ""}`);
+      }),
+    );
+    const remainingEvents = dedupedEvents.filter((event) => {
+      const key = normalizeForSearch(`${event?.url || ""}|${event?.title || ""}`);
+      return !priorityKeys.has(key);
+    });
+
+    const curatedEvents = [
+      ...sortEvents(priorityEvents),
+      ...sortEvents(remainingEvents),
+    ];
+
+    const sourceEvents = curatedEvents
       .slice(0, maxEventsPerSource)
       .map((event, index) => ({
         id: buildEventId(source.id, event.title, event.startDate, event.url, index),
@@ -1542,7 +2061,7 @@ async function scanSourceForEvents(source, options = {}) {
         sourceGroup: source.group,
         sourceGroupLabel: source.groupLabel,
         sourceUrl: source.url,
-        fetchedUrl: page.finalUrl,
+        fetchedUrl,
         pageTitle,
         title: event.title,
         description: event.description,
@@ -1558,6 +2077,10 @@ async function scanSourceForEvents(source, options = {}) {
         womenProtagonism: Boolean(event.womenProtagonism),
         womenProtagonismLabel: event.womenProtagonism
           ? String(event.womenProtagonismLabel || WOMEN_PROTAGONISM_LABEL)
+          : "",
+        educationAudienceFocus: Boolean(event.educationAudienceFocus),
+        educationAudienceLabel: event.educationAudienceFocus
+          ? String(event.educationAudienceLabel || EDUCATION_AUDIENCE_LABEL)
           : "",
         score: Number(event.score || 0),
       }));
@@ -1633,6 +2156,14 @@ function parseRequestPayload(event) {
   };
 }
 
+function isWomenFocusGroup(group = "") {
+  return String(group || "").trim().toLowerCase() === WOMEN_FOCUS_GROUP;
+}
+
+function isFapesbGroup(group = "") {
+  return String(group || "").trim().toLowerCase() === FAPESB_GROUP;
+}
+
 function resolveScanSettings(mode = QUICK_MODE) {
   if (mode === FULL_MODE) {
     return {
@@ -1650,16 +2181,23 @@ function resolveScanSettings(mode = QUICK_MODE) {
 }
 
 function resolveSourcesToScan({ sourceIds = [], group = "", maxSources = DEFAULT_MAX_SOURCES }) {
+  const normalizedGroup = String(group || "").trim().toLowerCase();
   const sourceIdSet = new Set(sourceIds.map((item) => item.toLowerCase()));
   const hasSourceFilter = sourceIdSet.size > 0;
-  const hasGroupFilter = Boolean(group);
+  const hasGroupFilter = Boolean(normalizedGroup);
 
   const sorted = [...POP_EVENT_SOURCES].sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
   const filtered = sorted.filter((source) => {
     if (hasSourceFilter && !sourceIdSet.has(String(source.id || "").toLowerCase())) {
       return false;
     }
-    if (hasGroupFilter && String(source.group || "").toLowerCase() !== group) {
+    if (hasGroupFilter && isFapesbGroup(normalizedGroup)) {
+      return String(source.id || "").toLowerCase() === FAPESB_SOURCE_ID;
+    }
+    if (hasGroupFilter && isWomenFocusGroup(normalizedGroup)) {
+      return true;
+    }
+    if (hasGroupFilter && String(source.group || "").toLowerCase() !== normalizedGroup) {
       return false;
     }
     return true;
@@ -1685,6 +2223,20 @@ function filterEventsByQuery(events = [], queryTerm = "") {
 
     return haystack.includes(normalizedQuery);
   });
+}
+
+function filterEventsByGroupFocus(events = [], group = "") {
+  const normalizedGroup = String(group || "").trim().toLowerCase();
+
+  if (isFapesbGroup(normalizedGroup)) {
+    return events.filter((event) => String(event?.sourceId || "").trim().toLowerCase() === FAPESB_SOURCE_ID);
+  }
+
+  if (isWomenFocusGroup(normalizedGroup)) {
+    return events.filter((event) => event?.womenProtagonism === true);
+  }
+
+  return events;
 }
 
 async function runConcurrentScans({
@@ -1788,20 +2340,33 @@ export async function handler(event) {
 
   const startedAt = Date.now();
   const payload = parseRequestPayload(event);
-  const scanSettings = resolveScanSettings(payload.mode);
-  const sourcesToScan = resolveSourcesToScan(payload);
+  const womenFocusEnabled = isWomenFocusGroup(payload.group);
+  const effectiveMode = womenFocusEnabled ? FULL_MODE : payload.mode;
+  const effectiveMaxSources = womenFocusEnabled
+    ? POP_EVENT_SOURCES.length
+    : payload.maxSources;
+  const effectiveMaxEventsPerSource = womenFocusEnabled
+    ? WOMEN_FOCUS_MAX_EVENTS_PER_SOURCE
+    : DEFAULT_MAX_EVENTS_PER_SOURCE;
+
+  const scanSettings = resolveScanSettings(effectiveMode);
+  const sourcesToScan = resolveSourcesToScan({
+    ...payload,
+    maxSources: effectiveMaxSources,
+  });
   const deadline = startedAt + scanSettings.timeBudgetMs;
   const { reports, events: collectedEvents } = await runConcurrentScans({
     sources: sourcesToScan,
     year: payload.year,
     perSourceTimeoutMs: scanSettings.perSourceTimeoutMs,
-    maxEventsPerSource: DEFAULT_MAX_EVENTS_PER_SOURCE,
+    maxEventsPerSource: effectiveMaxEventsPerSource,
     maxConcurrent: scanSettings.maxConcurrent,
     deadline,
   });
 
   const dedupedEvents = dedupeEvents(collectedEvents);
-  const filteredByQuery = filterEventsByQuery(dedupedEvents, payload.queryTerm);
+  const filteredByGroupFocus = filterEventsByGroupFocus(dedupedEvents, payload.group);
+  const filteredByQuery = filterEventsByQuery(filteredByGroupFocus, payload.queryTerm);
   const sortedEvents = sortEvents(filteredByQuery).slice(0, MAX_EVENTS_RETURNED);
   const successSources = reports.filter((item) => item.status === "ok").length;
   const errorSources = reports.filter((item) => item.status === "error").length;
@@ -1811,8 +2376,11 @@ export async function handler(event) {
     success: true,
     generatedAt: new Date().toISOString(),
     year: payload.year,
-    mode: payload.mode,
+    mode: effectiveMode,
+    requestedMode: payload.mode,
     query: payload.queryTerm,
+    group: payload.group,
+    womenFocusEnabled,
     sourcesRequested: sourcesToScan.length,
     sourcesScanned: successSources + errorSources,
     sourcesSucceeded: successSources,

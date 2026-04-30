@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   School,
   FolderKanban,
@@ -75,6 +75,7 @@ export default function ProjectFeed({
   clubs,
   schools,
   users,
+  loggedUser,
   diaryEntries,
   projectsTotalCount,
   isFetchingProjects,
@@ -87,9 +88,12 @@ export default function ProjectFeed({
   setViewingClubId,
   getProjectTeam,
   getInvestigatorDisplayNames,
+  onToggleProjectLike,
 }) {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [feedMode, setFeedMode] = useState("projects");
+  const [pendingLikeProjectIds, setPendingLikeProjectIds] = useState(() => new Set());
+  const pendingLikeProjectIdsRef = useRef(new Set());
   const [isClubModalOpen, setIsClubModalOpen] = useState(false);
   const [modalClubData, setModalClubData] = useState({
     club: null,
@@ -101,6 +105,32 @@ export default function ProjectFeed({
     investigadores: [],
     diaryCount: 0,
   });
+  const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
+
+  const handleProjectLike = useCallback(async (project) => {
+    if (typeof onToggleProjectLike !== 'function') {
+      return null;
+    }
+
+    const projectId = String(project?.id || '').trim();
+    if (!projectId) {
+      return null;
+    }
+
+    if (pendingLikeProjectIdsRef.current.has(projectId)) {
+      return null;
+    }
+
+    pendingLikeProjectIdsRef.current.add(projectId);
+    setPendingLikeProjectIds(new Set(pendingLikeProjectIdsRef.current));
+
+    try {
+      return await onToggleProjectLike(projectId);
+    } finally {
+      pendingLikeProjectIdsRef.current.delete(projectId);
+      setPendingLikeProjectIds(new Set(pendingLikeProjectIdsRef.current));
+    }
+  }, [onToggleProjectLike]);
 
   useEffect(() => {
     if (feedProjects.length > 0 || !isFetchingProjects) {
@@ -488,6 +518,9 @@ export default function ProjectFeed({
                       isCompleted={isCompleted}
                       team={team}
                       investigatorNames={investigatorNames}
+                      loggedUserId={loggedUserId}
+                      onLikeClick={handleProjectLike}
+                      isLikeSubmitting={pendingLikeProjectIds.has(String(project?.id || '').trim())}
                       allProjects={feedProjects}
                       allUsers={users}
                       onClubClick={() => handleOpenClubModal(club, school)}

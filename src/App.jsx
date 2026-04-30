@@ -14,6 +14,7 @@ import TrilhaPedagogica from './components/trilha/TrilhaPedagogica';
 import MeusProjetos from './components/projects/MeusProjetos';
 import POPEventos from './components/pop-eventos/POPEventos';
 import TutorialCoach from './components/tutorial/TutorialCoach';
+import SupportTickets from './components/support/SupportTickets';
 import { STAGES, PERFIS_LOGIN } from './constants/appConstants';
 import { getUiStyleOption, resolveUserUiPreferences } from './constants/uiPreferences';
 import { TutorialProvider } from './contexts/TutorialContext';
@@ -150,6 +151,7 @@ export default function App() {
         handleRespondClubEntryRequest,
         handleCreateProject,
         handleUpdateProject,
+        handleToggleProjectLike,
         handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,
@@ -265,6 +267,7 @@ export default function App() {
                                 clubs={clubs}
                                 schools={schools}
                                 users={users}
+                                loggedUser={loggedUser}
                                 diaryEntries={diaryEntries}
                                 projectsTotalCount={projectsTotalCount}
                                 isFetchingProjects={isFetchingProjects}
@@ -277,6 +280,7 @@ export default function App() {
                                 getProjectTeam={getProjectTeam}
                                 getInvestigatorDisplayNames={getInvestigatorDisplayNames}
                                 searchTerm={searchTerm}
+                                onToggleProjectLike={handleToggleProjectLike}
                             />
                         </div>
                     )}
@@ -369,6 +373,12 @@ export default function App() {
                         </div>
                     )}
 
+                    {currentView === 'suporte' && (
+                        <div data-tutorial-anchor="content-suporte">
+                            <SupportTickets loggedUser={loggedUser} />
+                        </div>
+                    )}
+
                     {currentView === 'meusProjetos' && (
                         <div data-tutorial-anchor="content-meusProjetos">
                             <MeusProjetos
@@ -382,6 +392,7 @@ export default function App() {
                                 diaryEntries={diaryEntries}
                                 getProjectTeam={getProjectTeam}
                                 getInvestigatorDisplayNames={getInvestigatorDisplayNames}
+                                onToggleProjectLike={handleToggleProjectLike}
                                 onDiaryClick={(project) => {
                                     const resolvedClubId = String(project?.clube_id || '').trim();
                                     if (resolvedClubId) {

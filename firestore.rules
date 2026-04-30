@@ -444,6 +444,72 @@ service cloud.firestore {
         && isProjectMemberFromData(get(/databases/$(database)/documents/projetos/$(projectId)).data);
     }
 
+    function safeProjectLikesByUser(data) {
+      return data.likes_by_user is map ? data.likes_by_user : {};
+    }
+
+    function projectLikesCount(data) {
+      return data.likes_count is int
+        ? data.likes_count
+        : (
+          data.likes is int
+          ? data.likes
+          : 0
+        );
+    }
+
+    function isProjectLikeUpdatedAtValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['updatedAt'])
+        || (
+          request.resource.data.updatedAt is timestamp
+          && request.resource.data.updatedAt == request.time
+        );
+    }
+
+    function projectLikeKeyChangedByCurrentUserOnly() {
+      return request.resource.data.likes_by_user.diff(safeProjectLikesByUser(resource.data))
+        .affectedKeys()
+        .hasOnly([request.auth.uid]);
+    }
+
+    function canToggleProjectLike() {
+      let currentLikesByUser = safeProjectLikesByUser(resource.data);
+      let nextLikesByUser = request.resource.data.likes_by_user is map ? request.resource.data.likes_by_user : {};
+      let hadLike = currentLikesByUser[request.auth.uid] == true;
+      let hasLike = nextLikesByUser[request.auth.uid] == true;
+      let hasLikeKey = nextLikesByUser.keys().hasAny([request.auth.uid]);
+      let currentLikesCount = projectLikesCount(resource.data);
+
+      return isSignedIn()
+        && resource.data.clube_id is string
+        && request.resource.data.clube_id == resource.data.clube_id
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'likes_by_user',
+          'likes_count',
+          'updatedAt'
+        ])
+        && request.resource.data.likes_by_user is map
+        && request.resource.data.likes_count is int
+        && currentLikesCount >= 0
+        && request.resource.data.likes_count >= 0
+        && isProjectLikeUpdatedAtValid()
+        && projectLikeKeyChangedByCurrentUserOnly()
+        && (
+          (
+            !hadLike
+            && hasLike
+            && hasLikeKey
+            && request.resource.data.likes_count == currentLikesCount + 1
+          )
+          || (
+            hadLike
+            && !hasLike
+            && !hasLikeKey
+            && request.resource.data.likes_count == currentLikesCount - 1
+          )
+        );
+    }
+
     function isExternalMember(clubeId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/forum_membros_externos/$(clubeId + "__" + request.auth.uid))
@@ -452,6 +518,129 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/forum_membros_externos/$(request.auth.uid)).data.clube_id == clubeId
         )
       );
+    }
+
+    function isSupportPriority(priority) {
+      return priority == 'baixa'
+        || priority == 'media'
+        || priority == 'alta'
+        || priority == 'critica';
+    }
+
+    function isSupportStatus(status) {
+      return status == 'aberto'
+        || status == 'em_analise'
+        || status == 'resolvido'
+        || status == 'arquivado';
+    }
+
+    function hasValidSupportTicketCreate() {
+      return request.resource.data.keys().hasAll([
+          'module_id',
+          'module_label',
+          'description',
+          'priority',
+          'status',
+          'reporter_uid',
+          'reporter_email',
+          'platform',
+          'source',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'module_id',
+          'module_label',
+          'description',
+          'priority',
+          'status',
+          'reporter_uid',
+          'reporter_nome',
+          'reporter_email',
+          'contact_email',
+          'context_clube_nome',
+          'page_url',
+          'browser_ua',
+          'platform',
+          'source',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.module_id is string
+        && request.resource.data.module_id.size() > 0
+        && request.resource.data.module_id.size() <= 64
+        && request.resource.data.module_label is string
+        && request.resource.data.module_label.size() > 0
+        && request.resource.data.module_label.size() <= 120
+        && request.resource.data.description is string
+        && request.resource.data.description.size() >= 15
+        && request.resource.data.description.size() <= 4000
+        && request.resource.data.priority is string
+        && isSupportPriority(request.resource.data.priority)
+        && request.resource.data.status == 'aberto'
+        && request.resource.data.reporter_uid == request.auth.uid
+        && request.resource.data.reporter_email is string
+        && request.resource.data.reporter_email.size() > 5
+        && request.resource.data.reporter_email.size() <= 160
+        && (
+          !(request.auth.token.email is string)
+          || request.resource.data.reporter_email == request.auth.token.email
+        )
+        && (
+          !(request.resource.data.reporter_nome is string)
+          || request.resource.data.reporter_nome.size() <= 160
+        )
+        && (
+          !(request.resource.data.contact_email is string)
+          || request.resource.data.contact_email.size() <= 160
+        )
+        && (
+          !(request.resource.data.context_clube_nome is string)
+          || request.resource.data.context_clube_nome.size() <= 180
+        )
+        && (
+          !(request.resource.data.page_url is string)
+          || request.resource.data.page_url.size() <= 500
+        )
+        && (
+          !(request.resource.data.browser_ua is string)
+          || request.resource.data.browser_ua.size() <= 400
+        )
+        && request.resource.data.platform == 'web'
+        && request.resource.data.source == 'support_widget'
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function canReadSupportTicket() {
+      return isSignedIn()
+        && (
+          request.auth.uid == resource.data.reporter_uid
+          || isMentor()
+        );
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read: if canReadSupportTicket();
+
+      allow create: if isSignedIn()
+        && userExists()
+        && hasValidSupportTicketCreate();
+
+      allow update: if isSignedIn()
+        && isMentor()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status',
+          'updatedAt'
+        ])
+        && request.resource.data.status is string
+        && isSupportStatus(request.resource.data.status)
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
     }
 
     match /clubes/{clubeId} {
@@ -532,9 +721,12 @@ service cloud.firestore {
         && request.resource.data.clube_id.size() > 0
         && isClubTeacherMember(request.resource.data.clube_id);
 
-      allow update: if (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
-        && resource.data.clube_id is string
-        && request.resource.data.clube_id == resource.data.clube_id;
+      allow update: if (
+          (isMentor() || isMyClub(resource.data.clube_id) || isProjectOrientador(resource))
+          && resource.data.clube_id is string
+          && request.resource.data.clube_id == resource.data.clube_id
+        )
+        || canToggleProjectLike();
 
       allow delete: if isMentor()
         && resource.data.clube_id is string

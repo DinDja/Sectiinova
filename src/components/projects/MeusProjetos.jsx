@@ -1,5 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ProjectCard from './ProjectCard';
+
+const resolveProjectClubId = (project) => {
+  if (!project || typeof project !== 'object') return '';
+  return String(
+    project.clube_id || project.clubeId || project.club_id || project.clubId || project.clube?.id || project.club?.id || ''
+  ).trim();
+};
 
 export default function MeusProjetos({
   feedProjects = [],
@@ -10,11 +17,16 @@ export default function MeusProjetos({
   clubs = [],
   users = [],
   diaryEntries = [],
+  onToggleProjectLike,
+  onDiaryClick,
+  onClubClick,
   getProjectTeam = () => ({ orientadores: [], coorientadores: [], investigadores: [] }),
   getInvestigatorDisplayNames = () => [],
   ...props
 }) {
   const projetosSource = Array.isArray(clubProjects) ? clubProjects : feedProjects;
+  const [pendingLikeProjectIds, setPendingLikeProjectIds] = useState(() => new Set());
+  const pendingLikeProjectIdsRef = useRef(new Set());
 
   const loggedUserId = String(loggedUser?.id || loggedUser?.uid || '').trim();
   const loggedUserPerfil = String(loggedUser?.perfil || '').trim().toLowerCase();
@@ -122,20 +134,50 @@ export default function MeusProjetos({
     }));
   }, [isMentorProfile, meusProjetos, mentorClubs, clubs]);
 
+  const handleProjectLike = useCallback(async (project) => {
+    if (typeof onToggleProjectLike !== 'function') {
+      return null;
+    }
+
+    const projectId = String(project?.id || '').trim();
+    if (!projectId) {
+      return null;
+    }
+
+    if (pendingLikeProjectIdsRef.current.has(projectId)) {
+      return null;
+    }
+
+    pendingLikeProjectIdsRef.current.add(projectId);
+    setPendingLikeProjectIds(new Set(pendingLikeProjectIdsRef.current));
+
+    try {
+      return await onToggleProjectLike(projectId);
+    } finally {
+      pendingLikeProjectIdsRef.current.delete(projectId);
+      setPendingLikeProjectIds(new Set(pendingLikeProjectIdsRef.current));
+    }
+  }, [onToggleProjectLike]);
+
   const renderProjectCard = (project) => {
-    const team = getProjectTeam(project, users, project?.clube_id);
+    const projectClubId = resolveProjectClubId(project);
+    const team = getProjectTeam(project, users, projectClubId);
     const projectDiaryEntries = diaryEntries.filter((entry) => String(entry?.projeto_id) === String(project?.id));
     const investigatorNames = getInvestigatorDisplayNames(project, team, projectDiaryEntries);
+    const normalizedProjectId = String(project?.id || '').trim();
 
     return (
       <ProjectCard
         key={project?.id}
         project={project}
-        club={clubs.find((club) => String(club?.id) === String(project?.clube_id))}
+        club={clubs.find((club) => String(club?.id) === projectClubId)}
         team={team}
         investigatorNames={investigatorNames}
-        onDiaryClick={() => props.onDiaryClick?.(project)}
-        onClubClick={() => props.onClubClick?.(project)}
+        loggedUserId={loggedUserId}
+        onLikeClick={() => handleProjectLike(project)}
+        isLikeSubmitting={pendingLikeProjectIds.has(normalizedProjectId)}
+        onDiaryClick={() => onDiaryClick?.(project)}
+        onClubClick={() => onClubClick?.(project)}
         {...props}
       />
     );

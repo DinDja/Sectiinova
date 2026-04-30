@@ -14,6 +14,7 @@ import {
     setDoc,
     startAfter,
     serverTimestamp,
+    runTransaction,
     where,
     writeBatch,
     updateDoc,
@@ -89,6 +90,37 @@ const CLUB_CARD_TEMPLATE_IDS = new Set(['neo', 'classic', 'tech']);
 const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_STORAGE_PREFIX = 'auth:verificationResend:';
 const MAX_SELF_SCHOOL_CHANGES = 1;
+
+const normalizeProjectLikesByUser = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    return Object.entries(value).reduce((accumulator, [userId, isLiked]) => {
+        const normalizedUserId = String(userId || '').trim();
+        if (!normalizedUserId || isLiked !== true) {
+            return accumulator;
+        }
+
+        accumulator[normalizedUserId] = true;
+        return accumulator;
+    }, {});
+};
+
+const resolveProjectLikesCount = (projectData = {}) => {
+    const parsedCount = Number(
+        projectData?.likes_count
+        ?? projectData?.likesCount
+        ?? projectData?.likes
+        ?? 0
+    );
+
+    if (!Number.isFinite(parsedCount)) {
+        return 0;
+    }
+
+    return Math.max(0, Math.trunc(parsedCount));
+};
 
 const normalizeClubCardTemplate = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
@@ -2482,6 +2514,89 @@ export default function useAppController() {
         return normalizedProjectId;
     };
 
+    const handleToggleProjectLike = async (projectId) => {
+        const normalizedProjectId = String(projectId || '').trim();
+        if (!normalizedProjectId) {
+            throw new Error('Projeto invalido para curtida.');
+        }
+
+        const likerId = String(authUser?.uid || loggedUser?.id || '').trim();
+        if (!likerId) {
+            throw new Error('Usuario nao autenticado para curtir projeto.');
+        }
+
+        const projectRef = doc(db, 'projetos', normalizedProjectId);
+
+        try {
+            const transactionResult = await runTransaction(db, async (transaction) => {
+                const projectSnapshot = await transaction.get(projectRef);
+
+                if (!projectSnapshot.exists()) {
+                    throw new Error('Projeto nao encontrado para curtida.');
+                }
+
+                const projectData = projectSnapshot.data() || {};
+                const previousLikesByUser = normalizeProjectLikesByUser(projectData?.likes_by_user);
+                const alreadyLiked = previousLikesByUser[likerId] === true;
+
+                const nextLikesByUser = { ...previousLikesByUser };
+                if (alreadyLiked) {
+                    delete nextLikesByUser[likerId];
+                } else {
+                    nextLikesByUser[likerId] = true;
+                }
+
+                const previousLikesCount = resolveProjectLikesCount(projectData);
+                const nextLikesCount = alreadyLiked
+                    ? Math.max(0, previousLikesCount - 1)
+                    : previousLikesCount + 1;
+
+                transaction.update(projectRef, {
+                    likes_by_user: nextLikesByUser,
+                    likes_count: nextLikesCount,
+                    updatedAt: serverTimestamp()
+                });
+
+                return {
+                    isLiked: !alreadyLiked,
+                    likesCount: nextLikesCount,
+                    likesByUser: nextLikesByUser
+                };
+            });
+
+            await cachedDataService.invalidateDocument('projetos', normalizedProjectId);
+
+            const applyLikeUpdate = (previousProjects) => previousProjects.map((project) => {
+                if (String(project?.id || '').trim() !== normalizedProjectId) {
+                    return project;
+                }
+
+                return {
+                    ...project,
+                    likes_by_user: transactionResult.likesByUser,
+                    likes_count: transactionResult.likesCount,
+                    updatedAt: new Date()
+                };
+            });
+
+            setProjects(applyLikeUpdate);
+            setAllProjects(applyLikeUpdate);
+            setClubProjects(applyLikeUpdate);
+            setMyClubProjects(applyLikeUpdate);
+
+            return {
+                projectId: normalizedProjectId,
+                isLiked: transactionResult.isLiked,
+                likesCount: transactionResult.likesCount
+            };
+        } catch (error) {
+            console.error('Erro ao atualizar curtida do projeto:', error);
+            const message = String(error?.message || '').trim() || 'Falha ao atualizar curtida do projeto.';
+            setErrorMessage(message);
+            throw new Error(message);
+        }
+    };
+
     const handleDeleteProject = async (projectId) => {
         const normalizedProjectId = String(projectId || '').trim();
         if (!normalizedProjectId) {
@@ -3923,6 +4038,7 @@ export default function useAppController() {
         handleRespondClubEntryRequest,
         handleCreateProject,
         handleUpdateProject,
+        handleToggleProjectLike,
         handleDeleteProject,
         handleCreateClub,
         handleUpdateClub,

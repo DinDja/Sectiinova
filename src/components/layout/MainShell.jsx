@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "./Sidebar";
+import SupportTicketWidget from "../support/SupportTicketWidget";
 import TopBar from "./TopBar";
 import {
   getUiFontOption,
@@ -65,6 +66,7 @@ export default function MainShell({
     "meusProjetos",
     "trilha",
     "popEventos",
+    "suporte",
     "inpi",
     "forum",
     "clube",
@@ -157,6 +159,10 @@ export default function MainShell({
     popEventos: {
       label: "POP Eventos",
       summary: "Radar de eventos, editais e competicoes oficiais de 2026.",
+    },
+    suporte: {
+      label: "Suporte",
+      summary: "Acompanhe seus chamados e o status de suporte em tempo real.",
     },
     forum: {
       label: "Forum",
@@ -410,6 +416,13 @@ export default function MainShell({
           >
             {renderContentByStyle()}
           </main>
+
+          <SupportTicketWidget
+            currentView={currentView}
+            currentViewMeta={currentViewMeta}
+            contextClubName={contextClubName}
+            loggedUser={loggedUser}
+          />
         </div>
       </div>
     </div>
