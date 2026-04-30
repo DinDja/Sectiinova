@@ -573,23 +573,17 @@ export default function ProjectFeed({
                        <div className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900">
                          <Building2 className="w-4 h-4 stroke-[3]" /> Clube
                        </div>
-                       <h3 className="mt-4 text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 line-clamp-2">
-                         {club?.nome || "Clube sem nome"}
-                       </h3>
                        <p className="mt-3 text-sm font-bold text-slate-700 line-clamp-2">
                          {String(club?.descricao || "").trim() || "Clube da rede de inovacao com atividades de pesquisa, desenvolvimento e colaboracao escolar."}
                        </p>
 
                        <div className="mt-5 flex flex-wrap items-center gap-2">
                          <span className="inline-flex items-center gap-2 rounded-full border-[3px] border-slate-900 bg-yellow-300 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900">
-                           <School className="w-4 h-4 stroke-[3]" /> {schoolName}
-                         </span>
-                         <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700">
-                           SEC: {schoolSec || "Nao informado"}
-                         </span>
-                         <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700">
+                           <School className="w-4 h-4 stroke-[3]" /> {schoolName}     <span className="inline-flex items-center rounded-full border-[3px] border-slate-900 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700">
                            INEP: {schoolInep || "Nao informado"}
                          </span>
+                         </span>
+                     
                        </div>
                      </div>
 
