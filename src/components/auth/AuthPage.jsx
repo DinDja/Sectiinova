@@ -26,6 +26,7 @@ import {
   getPasswordStrength,
 } from "../../utils/authSecurity";
 import Toast from "../forum/Toast";
+import { validateTeacherRegistrationBySec } from "../../services/secSchoolService";
 
 // --- COMPONENTES AUXILIARES HQ ---
 const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
@@ -353,6 +354,9 @@ export default function AuthPage({
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [showRegConfPwd, setShowRegConfPwd] = useState(false);
   const [schoolSelectInput, setSchoolSelectInput] = useState("");
+  const [teacherVerifyStatus, setTeacherVerifyStatus] = useState("idle");
+  const [teacherVerifyMessage, setTeacherVerifyMessage] = useState("");
+  const [teacherVerifyResult, setTeacherVerifyResult] = useState(null);
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -360,6 +364,8 @@ export default function AuthPage({
   
   const lottieBgRef = useRef(null);
   const cycleLottieRefs = useRef([]);
+  const teacherVerifyAbortRef = useRef(null);
+  const teacherVerifySequenceRef = useRef(0);
   const cycleAnimations = [
     {
       path: "/lottieAnimated/Futuristic Virtual Reality Glasses Helmet.json",
@@ -496,6 +502,9 @@ export default function AuthPage({
   const selectedSchoolUnit = (allSchoolUnits || []).find(
     (unit) => String(unit?.escola_id || "").trim() === String(registerForm.escola_id || "").trim(),
   );
+  const normalizedTeacherMatricula = String(registerForm?.matricula || "")
+    .replace(/\D+/g, "")
+    .trim();
   const selectedSchoolOption = selectedSchoolUnit
     ? {
         value: selectedSchoolUnit.escola_id,
@@ -647,6 +656,176 @@ export default function AuthPage({
 
     setAuthNotice(null);
   }, [authError, setAuthError, setAuthNotice]);
+
+  useEffect(() => {
+    return () => {
+      if (teacherVerifyAbortRef.current) {
+        teacherVerifyAbortRef.current.abort();
+        teacherVerifyAbortRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (teacherVerifyAbortRef.current) {
+      teacherVerifyAbortRef.current.abort();
+      teacherVerifyAbortRef.current = null;
+    }
+
+    const resetVerification = () => {
+      setTeacherVerifyStatus("idle");
+      setTeacherVerifyMessage("");
+      setTeacherVerifyResult(null);
+    };
+
+    if (!showAuthModal || authMode !== "register") {
+      resetVerification();
+      return undefined;
+    }
+
+    if (!normalizedTeacherMatricula) {
+      resetVerification();
+      return undefined;
+    }
+
+    if (!selectedSchoolUnit) {
+      setTeacherVerifyStatus("pending-school");
+      setTeacherVerifyMessage("Selecione a unidade escolar para validar a matricula.");
+      setTeacherVerifyResult(null);
+      return undefined;
+    }
+
+    if (normalizedTeacherMatricula.length < 1) {
+      setTeacherVerifyStatus("typing");
+      setTeacherVerifyMessage("Digite a matricula para iniciar a consulta.");
+      setTeacherVerifyResult(null);
+      return undefined;
+    }
+
+    const verificationId = teacherVerifySequenceRef.current + 1;
+    teacherVerifySequenceRef.current = verificationId;
+
+    const debounceId = setTimeout(() => {
+      const controller = new AbortController();
+      teacherVerifyAbortRef.current = controller;
+
+      setTeacherVerifyStatus("loading");
+      setTeacherVerifyMessage("Consultando SEC para conferir a matricula...");
+      setTeacherVerifyResult(null);
+
+      validateTeacherRegistrationBySec(
+        {
+          matricula: normalizedTeacherMatricula,
+          schoolUnit: selectedSchoolUnit,
+          redeAdministrativa: registerForm?.rede_administrativa || "estadual",
+        },
+        {
+          signal: controller.signal,
+          timeoutMs: 12000,
+        },
+      )
+        .then((result) => {
+          if (teacherVerifySequenceRef.current !== verificationId) return;
+
+          const reason = String(result?.reason || "").trim();
+          const valid = Boolean(result?.valid);
+          const isProfessor = Boolean(result?.isProfessor);
+          const temporarilyUnavailable = Boolean(result?.temporarilyUnavailable);
+
+          setTeacherVerifyResult(result || null);
+
+          if (temporarilyUnavailable) {
+            setTeacherVerifyStatus("unavailable");
+            setTeacherVerifyMessage(
+              reason || "A SEC esta indisponivel no momento. Tente novamente em instantes.",
+            );
+            return;
+          }
+
+          if (valid && isProfessor) {
+            setTeacherVerifyStatus("valid");
+            setTeacherVerifyMessage(
+              reason || "Matricula confirmada na unidade selecionada.",
+            );
+            return;
+          }
+
+          if (valid && !isProfessor) {
+            setTeacherVerifyStatus("warning");
+            setTeacherVerifyMessage(
+              reason || "Matricula localizada, mas o cargo nao foi identificado como professor.",
+            );
+            return;
+          }
+
+          setTeacherVerifyStatus("invalid");
+          setTeacherVerifyMessage(
+            reason || "Nao foi possivel confirmar a matricula na unidade informada.",
+          );
+        })
+        .catch((error) => {
+          if (teacherVerifySequenceRef.current !== verificationId) return;
+          if (error?.name === "AbortError") return;
+
+          setTeacherVerifyResult(null);
+          setTeacherVerifyStatus("error");
+          setTeacherVerifyMessage(
+            String(error?.message || "").trim()
+              || "Falha ao consultar a SEC para validar a matricula.",
+          );
+        })
+        .finally(() => {
+          if (teacherVerifyAbortRef.current === controller) {
+            teacherVerifyAbortRef.current = null;
+          }
+        });
+    }, 700);
+
+    return () => {
+      clearTimeout(debounceId);
+      if (teacherVerifyAbortRef.current) {
+        teacherVerifyAbortRef.current.abort();
+        teacherVerifyAbortRef.current = null;
+      }
+    };
+  }, [
+    authMode,
+    normalizedTeacherMatricula,
+    registerForm?.rede_administrativa,
+    selectedSchoolUnit,
+    showAuthModal,
+  ]);
+
+  const teacherVerifyBadgeByStatus = {
+    loading: "Consultando",
+    valid: "Confirmada",
+    warning: "Atencao",
+    invalid: "Nao confirmada",
+    unavailable: "SEC indisponivel",
+    error: "Falha na consulta",
+    "pending-school": "Selecione a unidade",
+    typing: "Matricula incompleta",
+  };
+  const teacherVerifyStyleByStatus = {
+    loading: "border-cyan-300 bg-cyan-50 text-cyan-900",
+    valid: "border-emerald-300 bg-emerald-50 text-emerald-900",
+    warning: "border-amber-300 bg-amber-50 text-amber-900",
+    invalid: "border-pink-300 bg-pink-50 text-pink-900",
+    unavailable: "border-slate-300 bg-slate-100 text-slate-800",
+    error: "border-red-300 bg-red-50 text-red-900",
+    "pending-school": "border-slate-300 bg-slate-100 text-slate-800",
+    typing: "border-slate-300 bg-slate-100 text-slate-800",
+  };
+  const teacherVerifyBadge = teacherVerifyBadgeByStatus[teacherVerifyStatus] || "Status";
+  const teacherVerifyStyle = teacherVerifyStyleByStatus[teacherVerifyStatus] || "border-slate-300 bg-slate-100 text-slate-800";
+  const shouldShowTeacherVerifyHint = (
+    teacherVerifyStatus !== "idle"
+    || Boolean(teacherVerifyMessage)
+    || Boolean(teacherVerifyResult)
+    || normalizedTeacherMatricula.length > 0
+  );
+  const teacherVerifyServidor = teacherVerifyResult?.servidor || null;
+  const teacherVerifySchool = teacherVerifyResult?.selectedSchool || null;
   
   return (
     <div
@@ -1254,6 +1433,61 @@ export default function AuthPage({
                               onChange={(e) => setRegisterForm((prev) => ({ ...prev, matricula: e.target.value }))}
                               required
                             />
+                            {shouldShowTeacherVerifyHint && (
+                              <div className={`mt-3 rounded-2xl border-[2px] px-4 py-3 ${teacherVerifyStyle}`}>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex rounded-full border border-current px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                                    {teacherVerifyBadge}
+                                  </span>
+                                  {teacherVerifyStatus === "loading" && (
+                                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                                  )}
+                                </div>
+                                {teacherVerifyMessage && (
+                                  <p className="mt-2 text-xs font-bold leading-relaxed">
+                                    {teacherVerifyMessage}
+                                  </p>
+                                )}
+                                {teacherVerifyServidor && (
+                                  <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-current/30 bg-white/60 p-3 text-[11px] font-bold">
+                                    <div>
+                                      <span className="opacity-70">Servidor</span>
+                                      <p className="text-sm font-black">
+                                        {String(teacherVerifyServidor?.nome || teacherVerifyServidor?.servidor || "-").trim() || "-"}
+                                      </p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <div>
+                                        <span className="opacity-70">Matrícula</span>
+                                        <p>{String(teacherVerifyServidor?.matricula || teacherVerifyServidor?.cadastro || normalizedTeacherMatricula || "-").trim() || "-"}</p>
+                                      </div>
+                                      <div>
+                                        <span className="opacity-70">Situação</span>
+                                        <p>{String(teacherVerifyServidor?.situacao || "-").trim() || "-"}</p>
+                                      </div>
+                                      <div className="sm:col-span-2">
+                                        <span className="opacity-70">Cargo/Função</span>
+                                        <p>{String(teacherVerifyServidor?.cargo || teacherVerifyServidor?.funcao || teacherVerifyServidor?.vinculo || "-").trim() || "-"}</p>
+                                      </div>
+                                    </div>
+                                    {teacherVerifySchool && (
+                                      <div className="border-t border-current/20 pt-2">
+                                        <span className="opacity-70">Unidade SEC</span>
+                                        <p className="text-sm font-black">
+                                          {String(teacherVerifySchool?.nome || teacherVerifySchool?.nomeEscola || registerForm?.escola_nome || "-").trim() || "-"}
+                                        </p>
+                                        <p className="text-[10px] opacity-80">
+                                          {String(teacherVerifySchool?.municipio || teacherVerifySchool?.cidade || "").trim()}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <p className="mt-2 text-[10px] font-black uppercase tracking-wider opacity-80">
+                                  Verificacao apenas informativa. O cadastro nao sera bloqueado por essa consulta.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </>
                       )}
