@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  CheckCircle2,
   LifeBuoy,
   LoaderCircle,
   Send,
   Sparkles,
   X,
 } from "lucide-react";
+import Toast from "../forum/Toast";
 import { createSupportTicket } from "../../services/supportTicketService";
 
 const SUPPORT_VIEW_LABELS = {
@@ -74,7 +74,8 @@ export default function SupportTicketWidget({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
   const [contactEmail, setContactEmail] = useState(String(loggedUser?.email || ""));
-  const [status, setStatus] = useState({ type: "idle", message: "", ticketId: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "error" });
 
   useEffect(() => {
     const e = String(loggedUser?.email || "").trim();
@@ -92,7 +93,8 @@ export default function SupportTicketWidget({
     if (!isOpen) {
       setDescription("");
       setPriority("media");
-      setStatus({ type: "idle", message: "", ticketId: "" });
+      setIsSubmitting(false);
+      setToast({ message: "", type: "error" });
     }
   }, [isOpen]);
 
@@ -109,30 +111,39 @@ export default function SupportTicketWidget({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description.trim()) {
-      setStatus({ type: "error", message: "Descreva o problema encontrado para abrir o chamado.", ticketId: "" });
+      setToast({ message: "Descreva o problema encontrado para abrir o chamado.", type: "error" });
       return;
     }
-    setStatus({ type: "pending", message: "Abrindo chamado…", ticketId: "" });
+
+    setToast({ message: "", type: "error" });
+    setIsSubmitting(true);
+
     try {
       const ticketId = await createSupportTicket({
-        currentView, moduleLabel, description, priority,
-        contactEmail, contextClubName,
-        pageUrl: window.location.href, loggedUser,
+        currentView,
+        moduleLabel,
+        description,
+        priority,
+        contactEmail,
+        contextClubName,
+        pageUrl: window.location.href,
+        loggedUser,
       });
-      setStatus({
+
+      setToast({
+        message: `Chamado aberto com sucesso. Ticket: ${ticketId}`,
         type: "success",
-        message: "Chamado aberto com sucesso. Nossa equipe responderá em breve.",
-        ticketId,
       });
       setDescription("");
       setPriority("media");
     } catch (error) {
       console.error("Support ticket error:", error);
-      setStatus({
-        type: "error",
+      setToast({
         message: String(error?.message || "Não foi possível abrir o chamado agora."),
-        ticketId: "",
+        type: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,26 +156,31 @@ export default function SupportTicketWidget({
         aria-label="Abrir chamado de suporte"
         className="
           fixed bottom-5 right-4 z-[145]
-          inline-flex items-center gap-2.5
+          inline-flex items-center gap-0
           rounded-full border border-indigo-200 bg-white
-          px-3 py-2.5 text-indigo-700
+          px-3 py-3 text-indigo-700
           shadow-[0_4px_20px_rgba(99,102,241,0.16)]
           transition-all duration-200
           hover:border-indigo-300 hover:shadow-[0_6px_28px_rgba(99,102,241,0.24)]
           focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2
-          sm:right-6 sm:px-4
+          group
+          sm:right-6
         "
       >
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50">
-          <LifeBuoy className="h-4 w-4 text-indigo-500" />
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 transition-colors duration-200 group-hover:bg-indigo-100">
+          <LifeBuoy className="h-5 w-5 text-indigo-500" />
         </span>
-        <span className="hidden flex-col items-start sm:flex">
+
+        <span className="flex max-w-0 flex-col overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 ease-out group-hover:max-w-[18rem] group-hover:gap-1.5 group-hover:px-3 group-hover:opacity-100">
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-400">
             Suporte
           </span>
-          <span className="text-sm font-bold leading-tight">Abrir chamado</span>
+          <span className="text-sm font-bold leading-tight text-slate-900">
+            Abrir chamado
+          </span>
         </span>
-        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+
+        <span className="hidden rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500 transition-all duration-200 group-hover:inline-flex">
           {moduleChip}
         </span>
       </button>
@@ -310,7 +326,7 @@ export default function SupportTicketWidget({
                   </p>
                   <button
                     type="submit"
-                    disabled={status.type === "pending"}
+                    disabled={isSubmitting}
                     className="
                       flex-shrink-0 inline-flex items-center gap-2
                       rounded-xl bg-indigo-600 px-5 py-2.5
@@ -319,7 +335,7 @@ export default function SupportTicketWidget({
                       disabled:cursor-not-allowed disabled:opacity-50
                     "
                   >
-                    {status.type === "pending" ? (
+                    {isSubmitting ? (
                       <>
                         <LoaderCircle className="h-4 w-4 animate-spin" />
                         Enviando…
@@ -333,30 +349,12 @@ export default function SupportTicketWidget({
                   </button>
                 </div>
 
-                {/* Feedback */}
-                {status.message && (
-                  <div className={`
-                    rounded-xl border px-4 py-3 text-sm
-                    ${status.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : status.type === "error"
-                      ? "border-rose-200 bg-rose-50 text-rose-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
-                    }
-                  `}>
-                    <p className="flex items-center gap-2 font-semibold">
-                      {status.type === "success"
-                        ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                        : <AlertTriangle className="h-4 w-4 flex-shrink-0 text-rose-400" />
-                      }
-                      {status.message}
-                    </p>
-                    {status.ticketId && (
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-slate-600">
-                        Ticket: {status.ticketId}
-                      </p>
-                    )}
-                  </div>
+                {toast.message && (
+                  <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ message: "", type: "error" })}
+                  />
                 )}
 
               </form>
