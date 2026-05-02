@@ -1,11 +1,29 @@
 const SEC_FETCH_TIMEOUT_MS = 45000;
-const SEC_ENDPOINT_CANDIDATES = [
+const SEC_ENDPOINT_CANDIDATES_DEFAULT = [
   "/api/sec-escola/servidores",
   "/.netlify/functions/sec-escola-servidores",
 ];
+const SEC_ENDPOINT_CANDIDATES_NETLIFY = [
+  "/.netlify/functions/sec-escola-servidores",
+  "/api/sec-escola/servidores",
+];
+
+function isLikelyNetlifyRuntime() {
+  if (typeof window === "undefined") return false;
+
+  const host = String(window.location?.hostname || "").trim().toLowerCase();
+  const origin = String(window.location?.origin || "").trim().toLowerCase();
+
+  return (
+    host.endsWith(".netlify.app")
+    || origin.includes(".netlify.app")
+  );
+}
 
 function resolveEndpointCandidates() {
-  return SEC_ENDPOINT_CANDIDATES;
+  return isLikelyNetlifyRuntime()
+    ? SEC_ENDPOINT_CANDIDATES_NETLIFY
+    : SEC_ENDPOINT_CANDIDATES_DEFAULT;
 }
 
 function shouldTryFallback(responseStatus) {

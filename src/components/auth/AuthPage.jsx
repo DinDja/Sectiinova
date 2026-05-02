@@ -348,7 +348,7 @@ export default function AuthPage({
   PERFIS_LOGIN,
 }) {
   const MIN_SCHOOL_SEARCH_CHARS = 2;
-  const TEACHER_VERIFY_TIMEOUT_MS = 30000;
+  const TEACHER_VERIFY_TIMEOUT_MS = 50000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -768,11 +768,25 @@ export default function AuthPage({
           if (teacherVerifySequenceRef.current !== verificationId) return;
           if (error?.name === "AbortError") return;
 
+          const rawMessage = String(error?.message || "").trim();
+          const normalizedMessage = rawMessage.toLowerCase();
+          const timeoutLike =
+            normalizedMessage.includes("tempo limite")
+            || normalizedMessage.includes("timed out")
+            || normalizedMessage.includes("timeout");
+
           setTeacherVerifyResult(null);
+          if (timeoutLike) {
+            setTeacherVerifyStatus("unavailable");
+            setTeacherVerifyMessage(
+              "A SEC esta temporariamente indisponivel para consulta em tempo real. Tente novamente em instantes.",
+            );
+            return;
+          }
+
           setTeacherVerifyStatus("error");
           setTeacherVerifyMessage(
-            String(error?.message || "").trim()
-              || "Falha ao consultar a SEC para validar a matricula.",
+            rawMessage || "Falha ao consultar a SEC para validar a matricula.",
           );
         })
         .finally(() => {
