@@ -334,6 +334,7 @@ async function runMatriculaValidationWithGuard(payload) {
       signal: controller.signal,
       allowDetailFallback: false,
       disableStaffCache: true,
+      includeInternalStaffSnapshot: true,
     });
   } finally {
     clearTimeout(timeoutId);
@@ -364,10 +365,64 @@ export async function handler(event) {
   const payload = getMergedPayload(event);
   const shouldValidateMatricula = hasMatricula(payload);
 
+  if (shouldValidateMatricula) {
+    try {
+      const realtimeResult = await runMatriculaValidationWithGuard(payload);
+      try {
+        await writePersistentStaffCache(payload, realtimeResult);
+      } catch {
+        // cache persistence should never block the realtime response
+      }
+
+      return json(200, sanitizeValidationResultForClient(realtimeResult));
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? String(error.message || "").trim()
+          : "Falha inesperada ao consultar dados da SEC.";
+
+      if (isClientPayloadError(message)) {
+        return json(400, {
+          error: message,
+        });
+      }
+
+      try {
+        const cacheEntry = await readPersistentStaffCache(payload);
+        if (cacheEntry) {
+          const cachedResult = buildCachedValidationResult(payload, cacheEntry);
+          return json(200, sanitizeValidationResultForClient({
+            ...cachedResult,
+            realtime: false,
+            temporarilyUnavailable: true,
+            upstreamError: message,
+            fallbackSource: "persistent-cache",
+          }));
+        }
+      } catch {
+        // cache read failure should not hide the realtime unavailability response
+      }
+
+      try {
+        await triggerBackgroundWarmup(payload, event);
+      } catch {
+        // noop
+      }
+
+      return json(200, {
+        ok: false,
+        valid: false,
+        temporarilyUnavailable: true,
+        reason: "A SEC esta temporariamente indisponivel para consulta em tempo real. Tente novamente em instantes.",
+        errorCode: "SEC_UPSTREAM_UNAVAILABLE_REALTIME",
+        upstreamError: message,
+        realtime: true,
+      });
+    }
+  }
+
   try {
-    const result = shouldValidateMatricula
-      ? await runMatriculaValidationWithGuard(payload)
-      : await fetchSecSchoolStaffFlow(payload);
+    const result = await fetchSecSchoolStaffFlow(payload);
 
     return json(200, sanitizeValidationResultForClient(result));
   } catch (error) {
@@ -379,18 +434,6 @@ export async function handler(event) {
     if (isClientPayloadError(message)) {
       return json(400, {
         error: message,
-      });
-    }
-
-    if (shouldValidateMatricula) {
-      return json(200, {
-        ok: false,
-        valid: false,
-        temporarilyUnavailable: true,
-        reason: "A SEC esta temporariamente indisponivel para consulta em tempo real. Tente novamente em instantes.",
-        errorCode: "SEC_UPSTREAM_UNAVAILABLE_REALTIME",
-        upstreamError: message,
-        realtime: true,
       });
     }
 

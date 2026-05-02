@@ -12,6 +12,17 @@ function shouldTryFallback(responseStatus) {
   return [404, 405, 408, 500, 502, 503, 504].includes(Number(responseStatus));
 }
 
+function isTemporarilyUnavailablePayload(data) {
+  return Boolean(
+    data
+    && typeof data === "object"
+    && (
+      data.temporarilyUnavailable === true
+      || String(data.errorCode || "").trim() === "SEC_UPSTREAM_UNAVAILABLE_REALTIME"
+    ),
+  );
+}
+
 function createRequestTimeoutSignal(timeoutMs = SEC_FETCH_TIMEOUT_MS) {
   if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
     return AbortSignal.timeout(timeoutMs);
@@ -80,6 +91,13 @@ async function requestSecSchool(payload, options = {}) {
       }
 
       if (response.ok) {
+        if (!isLastEndpoint && allowEndpointFallback && isTemporarilyUnavailablePayload(data)) {
+          fallbackErrors.push(
+            `${endpoint} retornou indisponibilidade temporaria da SEC`,
+          );
+          continue;
+        }
+
         return data;
       }
 
