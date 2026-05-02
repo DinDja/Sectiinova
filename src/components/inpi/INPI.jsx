@@ -123,21 +123,8 @@ export default function INPI({ clubProjects = [], loggedUser = null }) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a15_2px,transparent_2px),linear-gradient(to_bottom,#0f172a15_2px,transparent_2px)] bg-[size:40px_40px]"></div>
       </div>
 
-      <header className="bg-purple-400 border-b-4 border-slate-900 relative shadow-[0_8px_0_0_#0f172a]">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwZjE3MmEiLz48L3N2Zz4=')] opacity-20"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 relative">
-          <div className="overflow-hidden rounded-[28px] border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]">
-            <img
-              src="/logoPatentes.svg"
-              alt="Banner do PatentesLab"
-              className="block w-full h-auto"
-            />
-          </div>
-        </div>
-      </header>
-
       <nav className="bg-white border-b-4 border-slate-900 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex neo-scrollbar-x overflow-x-auto px-4 py-4 md:py-6 gap-4">
+        <div className=" mx-auto flex neo-scrollbar-x overflow-x-auto px-4 py-4 md:py-6 gap-4">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
 

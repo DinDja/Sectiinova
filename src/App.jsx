@@ -9,6 +9,7 @@ import ProjectFeed from './components/projects/ProjectFeed';
 import DiaryBoard from './components/diary/DiaryBoard';
 import ClubBoard from './components/club/ClubBoard';
 import INPI from './components/inpi/INPI';
+import INPILandingPage from './components/inpi/INPILandingPage';
 import ForumBoard from './components/forum/ForumBoard';
 import TrilhaPedagogica from './components/trilha/TrilhaPedagogica';
 import MeusProjetos from './components/projects/MeusProjetos';
@@ -44,6 +45,7 @@ const getInitialFontSizeLevel = () => {
 export default function App() {
     const [fontSizeLevel, setFontSizeLevel] = useState(getInitialFontSizeLevel);
     const [isHighContrast, setIsHighContrast] = useState(false);
+    const [isInpiModuleEntered, setIsInpiModuleEntered] = useState(false);
 
     const decreaseFont = () => setFontSizeLevel((level) => Math.max(1, (level || 2) - 1));
     const resetFont = () => setFontSizeLevel(2);
@@ -171,6 +173,12 @@ export default function App() {
     const selectedUiStyleId = getUiStyleOption(
         resolveUserUiPreferences(loggedUser).style_id,
     ).id;
+
+    useEffect(() => {
+        if (currentView !== 'inpi') {
+            setIsInpiModuleEntered(false);
+        }
+    }, [currentView]);
 
     if (authLoading) {
         return <AuthLoading />;
@@ -343,7 +351,11 @@ export default function App() {
 
                     {currentView === 'inpi' && (
                         <div data-tutorial-anchor="content-inpi">
-                            <INPI clubProjects={myClubProjects} loggedUser={loggedUser} />
+                            {isInpiModuleEntered ? (
+                                <INPI clubProjects={myClubProjects} loggedUser={loggedUser} />
+                            ) : (
+                                <INPILandingPage onEnterModule={() => setIsInpiModuleEntered(true)} />
+                            )}
                         </div>
                     )}
 

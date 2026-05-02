@@ -9,55 +9,20 @@ import {
     Microscope,
     ExternalLink,
     GraduationCap,
-    Sparkles,
-    Star,
     FileText,
     Building2,
     Eye,
-    Clock3,
-    BadgeCheck
+    Clock3
 } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import ModalPerfil from './ModalPerfil';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 import { normalizeClubBannerMode } from '../../constants/clubBannerModes';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
-
-const PIONEER_CUTOFF_MS = new Date('2026-04-30T00:00:00-03:00').getTime();
-const PIONEER_SEAL_LABEL = 'Selo Pioneiro';
-const PIONEER_SEAL_REASON = 'Este clube recebeu o selo por participar do teste da Secretaria de Ciencias, Tecnologia e Inovacao do Estado da Bahia.';
-
-const PIONEER_SYMBOLS = [
-    { icon: BadgeCheck, className: 'h-4 w-4 text-yellow-500 stroke-[2.8]' },
-    { icon: Sparkles, className: 'h-4 w-4 text-cyan-500 stroke-[2.8]' },
-    { icon: Star, className: 'h-4 w-4 text-pink-500 stroke-[2.8]' }
-];
+import PioneerSealSymbol from './PioneerSealSymbol';
+import { hasPioneerSeal, PIONEER_SEAL_LABEL, PIONEER_SEAL_REASON } from '../../utils/pioneerClub';
 
 const normalizeText = (value) => String(value || '').trim();
-
-const parseTimestampMillis = (value) => {
-    if (!value) return 0;
-    if (typeof value?.toMillis === 'function') {
-        const millis = value.toMillis();
-        return Number.isFinite(millis) ? millis : 0;
-    }
-    if (typeof value?.toDate === 'function') {
-        const dateValue = value.toDate();
-        const millis = dateValue?.getTime?.();
-        return Number.isFinite(millis) ? millis : 0;
-    }
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return value;
-    }
-    const parsed = new Date(value).getTime();
-    return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const hasPioneerSeal = (club) => {
-    const createdAtMillis = parseTimestampMillis(club?.createdAt);
-    if (createdAtMillis <= 0) return false;
-    return createdAtMillis < PIONEER_CUTOFF_MS;
-};
 
 const normalizeExternalUrl = (value) => {
     const raw = normalizeText(value);
@@ -426,6 +391,21 @@ export default function ModalClubView({
                                                     <MapIcon className="h-4 w-4 stroke-[3]" />
                                                     {schoolName}
                                                 </span>
+
+                                                {hasClubPioneerSeal && (
+                                                    <div
+                                                        className="inline-flex items-center gap-2 rounded-2xl border-[3px] border-amber-300 bg-slate-950/95 px-2 py-1.5 shadow-sm"
+                                                        title={PIONEER_SEAL_REASON}
+                                                    >
+                                                        <PioneerSealSymbol
+                                                            className="h-12 w-12 shrink-0"
+                                                            title={`${PIONEER_SEAL_LABEL} - ${viewingClub?.nome || 'Clube'}`}
+                                                        />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+                                                            {PIONEER_SEAL_LABEL}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

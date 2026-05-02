@@ -138,6 +138,7 @@ service cloud.firestore {
         && isUiPreferencesChangeValid()
         && isSidebarOrderChangeValid()
         && isPopEventosSavedChangeValid()
+        && isPopEventosAlertsChangeValid()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -148,7 +149,9 @@ service cloud.firestore {
           'lattes_data',
           'ui_preferences',
           'sidebarOrder',
-          'pop_eventos_saved'
+          'pop_eventos_saved',
+          'pop_eventos_alert_subscriptions',
+          'pop_eventos_alert_subscriptions_count'
         ]);
     }
 
@@ -165,6 +168,14 @@ service cloud.firestore {
     function isPopEventosSavedChangeValid() {
       return !request.resource.data.diff(resource.data).changedKeys().hasAny(['pop_eventos_saved'])
         || hasValidPopEventosSaved(request.resource.data);
+    }
+
+    function isPopEventosAlertsChangeValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny([
+          'pop_eventos_alert_subscriptions',
+          'pop_eventos_alert_subscriptions_count'
+        ])
+        || hasValidPopEventosAlertSubscriptions(request.resource.data);
     }
 
     function schoolChangeCountFromData(data) {
@@ -195,6 +206,30 @@ service cloud.firestore {
     function hasValidPopEventosSaved(data) {
       return !(data.pop_eventos_saved is list)
         || data.pop_eventos_saved.size() <= 80;
+    }
+
+    function hasValidPopEventosAlertSubscriptions(data) {
+      let hasSubscriptionsList = data.pop_eventos_alert_subscriptions is list;
+      let hasSubscriptionsCount = data.pop_eventos_alert_subscriptions_count is int;
+      let subscriptionsSize = hasSubscriptionsList ? data.pop_eventos_alert_subscriptions.size() : 0;
+      let subscriptionsCount = hasSubscriptionsCount ? data.pop_eventos_alert_subscriptions_count : 0;
+
+      return (
+        !hasSubscriptionsList
+        || subscriptionsSize <= 120
+      )
+      && (
+        !hasSubscriptionsCount
+        || (
+          subscriptionsCount >= 0
+          && subscriptionsCount <= 120
+        )
+      )
+      && (
+        !hasSubscriptionsList
+        || !hasSubscriptionsCount
+        || subscriptionsCount == subscriptionsSize
+      );
     }
 
     function isValidSidebarOrder(data) {

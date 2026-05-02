@@ -64,13 +64,6 @@ export default function Sidebar({
       tooltip: "Radar de eventos 2026",
       description: "Editais, olimpiadas e chamadas",
     },
-    {
-      id: "suporte",
-      label: "Suporte",
-      icon: FcComments,
-      tooltip: "Acompanhar chamados",
-      description: "Ver e gerenciar seus chamados de suporte",
-    },
     // {
     //   id: "inpi",
     //   label: "PatentesLab",
@@ -101,7 +94,6 @@ export default function Sidebar({
     "meusProjetos",
     "trilha",
     "popEventos",
-    "suporte",
     "inpi",
     "forum",
     "clube",

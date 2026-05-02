@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   LifeBuoy,
@@ -69,13 +69,16 @@ export default function SupportTicketWidget({
   currentViewMeta,
   contextClubName,
   loggedUser,
+  setCurrentView,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
   const [contactEmail, setContactEmail] = useState(String(loggedUser?.email || ""));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "error" });
+  const quickActionsRef = useRef(null);
 
   useEffect(() => {
     const e = String(loggedUser?.email || "").trim();
@@ -83,11 +86,28 @@ export default function SupportTicketWidget({
   }, [loggedUser?.email]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e) => e.key === "Escape" && setIsOpen(false);
+    if (!isOpen && !isQuickActionsOpen) return;
+    const handler = (e) => {
+      if (e.key !== "Escape") return;
+      setIsOpen(false);
+      setIsQuickActionsOpen(false);
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen]);
+  }, [isOpen, isQuickActionsOpen]);
+
+  useEffect(() => {
+    if (!isQuickActionsOpen) return;
+
+    const handleMouseDown = (event) => {
+      if (!quickActionsRef.current) return;
+      if (quickActionsRef.current.contains(event.target)) return;
+      setIsQuickActionsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [isQuickActionsOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -147,43 +167,94 @@ export default function SupportTicketWidget({
     }
   };
 
+  const handleOpenTicket = () => {
+    setIsQuickActionsOpen(false);
+    setIsOpen(true);
+  };
+
+  const handleOpenTicketsBoard = () => {
+    setIsQuickActionsOpen(false);
+    if (typeof setCurrentView === "function") {
+      setCurrentView("suporte");
+    }
+  };
+
   return (
     <>
       {/* ── Floating button ── */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        aria-label="Abrir chamado de suporte"
-        className="
-          fixed bottom-5 right-4 z-[145]
-          inline-flex items-center gap-0
-          rounded-full border border-indigo-200 bg-white
-          px-3 py-3 text-indigo-700
-          shadow-[0_4px_20px_rgba(99,102,241,0.16)]
-          transition-all duration-200
-          hover:border-indigo-300 hover:shadow-[0_6px_28px_rgba(99,102,241,0.24)]
-          focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2
-          group
-          sm:right-6
-        "
+      <div
+        ref={quickActionsRef}
+        className="fixed bottom-5 right-4 z-[145] sm:right-6"
       >
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 transition-colors duration-200 group-hover:bg-indigo-100">
-          <LifeBuoy className="h-5 w-5 text-indigo-500" />
-        </span>
+        {isQuickActionsOpen && (
+          <div className="absolute bottom-[calc(100%+0.6rem)] right-0 w-[17rem] rounded-2xl border border-indigo-100 bg-white p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.14)]">
+            <button
+              type="button"
+              onClick={handleOpenTicket}
+              className="flex w-full items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-3 text-left transition hover:border-indigo-200 hover:bg-indigo-100"
+            >
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-indigo-500">
+                  Suporte
+                </span>
+                <span className="mt-0.5 block text-sm font-bold text-slate-900">
+                  Abrir chamado
+                </span>
+              </span>
+              <LifeBuoy className="h-4 w-4 text-indigo-500" />
+            </button>
 
-        <span className="flex max-w-0 flex-col overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 ease-out group-hover:max-w-[18rem] group-hover:gap-1.5 group-hover:px-3 group-hover:opacity-100">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-400">
-            Suporte
-          </span>
-          <span className="text-sm font-bold leading-tight text-slate-900">
-            Abrir chamado
-          </span>
-        </span>
+            <button
+              type="button"
+              onClick={handleOpenTicketsBoard}
+              className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Painel
+                </span>
+                <span className="mt-0.5 block text-sm font-bold text-slate-900">
+                  Acompanhar chamados
+                </span>
+              </span>
+              <Sparkles className="h-4 w-4 text-slate-500" />
+            </button>
+          </div>
+        )}
 
-        <span className="hidden rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500 transition-all duration-200 group-hover:inline-flex">
-          {moduleChip}
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => setIsQuickActionsOpen((previous) => !previous)}
+          aria-label="Abrir acoes de suporte"
+          className="
+            inline-flex items-center gap-0
+            rounded-full border border-indigo-200 bg-white
+            px-3 py-3 text-indigo-700
+            shadow-[0_4px_20px_rgba(99,102,241,0.16)]
+            transition-all duration-200
+            hover:border-indigo-300 hover:shadow-[0_6px_28px_rgba(99,102,241,0.24)]
+            focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2
+            group
+          "
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 transition-colors duration-200 group-hover:bg-indigo-100">
+            <LifeBuoy className="h-5 w-5 text-indigo-500" />
+          </span>
+
+          <span className="flex max-w-0 flex-col overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 ease-out group-hover:max-w-[18rem] group-hover:gap-1.5 group-hover:px-3 group-hover:opacity-100">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-400">
+              Suporte
+            </span>
+            <span className="text-sm font-bold leading-tight text-slate-900">
+              Abrir opcoes
+            </span>
+          </span>
+
+          <span className="hidden rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500 transition-all duration-200 group-hover:inline-flex">
+            {moduleChip}
+          </span>
+        </button>
+      </div>
 
       {/* ── Modal overlay ── */}
       {isOpen && (
@@ -365,3 +436,4 @@ export default function SupportTicketWidget({
     </>
   );
 }
+

@@ -1,4 +1,5 @@
 const POP_EVENTOS_ENDPOINT = "/api/pop-eventos";
+const POP_EVENTOS_ALERT_RUN_ENDPOINT = "/api/pop-eventos/alerts/run";
 
 function toQueryString(params = {}) {
   const searchParams = new URLSearchParams();
@@ -46,6 +47,32 @@ export async function fetchPopEventos({
 
   if (!payload || payload.success !== true) {
     throw new Error("Resposta invalida ao consultar eventos POP.");
+  }
+
+  return payload;
+}
+
+export async function runPopEventosAlertSweep({ userId = "" } = {}) {
+  const queryString = toQueryString({
+    userId,
+  });
+
+  const endpoint = queryString
+    ? `${POP_EVENTOS_ALERT_RUN_ENDPOINT}?${queryString}`
+    : POP_EVENTOS_ALERT_RUN_ENDPOINT;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      String(payload?.error || payload?.message || "Falha ao executar varredura de alertas POP."),
+    );
   }
 
   return payload;

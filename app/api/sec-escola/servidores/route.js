@@ -21,6 +21,12 @@ const SEC_EXTERNAL_PROXY_TIMEOUT_MS = (() => {
   const parsed = Number.parseInt(String(process.env.SEC_EXTERNAL_PROXY_TIMEOUT_MS || "12000"), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 12000;
 })();
+const SEC_MATRICULA_ALLOW_DETAIL_FALLBACK = String(
+  process.env.SEC_MATRICULA_ALLOW_DETAIL_FALLBACK || "true",
+).trim().toLowerCase() !== "false";
+const SEC_MATRICULA_DISABLE_IN_MEMORY_STAFF_CACHE = String(
+  process.env.SEC_MATRICULA_DISABLE_IN_MEMORY_STAFF_CACHE || "false",
+).trim().toLowerCase() === "true";
 
 function createTimeoutSignal(timeoutMs) {
   if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
@@ -42,6 +48,23 @@ function mergeSignals(primarySignal, secondarySignal) {
 
 function isExternalProxyConfigured() {
   return /^https?:\/\//i.test(SEC_EXTERNAL_PROXY_URL);
+}
+
+function getTransportOrderFromEnv() {
+  const raw = String(process.env.SEC_MATRICULA_TRANSPORT_ORDER || "node-only,fetch-first")
+    .trim()
+    .toLowerCase();
+
+  const parsed = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item === "node-only" || item === "fetch-first" || item === "fetch-only");
+
+  if (!parsed.length) {
+    return ["node-only", "fetch-first"];
+  }
+
+  return parsed;
 }
 
 function extractErrorMessage(error) {
@@ -155,10 +178,11 @@ async function runMatriculaValidationWithGuard(payload) {
   try {
     const runAttempt = (transportPreference, signal) => validateSecTeacherByMatricula(payload, {
       signal,
-      allowDetailFallback: false,
-      disableStaffCache: true,
+      allowDetailFallback: SEC_MATRICULA_ALLOW_DETAIL_FALLBACK,
+      disableStaffCache: SEC_MATRICULA_DISABLE_IN_MEMORY_STAFF_CACHE,
       transportPreference,
     });
+    const transportOrder = getTransportOrderFromEnv();
 
     const roundErrors = [];
 
@@ -168,35 +192,34 @@ async function runMatriculaValidationWithGuard(payload) {
         createTimeoutSignal(SEC_MATRICULA_ATTEMPT_TIMEOUT_MS),
       );
 
-      const attempts = [
-        runAttempt("node-only", roundSignal),
-        runAttempt("fetch-first", roundSignal),
-      ];
-
-      if (isExternalProxyConfigured()) {
-        attempts.push(runExternalProxyAttempt(payload, roundSignal));
+      for (const transportPreference of transportOrder) {
+        try {
+          const result = await runAttempt(transportPreference, roundSignal);
+          controller.abort();
+          return result;
+        } catch (transportError) {
+          const transportMessage = extractErrorMessage(transportError);
+          if (transportMessage) {
+            roundErrors.push(`rodada ${round} (${transportPreference}): ${transportMessage}`);
+          }
+        }
       }
 
-      try {
-        const result = await Promise.any(attempts);
-        controller.abort();
-        return result;
-      } catch (aggregateError) {
-        const aggregateErrors = Array.isArray(aggregateError?.errors)
-          ? aggregateError.errors
-          : [aggregateError];
-
-        const message = aggregateErrors
-          .map((entry) => extractErrorMessage(entry))
-          .find((entry) => entry.length > 0);
-
-        if (message) {
-          roundErrors.push(`rodada ${round}: ${message}`);
+      if (isExternalProxyConfigured()) {
+        try {
+          const result = await runExternalProxyAttempt(payload, roundSignal);
+          controller.abort();
+          return result;
+        } catch (proxyError) {
+          const proxyMessage = extractErrorMessage(proxyError);
+          if (proxyMessage) {
+            roundErrors.push(`rodada ${round} (external-proxy): ${proxyMessage}`);
+          }
         }
+      }
 
-        if (controller.signal.aborted) {
-          break;
-        }
+      if (controller.signal.aborted) {
+        break;
       }
     }
 

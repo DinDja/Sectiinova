@@ -10,6 +10,8 @@ import { db } from '../../../firebase';
 import { getAvatarSrc, getInitials, getLattesAreas, getLattesLink, getLattesSummary } from '../../utils/helpers';
 import { CLUB_REQUIRED_DOCUMENTS } from '../../constants/appConstants';
 import { normalizeClubBannerMode } from '../../constants/clubBannerModes';
+import PioneerSealSymbol from './PioneerSealSymbol';
+import { hasPioneerSeal, PIONEER_SEAL_LABEL, PIONEER_SEAL_REASON } from '../../utils/pioneerClub';
 
 // --- COMPONENTES AUXILIARES HQ DE AÇÃO ---
 const ScreamTail = ({ className = "", fill = "#ffffff", flip = false }) => (
@@ -188,6 +190,7 @@ export default function ClubBoard({
     }, [projectsCatalog]);
 
     const viewingClubId = String(viewingClub?.id || '').trim();
+    const viewingClubHasPioneerSeal = useMemo(() => hasPioneerSeal(viewingClub), [viewingClub]);
     const canManageClub = isMentor && loggedUserId && (mentorIds.has(loggedUserId) || viewingClubMemberIds.has(loggedUserId) || (viewingClubId && loggedUserClubIds.has(viewingClubId)));
     const canCreateProject = canManageClub;
     const clubBannerUrl = String(viewingClub?.banner_url || viewingClub?.banner || '').trim();
@@ -681,6 +684,7 @@ export default function ClubBoard({
                                     const displayBanner = bannerUrl;
                                     const bannerMode = resolveClubBannerMode(club);
                                     const cardBannerConfig = getCardBannerModeConfig(bannerMode);
+                                    const clubHasPioneerSeal = hasPioneerSeal(club);
 
                                     const memberCount = new Set([
                                         ...(club?.membros_ids || []), ...(club?.clubistas_ids || []), ...(club?.orientador_ids || []), ...(club?.orientadores_ids || []),
@@ -720,6 +724,18 @@ export default function ClubBoard({
                                                     <div className={`absolute top-5 left-5 inline-flex items-center gap-2 border-[3px] border-slate-900 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wider shadow-sm ${statusConfig.classes}`}>
                                                         {StatusIcon && <StatusIcon className="w-4 h-4 stroke-[3]" />}
                                                         {statusConfig.label}
+                                                    </div>
+                                                )}
+
+                                                {clubHasPioneerSeal && (
+                                                    <div
+                                                        className="absolute right-5 top-5 inline-flex rounded-2xl border-[3px] border-amber-300 bg-slate-950/95 p-1.5 shadow-lg"
+                                                        title={PIONEER_SEAL_REASON}
+                                                    >
+                                                        <PioneerSealSymbol
+                                                            className="h-16 w-16"
+                                                            title={`${PIONEER_SEAL_LABEL} - ${club?.nome || 'Clube'}`}
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
@@ -900,6 +916,21 @@ export default function ClubBoard({
                                             <p className="max-w-full text-slate-700 font-semibold text-sm flex items-center gap-2 bg-[#f5eee1] border border-[#ddd0bb] rounded-full px-4 py-2 break-words [overflow-wrap:anywhere]">
                                                 <MapIcon className="w-4 h-4 stroke-[2.5]" /> {viewingClubSchool?.nome || 'Escola não vinculada'}
                                             </p>
+
+                                            {viewingClubHasPioneerSeal && (
+                                                <div
+                                                    className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-slate-950 px-2 py-1.5 shadow-sm"
+                                                    title={PIONEER_SEAL_REASON}
+                                                >
+                                                    <PioneerSealSymbol
+                                                        className="h-10 w-10 shrink-0"
+                                                        title={`${PIONEER_SEAL_LABEL} - ${viewingClub?.nome || 'Clube'}`}
+                                                    />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+                                                        {PIONEER_SEAL_LABEL}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

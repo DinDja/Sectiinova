@@ -611,13 +611,6 @@ export default function ProjectFeed({
                      >
                        Ver vitrine do clube
                      </button>
-                     <button
-                       type="button"
-                       onClick={() => handleOpenClubBoard(club?.id)}
-                       className="rounded-full border-[3px] border-slate-900 bg-white px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm hover:scale-105 active:scale-95 transition-transform"
-                     >
-                       Abrir painel do clube
-                     </button>
                    </div>
                  </div>
               </article>

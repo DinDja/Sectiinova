@@ -66,7 +66,6 @@ export default function MainShell({
     "meusProjetos",
     "trilha",
     "popEventos",
-    "suporte",
     "inpi",
     "forum",
     "clube",
@@ -192,39 +191,45 @@ export default function MainShell({
     ? "app-shell h-dvh bg-black text-white flex flex-col relative overflow-hidden"
     : "app-shell h-dvh flex flex-col relative overflow-hidden";
 
-  const shellBodyClasses = isMaterialStyle
-    ? "flex flex-1 overflow-hidden z-10 min-h-0 gap-3 bg-slate-100/70 p-2 sm:p-3 lg:p-4"
-    : isModernStyle
-      ? "flex flex-1 overflow-hidden z-10 min-h-0 bg-slate-50/80"
-      : isEditorialStyle
-        ? "flex flex-1 overflow-hidden z-10 min-h-0 gap-3 bg-[#f2ebde] p-2 sm:p-3 lg:p-4"
-    : "flex flex-1 overflow-hidden z-10 min-h-0";
+  const shellBodyClasses = isINPIView
+    ? "flex flex-1 overflow-hidden z-10 min-h-0"
+    : isMaterialStyle
+      ? "flex flex-1 overflow-hidden z-10 min-h-0 gap-3 bg-slate-100/70 p-2 sm:p-3 lg:p-4"
+      : isModernStyle
+        ? "flex flex-1 overflow-hidden z-10 min-h-0 bg-slate-50/80"
+        : isEditorialStyle
+          ? "flex flex-1 overflow-hidden z-10 min-h-0 gap-3 bg-[#f2ebde] p-2 sm:p-3 lg:p-4"
+      : "flex flex-1 overflow-hidden z-10 min-h-0";
 
-  const contentColumnClasses = isMaterialStyle
-    ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
-    : isModernStyle
-      ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 border-l border-slate-200/70 bg-slate-50"
-      : isEditorialStyle
-        ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 rounded-[1.35rem] border border-[#d4c3aa] bg-[#fcf8ef] shadow-[0_20px_45px_rgba(110,86,52,0.14)]"
-    : "flex-1 flex flex-col h-full overflow-hidden min-w-0";
+  const contentColumnClasses = isINPIView
+    ? "flex-1 flex flex-col h-full overflow-hidden min-w-0"
+    : isMaterialStyle
+      ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+      : isModernStyle
+        ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 border-l border-slate-200/70 bg-slate-50"
+        : isEditorialStyle
+          ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 rounded-[1.35rem] border border-[#d4c3aa] bg-[#fcf8ef] shadow-[0_20px_45px_rgba(110,86,52,0.14)]"
+      : "flex-1 flex flex-col h-full overflow-hidden min-w-0";
 
   const constrainedContentClasses = isMaterialStyle
-    ? "mx-auto w-full max-w-[96rem] px-4 py-4 sm:px-5 md:px-6 lg:px-8 2xl:px-10"
+    ? "mx-auto w-full max-w-[96rem] "
     : isEditorialStyle
-      ? "mx-auto w-full max-w-[82rem] px-4 py-5 sm:px-6 lg:px-8"
+      ? "mx-auto w-full max-w-[82rem]8"
     :
-    "mx-auto w-full max-w-[85rem] px-3 py-3 sm:px-4 md:px-6 lg:px-4 lg:py-3 2xl:px-6 2xl:py-4";
+    "mx-auto w-full max-w-[85rem]";
   const fullContentClasses = isMaterialStyle
-    ? "w-full px-4 py-4 sm:px-5 md:px-6 lg:px-8 2xl:px-10"
+    ? "w-full "
     : isEditorialStyle
-      ? "w-full px-4 py-5 sm:px-6 lg:px-9"
+      ? "w-full "
     :
-    "w-full px-3 py-3 sm:px-4 md:px-6 lg:px-4 2xl:px-6";
+    "w-full";
 
   const renderContentByStyle = () => {
-    const contentNode = isINPIView ? (
-      <div className={constrainedContentClasses}>{children}</div>
-    ) : isWideView ? (
+    if (isINPIView) {
+      return <div className="w-full min-h-full">{children}</div>;
+    }
+
+    const contentNode = isWideView ? (
       <div className={fullContentClasses}>{children}</div>
     ) : (
       <div className={constrainedContentClasses}>{children}</div>
@@ -422,6 +427,7 @@ export default function MainShell({
             currentViewMeta={currentViewMeta}
             contextClubName={contextClubName}
             loggedUser={loggedUser}
+            setCurrentView={setCurrentView}
           />
         </div>
       </div>

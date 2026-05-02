@@ -10,3 +10,6 @@
 
 [functions."inpi-watch"]
   schedule = "*/30 * * * *"
+
+[functions."pop-eventos-alerts"]
+  schedule = "0 * * * *"
