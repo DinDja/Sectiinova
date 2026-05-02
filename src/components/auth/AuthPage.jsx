@@ -348,6 +348,7 @@ export default function AuthPage({
   PERFIS_LOGIN,
 }) {
   const MIN_SCHOOL_SEARCH_CHARS = 2;
+  const TEACHER_VERIFY_TIMEOUT_MS = 30000;
   const [showAuthModal, setShowAuthModal] = useState(Boolean(forceOpenRegister));
   const [scrolled, setScrolled] = useState(false);
   const [showLoginPwd, setShowLoginPwd] = useState(false);
@@ -721,7 +722,7 @@ export default function AuthPage({
         },
         {
           signal: controller.signal,
-          timeoutMs: 12000,
+          timeoutMs: TEACHER_VERIFY_TIMEOUT_MS,
         },
       )
         .then((result) => {

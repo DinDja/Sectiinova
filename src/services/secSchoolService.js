@@ -1,6 +1,7 @@
 const SEC_FETCH_TIMEOUT_MS = 45000;
 const SEC_ENDPOINT_CANDIDATES = [
   "/api/sec-escola/servidores",
+  "/.netlify/functions/sec-escola-servidores",
 ];
 
 function resolveEndpointCandidates() {
@@ -105,6 +106,13 @@ async function requestSecSchool(payload, options = {}) {
       const isTimeoutError = isTimeoutLikeError(error);
 
       if (isTimeoutError) {
+        if (!isLastEndpoint && allowEndpointFallback) {
+          fallbackErrors.push(
+            `${endpoint} excedeu o tempo limite`,
+          );
+          continue;
+        }
+
         throw new Error(
           "A consulta da SEC excedeu o tempo limite. Tente novamente em instantes.",
         );
