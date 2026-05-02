@@ -5,8 +5,18 @@ import {
 import { getAdminDb } from "./firebaseAdminShared.js";
 
 const SEC_MATRICULA_GUARD_TIMEOUT_MS = (() => {
-  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_GUARD_TIMEOUT_MS || "28000"), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 28000;
+  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_GUARD_TIMEOUT_MS || "22000"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 22000;
+})();
+const SEC_MATRICULA_ATTEMPT_TIMEOUT_MS = (() => {
+  const parsed = Number.parseInt(String(process.env.SEC_MATRICULA_ATTEMPT_TIMEOUT_MS || "12000"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 12000;
+})();
+const SEC_EXTERNAL_PROXY_URL = String(process.env.SEC_EXTERNAL_PROXY_URL || "").trim();
+const SEC_EXTERNAL_PROXY_TOKEN = String(process.env.SEC_EXTERNAL_PROXY_TOKEN || "").trim();
+const SEC_EXTERNAL_PROXY_TIMEOUT_MS = (() => {
+  const parsed = Number.parseInt(String(process.env.SEC_EXTERNAL_PROXY_TIMEOUT_MS || "12000"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 12000;
 })();
 const SEC_STAFF_PERSISTENT_CACHE_COLLECTION = "sec_escola_staff_cache";
 const SEC_STAFF_PERSISTENT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -323,6 +333,81 @@ function isClientPayloadError(message = "") {
   );
 }
 
+function createTimeoutSignal(timeoutMs) {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  return undefined;
+}
+
+function mergeSignals(primarySignal, secondarySignal) {
+  if (!primarySignal) return secondarySignal;
+  if (!secondarySignal) return primarySignal;
+
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+    return AbortSignal.any([primarySignal, secondarySignal]);
+  }
+
+  return primarySignal;
+}
+
+function extractErrorMessage(error) {
+  if (error instanceof Error) {
+    return String(error.message || "").trim();
+  }
+  return String(error || "").trim();
+}
+
+function isExternalProxyConfigured() {
+  return /^https?:\/\//i.test(SEC_EXTERNAL_PROXY_URL);
+}
+
+async function runExternalProxyAttempt(payload, signal) {
+  if (!isExternalProxyConfigured()) {
+    throw new Error("External SEC proxy is not configured.");
+  }
+
+  const timeoutSignal = createTimeoutSignal(SEC_EXTERNAL_PROXY_TIMEOUT_MS);
+  const mergedSignal = mergeSignals(signal, timeoutSignal);
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+  };
+
+  if (SEC_EXTERNAL_PROXY_TOKEN) {
+    headers["x-relay-token"] = SEC_EXTERNAL_PROXY_TOKEN;
+  }
+
+  const response = await fetch(SEC_EXTERNAL_PROXY_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+    signal: mergedSignal,
+  });
+
+  const raw = await response.text();
+  let data = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      String(data?.error || data?.message || `External SEC proxy returned HTTP ${response.status}.`).trim(),
+    );
+  }
+
+  if (data?.temporarilyUnavailable) {
+    throw new Error(
+      String(data?.upstreamError || data?.reason || "External SEC proxy is temporarily unavailable.").trim(),
+    );
+  }
+
+  return data;
+}
+
 async function runMatriculaValidationWithGuard(payload) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -330,12 +415,57 @@ async function runMatriculaValidationWithGuard(payload) {
   }, SEC_MATRICULA_GUARD_TIMEOUT_MS);
 
   try {
-    return await validateSecTeacherByMatricula(payload, {
-      signal: controller.signal,
+    const runAttempt = (transportPreference, signal) => validateSecTeacherByMatricula(payload, {
+      signal,
       allowDetailFallback: false,
       disableStaffCache: true,
       includeInternalStaffSnapshot: true,
+      transportPreference,
     });
+
+    const roundErrors = [];
+
+    for (let round = 1; round <= 2; round += 1) {
+      const roundSignal = mergeSignals(
+        controller.signal,
+        createTimeoutSignal(SEC_MATRICULA_ATTEMPT_TIMEOUT_MS),
+      );
+
+      const attempts = [
+        runAttempt("node-only", roundSignal),
+        runAttempt("fetch-first", roundSignal),
+      ];
+
+      if (isExternalProxyConfigured()) {
+        attempts.push(runExternalProxyAttempt(payload, roundSignal));
+      }
+
+      try {
+        const result = await Promise.any(attempts);
+        controller.abort();
+        return result;
+      } catch (aggregateError) {
+        const aggregateErrors = Array.isArray(aggregateError?.errors)
+          ? aggregateError.errors
+          : [aggregateError];
+
+        const message = aggregateErrors
+          .map((entry) => extractErrorMessage(entry))
+          .find((entry) => entry.length > 0);
+
+        if (message) {
+          roundErrors.push(`rodada ${round}: ${message}`);
+        }
+
+        if (controller.signal.aborted) {
+          break;
+        }
+      }
+    }
+
+    throw new Error(
+      roundErrors[0] || "Falha ao consultar SEC para validar matricula.",
+    );
   } finally {
     clearTimeout(timeoutId);
   }
