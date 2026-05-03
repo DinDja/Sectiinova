@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 
     BookOpen, Target, User, Users, Map as MapIcon, Database, 
     CheckCircle, Calendar, Clock, Lightbulb, AlertCircle, ArrowLeft,
@@ -20,16 +20,16 @@ const getLattesSummary = (person) => person?.lattes_summary || person?.resumo_la
 const getLattesUpdatedAt = (person) => person?.lattes_updated_at || null;
 const SEC_LOGO_PATH = '/images/Secti_Vertical.png';
 
-const normalizeText = (value, fallback = 'Nao informado') => {
+const normalizeText = (value, fallback = 'N?o informado') => {
     const text = String(value || '').replace(/\s+/g, ' ').trim();
     return text || fallback;
 };
 
-const toShortText = (value, maxChars = 180, fallback = 'Sem anotacoes registradas.') => {
+const toShortText = (value, maxChars = 180, fallback = 'Sem anota??es registradas.') => {
     const normalized = normalizeText(value, '').trim();
     if (!normalized) return fallback;
     if (normalized.length <= maxChars) return normalized;
-    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}?`;
 };
 
 const bookClampStyle = (lines = 3, extra = {}) => ({
@@ -311,11 +311,9 @@ export default function DiaryBoard({
     const [bookPageIndex, setBookPageIndex] = useState(0);
     const [bookContentVisible, setBookContentVisible] = useState(true);
     const [bookFlipperVisible, setBookFlipperVisible] = useState(false);
-    const [bookFlipperPath, setBookFlipperPath] = useState('');
-    const [bookTurnState, setBookTurnState] = useState({ direction: '', entry: null });
+    const [bookTurnDirection, setBookTurnDirection] = useState('');
     const [isBookTurning, setIsBookTurning] = useState(false);
     const bookTurnTimersRef = useRef({ fade: null, reset: null });
-    const bookAnimationFrameRef = useRef(null);
     
     const uniqueMentors = useMemo(() => {
         if (!selectedTeam) return [];
@@ -349,6 +347,18 @@ export default function DiaryBoard({
     const currentBookEntry = totalBookPages > 0
         ? diaryBookEntries[Math.min(bookPageIndex, totalBookPages - 1)]
         : null;
+    const currentBookImages = useMemo(() => {
+        const entryImages = Array.isArray(currentBookEntry?.images)
+            ? currentBookEntry.images.map((item) => String(item || '').trim()).filter(Boolean)
+            : [];
+
+        if (entryImages.length > 0) {
+            return entryImages.slice(0, 2);
+        }
+
+        return projectImageUrls.slice(0, 2);
+    }, [currentBookEntry, projectImageUrls]);
+    const hasBookImages = currentBookImages.length > 0;
 
     const clearBookTurnTimers = () => {
         if (bookTurnTimersRef.current.fade) {
@@ -365,75 +375,29 @@ export default function DiaryBoard({
     const startBookTurn = (direction, targetIndex) => {
         if (isBookTurning || targetIndex < 0 || targetIndex >= totalBookPages) return;
 
-        const liveEntry = diaryBookEntries[Math.min(bookPageIndex, totalBookPages - 1)] || null;
-        if (!liveEntry) {
+        if (totalBookPages === 0) {
             setBookPageIndex(targetIndex);
             return;
         }
 
         clearBookTurnTimers();
-        if (bookAnimationFrameRef.current) {
-            window.cancelAnimationFrame(bookAnimationFrameRef.current);
-            bookAnimationFrameRef.current = null;
-        }
 
         setBookContentVisible(false);
         setBookFlipperVisible(true);
-        setBookTurnState({ direction, entry: liveEntry });
+        setBookTurnDirection(direction);
         setIsBookTurning(true);
 
-        const directionSignal = direction === 'next' ? 1 : -1;
-        const durationMs = 420;
-        let animationStart = null;
-
-        const animateFlip = (animationTimestamp) => {
-            if (animationStart === null) {
-                animationStart = animationTimestamp;
-            }
-
-            const rawProgress = (animationTimestamp - animationStart) / durationMs;
-            const progress = Math.min(1, Math.max(0, rawProgress));
-            const ease = progress < 0.5
-                ? 2 * progress * progress
-                : -1 + (4 - 2 * progress) * progress;
-
-            let currentX;
-            let currentTopY;
-            let currentBottomY;
-
-            if (directionSignal === 1) {
-                currentX = 450 - (400 * ease);
-                currentTopY = 30 - (40 * Math.sin(ease * Math.PI));
-                currentBottomY = 290 - (20 * Math.sin(ease * Math.PI));
-            } else {
-                currentX = 50 + (400 * ease);
-                currentTopY = 30 - (40 * Math.sin(ease * Math.PI));
-                currentBottomY = 290 - (20 * Math.sin(ease * Math.PI));
-            }
-
-            setBookFlipperPath(`M 250,15 L ${currentX},${currentTopY} L ${currentX},${currentBottomY} L 250,310 Z`);
-
-            if (progress < 1) {
-                bookAnimationFrameRef.current = window.requestAnimationFrame(animateFlip);
-                return;
-            }
-
-            setBookFlipperVisible(false);
-            setBookFlipperPath('');
+        bookTurnTimersRef.current.fade = window.setTimeout(() => {
             setBookPageIndex(targetIndex);
+        }, 210);
 
-            bookTurnTimersRef.current.fade = window.setTimeout(() => {
-                setBookContentVisible(true);
-            }, 30);
-
-            bookTurnTimersRef.current.reset = window.setTimeout(() => {
-                setBookTurnState({ direction: '', entry: null });
-                setIsBookTurning(false);
-                clearBookTurnTimers();
-            }, 180);
-        };
-
-        bookAnimationFrameRef.current = window.requestAnimationFrame(animateFlip);
+        bookTurnTimersRef.current.reset = window.setTimeout(() => {
+            setBookContentVisible(true);
+            setBookFlipperVisible(false);
+            setBookTurnDirection('');
+            setIsBookTurning(false);
+            clearBookTurnTimers();
+        }, 460);
     };
 
     useEffect(() => {
@@ -441,8 +405,7 @@ export default function DiaryBoard({
             setBookPageIndex(0);
             setBookContentVisible(true);
             setBookFlipperVisible(false);
-            setBookFlipperPath('');
-            setBookTurnState({ direction: '', entry: null });
+            setBookTurnDirection('');
             setIsBookTurning(false);
             clearBookTurnTimers();
             return;
@@ -454,10 +417,6 @@ export default function DiaryBoard({
     useEffect(() => {
         return () => {
             clearBookTurnTimers();
-            if (bookAnimationFrameRef.current) {
-                window.cancelAnimationFrame(bookAnimationFrameRef.current);
-                bookAnimationFrameRef.current = null;
-            }
         };
     }, []);
 
@@ -674,7 +633,7 @@ const handleExportProjectDiaryPdf = async () => {
             // --- CORPO DO DOCUMENTO ---
             addSectionTitle('Resumo do Projeto');
             addParagraph('Título', selectedProject?.titulo, 'Projeto sem título');
-            addParagraph('Área Temática', selectedProject?.area_tematica || selectedProject?.tipo, 'Área não informada');
+            addParagraph('Área Temática', selectedProject?.area_tematica || selectedProject?.tipo, 'área não informada');
             addParagraph('Status', selectedProject?.status, 'Status não informado');
             addParagraph('Unidade Escolar', selectedSchool?.nome, 'Unidade não informada');
             addParagraph('Equipe Investigadora', investigatorNames, 'Equipe em formação');
@@ -848,7 +807,7 @@ const handleExportProjectDiaryPdf = async () => {
                             </span>
                         </div>
                         <span className="bg-yellow-300 border-4 border-slate-900 text-slate-900 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_#0f172a] transform ">
-                            {selectedProject.area_tematica || selectedProject.tipo || 'Área não informada'}
+                            {selectedProject.area_tematica || selectedProject.tipo || 'área não informada'}
                         </span>
                     </header>
 
@@ -935,7 +894,7 @@ const handleExportProjectDiaryPdf = async () => {
                             className="inline-flex items-center justify-center gap-3 px-7 py-4 rounded-2xl bg-slate-900 border-4 border-slate-900 text-white font-black text-sm uppercase tracking-widest shadow-[6px_6px_0px_0px_#0f172a] hover:bg-slate-700 hover:shadow-[10px_10px_0px_0px_#0f172a] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0px_0px_#0f172a] shrink-0"
                         >
                             <Download className="w-5 h-5 stroke-[3]" />
-                            {isExportingPdf ? 'Gerando PDF...' : 'Baixar PDF Projeto + Diario'}
+                            {isExportingPdf ? 'Gerando PDF...' : 'Baixar PDF Projeto + Di?rio'}
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
@@ -969,132 +928,75 @@ const handleExportProjectDiaryPdf = async () => {
                                     type="button"
                                     onClick={handleFlipToPreviousPage}
                                     disabled={isBookTurning || bookPageIndex <= 0}
-                                    aria-label="Página anterior"
+                                    aria-label="P?gina anterior"
                                     className="h-12 w-12 md:h-14 md:w-14 rounded-2xl border-4 border-slate-900 bg-slate-100 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] inline-flex items-center justify-center transition-all hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[6px_6px_0px_0px_#0f172a] disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_#0f172a]"
                                 >
                                     <ArrowLeft className="h-6 w-6 stroke-[3]" />
                                 </button>
 
                                 <div className="rounded-[2.2rem] border-4 border-slate-900 bg-white p-4 shadow-[10px_10px_0px_0px_#0f172a]">
-                                    <svg viewBox="0 0 600 400" className="h-auto w-full" role="region" aria-label="Livro animado do diário de bordo">
-                                        <defs>
-                                            <linearGradient id="coverGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#2c3e50" />
-                                                <stop offset="50%" stopColor="#34495e" />
-                                                <stop offset="100%" stopColor="#1a252f" />
-                                            </linearGradient>
-
-                                            <linearGradient id="pageGradientLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#e0e0e0" />
-                                                <stop offset="90%" stopColor="#ffffff" />
-                                                <stop offset="100%" stopColor="#d0d0d0" />
-                                            </linearGradient>
-
-                                            <linearGradient id="pageGradientRight" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#d0d0d0" />
-                                                <stop offset="10%" stopColor="#ffffff" />
-                                                <stop offset="100%" stopColor="#f0f0f0" />
-                                            </linearGradient>
-
-                                            <linearGradient id="flipperGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#ffffff" />
-                                                <stop offset="100%" stopColor="#e0e0e0" />
-                                            </linearGradient>
-
-                                            <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
-                                                <feDropShadow dx="10" dy="20" stdDeviation="15" floodOpacity="0.3" />
-                                            </filter>
-
-                                            <clipPath id="leftDiaryClip">
-                                                <path d="M 50,30 Q 150,10 250,15 L 250,310 Q 150,330 50,290 Z" />
-                                            </clipPath>
-                                            <clipPath id="rightDiaryClip">
-                                                <path d="M 250,15 Q 350,10 450,30 L 450,290 Q 350,330 250,310 Z" />
-                                            </clipPath>
-                                        </defs>
-
-                                        <rect width="600" height="400" fill="#f8f9fa" />
-
-                                        <g filter="url(#dropShadow)" transform="translate(50, 50)">
-                                            <path d="M 240,20 Q 250,10 260,20 L 260,320 Q 250,330 240,320 Z" fill="#1a252f" />
-                                            <path d="M 40,40 Q 140,20 240,20 L 240,320 Q 140,340 40,300 Z" fill="url(#coverGradient)" stroke="#1a252f" strokeWidth="2" />
-                                            <path d="M 260,20 Q 360,20 460,40 L 460,300 Q 360,340 260,320 Z" fill="url(#coverGradient)" stroke="#1a252f" strokeWidth="2" />
-
-                                            <path d="M 45,35 Q 145,15 245,18 L 245,315 Q 145,335 45,295 Z" fill="#cccccc" />
-                                            <path d="M 48,32 Q 148,12 248,15 L 248,312 Q 148,332 48,292 Z" fill="#dddddd" />
-                                            <path d="M 50,30 Q 150,10 250,15 L 250,310 Q 150,330 50,290 Z" fill="url(#pageGradientLeft)" stroke="#cccccc" strokeWidth="0.5" />
-
-                                            <path d="M 255,18 Q 355,15 455,35 L 455,295 Q 355,335 255,315 Z" fill="#cccccc" />
-                                            <path d="M 252,15 Q 352,12 452,32 L 452,292 Q 352,332 252,312 Z" fill="#dddddd" />
-                                            <path d="M 250,15 Q 350,10 450,30 L 450,290 Q 350,330 250,310 Z" fill="url(#pageGradientRight)" stroke="#cccccc" strokeWidth="0.5" />
-
-                                            <line x1="250" y1="15" x2="250" y2="310" stroke="#b0b0b0" strokeWidth="2" opacity="0.7" />
-                                            <line x1="248" y1="16" x2="248" y2="311" stroke="#ffffff" strokeWidth="1" opacity="0.5" />
-                                            <line x1="252" y1="16" x2="252" y2="311" stroke="#ffffff" strokeWidth="1" opacity="0.5" />
-
-                                            <g clipPath="url(#leftDiaryClip)" style={{ opacity: bookContentVisible ? 1 : 0, transition: 'opacity 200ms ease-in-out' }}>
-                                                <foreignObject x="58" y="36" width="182" height="252">
-                                                    <div xmlns="http://www.w3.org/1999/xhtml" style={{ height: '100%', fontFamily: 'Merriweather, serif', color: '#0f172a', padding: '6px 4px' }}>
-                                                        <p style={{ margin: 0, textAlign: 'center', fontSize: '10px', letterSpacing: '0.2em', fontWeight: 900, textTransform: 'uppercase', color: '#334155' }}>
-                                                            Diário de Bordo
+                                    <div className="diary-archive-reader mb-2" role="region" aria-label="Leitura em duas p?ginas do di?rio de bordo">
+                                        <div className="diary-archive-spread">
+                                            <div className="diary-archive-depth-stack" aria-hidden="true">
+                                                <span className="diary-archive-depth-leaf diary-archive-depth-leaf-left" />
+                                                <span className="diary-archive-depth-leaf diary-archive-depth-leaf-right" />
+                                            </div>
+                                            <article className={`diary-archive-page diary-archive-page-left ${bookContentVisible ? 'is-visible' : 'is-hidden'}`}>
+                                                <p className="diary-archive-kicker">Di?rio de Bordo</p>
+                                                <p className="diary-archive-title">{normalizeText(currentBookEntry?.title, `Registro ${bookPageIndex + 1}`)}</p>
+                                                <p className="diary-archive-meta">
+                                                    Capítulo {bookPageIndex + 1} | Data {normalizeText(currentBookEntry?.date, '--')}
+                                                </p>
+                                                <p className="diary-archive-meta diary-archive-meta-soft">
+                                                    Autor: {normalizeText(currentBookEntry?.author, '--')} | Duração: {normalizeText(currentBookEntry?.duration, '--')}
+                                                </p>
+                                                <p className="diary-archive-section-title">Registro do dia</p>
+                                                <p style={bookClampStyle(10, { marginTop: '4px' })}>
+                                                    {toShortText(currentBookEntry?.whatWasDone, 360)}
+                                                </p>
+                                            </article>
+                                            <article className={`diary-archive-page diary-archive-page-right ${bookContentVisible ? 'is-visible' : 'is-hidden'}`}>
+                                                <p className="diary-archive-section-title">Descobertas</p>
+                                                <p style={bookClampStyle(hasBookImages ? 4 : 6, { marginTop: '4px' })}>
+                                                    {toShortText(currentBookEntry?.discoveries, 220)}
+                                                </p>
+                                                <p className="diary-archive-section-title" style={{ marginTop: '10px' }}>Obstáculos</p>
+                                                <p style={bookClampStyle(hasBookImages ? 3 : 5, { marginTop: '4px' })}>
+                                                    {toShortText(currentBookEntry?.obstacles, 190)}
+                                                </p>
+                                                <p className="diary-archive-section-title" style={{ marginTop: '10px' }}>Próximos passos</p>
+                                                <p style={bookClampStyle(hasBookImages ? 3 : 5, { marginTop: '4px' })}>
+                                                    {toShortText(currentBookEntry?.nextSteps, 190, 'A definir.')}
+                                                </p>
+                                                <p className="diary-archive-tags">
+                                                    Tags: {(Array.isArray(currentBookEntry?.tags) && currentBookEntry.tags.length > 0 ? currentBookEntry.tags.slice(0, 5).join(', ') : 'geral')}
+                                                </p>
+                                                {hasBookImages && (
+                                                    <div className="diary-archive-image-strip">
+                                                        <p className="diary-archive-section-title" style={{ marginTop: '0' }}>
+                                                            {Array.isArray(currentBookEntry?.images) && currentBookEntry.images.length > 0 ? 'Imagens do registro' : 'Imagens do projeto'}
                                                         </p>
-                                                        <p style={{ ...bookClampStyle(2, { margin: '7px 0 0' }), textAlign: 'center', fontSize: '14px', fontWeight: 900, lineHeight: 1.18, color: '#0f172a' }}>
-                                                            {normalizeText(currentBookEntry?.title, `Registro ${bookPageIndex + 1}`)}
-                                                        </p>
-
-                                                        <p style={{ margin: '7px 0 0', borderTop: '1px solid #94a3b8', paddingTop: '6px', fontSize: '9px', letterSpacing: '0.08em', fontWeight: 900, textTransform: 'uppercase', color: '#475569' }}>
-                                                            Capitulo {bookPageIndex + 1} • Data {normalizeText(currentBookEntry?.date, '--')}
-                                                        </p>
-                                                        <p style={{ margin: '4px 0 0', fontSize: '9px', letterSpacing: '0.08em', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>
-                                                            Autor: {normalizeText(currentBookEntry?.author, '--')} | Duracao: {normalizeText(currentBookEntry?.duration, '--')}
-                                                        </p>
-
-                                                        <p style={{ margin: '10px 0 0', fontSize: '10px', letterSpacing: '0.14em', fontWeight: 900, textTransform: 'uppercase', color: '#334155' }}>
-                                                            Registro do dia
-                                                        </p>
-                                                        <p style={bookClampStyle(9)}>
-                                                            {toShortText(currentBookEntry?.whatWasDone, 320)}
-                                                        </p>
+                                                        <div className="diary-archive-image-grid">
+                                                            {currentBookImages.map((imageSrc, index) => (
+                                                                <div key={`book-image-${index}`} className="diary-archive-image-card">
+                                                                    <img
+                                                                        src={imageSrc}
+                                                                        alt={`Registro ${bookPageIndex + 1} - imagem ${index + 1}`}
+                                                                        loading="lazy"
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </foreignObject>
-                                            </g>
-
-                                            <g clipPath="url(#rightDiaryClip)" style={{ opacity: bookContentVisible ? 1 : 0, transition: 'opacity 200ms ease-in-out' }}>
-                                                <foreignObject x="262" y="36" width="180" height="252">
-                                                    <div xmlns="http://www.w3.org/1999/xhtml" style={{ height: '100%', fontFamily: 'Merriweather, serif', color: '#0f172a', padding: '6px 4px' }}>
-                                                        <p style={{ margin: 0, fontSize: '10px', letterSpacing: '0.14em', fontWeight: 900, textTransform: 'uppercase', color: '#334155' }}>
-                                                            Descobertas
-                                                        </p>
-                                                        <p style={bookClampStyle(5)}>
-                                                            {toShortText(currentBookEntry?.discoveries, 200)}
-                                                        </p>
-
-                                                        <p style={{ margin: '9px 0 0', fontSize: '10px', letterSpacing: '0.14em', fontWeight: 900, textTransform: 'uppercase', color: '#334155' }}>
-                                                            Obstaculos
-                                                        </p>
-                                                        <p style={bookClampStyle(4)}>
-                                                            {toShortText(currentBookEntry?.obstacles, 180)}
-                                                        </p>
-
-                                                        <p style={{ margin: '9px 0 0', fontSize: '10px', letterSpacing: '0.14em', fontWeight: 900, textTransform: 'uppercase', color: '#334155' }}>
-                                                            Proximos passos
-                                                        </p>
-                                                        <p style={bookClampStyle(4)}>
-                                                            {toShortText(currentBookEntry?.nextSteps, 180, 'A definir.')}
-                                                        </p>
-
-                                                        <p style={{ ...bookClampStyle(2, { margin: '10px 0 0' }), borderTop: '1px solid #94a3b8', paddingTop: '6px', fontSize: '9px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748b' }}>
-                                                            Tags: {(Array.isArray(currentBookEntry?.tags) && currentBookEntry.tags.length > 0 ? currentBookEntry.tags.slice(0, 5).join(', ') : 'geral')}
-                                                        </p>
-                                                    </div>
-                                                </foreignObject>
-                                            </g>
-
+                                                )}
+                                            </article>
                                             {bookFlipperVisible && (
-                                                <path d={bookFlipperPath} fill="url(#flipperGradient)" stroke="#cccccc" strokeWidth="0.5" />
+                                                <div className={`diary-archive-flipper ${bookTurnDirection === 'prev' ? 'is-prev' : 'is-next'}`} aria-hidden="true">
+                                                    <div className="diary-archive-flipper-face" />
+                                                </div>
                                             )}
-                                        </g>
-                                    </svg>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button
@@ -1109,7 +1011,7 @@ const handleExportProjectDiaryPdf = async () => {
                             </div>
 
                             <div className="rounded-2xl border-4 border-slate-900 bg-white p-4 shadow-[6px_6px_0px_0px_#0f172a]">
-                                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-700">Indice de capitulos</p>
+                                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-700">Índice de capítulos</p>
                                 <div className="flex flex-wrap gap-2">
                                     {diaryBookEntries.map((entry, index) => {
                                         const isActive = index === bookPageIndex;
@@ -1124,7 +1026,7 @@ const handleExportProjectDiaryPdf = async () => {
                                                 disabled={isBookTurning}
                                                 className={`rounded-lg border-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'border-slate-900 bg-yellow-300 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]' : 'border-slate-400 bg-slate-100 text-slate-700 hover:border-slate-900 hover:bg-white'} disabled:opacity-60`}
                                             >
-                                                Capitulo {index + 1}
+                                                Capítulo {index + 1}
                                             </button>
                                         );
                                     })}
@@ -1134,8 +1036,8 @@ const handleExportProjectDiaryPdf = async () => {
                             <div className="rounded-2xl border-4 border-slate-900 bg-white p-4 shadow-[6px_6px_0px_0px_#0f172a]">
                                 <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-600 text-center">
                                     {isBookTurning
-                                        ? `Virando folha para ${bookTurnState.direction === 'next' ? 'proximo' : 'anterior'} capitulo...`
-                                        : `Livro ativo | capitulo ${bookPageIndex + 1} de ${totalBookPages}`}
+                                        ? `Virando folha para ${bookTurnDirection === 'next' ? 'próximo' : 'anterior'} capítulo...`
+                                        : `Livro ativo | capítulo ${bookPageIndex + 1} de ${totalBookPages}`}
                                 </p>
                             </div>
                         </div>
@@ -1145,3 +1047,6 @@ const handleExportProjectDiaryPdf = async () => {
         </div>
     );
 }
+
+
+

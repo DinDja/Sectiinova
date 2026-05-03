@@ -1439,10 +1439,9 @@ export async function removeExternalMember(memberId, clubeId, moderatorId = '') 
 
 // --- Alertas de moderacao para mentores ---
 
-async function fetchModerationAlertsViaApi({ clubeId, recipientId, unreadOnly = true }) {
+async function fetchModerationAlertsViaApi({ clubeId, unreadOnly = true }) {
     const params = new URLSearchParams();
     params.set('clubeId', String(clubeId || '').trim());
-    params.set('recipientId', String(recipientId || '').trim());
     params.set('unreadOnly', unreadOnly ? 'true' : 'false');
     params.set('limit', '50');
 
@@ -1478,8 +1477,8 @@ async function fetchModerationAlertsViaApi({ clubeId, recipientId, unreadOnly = 
     return docs;
 }
 
-export function subscribeToModerationAlerts({ clubeId, recipientId, callback, unreadOnly = true }) {
-    if (!clubeId || !recipientId) {
+export function subscribeToModerationAlerts({ clubeId, callback, unreadOnly = true }) {
+    if (!clubeId) {
         callback([]);
         return () => {};
     }
@@ -1491,7 +1490,6 @@ export function subscribeToModerationAlerts({ clubeId, recipientId, callback, un
         try {
             const alerts = await fetchModerationAlertsViaApi({
                 clubeId,
-                recipientId,
                 unreadOnly,
             });
 

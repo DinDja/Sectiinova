@@ -821,7 +821,7 @@ export default function ClubBoard({
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             `}</style>
 
-            <div className="club-board-editorial min-h-screen bg-[#f7f2e9] text-slate-900 pb-16 font-sans selection:bg-pink-400 selection:text-white overflow-x-hidden relative">
+            <div className="club-board-editorial min-h-screen text-slate-900 pb-16 font-sans selection:bg-pink-400 selection:text-white overflow-x-hidden relative">
                 <div className="club-board-shell max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8 relative z-10">
                     {canSwitchUserClubs && (
                         <div className="bg-white border-[3px] border-slate-900 rounded-[3rem] p-8 md:p-10 shadow-lg relative">

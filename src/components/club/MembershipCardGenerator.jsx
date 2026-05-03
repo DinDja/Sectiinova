@@ -509,8 +509,8 @@ const createMembershipCardImage = async ({
     ctx.fillStyle = INK;
     ctx.textBaseline = 'middle'; // CORREÇÃO: Alinhamento vertical da Header Box
     ctx.font = `900 28px ${FONT_STACK}`;
-    ctx.fillText('CARTEIRINHA OFICIAL', 330, 112); 
-    
+    ctx.fillText('CARTEIRINHA OFICIAL', 330, 112);
+
     ctx.fillStyle = PINK;
     ctx.fillRect(750, 96, 36, 32);
 
@@ -539,10 +539,10 @@ const createMembershipCardImage = async ({
     ctx.textBaseline = 'alphabetic';
     ctx.font = `900 24px ${FONT_STACK}`;
     ctx.fillText(roleLabel, 572, 374);
-    
+
     // CORREÇÃO: Reduzido a maxWidth do Nome de 620 para 498 (Para não bater na Div de CT&I)
     drawFittedText(ctx, memberName.toUpperCase(), 572, 448, 498, 62, { minSize: 34, weight: 900 });
-    
+
     fillRoundRect(ctx, 1090, 366, 128, 72, 24, LIME);
     strokeRoundRect(ctx, 1090, 366, 128, 72, 24, INK, 5);
     ctx.textAlign = 'center';
@@ -568,7 +568,7 @@ export default function MembershipCardGenerator({
     clubLogoUrl = '',
     loggedUser = null,
     canManageTemplate = false,
-    onChangeTemplate = async () => {},
+    onChangeTemplate = async () => { },
 }) {
     const isMentorViewer = isMentorProfile(loggedUser?.perfil);
 
@@ -1171,45 +1171,29 @@ export default function MembershipCardGenerator({
                             </p>
                         )}
 
-                        <div className="rounded-[2rem] border-[3px] border-slate-900 bg-yellow-400 p-5 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[1.25rem] border-[3px] border-slate-900 bg-white flex items-center justify-center text-lg font-black text-slate-900">
-                                    {studentPhotoUrl ? (
-                                        <img src={studentPhotoUrl} alt={studentName} className="h-full w-full object-cover" />
-                                    ) : (
-                                        <span>{getInitials(studentName)}</span>
-                                    )}
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="line-clamp-1 text-lg font-black uppercase leading-tight text-slate-900">{studentName}</p>
-                                    <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-800">{memberRoleLabel}</p>
-                                    <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-700">{membershipNumber}</p>
-                                </div>
-                                <div className="ml-[160px] inline-flex items-center gap-3">
-                                          <button
-                                type="button"
-                                onClick={handleDownload}
-                                disabled={isExporting}
-                                className="inline-flex items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
-                            >
-                                <Download className="w-4 h-4 stroke-[3]" />
-                                {isExporting ? 'Gerando...' : 'Baixar'}
-                            </button>
+                            <div className="inline-flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleDownload}
+                                        disabled={isExporting}
+                                        className="inline-flex items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-cyan-300 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Download className="w-4 h-4 stroke-[3]" />
+                                        {isExporting ? 'Gerando...' : 'Baixar'}
+                                    </button>
 
-                            <button
-                                type="button"
-                                onClick={handlePrint}
-                                disabled={isExporting}
-                                className="inline-flex items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-white px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
-                            >
-                                <Printer className="w-4 h-4 stroke-[3]" />
-                                Imprimir
-                            </button>
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        disabled={isExporting}
+                                        className="inline-flex items-center justify-center gap-3 rounded-full border-[3px] border-slate-900 bg-white px-6 py-3.5 text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Printer className="w-4 h-4 stroke-[3]" />
+                                        Imprimir
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
 
-{/* 
+                        {/* 
                         <div className="rounded-[1.5rem] border-[3px] border-slate-900 bg-white px-5 py-4 shadow-sm">
                             <button
                                 type="button"

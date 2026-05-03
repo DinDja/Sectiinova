@@ -139,6 +139,7 @@ service cloud.firestore {
         && isSidebarOrderChangeValid()
         && isPopEventosSavedChangeValid()
         && isPopEventosAlertsChangeValid()
+        && isLibrarySavedBooksChangeValid()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'nome',
           'telefone',
@@ -151,7 +152,8 @@ service cloud.firestore {
           'sidebarOrder',
           'pop_eventos_saved',
           'pop_eventos_alert_subscriptions',
-          'pop_eventos_alert_subscriptions_count'
+          'pop_eventos_alert_subscriptions_count',
+          'library_saved_books'
         ]);
     }
 
@@ -176,6 +178,11 @@ service cloud.firestore {
           'pop_eventos_alert_subscriptions_count'
         ])
         || hasValidPopEventosAlertSubscriptions(request.resource.data);
+    }
+
+    function isLibrarySavedBooksChangeValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['library_saved_books'])
+        || hasValidLibrarySavedBooks(request.resource.data);
     }
 
     function schoolChangeCountFromData(data) {
@@ -208,6 +215,11 @@ service cloud.firestore {
         || data.pop_eventos_saved.size() <= 80;
     }
 
+    function hasValidLibrarySavedBooks(data) {
+      return !(data.library_saved_books is list)
+        || data.library_saved_books.size() <= 80;
+    }
+
     function hasValidPopEventosAlertSubscriptions(data) {
       let hasSubscriptionsList = data.pop_eventos_alert_subscriptions is list;
       let hasSubscriptionsCount = data.pop_eventos_alert_subscriptions_count is int;
@@ -236,7 +248,7 @@ service cloud.firestore {
       return !(data.sidebarOrder is list)
         || (
           data.sidebarOrder.size() >= 0
-          && data.sidebarOrder.size() <= 6
+          && data.sidebarOrder.size() <= 8
           && (
             data.sidebarOrder.size() == 0
             || data.sidebarOrder.size() == 1
@@ -266,6 +278,23 @@ service cloud.firestore {
               && data.sidebarOrder[3] is string
               && data.sidebarOrder[4] is string
               && data.sidebarOrder[5] is string
+            || data.sidebarOrder.size() == 7
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+              && data.sidebarOrder[3] is string
+              && data.sidebarOrder[4] is string
+              && data.sidebarOrder[5] is string
+              && data.sidebarOrder[6] is string
+            || data.sidebarOrder.size() == 8
+              && data.sidebarOrder[0] is string
+              && data.sidebarOrder[1] is string
+              && data.sidebarOrder[2] is string
+              && data.sidebarOrder[3] is string
+              && data.sidebarOrder[4] is string
+              && data.sidebarOrder[5] is string
+              && data.sidebarOrder[6] is string
+              && data.sidebarOrder[7] is string
           )
         );
     }

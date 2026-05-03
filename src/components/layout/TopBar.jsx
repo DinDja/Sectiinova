@@ -229,11 +229,12 @@ export default function TopBar({
     Projetos: "Feed de Projetos",
     meusProjetos: "Meus Projetos",
     trilha: "Trilha Pedagogica",
+    biblioteca: "Biblioteca Livre",
     popEventos: "POP Eventos",
     inpi: "PatentesLab",
     forum: "Forum",
     clube: "Meu Clube",
-    diario: "Diario de Bordo",
+    diario: "Diário de Bordo",
   };
   const currentViewLabel = currentViewLabelMap[currentView] || "Workspace";
   const canDecreaseFont = fontSizeLevel > 1;

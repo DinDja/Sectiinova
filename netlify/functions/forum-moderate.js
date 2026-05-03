@@ -8,6 +8,9 @@ const OPENROUTER_MODEL = "openai/gpt-4o-mini";
 const OPENROUTER_TIMEOUT_MS = 12000;
 const MAX_TEXT_LENGTH = 2000;
 const FORUM_MODERATION_SERVER_LOG_TAG = "[forum-moderation-server]";
+const FORUM_ENABLE_OPENROUTER_FALLBACK = /^(1|true|yes)$/i.test(
+  String(process.env.FORUM_ENABLE_OPENROUTER_FALLBACK || "").trim(),
+);
 
 // Chaves embutidas em codigo, conforme solicitado.
 const PERSPECTIVE_API_KEY_HARDCODED = "AIzaSyBGJRi5h4j9jjH1uQEDaQPabq3iE0C39Bg";
@@ -21,6 +24,10 @@ const CATEGORY_REVIEW_THRESHOLD_OVERRIDES = {
   threat: 0.35,
   identity_attack: 0.35,
   sexually_explicit: 0.35,
+  credential_bait: 0.4,
+  suspicious_link: 0.45,
+  obfuscation: 0.5,
+  shouting: 0.55,
 };
 const CATEGORY_BLOCK_THRESHOLD_OVERRIDES = {
   profanity: 0.72,
@@ -28,6 +35,11 @@ const CATEGORY_BLOCK_THRESHOLD_OVERRIDES = {
   threat: 0.55,
   identity_attack: 0.55,
   severe_toxicity: 0.75,
+  spam: 0.82,
+  flood: 0.85,
+  credential_bait: 0.82,
+  suspicious_link: 0.8,
+  obfuscation: 0.88,
 };
 const PERSPECTIVE_ATTRIBUTE_LABELS = {
   TOXICITY: "toxicidade geral",
@@ -45,7 +57,6 @@ const PERSPECTIVE_REQUESTED_ATTRIBUTES = {
   THREAT: {},
   IDENTITY_ATTACK: {},
   PROFANITY: {},
-  SEXUALLY_EXPLICIT: {},
 };
 
 function json(statusCode, payload) {
@@ -225,6 +236,223 @@ function mergeCategories(...chunks) {
   return Array.from(byId.values()).sort((a, b) => b.score - a.score);
 }
 
+function findPatternCount(text, pattern) {
+  const expression = pattern instanceof RegExp ? pattern : new RegExp(String(pattern || ""), "gi");
+  const flags = expression.flags.includes("g") ? expression.flags : `${expression.flags}g`;
+  const withGlobal = new RegExp(expression.source, flags);
+  const matches = String(text || "").match(withGlobal);
+  return Array.isArray(matches) ? matches.length : 0;
+}
+
+function detectHeuristicAbuseSignals(text) {
+  const rawText = String(text || "");
+  const normalized = rawText.toLowerCase();
+  const categories = [];
+
+  const threatCount =
+    findPatternCount(normalized, /\b(vou te matar|vou te pegar|te arrebento|te espanco|vou quebrar)\b/gi) +
+    findPatternCount(normalized, /\b(ameaco|ameaca|amea[cs]o)\b/gi);
+  if (threatCount > 0) {
+    categories.push({
+      id: "threat",
+      score: 0.92,
+      evidence: "linguagem de ameaca direta",
+    });
+  }
+
+  const insultCount = findPatternCount(
+    normalized,
+    /\b(idiota|imbecil|retardad[oa]|burro|otario|otaria|lixo humano|vai se foder|vai tomar no cu)\b/gi,
+  );
+  if (insultCount > 0) {
+    categories.push({
+      id: "insult",
+      score: insultCount >= 2 ? 0.82 : 0.64,
+      evidence: "ofensa pessoal direta",
+    });
+  }
+
+  const profanityCount = findPatternCount(
+    normalized,
+    /\b(caralho|porra|puta que pariu|merda|foder|foda-se|cacete|cu)\b/gi,
+  );
+  if (profanityCount > 0) {
+    categories.push({
+      id: "profanity",
+      score: profanityCount >= 3 ? 0.78 : 0.55,
+      evidence: "uso recorrente de palavroes",
+    });
+  }
+
+  const sexualCount = findPatternCount(
+    normalized,
+    /\b(porno|pornografia|sexo explicito|nudez|nudes|conteudo adulto|sexo com)\b/gi,
+  );
+  if (sexualCount > 0) {
+    categories.push({
+      id: "sexually_explicit",
+      score: 0.88,
+      evidence: "conteudo sexual explicito",
+    });
+  }
+
+  const identityAttackCount = findPatternCount(
+    normalized,
+    /\b(racista|racismo|homofob|xenofob|nazista|preto imundo|mulherzinha|macaco)\b/gi,
+  );
+  if (identityAttackCount > 0) {
+    categories.push({
+      id: "identity_attack",
+      score: 0.9,
+      evidence: "ataque discriminatorio ou de odio",
+    });
+  }
+
+  const linkCount = findPatternCount(normalized, /https?:\/\/|www\./gi);
+  const promoCount = findPatternCount(
+    normalized,
+    /\b(compre|promocao|promoc(?:ao)?|cupom|pix|ganhe dinheiro|renda extra|chama no pv)\b/gi,
+  );
+  if (linkCount >= 3 || (linkCount >= 1 && promoCount >= 2)) {
+    categories.push({
+      id: "spam",
+      score: 0.86,
+      evidence: "sinal de spam promocional",
+    });
+  } else if (linkCount >= 2 || promoCount >= 2) {
+    categories.push({
+      id: "spam",
+      score: 0.62,
+      evidence: "conteudo promocional potencialmente invasivo",
+    });
+  }
+
+  if (rawText.length >= 250 && /(.)\1{7,}/.test(rawText)) {
+    categories.push({
+      id: "flood",
+      score: 0.72,
+      evidence: "padrao repetitivo/flood",
+    });
+  }
+
+  return categories;
+}
+
+function detectCredentialBaitSignals(text) {
+  const normalized = String(text || "").toLowerCase();
+  const categories = [];
+
+  const sensitiveTokenCount = findPatternCount(
+    normalized,
+    /\b(senha|password|token|codigo de verificacao|codigo de seguranca|cpf|cartao|pix)\b/gi,
+  );
+  const imperativeCount = findPatternCount(
+    normalized,
+    /\b(envie|manda|passe|compartilhe|informe|digite|confirme|atualize)\b/gi,
+  );
+  const linkCount = findPatternCount(normalized, /https?:\/\/|www\./gi);
+  const shortenerCount = findPatternCount(
+    normalized,
+    /\b(bit\.ly|tinyurl\.com|t\.co|goo\.gl|shorturl\.at)\b/gi,
+  );
+
+  if (sensitiveTokenCount >= 1 && imperativeCount >= 1) {
+    categories.push({
+      id: "credential_bait",
+      score: linkCount > 0 ? 0.94 : 0.82,
+      evidence: "pedido para compartilhar dado sensivel",
+    });
+  } else if (sensitiveTokenCount >= 1) {
+    categories.push({
+      id: "credential_bait",
+      score: 0.58,
+      evidence: "texto cita dado sensivel",
+    });
+  }
+
+  if ((shortenerCount >= 1 && imperativeCount >= 1) || linkCount >= 4) {
+    categories.push({
+      id: "suspicious_link",
+      score: linkCount >= 4 ? 0.86 : 0.74,
+      evidence: "link suspeito/encurtado com linguagem de acao",
+    });
+  } else if (shortenerCount >= 1 || linkCount >= 3) {
+    categories.push({
+      id: "suspicious_link",
+      score: 0.56,
+      evidence: "volume incomum de links",
+    });
+  }
+
+  return categories;
+}
+
+function detectObfuscationBypassSignals(text) {
+  const raw = String(text || "");
+  const categories = [];
+  const hasInvisibleChars = /[\u200B-\u200D\uFEFF]/.test(raw);
+  const denseSymbols = findPatternCount(raw, /[@$!#%^&*()_+=\\/[\\]{}|:;"'<>,.?~-]/g) >= 8;
+
+  const normalizedForBypass = raw
+    .toLowerCase()
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[0@]/g, "o")
+    .replace(/[1!]/g, "i")
+    .replace(/[3]/g, "e")
+    .replace(/[4]/g, "a")
+    .replace(/[5$]/g, "s")
+    .replace(/[7]/g, "t")
+    .replace(/[\W_]+/g, "");
+
+  const obfuscatedInsult = /(vsf|vtnc|foder|idiota|otario|burro|imbecil)/i.test(normalizedForBypass);
+  if (hasInvisibleChars || (denseSymbols && obfuscatedInsult)) {
+    categories.push({
+      id: "obfuscation",
+      score: obfuscatedInsult ? 0.9 : 0.62,
+      evidence: "sinal de tentativa de burlar filtro por ofuscacao",
+    });
+  }
+
+  return categories;
+}
+
+function detectFormattingRiskSignals(text) {
+  const raw = String(text || "");
+  const categories = [];
+  const letters = (raw.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+  const uppercase = (raw.match(/[A-ZÀ-Ý]/g) || []).length;
+  const uppercaseRatio = letters > 0 ? uppercase / letters : 0;
+  const repeatedPunctuation = /([!?.,])\1{5,}/.test(raw);
+
+  if (letters >= 24 && uppercaseRatio >= 0.85) {
+    categories.push({
+      id: "shouting",
+      score: 0.62,
+      evidence: "uso excessivo de caixa alta",
+    });
+  }
+
+  if (repeatedPunctuation) {
+    categories.push({
+      id: "shouting",
+      score: 0.58,
+      evidence: "pontuacao excessivamente repetitiva",
+    });
+  }
+
+  return categories;
+}
+
+function collectRuleBasedCategories(text) {
+  return mergeCategories(
+    detectHeuristicAbuseSignals(text),
+    detectDigitalCrimeSignals(text),
+    detectCredentialBaitSignals(text),
+    detectObfuscationBypassSignals(text),
+    detectFormattingRiskSignals(text),
+  );
+}
+
 function detectDigitalCrimeSignals(text) {
   const normalized = String(text || "").toLowerCase();
   const categories = [];
@@ -358,8 +586,8 @@ async function runPerspectiveModeration(text) {
     }))
     .filter((item) => item.score > 0);
 
-  const digitalCrimeCategories = detectDigitalCrimeSignals(text);
-  const categories = mergeCategories(perspectiveCategories, digitalCrimeCategories);
+  const ruleBasedCategories = collectRuleBasedCategories(text);
+  const categories = mergeCategories(perspectiveCategories, ruleBasedCategories);
 
   const moderation = {
     ...buildModerationDecision(categories, thresholds),
@@ -491,6 +719,32 @@ async function runOpenRouterModeration(text) {
   return moderation;
 }
 
+function runLocalRulesModeration(text) {
+  const thresholds = getDecisionThresholds();
+  const snippet = String(text || "").slice(0, MAX_TEXT_LENGTH);
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runLocalRulesModeration:start", {
+    text: summarizeTextForLog(snippet),
+    thresholds,
+  });
+
+  const categories = collectRuleBasedCategories(snippet);
+
+  const moderation = {
+    ...buildModerationDecision(categories, thresholds),
+    provider: "local_rules",
+    model: "heuristic-v1",
+  };
+
+  console.log(FORUM_MODERATION_SERVER_LOG_TAG, "runLocalRulesModeration:success", {
+    decision: moderation.decision,
+    riskScore: moderation.riskScore,
+    categoriesCount: moderation.categories.length,
+  });
+
+  return moderation;
+}
+
 function combineModerationResults(results) {
   const validResults = Array.isArray(results)
     ? results.filter((item) => item && typeof item === "object")
@@ -536,16 +790,20 @@ async function notifyMentors({
   topicTitle,
   text,
 }) {
+  const actorId = String(actor?.id || actor?.uid || "").trim();
+  const actorProfile = normalizeProfile(actor?.perfil);
+
   console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:start", {
     clubeId: String(clubeId || ""),
-    actorId: String(actor?.id || ""),
+    actorId,
     source: String(source || ""),
     decision: String(moderation?.decision || ""),
   });
 
-  if (!clubeId || !actor?.id || !isStudentProfile(actor?.perfil)) {
+  if (!clubeId || !actorId || !isStudentProfile(actorProfile)) {
     console.log(FORUM_MODERATION_SERVER_LOG_TAG, "notifyMentors:skip", {
       reason: "invalid_context_or_non_student",
+      actorProfile,
     });
     return 0;
   }
@@ -610,10 +868,12 @@ async function notifyMentors({
       db.collection("forum_moderation_alerts").add({
         clube_id: String(clubeId),
         recipient_id: recipientId,
+        recipient_uid: String(mentorData.uid || recipientId || "").trim(),
+        recipient_doc_id: String(mentorDoc.id || "").trim(),
         recipient_nome: String(mentorData.nome || ""),
-        actor_id: String(actor.id || ""),
+        actor_id: actorId,
         actor_nome: String(actor.nome || "Anonimo"),
-        actor_perfil: normalizeProfile(actor.perfil),
+        actor_perfil: actorProfile,
         source: String(source || "message").slice(0, 40),
         topic_id: String(topicId || "").slice(0, 120),
         topic_title: String(topicTitle || "").slice(0, 200),
@@ -633,9 +893,9 @@ async function notifyMentors({
     db.collection("forum_audit_logs").add({
       clube_id: String(clubeId),
       topic_id: String(topicId || "").slice(0, 120),
-      actor_id: String(actor.id || ""),
+      actor_id: actorId,
       action: `moderation.${moderation.decision}`,
-      target_user_id: String(actor.id || ""),
+      target_user_id: actorId,
       details: {
         source: String(source || "message").slice(0, 40),
         riskScore: moderation.riskScore,
@@ -668,7 +928,14 @@ export async function handler(event) {
   const payload = parseBody(event);
   const text = String(payload.text || payload.content || "").trim();
   const clubeId = String(payload.clubeId || "").trim();
-  const actor = payload.actor && typeof payload.actor === "object" ? payload.actor : {};
+  const rawActor = payload.actor && typeof payload.actor === "object" ? payload.actor : {};
+  const actor = {
+    ...rawActor,
+    id: String(rawActor?.id || rawActor?.uid || "").trim(),
+    uid: String(rawActor?.uid || rawActor?.id || "").trim(),
+    perfil: String(rawActor?.perfil || "").trim(),
+    nome: String(rawActor?.nome || "").trim(),
+  };
   const source = String(payload.source || "message").trim();
   const topicId = String(payload.topicId || "").trim();
   const topicTitle = String(payload.topicTitle || "").trim();
@@ -691,11 +958,14 @@ export async function handler(event) {
   }
 
   if (!actor?.id) {
-    return json(400, { error: "Campo actor.id obrigatorio." });
+    return json(400, { error: "Campo actor.id (ou actor.uid) obrigatorio." });
   }
 
   const providerErrors = [];
   let moderation = null;
+  let usedLocalFallback = false;
+  let openRouterAttempted = false;
+  const openRouterEnabled = FORUM_ENABLE_OPENROUTER_FALLBACK;
 
   try {
     console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:trying_primary_provider", {
@@ -716,20 +986,44 @@ export async function handler(event) {
 
     try {
       console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:trying_fallback_provider", {
-        provider: "openrouter",
+        provider: "local_rules",
       });
-      moderation = await runOpenRouterModeration(text);
-    } catch (openRouterError) {
-      const openRouterMessage =
-        openRouterError instanceof Error
-          ? openRouterError.message
-          : String(openRouterError || "falha desconhecida");
-      providerErrors.push(`openrouter: ${openRouterMessage}`);
+      moderation = runLocalRulesModeration(text);
+      usedLocalFallback = true;
+    } catch (localRulesError) {
+      const localRulesMessage =
+        localRulesError instanceof Error
+          ? localRulesError.message
+          : String(localRulesError || "falha desconhecida");
+      providerErrors.push(`local_rules: ${localRulesMessage}`);
 
       console.error(FORUM_MODERATION_SERVER_LOG_TAG, "handler:fallback_provider_failed", {
-        provider: "openrouter",
-        message: openRouterMessage,
+        provider: "local_rules",
+        message: localRulesMessage,
       });
+    }
+
+    if (!moderation && openRouterEnabled) {
+      try {
+        openRouterAttempted = true;
+        console.log(FORUM_MODERATION_SERVER_LOG_TAG, "handler:trying_second_fallback_provider", {
+          provider: "openrouter",
+        });
+        moderation = await runOpenRouterModeration(text);
+      } catch (openRouterError) {
+        const openRouterMessage =
+          openRouterError instanceof Error
+            ? openRouterError.message
+            : String(openRouterError || "falha desconhecida");
+        providerErrors.push(`openrouter: ${openRouterMessage}`);
+
+        console.error(FORUM_MODERATION_SERVER_LOG_TAG, "handler:fallback_provider_failed", {
+          provider: "openrouter",
+          message: openRouterMessage,
+        });
+      }
+    } else if (!openRouterEnabled) {
+      providerErrors.push("openrouter: desativado por FORUM_ENABLE_OPENROUTER_FALLBACK");
     }
   }
 
@@ -737,7 +1031,7 @@ export async function handler(event) {
     console.error("Falha ao usar provedores de moderacao:", providerErrors);
     return json(503, {
       error:
-        "Moderacao inteligente indisponivel no momento. Configure as chaves embutidas de Perspective e OpenRouter.",
+        "Moderacao inteligente indisponivel no momento. Verifique Perspective e fallback local.",
       providerErrors,
     });
   }
@@ -748,6 +1042,9 @@ export async function handler(event) {
     riskScore: moderation.riskScore,
     provider: String(moderation.provider || ""),
     model: String(moderation.model || ""),
+    usedLocalFallback,
+    openRouterAttempted,
+    openRouterEnabled,
     shouldNotify,
     providerErrors,
   });
@@ -768,7 +1065,9 @@ export async function handler(event) {
     decision: moderation.decision,
     provider: String(moderation.provider || ""),
     notifiedMentors,
-    fallbackUsed: String(moderation.provider || "") === "openrouter",
+    fallbackUsed: String(moderation.provider || "") !== "perspective",
+    usedLocalFallback,
+    openRouterAttempted,
   });
 
   return json(200, {
@@ -781,7 +1080,10 @@ export async function handler(event) {
     model: String(moderation.model || ""),
     providers: [String(moderation.provider || "")].filter(Boolean),
     models: [String(moderation.model || "")].filter(Boolean),
-    fallbackUsed: String(moderation.provider || "") === "openrouter",
+    fallbackUsed: String(moderation.provider || "") !== "perspective",
+    usedLocalFallback,
+    openRouterAttempted,
+    openRouterEnabled,
     primaryProvider: "perspective",
     providerErrors,
     notifiedMentors,

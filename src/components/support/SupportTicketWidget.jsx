@@ -15,6 +15,7 @@ const SUPPORT_VIEW_LABELS = {
   meusProjetos: "Meus Projetos",
   inpi: "PatentesLab",
   trilha: "Trilha Pedagógica",
+  biblioteca: "Biblioteca Livre",
   popEventos: "POP Eventos",
   forum: "Fórum",
   clube: "Meu Clube",

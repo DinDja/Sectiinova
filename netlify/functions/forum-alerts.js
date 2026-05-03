@@ -38,6 +38,8 @@ function serializeAlert(docSnap) {
     id: docSnap.id,
     clube_id: String(data.clube_id || ""),
     recipient_id: String(data.recipient_id || ""),
+    recipient_uid: String(data.recipient_uid || ""),
+    recipient_doc_id: String(data.recipient_doc_id || ""),
     recipient_nome: String(data.recipient_nome || ""),
     actor_id: String(data.actor_id || ""),
     actor_nome: String(data.actor_nome || ""),
@@ -132,6 +134,18 @@ export async function handler(event) {
   }
 
   const db = getAdminDb();
+  let callerUserData = null;
+  try {
+    const callerUserSnap = await db.collection("usuarios").doc(callerUid).get();
+    callerUserData = callerUserSnap.exists ? callerUserSnap.data() || null : null;
+  } catch {
+    callerUserData = null;
+  }
+
+  const callerDocIdToken = String(callerUid || "").trim();
+  const callerUidToken = String(callerUserData?.uid || callerUid || "").trim();
+  const callerLegacyIdToken = String(callerUserData?.id || "").trim();
+  const callerIdentityTokens = [...new Set([callerDocIdToken, callerUidToken, callerLegacyIdToken].filter(Boolean))];
 
   if (event.httpMethod === "DELETE") {
     let body = {};
@@ -208,7 +222,7 @@ export async function handler(event) {
   const unreadOnly = parseBoolean(params.unreadOnly, false);
   const pageLimit = Math.max(1, Math.min(100, Number(params.limit) || 30));
 
-  if (requestedRecipientId && requestedRecipientId !== callerUid) {
+  if (requestedRecipientId && !callerIdentityTokens.includes(requestedRecipientId)) {
     return json(403, {
       error: "Voce nao pode acessar alertas de outro usuario.",
     });
@@ -217,21 +231,31 @@ export async function handler(event) {
   try {
     const db = getAdminDb();
 
-    let alertsQuery = db
-      .collection("forum_moderation_alerts")
-      .where("recipient_id", "==", callerUid);
+    const seen = new Set();
+    const alertsRaw = [];
 
-    if (clubeId) {
-      alertsQuery = alertsQuery.where("clube_id", "==", clubeId);
+    for (const token of callerIdentityTokens) {
+      const candidateQueries = [
+        db.collection("forum_moderation_alerts").where("recipient_id", "==", token),
+        db.collection("forum_moderation_alerts").where("recipient_uid", "==", token),
+        db.collection("forum_moderation_alerts").where("recipient_doc_id", "==", token),
+      ];
+
+      for (const queryRef of candidateQueries) {
+        const snap = await queryRef.get();
+        for (const docSnap of snap.docs) {
+          if (seen.has(docSnap.id)) continue;
+          seen.add(docSnap.id);
+          alertsRaw.push(serializeAlert(docSnap));
+        }
+      }
     }
 
-    if (unreadOnly) {
-      alertsQuery = alertsQuery.where("status", "==", "unread");
-    }
-
-    const snap = await alertsQuery.get();
-    const alerts = snap.docs
-      .map((docSnap) => serializeAlert(docSnap))
+    const alerts = alertsRaw
+      .filter((entry) => (clubeId ? String(entry?.clube_id || "") === clubeId : true))
+      .filter((entry) =>
+        unreadOnly ? String(entry?.status || "unread").toLowerCase() === "unread" : true,
+      )
       .sort((a, b) => b.createdAtMs - a.createdAtMs)
       .slice(0, pageLimit);
 

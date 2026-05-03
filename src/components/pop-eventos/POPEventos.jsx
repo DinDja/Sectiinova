@@ -1115,6 +1115,7 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
       nextQuery = queryInput,
       background = false,
       applyOnlyIfNew = false,
+      forceRefresh = false,
     } = {}) => {
       if (isScanInFlightRef.current && background) {
         return;
@@ -1129,12 +1130,14 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
         setErrorMessage("");
       }
 
+      let shouldScheduleForcedRefresh = false;
       try {
         const payload = await fetchPopEventos({
           year: TARGET_YEAR,
           mode: nextMode,
           query: nextQuery,
           group: nextGroup,
+          forceRefresh,
         });
 
         const normalizedIncomingEvents = normalizeRadarEvents(payload?.events);
@@ -1183,6 +1186,13 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
             `${newcomersCount} novo(s) evento(s) entrou(aram) no radar em segundo plano.`,
           );
         }
+
+        shouldScheduleForcedRefresh = Boolean(
+          !background
+          && !forceRefresh
+          && payload?.sharedCache?.servedFromCache === true
+          && payload?.sharedCache?.revalidateRecommended === true,
+        );
       } catch (error) {
         if (!background) {
           setErrorMessage(
@@ -1197,6 +1207,19 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
           setIsBackgroundRefreshing(false);
         } else {
           setIsLoading(false);
+        }
+
+        if (shouldScheduleForcedRefresh) {
+          setTimeout(() => {
+            void runScan({
+              nextMode,
+              nextGroup,
+              nextQuery,
+              background: true,
+              applyOnlyIfNew: true,
+              forceRefresh: true,
+            });
+          }, 0);
         }
       }
     },
@@ -1228,6 +1251,7 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
         nextQuery: cachePayload.filters.query || "",
         background: true,
         applyOnlyIfNew: true,
+        forceRefresh: true,
       });
       return;
     }
@@ -1250,6 +1274,7 @@ export default function POPEventos({ uiStyleId = "neo", loggedUser = null }) {
         nextQuery: activeQuery,
         background: true,
         applyOnlyIfNew: true,
+        forceRefresh: true,
       });
     }, RADAR_BACKGROUND_REFRESH_INTERVAL_MS);
 

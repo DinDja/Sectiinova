@@ -4,6 +4,7 @@ import {
   FcGlobe,
   FcOpenedFolder,
   FcWorkflow,
+  FcReading,
   FcCalendar,
   FcIdea,
   FcComments,
@@ -58,6 +59,13 @@ export default function Sidebar({
       description: "Planejamento pedagogico de trilhas",
     },
     {
+      id: "biblioteca",
+      label: "Biblioteca",
+      icon: FcReading,
+      tooltip: "Livros livres curados",
+      description: "Leituras alinhadas a ciencia e inovacao",
+    },
+    {
       id: "popEventos",
       label: "POP Eventos",
       icon: FcCalendar,
@@ -93,8 +101,8 @@ export default function Sidebar({
     "Projetos",
     "meusProjetos",
     "trilha",
+    "biblioteca",
     "popEventos",
-    "inpi",
     "forum",
     "clube",
   ];
@@ -789,7 +797,7 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`hidden h-full min-h-0 shrink-0 flex-col transition-all duration-300 lg:flex overflow-hidden ${
+        className={`hidden min-h-0 shrink-0 flex-col transition-all duration-300 lg:flex overflow-hidden lg:sticky lg:top-0 lg:self-start lg:h-dvh lg:max-h-dvh ${
           isMaterialStyle
             ? "w-[18.5rem] rounded-[1.4rem] border border-slate-200 bg-slate-50/90 py-3 shadow-[0_14px_36px_rgba(15,23,42,0.1)]"
             : isEditorialStyle

@@ -12,6 +12,7 @@ import INPI from './components/inpi/INPI';
 import INPILandingPage from './components/inpi/INPILandingPage';
 import ForumBoard from './components/forum/ForumBoard';
 import TrilhaPedagogica from './components/trilha/TrilhaPedagogica';
+import LibraryBoard from './components/library/LibraryBoard';
 import MeusProjetos from './components/projects/MeusProjetos';
 import POPEventos from './components/pop-eventos/POPEventos';
 import TutorialCoach from './components/tutorial/TutorialCoach';
@@ -376,6 +377,12 @@ export default function App() {
                     {currentView === 'trilha' && (
                         <div data-tutorial-anchor="content-trilha">
                             <TrilhaPedagogica />
+                        </div>
+                    )}
+
+                    {currentView === 'biblioteca' && (
+                        <div data-tutorial-anchor="content-biblioteca">
+                            <LibraryBoard uiStyleId={selectedUiStyleId} loggedUser={loggedUser} />
                         </div>
                     )}
 

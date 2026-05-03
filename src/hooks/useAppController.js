@@ -922,55 +922,59 @@ export default function useAppController() {
     }, [normalizeUserEntity, normalizeSchoolEntity, fallbackSchoolUnits]);
 
     useEffect(() => {
-        let isMounted = true;
+        if (!loggedUser || diaryAccessibleProjectIds.length === 0) {
+            setDiaryEntries([]);
+            return undefined;
+        }
 
-        const loadDiaryEntriesByProjectMembership = async () => {
-            if (!loggedUser || diaryAccessibleProjectIds.length === 0) {
-                if (isMounted) {
-                    setDiaryEntries([]);
-                }
-                return;
-            }
+        const projectIdChunks = chunkValues(diaryAccessibleProjectIds, DIARY_PROJECT_QUERY_CHUNK_SIZE);
+        const chunkEntries = new Map();
 
-            try {
-                const projectIdChunks = chunkValues(diaryAccessibleProjectIds, DIARY_PROJECT_QUERY_CHUNK_SIZE);
-                const snapshots = await Promise.all(
-                    projectIdChunks.map((projectIds) => {
-                        const diaryQuery = query(
-                            collection(db, 'diario_bordo'),
-                            where('projeto_id', 'in', projectIds)
-                        );
-                        return getDocs(diaryQuery);
-                    })
-                );
+        const recomputeDiaryEntries = () => {
+            const entriesById = new Map();
 
-                if (!isMounted) {
-                    return;
-                }
-
-                const entriesById = new Map();
-                snapshots.forEach((snapshot) => {
-                    snapshot.docs.forEach((item) => {
-                        entriesById.set(item.id, { id: item.id, ...item.data() });
-                    });
+            chunkEntries.forEach((entriesMap) => {
+                entriesMap.forEach((entry, entryId) => {
+                    entriesById.set(entryId, entry);
                 });
+            });
 
-                const sortedEntries = [...entriesById.values()].sort(
-                    (a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt)
-                );
-                setDiaryEntries(sortedEntries);
-            } catch (error) {
-                console.error('Erro ao carregar diário por permissao de projeto:', error);
-                if (isMounted) {
-                    setDiaryEntries([]);
-                }
-            }
+            const sortedEntries = [...entriesById.values()].sort(
+                (a, b) => getTimestampMillis(b?.createdAt) - getTimestampMillis(a?.createdAt)
+            );
+            setDiaryEntries(sortedEntries);
         };
 
-        void loadDiaryEntriesByProjectMembership();
+        const unsubscribers = projectIdChunks.map((projectIds, chunkIndex) => {
+            const diaryQuery = query(
+                collection(db, 'diario_bordo'),
+                where('projeto_id', 'in', projectIds)
+            );
+
+            return onSnapshot(
+                diaryQuery,
+                (snapshot) => {
+                    const entriesMap = new Map();
+                    snapshot.docs.forEach((item) => {
+                        entriesMap.set(item.id, { id: item.id, ...item.data() });
+                    });
+                    chunkEntries.set(chunkIndex, entriesMap);
+                    recomputeDiaryEntries();
+                },
+                (error) => {
+                    console.error('Erro ao sincronizar diário por permissao de projeto:', error);
+                    chunkEntries.set(chunkIndex, new Map());
+                    recomputeDiaryEntries();
+                }
+            );
+        });
 
         return () => {
-            isMounted = false;
+            unsubscribers.forEach((unsubscribe) => {
+                if (typeof unsubscribe === 'function') {
+                    unsubscribe();
+                }
+            });
         };
     }, [loggedUser, diaryAccessibleProjectIds, getTimestampMillis]);
 
@@ -1285,7 +1289,7 @@ export default function useAppController() {
                         
                         // Carregar ordem do sidebar se existir
                         if (userData.sidebarOrder && Array.isArray(userData.sidebarOrder)) {
-                            const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'popEventos', 'inpi', 'forum', 'clube'];
+                            const defaultOrder = ['Projetos', 'meusProjetos', 'trilha', 'biblioteca', 'popEventos', 'forum', 'clube'];
                             const filteredOrder = userData.sidebarOrder.filter((item) => defaultOrder.includes(item));
                             const mergedOrder = [...new Set([...filteredOrder, ...defaultOrder])];
                             setSidebarOrder(mergedOrder);

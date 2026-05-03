@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { STAGES } from '../constants/appConstants';
 
-const DEFAULT_SIDEBAR_ORDER = ['Projetos', 'meusProjetos', 'trilha', 'popEventos', 'inpi', 'forum', 'clube'];
+const DEFAULT_SIDEBAR_ORDER = ['Projetos', 'meusProjetos', 'trilha', 'biblioteca', 'popEventos', 'forum', 'clube'];
 
 export default function useAppControllerState() {
     const [currentView, setCurrentView] = useState('Projetos');

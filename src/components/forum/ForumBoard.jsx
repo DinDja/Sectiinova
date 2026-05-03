@@ -532,7 +532,7 @@ export default function ForumBoard({
   }, [loggedUser]);
 
   const unreadModerationAlerts = useMemo(() => moderationAlerts.filter((alert) => String(alert?.status || "unread").toLowerCase() === "unread"), [moderationAlerts]);
-  const alertRecipientId = useMemo(() => String(auth?.currentUser?.uid || loggedUser?.uid || loggedUser?.id || "").trim(), [loggedUser?.uid, loggedUser?.id]);
+  const alertRecipientId = useMemo(() => String(auth?.currentUser?.uid || loggedUser?.uid || "").trim(), [loggedUser?.uid]);
   const forumUserId = useMemo(() => normalizeId(loggedUser?.id || auth?.currentUser?.uid || loggedUser?.uid), [loggedUser?.id, loggedUser?.uid]);
 
   const profileClubIds = useMemo(() => normalizeUniqueIds([normalizeId(myClubId), ...getUserClubIds(loggedUser)]), [myClubId, loggedUser]);
@@ -607,7 +607,7 @@ export default function ForumBoard({
 
   useEffect(() => {
     if (!selectedMyForumClubId || !isMentor || !alertRecipientId) { setModerationAlerts([]); return; }
-    return subscribeToModerationAlerts({ clubeId: selectedMyForumClubId, recipientId: alertRecipientId, callback: setModerationAlerts, unreadOnly: false });
+    return subscribeToModerationAlerts({ clubeId: selectedMyForumClubId, callback: setModerationAlerts, unreadOnly: false });
   }, [selectedMyForumClubId, isMentor, alertRecipientId]);
 
   useEffect(() => {

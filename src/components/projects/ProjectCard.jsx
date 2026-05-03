@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Heart, MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School, Sparkles } from 'lucide-react';
+import { MessageCircle, ChevronDown, ChevronLeft, ChevronRight, X, Eye, Share2, BookOpen, Users, School, Sparkles } from 'lucide-react';
 import ModalPerfil from '../club/ModalPerfil';
 import ProjectGallery from './ProjectGallery';
 
@@ -256,6 +256,9 @@ export default function ProjectCard({
 
     const clubProjectsForModal = Array.isArray(allProjects) ? allProjects.filter(p => String(p.clube_id) === String(club?.id)) : [];
     const clubUsersForModal = Array.isArray(allUsers) ? allUsers.filter((u) => getUserClubIds(u).includes(String(club?.id))) : [];
+    const isLikeDisabled = !canLikeProject || isLikePending || isLikeSubmitting;
+    const previousLikeCount = isLiked ? Math.max(0, likesCount - 1) : likesCount;
+    const nextLikeCount = isLiked ? likesCount : likesCount + 1;
 
     return (
         <article 
@@ -429,24 +432,36 @@ export default function ProjectCard({
 
             {/* Botões Flutuantes (Pill-shaped, HQ Vibe) */}
             <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3">
-                <button
-                    onClick={handleLike}
-                    disabled={!canLikeProject || isLikePending || isLikeSubmitting}
-                    className={`group/btn-like border-[3px] border-slate-900 px-4 py-2.5 rounded-full text-sm font-black flex items-center gap-2 transition-transform duration-200 ${
-                        isLiked
-                            ? 'bg-pink-500 text-white hover:bg-pink-400'
-                            : 'bg-white text-slate-900 hover:bg-pink-100'
-                    } ${
-                        !canLikeProject ? 'cursor-not-allowed opacity-60' : 'hover:scale-105'
-                    }`}
-                    title={canLikeProject ? (isLiked ? 'Descurtir projeto' : 'Curtir projeto') : 'Faca login para curtir projetos'}
-                >
-                    <Heart
-                        className={`w-4 h-4 ${isLikePending || isLikeSubmitting ? 'animate-pulse' : ''}`}
-                        fill={isLiked ? 'currentColor' : 'none'}
+                <div className={`project-like-button ${isLikeDisabled ? 'is-disabled' : ''}`}>
+                    <input
+                        className="project-like-toggle"
+                        type="checkbox"
+                        checked={isLiked}
+                        readOnly
+                        tabIndex={-1}
+                        aria-hidden="true"
                     />
-                    <span>{likesCount}</span>
-                </button>
+                    <button
+                        type="button"
+                        onClick={handleLike}
+                        disabled={isLikeDisabled}
+                        className="project-like-control like"
+                        title={canLikeProject ? (isLiked ? 'Descurtir projeto' : 'Curtir projeto') : 'Faca login para curtir projetos'}
+                    >
+                        <svg
+                            className={`like-icon ${isLikePending || isLikeSubmitting ? 'is-pending' : ''}`}
+                            fillRule="nonzero"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                        >
+                            <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                        </svg>
+                        <span className="like-text">Likes</span>
+                    </button>
+                    <span className="like-count one">{previousLikeCount}</span>
+                    <span className="like-count two">{nextLikeCount}</span>
+                </div>
 
                 {club && (
                     <button 

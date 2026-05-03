@@ -8,6 +8,7 @@ import {
   getUiThemeOption,
   resolveUserUiPreferences,
 } from "../../constants/uiPreferences";
+import "../library/LibraryBoardBackground.css";
 
 export default function MainShell({
   currentView,
@@ -65,6 +66,7 @@ export default function MainShell({
     "Projetos",
     "meusProjetos",
     "trilha",
+    "biblioteca",
     "popEventos",
     "inpi",
     "forum",
@@ -133,6 +135,7 @@ export default function MainShell({
   };
 
   const isINPIView = currentView === "inpi";
+  const isLibraryView = currentView === "biblioteca";
   const isForum = currentView === "forum";
   const isClub = currentView === "clube";
   const isTrilha = currentView === "trilha";
@@ -155,6 +158,10 @@ export default function MainShell({
       label: "Trilha Pedagogica",
       summary: "Planejamento das trilhas de aprendizagem.",
     },
+    biblioteca: {
+      label: "Biblioteca Livre",
+      summary: "Livros de dominio publico curados pelo robo para ciencia e inovacao escolar.",
+    },
     popEventos: {
       label: "POP Eventos",
       summary: "Radar de eventos, editais e competicoes oficiais de 2026.",
@@ -172,7 +179,7 @@ export default function MainShell({
       summary: "Gestao do clube, membros e projetos vinculados.",
     },
     diario: {
-      label: "Diario de Bordo",
+      label: "Diário de Bordo",
       summary: "Registros, marcos e evidencias de evolucao.",
     },
   };
@@ -187,12 +194,24 @@ export default function MainShell({
     loggedUser?.escola_nome || viewingClub?.escola_nome || selectedClub?.escola_nome || "",
   ).trim();
 
-  const containerClasses = isHighContrast
-    ? "app-shell h-dvh bg-black text-white flex flex-col relative overflow-hidden"
-    : "app-shell h-dvh flex flex-col relative overflow-hidden";
+  const containerClasses = isLibraryView
+    ? (isHighContrast
+      ? "app-shell min-h-dvh bg-black text-white flex flex-col relative"
+      : "app-shell min-h-dvh flex flex-col relative")
+    : (isHighContrast
+      ? "app-shell h-dvh bg-black text-white flex flex-col relative overflow-hidden"
+      : "app-shell h-dvh flex flex-col relative overflow-hidden");
 
   const shellBodyClasses = isINPIView
     ? "flex flex-1 overflow-hidden z-10 min-h-0"
+    : isLibraryView && isMaterialStyle
+      ? "flex flex-1 overflow-visible z-10 min-h-0 gap-3 bg-slate-100/70 p-2 sm:p-3 lg:p-4"
+    : isLibraryView && isModernStyle
+      ? "flex flex-1 overflow-visible z-10 min-h-0 bg-slate-50/80"
+    : isLibraryView && isEditorialStyle
+      ? "flex flex-1 overflow-visible z-10 min-h-0 gap-3 bg-[#f2ebde] p-2 sm:p-3 lg:p-4"
+    : isLibraryView
+      ? "flex flex-1 overflow-visible z-10 min-h-0"
     : isMaterialStyle
       ? "flex flex-1 overflow-hidden z-10 min-h-0 gap-3 bg-slate-100/70 p-2 sm:p-3 lg:p-4"
       : isModernStyle
@@ -203,6 +222,14 @@ export default function MainShell({
 
   const contentColumnClasses = isINPIView
     ? "flex-1 flex flex-col h-full overflow-hidden min-w-0"
+    : isLibraryView && isMaterialStyle
+      ? "flex-1 flex flex-col min-h-0 overflow-visible min-w-0 rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+    : isLibraryView && isModernStyle
+      ? "flex-1 flex flex-col min-h-0 overflow-visible min-w-0 border-l border-slate-200/70 bg-slate-50"
+    : isLibraryView && isEditorialStyle
+      ? "flex-1 flex flex-col min-h-0 overflow-visible min-w-0 rounded-[1.35rem] border border-[#d4c3aa] bg-[#fcf8ef] shadow-[0_20px_45px_rgba(110,86,52,0.14)]"
+    : isLibraryView
+      ? "flex-1 flex flex-col min-h-0 overflow-visible min-w-0"
     : isMaterialStyle
       ? "flex-1 flex flex-col h-full overflow-hidden min-w-0 rounded-[1.6rem] border border-slate-200 bg-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
       : isModernStyle
@@ -224,6 +251,14 @@ export default function MainShell({
     :
     "w-full";
 
+  const materialContentShellClassName = isLibraryView
+    ? "min-w-0 overflow-visible rounded-[1.5rem] border border-slate-200 bg-white shadow-sm"
+    : "min-w-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm";
+
+  const editorialContentShellClassName = isLibraryView
+    ? "editorial-sheet min-w-0 overflow-visible"
+    : "editorial-sheet min-w-0 overflow-hidden";
+
   const renderContentByStyle = () => {
     if (isINPIView) {
       return <div className="w-full min-h-full">{children}</div>;
@@ -239,7 +274,7 @@ export default function MainShell({
       return (
         <div className="mx-auto w-full max-w-[112rem] px-3 py-3 sm:px-4 lg:px-5">
           <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-            <section className="min-w-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+            <section className={materialContentShellClassName}>
               <header className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {currentViewMeta.label}
@@ -312,7 +347,7 @@ export default function MainShell({
     if (isEditorialStyle) {
       return (
         <div className="editorial-layout-frame mx-auto w-full max-w-[104rem] px-2.5 py-2.5 sm:px-4 lg:px-5">
-          <section className="editorial-sheet min-w-0 overflow-hidden">
+          <section className={editorialContentShellClassName}>
             <header className="editorial-sheet-header px-5 py-4 sm:px-7">
               <div className="min-w-0">
                 <p className="editorial-kicker">
@@ -417,9 +452,10 @@ export default function MainShell({
           <main
             ref={mainContentRef}
             data-tutorial-anchor="main-content"
-            className={`flex-1 overflow-y-auto overflow-x-hidden relative studio-main min-w-0 ${isMaterialStyle ? "material-main" : ""} ${isModernStyle ? "modern-main" : ""} ${isEditorialStyle ? "editorial-main" : ""}`}
+            className={`flex-1 relative min-w-0 ${isLibraryView ? "overflow-visible library-main-host" : "overflow-y-auto overflow-x-hidden studio-main"} ${isMaterialStyle ? "material-main" : ""} ${isModernStyle ? "modern-main" : ""} ${isEditorialStyle ? "editorial-main" : ""} ${isClub ? "club-module-main" : ""}`}
           >
-            {renderContentByStyle()}
+            {isLibraryView && <div className="library-module-bg" aria-hidden="true" />}
+            <div className={isLibraryView ? "relative z-10 pb-16" : ""}>{renderContentByStyle()}</div>
           </main>
 
           <SupportTicketWidget

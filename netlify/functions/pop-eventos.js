@@ -1,5 +1,6 @@
 import http from "node:http";
 import https from "node:https";
+import { getAdminDb } from "./firebaseAdminShared.js";
 
 const BOT_NAME = "SECTI-POP-Eventos-Bot/1.0";
 const DEFAULT_YEAR = 2026;
@@ -23,6 +24,11 @@ const MAX_DESCRIPTION_LENGTH = 1400;
 const WOMEN_FOCUS_GROUP = "protagonismo_feminino";
 const FAPESB_GROUP = "fapesb";
 const FAPESB_SOURCE_ID = "fapesb";
+const POP_EVENTOS_SHARED_CACHE_COLLECTION = "pop_eventos_shared_cache";
+const SHARED_CACHE_FRESH_MS = 20 * 60 * 1000;
+const SHARED_CACHE_STALE_MS = 48 * 60 * 60 * 1000;
+const SHARED_CACHE_MIN_REFRESH_INTERVAL_MS = 30 * 1000;
+const SHARED_CACHE_MAX_EVENTS_STORED = 220;
 
 const EVENT_KEYWORDS = [
   "evento",
@@ -2119,6 +2125,126 @@ function parseSourceIds(value = "") {
     .filter(Boolean);
 }
 
+function parseBooleanFlag(value = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
+function hashString(value = "") {
+  const text = String(value || "");
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function sanitizeCacheKeyToken(value = "", fallback = "all") {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || fallback;
+}
+
+function buildSharedCacheDocId({ year, group = "", queryTerm = "", sourceIds = [] }) {
+  const safeGroup = sanitizeCacheKeyToken(group, "all");
+  const queryHash = hashString(String(queryTerm || "").trim().toLowerCase() || "all");
+  const sourceHash = hashString(
+    Array.isArray(sourceIds)
+      ? sourceIds.map((item) => String(item || "").trim().toLowerCase()).sort().join(",")
+      : "all",
+  );
+
+  return `year-${year}__group-${safeGroup}__query-${queryHash}__sources-${sourceHash}`;
+}
+
+function normalizeEventsForSharedCache(events = []) {
+  if (!Array.isArray(events)) return [];
+  return events.slice(0, SHARED_CACHE_MAX_EVENTS_STORED);
+}
+
+function buildSharedCacheMeta({
+  cacheKey = "",
+  servedFromCache = false,
+  cacheAgeMs = null,
+  revalidateRecommended = false,
+  refreshSkippedByThrottle = false,
+  refreshedNow = false,
+}) {
+  return {
+    enabled: true,
+    cacheKey: String(cacheKey || ""),
+    servedFromCache: Boolean(servedFromCache),
+    cacheAgeMs: Number.isFinite(cacheAgeMs) ? cacheAgeMs : null,
+    stale: Number.isFinite(cacheAgeMs) ? cacheAgeMs > SHARED_CACHE_FRESH_MS : false,
+    revalidateRecommended: Boolean(revalidateRecommended),
+    refreshSkippedByThrottle: Boolean(refreshSkippedByThrottle),
+    refreshedNow: Boolean(refreshedNow),
+    freshForMs: SHARED_CACHE_FRESH_MS,
+    hardTtlMs: SHARED_CACHE_STALE_MS,
+  };
+}
+
+function withSharedCacheMeta(payload = {}, sharedCacheMeta = {}) {
+  return {
+    ...payload,
+    sharedCache: sharedCacheMeta,
+  };
+}
+
+async function readSharedCacheEntry(cacheDocId) {
+  try {
+    const db = getAdminDb();
+    const docSnap = await db.collection(POP_EVENTOS_SHARED_CACHE_COLLECTION).doc(String(cacheDocId || "")).get();
+    if (!docSnap.exists) return null;
+
+    const data = docSnap.data() || {};
+    const cachedPayload = data?.payload && typeof data.payload === "object" ? data.payload : null;
+    const updatedAtMs = Number(data?.updatedAtMs || 0);
+    if (!cachedPayload || !Number.isFinite(updatedAtMs) || updatedAtMs <= 0) {
+      return null;
+    }
+
+    return {
+      id: docSnap.id,
+      updatedAtMs,
+      payload: cachedPayload,
+    };
+  } catch (error) {
+    console.warn("[pop-eventos] Falha ao ler cache compartilhado:", error);
+    return null;
+  }
+}
+
+async function saveSharedCacheEntry(cacheDocId, payloadToCache = {}) {
+  try {
+    const db = getAdminDb();
+    const nowMs = Date.now();
+    const safePayload = {
+      ...payloadToCache,
+      events: normalizeEventsForSharedCache(payloadToCache?.events),
+      eventsCount: Number(payloadToCache?.eventsCount || 0),
+    };
+
+    await db.collection(POP_EVENTOS_SHARED_CACHE_COLLECTION).doc(String(cacheDocId || "")).set(
+      {
+        cacheKey: String(cacheDocId || ""),
+        year: Number(payloadToCache?.year || DEFAULT_YEAR),
+        group: String(payloadToCache?.group || "").trim().toLowerCase(),
+        query: String(payloadToCache?.query || "").trim(),
+        payload: safePayload,
+        updatedAtMs: nowMs,
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    console.warn("[pop-eventos] Falha ao salvar cache compartilhado:", error);
+  }
+}
+
 function parseRequestPayload(event) {
   const query = event?.queryStringParameters || {};
   const isPost = String(event?.httpMethod || "").toUpperCase() === "POST";
@@ -2145,6 +2271,9 @@ function parseRequestPayload(event) {
     : DEFAULT_MAX_SOURCES;
   const sourceIds = parseSourceIds(body.sourceIds || query.sourceIds || "");
   const group = String(body.group || query.group || "").trim().toLowerCase();
+  const forceRefresh = parseBooleanFlag(
+    body.forceRefresh ?? query.forceRefresh ?? query.refresh ?? false,
+  );
 
   return {
     mode,
@@ -2153,6 +2282,7 @@ function parseRequestPayload(event) {
     maxSources,
     sourceIds,
     group,
+    forceRefresh,
   };
 }
 
@@ -2348,12 +2478,111 @@ export async function handler(event) {
   const effectiveMaxEventsPerSource = womenFocusEnabled
     ? WOMEN_FOCUS_MAX_EVENTS_PER_SOURCE
     : DEFAULT_MAX_EVENTS_PER_SOURCE;
-
-  const scanSettings = resolveScanSettings(effectiveMode);
   const sourcesToScan = resolveSourcesToScan({
     ...payload,
     maxSources: effectiveMaxSources,
   });
+  const scanSettings = resolveScanSettings(effectiveMode);
+  const cacheDocId = buildSharedCacheDocId({
+    year: payload.year,
+    group: payload.group,
+    queryTerm: payload.queryTerm,
+    sourceIds: payload.sourceIds,
+  });
+
+  const availableSources = POP_EVENT_SOURCES.map((source) => ({
+    id: source.id,
+    name: source.name,
+    group: source.group,
+    groupLabel: source.groupLabel,
+    url: source.url,
+  }));
+
+  const buildSuccessPayloadFromScan = ({
+    reports,
+    events,
+    elapsedMs,
+    generatedAt = new Date().toISOString(),
+  }) => {
+    const safeReports = Array.isArray(reports) ? reports : [];
+    const safeEvents = Array.isArray(events) ? events : [];
+    const successSources = safeReports.filter((item) => item.status === "ok").length;
+    const errorSources = safeReports.filter((item) => item.status === "error").length;
+    const skippedSources = safeReports.filter((item) => item.status === "skipped_time_budget").length;
+
+    return {
+      success: true,
+      generatedAt,
+      year: payload.year,
+      mode: effectiveMode,
+      requestedMode: payload.mode,
+      query: payload.queryTerm,
+      group: payload.group,
+      womenFocusEnabled,
+      sourcesRequested: sourcesToScan.length,
+      sourcesScanned: successSources + errorSources,
+      sourcesSucceeded: successSources,
+      sourcesFailed: errorSources,
+      sourcesSkippedByBudget: skippedSources,
+      elapsedMs: Number.isFinite(elapsedMs) ? elapsedMs : Date.now() - startedAt,
+      eventsCount: safeEvents.length,
+      scanLimitMs: scanSettings.timeBudgetMs,
+      reports: safeReports,
+      availableSources,
+      events: safeEvents,
+    };
+  };
+
+  const cacheEntry = await readSharedCacheEntry(cacheDocId);
+  const cacheAgeMs = cacheEntry ? Math.max(0, Date.now() - Number(cacheEntry.updatedAtMs || 0)) : null;
+  const cacheIsFresh = Number.isFinite(cacheAgeMs) ? cacheAgeMs <= SHARED_CACHE_FRESH_MS : false;
+  const cacheWithinHardTtl = Number.isFinite(cacheAgeMs) ? cacheAgeMs <= SHARED_CACHE_STALE_MS : false;
+  const cacheTooRecentForForcedRefresh = Number.isFinite(cacheAgeMs)
+    ? cacheAgeMs < SHARED_CACHE_MIN_REFRESH_INTERVAL_MS
+    : false;
+
+  if (cacheEntry && !payload.forceRefresh && cacheWithinHardTtl) {
+    const cachedPayload = {
+      ...cacheEntry.payload,
+      availableSources,
+    };
+
+    const revalidateRecommended = true;
+    return json(
+      200,
+      withSharedCacheMeta(
+        cachedPayload,
+        buildSharedCacheMeta({
+          cacheKey: cacheDocId,
+          servedFromCache: true,
+          cacheAgeMs,
+          revalidateRecommended,
+        }),
+      ),
+    );
+  }
+
+  if (cacheEntry && payload.forceRefresh && cacheTooRecentForForcedRefresh) {
+    const cachedPayload = {
+      ...cacheEntry.payload,
+      availableSources,
+    };
+
+    return json(
+      200,
+      withSharedCacheMeta(
+        cachedPayload,
+        buildSharedCacheMeta({
+          cacheKey: cacheDocId,
+          servedFromCache: true,
+          cacheAgeMs,
+          revalidateRecommended: false,
+          refreshSkippedByThrottle: true,
+        }),
+      ),
+    );
+  }
+
   const deadline = startedAt + scanSettings.timeBudgetMs;
   const { reports, events: collectedEvents } = await runConcurrentScans({
     sources: sourcesToScan,
@@ -2368,35 +2597,27 @@ export async function handler(event) {
   const filteredByGroupFocus = filterEventsByGroupFocus(dedupedEvents, payload.group);
   const filteredByQuery = filterEventsByQuery(filteredByGroupFocus, payload.queryTerm);
   const sortedEvents = sortEvents(filteredByQuery).slice(0, MAX_EVENTS_RETURNED);
-  const successSources = reports.filter((item) => item.status === "ok").length;
-  const errorSources = reports.filter((item) => item.status === "error").length;
-  const skippedSources = reports.filter((item) => item.status === "skipped_time_budget").length;
 
-  return json(200, {
-    success: true,
-    generatedAt: new Date().toISOString(),
-    year: payload.year,
-    mode: effectiveMode,
-    requestedMode: payload.mode,
-    query: payload.queryTerm,
-    group: payload.group,
-    womenFocusEnabled,
-    sourcesRequested: sourcesToScan.length,
-    sourcesScanned: successSources + errorSources,
-    sourcesSucceeded: successSources,
-    sourcesFailed: errorSources,
-    sourcesSkippedByBudget: skippedSources,
-    elapsedMs: Date.now() - startedAt,
-    eventsCount: sortedEvents.length,
-    scanLimitMs: scanSettings.timeBudgetMs,
+  const successPayload = buildSuccessPayloadFromScan({
     reports,
-    availableSources: POP_EVENT_SOURCES.map((source) => ({
-      id: source.id,
-      name: source.name,
-      group: source.group,
-      groupLabel: source.groupLabel,
-      url: source.url,
-    })),
     events: sortedEvents,
+    elapsedMs: Date.now() - startedAt,
+    generatedAt: new Date().toISOString(),
   });
+
+  await saveSharedCacheEntry(cacheDocId, successPayload);
+
+  return json(
+    200,
+    withSharedCacheMeta(
+      successPayload,
+      buildSharedCacheMeta({
+        cacheKey: cacheDocId,
+        servedFromCache: false,
+        cacheAgeMs: 0,
+        revalidateRecommended: false,
+        refreshedNow: true,
+      }),
+    ),
+  );
 }

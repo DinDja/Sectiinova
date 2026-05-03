@@ -18,6 +18,7 @@ export async function fetchPopEventos({
   query = "",
   maxSources = 28,
   group = "",
+  forceRefresh = false,
 } = {}) {
   const queryString = toQueryString({
     year,
@@ -25,6 +26,7 @@ export async function fetchPopEventos({
     query,
     maxSources,
     group,
+    forceRefresh: forceRefresh ? "1" : "",
   });
 
   const endpoint = queryString

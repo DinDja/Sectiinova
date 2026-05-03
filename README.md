@@ -9,6 +9,7 @@
 - Perfil de clube com lista de projetos, membros, orientadores e diario de bordo.
 - Autenticacao com Firebase (login/cadastro).
 - Criacao de projeto por clube.
+- Biblioteca Livre com curadoria automatica de livros de dominio publico alinhados a CT&I escolar.
 - Suporte ao fluxo INPI.
 
 ## Estrutura principal
@@ -44,6 +45,7 @@ Os endpoints abaixo estao em `app/api` e reutilizam as regras existentes de `net
 - `/api/forum/moderate`
 - `/api/forum/alerts`
 - `/api/lattes/extract`
+- `/api/library/books`
 - `/api/teacher/verify` (retorna `501` ate a function ser implementada)
 
 ## Monitoramento automatico do INPI
